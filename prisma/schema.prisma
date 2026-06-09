@@ -1,0 +1,214 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id              String          @id @default(cuid())
+  name            String
+  email           String          @unique
+  passwordHash    String
+  practiceArea    String?
+  organization    String?
+  isActive        Boolean         @default(true)
+  roles           UserRole[]
+  contents        Content[]
+  campaigns       Campaign[]
+  alerts          Alert[]
+  aiRequestLogs   AIRequestLog[]
+  auditLogs       AuditLog[]
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+}
+
+model Role {
+  id          String           @id @default(cuid())
+  name        String           @unique
+  label       String
+  users       UserRole[]
+  permissions RolePermission[]
+}
+
+model Permission {
+  id          String           @id @default(cuid())
+  action      String           @unique
+  description String
+  roles       RolePermission[]
+}
+
+model UserRole {
+  userId String
+  roleId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role   Role   @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@id([userId, roleId])
+}
+
+model RolePermission {
+  roleId       String
+  permissionId String
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, permissionId])
+}
+
+model Content {
+  id             String            @id @default(cuid())
+  title          String
+  body           String
+  category       String
+  status         String            @default("DRAFT")
+  tags           String            @default("[]")
+  ownerId        String
+  owner          User              @relation(fields: [ownerId], references: [id])
+  drafts         ContentDraft[]
+  reviews        ContentReview[]
+  scheduledPosts ScheduledPost[]
+  campaignId     String?
+  campaign       Campaign?         @relation(fields: [campaignId], references: [id])
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+}
+
+model ContentDraft {
+  id        String   @id @default(cuid())
+  contentId String
+  content   Content  @relation(fields: [contentId], references: [id], onDelete: Cascade)
+  version   Int
+  body      String
+  notes     String?
+  createdAt DateTime @default(now())
+}
+
+model ContentReview {
+  id              String          @id @default(cuid())
+  contentId       String
+  content         Content         @relation(fields: [contentId], references: [id], onDelete: Cascade)
+  complianceScore Int
+  riskLevel       String
+  summary         String
+  findings        ReviewFinding[]
+  createdAt       DateTime        @default(now())
+}
+
+model ReviewFinding {
+  id        String        @id @default(cuid())
+  reviewId  String
+  review    ContentReview @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+  issue     String
+  severity  String
+  evidence  String
+  advice    String
+}
+
+model Campaign {
+  id          String       @id @default(cuid())
+  name        String
+  type        String
+  objective   String
+  audience    String
+  channels    String       @default("[]")
+  startsAt    DateTime
+  endsAt      DateTime
+  ownerId     String
+  owner       User         @relation(fields: [ownerId], references: [id])
+  contents    Content[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+}
+
+model PublishingChannel {
+  id          String       @id @default(cuid())
+  name        String
+  type        String       @unique
+  isConnected Boolean      @default(false)
+  posts       ScheduledPost[]
+}
+
+model ScheduledPost {
+  id        String          @id @default(cuid())
+  contentId String
+  content   Content         @relation(fields: [contentId], references: [id], onDelete: Cascade)
+  channelId String
+  channel   PublishingChannel @relation(fields: [channelId], references: [id])
+  publishAt DateTime
+  status    String          @default("SCHEDULED")
+  error     String?
+  createdAt DateTime         @default(now())
+}
+
+model ContentTemplate {
+  id          String          @id @default(cuid())
+  name        String
+  category    String
+  body        String
+  tags        String          @default("[]")
+  isArchived  Boolean         @default(false)
+  createdAt   DateTime        @default(now())
+}
+
+model TrendSignal {
+  id          String   @id @default(cuid())
+  title       String
+  source      String
+  strength    Int
+  detectedAt  DateTime @default(now())
+}
+
+model Recommendation {
+  id        String   @id @default(cuid())
+  title     String
+  body      String
+  area      String
+  priority  Int
+  isApplied Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+model Alert {
+  id        String    @id @default(cuid())
+  userId    String?
+  user      User?     @relation(fields: [userId], references: [id])
+  title     String
+  body      String
+  severity  String    @default("MEDIUM")
+  isRead    Boolean   @default(false)
+  createdAt DateTime  @default(now())
+}
+
+model AnalyticsMetric {
+  id        String   @id @default(cuid())
+  scope     String
+  name      String
+  value     Float
+  dimension String?
+  measuredAt DateTime @default(now())
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id])
+  action    String
+  entity    String
+  entityId  String?
+  metadata  String?
+  createdAt DateTime @default(now())
+}
+
+model AIRequestLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id])
+  task      String
+  input     String
+  output    String
+  provider  String
+  createdAt DateTime @default(now())
+}
