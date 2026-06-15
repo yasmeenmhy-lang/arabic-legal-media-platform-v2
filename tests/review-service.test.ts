@@ -8,6 +8,10 @@ describe("reviewContent", () => {
     expect(result.riskLevel).toBe("CRITICAL");
     expect(result.findings.length).toBeGreaterThanOrEqual(3);
     expect(result.complianceScore).toBeLessThan(60);
+    expect(result.findings[0].legalCitation).toBeTruthy();
+    expect(result.findings[0].sourceDocument).toBeTruthy();
+    expect(result.findings[0].ruleOrArticleNumber).toBeTruthy();
+    expect(result.findings[0].explanation).toBeTruthy();
   });
 
   it("keeps neutral educational wording low risk", () => {

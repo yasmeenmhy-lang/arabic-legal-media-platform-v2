@@ -1,18 +1,36 @@
-import { DataTable, EmptyState, PageHeader, StatusBadge } from "@/components/ui";
+import { DataTable, PageHeader, StatusBadge } from "@/components/ui";
+import { legalKnowledgeEntries, legalSourceDocuments } from "@/lib/legal-knowledge-base";
 
 export default function LibraryPage() {
   return (
     <>
-      <PageHeader title="مكتبة المحتوى" description="مستودع للقوالب وحملات التوعية والأصول القانونية مع البحث والوسوم وإعادة الاستخدام والأرشفة." />
-      <DataTable
-        headers={["الأصل", "التصنيف", "الوسوم", "الحالة"]}
-        rows={[
-          ["قالب منشور توعوي", "قالب", "توعية، امتثال", <StatusBadge tone="good" key="a">متاح</StatusBadge>],
-          ["حملة حماية العقود", "قالب حملة", "شركات، عقود", <StatusBadge tone="good" key="b">متاح</StatusBadge>]
-        ]}
+      <PageHeader
+        title="قاعدة المعرفة القانونية"
+        description="مستودع المصادر النظامية المعتمدة للمراجعة الامتثالية، مبني من قواعد السلوك المهني للمحامين واللائحة التنفيذية لنظام المحاماة وروابط وزارة العدل."
       />
+
+      <DataTable
+        headers={["المصدر", "النوع", "الإصدار", "الحالة", "الرابط"]}
+        rows={legalSourceDocuments.map((document) => [
+          document.title,
+          document.documentType,
+          document.version,
+          <StatusBadge tone="good" key={document.id}>{document.status}</StatusBadge>,
+          document.sourceUrl
+        ])}
+      />
+
       <div className="mt-5">
-        <EmptyState title="مساحة أصول إضافية" body="عند رفع أصول جديدة ستظهر هنا مع خيارات البحث والتصفية والتكرار." />
+        <DataTable
+          headers={["القاعدة/المادة", "الفصل", "الصفحة", "الفئات الخطرة", "الكلمات المفتاحية"]}
+          rows={legalKnowledgeEntries.map((entry) => [
+            entry.articleOrRuleNumber,
+            `${entry.chapter} - ${entry.section}`,
+            entry.pageNumber,
+            entry.riskCategories.join(", "),
+            entry.keywords.join(", ")
+          ])}
+        />
       </div>
     </>
   );

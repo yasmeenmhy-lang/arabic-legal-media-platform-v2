@@ -4,7 +4,7 @@
 
 :root {
   color-scheme: light;
-  background: #f7f8f5;
+  background: #f5f7f6;
 }
 
 html {
@@ -14,8 +14,11 @@ html {
 
 body {
   min-height: 100vh;
-  background: #f7f8f5;
-  color: #17211d;
+  background:
+    radial-gradient(circle at top left, rgba(0, 108, 91, 0.08), transparent 28rem),
+    #f5f7f6;
+  color: #1f2933;
+  letter-spacing: 0;
 }
 
 * {

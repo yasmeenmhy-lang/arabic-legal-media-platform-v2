@@ -10,6 +10,7 @@ export type PublishResult = {
   status: "scheduled" | "failed";
   externalId?: string;
   message: string;
+  languageQualityScore?: number;
 };
 
 export interface PublishingProvider {

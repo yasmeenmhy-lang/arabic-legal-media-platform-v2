@@ -5,15 +5,15 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        ink: "#17211d",
-        palm: "#1f6f55",
-        mint: "#e8f4ef",
-        gold: "#b68a35",
-        paper: "#f7f8f5",
-        line: "#d9dfd7"
+        ink: "#1f2933",
+        palm: "#006c5b",
+        mint: "#e6f3ef",
+        gold: "#a7782b",
+        paper: "#f5f7f6",
+        line: "#d8e1de"
       },
       fontFamily: {
-        sans: ["Tahoma", "Arial", "sans-serif"]
+        sans: ["IBM Plex Sans Arabic", "Tahoma", "Arial", "sans-serif"]
       }
     }
   },

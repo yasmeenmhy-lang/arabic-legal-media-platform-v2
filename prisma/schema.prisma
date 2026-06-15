@@ -64,6 +64,7 @@ model Content {
   body           String
   category       String
   status         String            @default("DRAFT")
+  approvalStatus String            @default("DRAFT")
   tags           String            @default("[]")
   ownerId        String
   owner          User              @relation(fields: [ownerId], references: [id])
@@ -91,6 +92,7 @@ model ContentReview {
   contentId       String
   content         Content         @relation(fields: [contentId], references: [id], onDelete: Cascade)
   complianceScore Int
+  languageQualityScore Int         @default(0)
   riskLevel       String
   summary         String
   findings        ReviewFinding[]
@@ -105,6 +107,82 @@ model ReviewFinding {
   severity  String
   evidence  String
   advice    String
+  legalCitation String?
+  sourceDocument String?
+  ruleOrArticleNumber String?
+  explanation String?
+  sourceUrl String?
+}
+
+model LegalSourceDocument {
+  id          String                @id
+  title       String
+  documentType String
+  fileName    String?
+  sourceUrl   String
+  version     String
+  sourceHash  String?
+  status      String
+  lastCheckedAt DateTime?
+  changeDetected Boolean             @default(false)
+  pendingVersion String?
+  pendingSourceHash String?
+  approvedBy String?
+  approvedAt DateTime?
+  pages       Int?
+  issuedHijri String?
+  effectiveHijri String?
+  ministry    String
+  entries     LegalKnowledgeEntry[]
+  versions    LegalSourceVersion[]
+  sourceAudits LegalSourceAudit[]
+  createdAt   DateTime              @default(now())
+  updatedAt   DateTime              @updatedAt
+}
+
+model LegalSourceVersion {
+  id               String              @id
+  sourceDocumentId String
+  sourceDocument   LegalSourceDocument @relation(fields: [sourceDocumentId], references: [id], onDelete: Cascade)
+  version          String
+  checkedAt        DateTime
+  checksum         String
+  summary          String
+  approvedBy       String?
+  approvedAt       DateTime?
+  createdAt        DateTime            @default(now())
+}
+
+model LegalSourceAudit {
+  id               String              @id @default(cuid())
+  sourceDocumentId String
+  sourceDocument   LegalSourceDocument @relation(fields: [sourceDocumentId], references: [id], onDelete: Cascade)
+  action           String
+  actor            String
+  details          String
+  createdAt        DateTime            @default(now())
+}
+
+model LegalKnowledgeEntry {
+  id                  String              @id
+  sourceDocumentId    String
+  sourceDocumentRef   LegalSourceDocument @relation(fields: [sourceDocumentId], references: [id], onDelete: Cascade)
+  sourceDocument      String
+  articleOrRuleNumber String
+  chapter             String
+  section             String
+  fullText            String
+  pageNumber          Int
+  sourceUrl           String
+  version             String
+  status              String
+  keywords            String              @default("[]")
+  riskCategories      String              @default("[]")
+  severity            String
+  prohibitedPatterns  String              @default("[]")
+  recommendedAction   String
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
 }
 
 model Campaign {

@@ -1,32 +1,77 @@
-import type { ReviewFinding, ReviewResult, RiskLevel } from "@/lib/types";
+import type { ContentKind, ReviewResult, ReviewWorkflowStep } from "@/lib/types";
+import { reviewLanguageQuality } from "@/lib/services/language-quality-service";
+import { runApprovalWorkflow } from "@/lib/services/approval-workflow-service";
+import { runLegalComplianceReview } from "@/lib/services/legal-compliance-service";
 
-const riskyPatterns = [
-  { pattern: "نضمن", issue: "وعد بنتيجة", advice: "استبدلها بصياغة احتمالية لا تضمن النتيجة." },
-  { pattern: "أفضل محام", issue: "ادعاء تفضيلي غير موثق", advice: "استخدم وصفا مهنيا قابلا للتحقق." },
-  { pattern: "اكسب قضيتك", issue: "إيحاء بضمان كسب القضية", advice: "وضح أن النتائج تعتمد على الوقائع والأنظمة." },
-  { pattern: "سر مضمون", issue: "تسويق مضلل", advice: "قدم معلومة عامة دون صياغة سرية أو مبالغ فيها." }
+const workflowLabels: Array<[ReviewWorkflowStep["key"], string]> = [
+  ["language_quality_review", "Language Quality Review"],
+  ["legal_compliance_review", "Legal Compliance Review"],
+  ["risk_assessment", "Risk Assessment"],
+  ["approval_workflow", "Approval Workflow"],
+  ["export_center", "Export Center"]
 ];
 
-export function reviewContent(text: string): ReviewResult {
-  const findings: ReviewFinding[] = riskyPatterns
-    .filter((item) => text.includes(item.pattern))
-    .map((item) => ({
-      issue: item.issue,
-      severity: "HIGH" as RiskLevel,
-      evidence: item.pattern,
-      advice: item.advice
-    }));
+function buildWorkflow(languageQualityPassed: boolean, compliancePassed: boolean, approvalPassed: boolean): ReviewWorkflowStep[] {
+  return workflowLabels.map(([key, label], index) => {
+    if (index === 0) return { key, label, status: languageQualityPassed ? "passed" : "failed" };
+    if (!languageQualityPassed) return { key, label, status: "blocked" };
+    if (index === 1 || index === 2) return { key, label, status: compliancePassed ? "passed" : "failed" };
+    if (!compliancePassed) return { key, label, status: "blocked" };
+    return { key, label, status: approvalPassed ? "passed" : "pending" };
+  });
+}
 
-  const complianceScore = Math.max(35, 96 - findings.length * 22);
-  const riskLevel: RiskLevel = findings.length >= 3 ? "CRITICAL" : findings.length >= 1 ? "HIGH" : "LOW";
+export function reviewContent(text: string, kind: ContentKind = "ai_response"): ReviewResult {
+  const languageQuality = reviewLanguageQuality({
+    text,
+    kind,
+    terminologyMap: {
+      المسؤولية: ["المسؤليه", "المسئولية"],
+      الإجراء: ["الاجراء", "اجراءات"]
+    }
+  });
+
+  if (!languageQuality.passed) {
+    return {
+      languageQuality,
+      complianceScore: 0,
+      riskLevel: "HIGH",
+      summary: "Language quality validation must pass before legal compliance review, risk assessment, approval, or export.",
+      findings: [],
+      workflow: buildWorkflow(false, false, false),
+      exportAllowed: false
+    };
+  }
+
+  const compliance = runLegalComplianceReview(languageQuality.improvedDraft);
+  const approval = runApprovalWorkflow({
+    languageQuality,
+    complianceScore: compliance.complianceScore,
+    riskLevel: compliance.riskLevel
+  });
 
   return {
-    complianceScore,
-    riskLevel,
+    languageQuality,
+    complianceScore: compliance.complianceScore,
+    riskLevel: compliance.riskLevel,
     summary:
-      findings.length > 0
-        ? "توجد عبارات تحتاج مراجعة امتثالية قبل النشر."
-        : "لا توجد مؤشرات عالية المخاطر في النص التجريبي.",
-    findings
+      compliance.findings.length > 0
+        ? "توجد عبارات تحتاج مراجعة امتثالية مستندة إلى قاعدة المعرفة القانونية قبل النشر."
+        : "لا توجد مؤشرات عالية المخاطر في النص وفقا لقاعدة المعرفة القانونية.",
+    findings: compliance.findings,
+    workflow: buildWorkflow(true, compliance.passed, approval.approved),
+    exportAllowed: approval.approved
+  };
+}
+
+export function assertContentCanExport(text: string, kind: ContentKind = "social_export") {
+  const review = reviewContent(text, kind);
+
+  return {
+    allowed: review.exportAllowed,
+    review,
+    message: review.exportAllowed
+      ? "Content passed language quality, compliance, risk, and approval gates."
+      : "Export is blocked until language quality, legal compliance, risk assessment, and approval checks pass."
   };
 }

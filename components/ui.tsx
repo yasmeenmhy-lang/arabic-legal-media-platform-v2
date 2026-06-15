@@ -12,7 +12,7 @@ export function PageHeader({
   action?: React.ReactNode;
 }) {
   return (
-    <div className="mb-6 flex flex-col justify-between gap-4 md:flex-row md:items-end">
+    <div className="mb-6 flex flex-col justify-between gap-4 border-b border-line pb-5 md:flex-row md:items-end">
       <div>
         <h2 className="text-2xl font-extrabold text-ink">{title}</h2>
         <p className="mt-2 max-w-3xl text-sm leading-7 text-ink/65">{description}</p>
@@ -26,7 +26,7 @@ export function ButtonLink({ href, children }: { href: string; children: React.R
   return (
     <Link
       href={href}
-      className="inline-flex items-center gap-2 rounded bg-palm px-4 py-2 text-sm font-bold text-white focus-ring"
+      className="inline-flex items-center gap-2 rounded bg-palm px-4 py-2 text-sm font-bold text-white shadow-sm focus-ring"
     >
       {children}
       <ArrowLeft size={16} />
@@ -35,16 +35,16 @@ export function ButtonLink({ href, children }: { href: string; children: React.R
 }
 
 export function Panel({ children, className }: { children: React.ReactNode; className?: string }) {
-  return <section className={clsx("rounded border border-line bg-white p-5", className)}>{children}</section>;
+  return <section className={clsx("rounded border border-line bg-white p-5 shadow-sm", className)}>{children}</section>;
 }
 
 export function KpiGrid({ items }: { items: { label: string; value: string; hint: string }[] }) {
   return (
-    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4 2xl:grid-cols-7">
       {items.map((item) => (
         <Panel key={item.label}>
           <p className="text-sm text-ink/60">{item.label}</p>
-          <p className="mt-3 text-3xl font-extrabold text-ink">{item.value}</p>
+          <p className="mt-3 break-words text-2xl font-extrabold text-ink">{item.value}</p>
           <p className="mt-2 text-xs text-ink/55">{item.hint}</p>
         </Panel>
       ))}

@@ -1,14 +1,36 @@
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import { dashboardKpis, moduleCards, alerts, recommendations } from "@/lib/data";
 import { ButtonLink, KpiGrid, PageHeader, Panel, StatusBadge } from "@/components/ui";
+import { getDashboardOverview } from "@/lib/services/dashboard-service";
 
-export default function DashboardPage() {
+export default async function DashboardPage() {
+  const overview = await getDashboardOverview();
+  const dashboardKpis = [
+    { label: "مراجعات معلقة", value: String(overview.pendingReviews), hint: "تنتظر قرار المراجع" },
+    { label: "محتوى معتمد", value: String(overview.approvedContent), hint: "جاهز للتصدير أو المشاركة" },
+    { label: "تصدير محظور", value: String(overview.blockedExports), hint: "يتطلب تصحيحا قبل النشر" },
+    { label: "مخاطر عالية", value: String(overview.highRiskContent), hint: "تحتاج مراجعة قانونية" },
+    { label: "إصدار المرجع", value: overview.legalReferenceVersion, hint: "آخر نسخة قانونية معتمدة" },
+    {
+      label: "آخر فحص",
+      value: overview.lastLegalSourceCheck === "غير محدد" ? "غير محدد" : new Date(overview.lastLegalSourceCheck).toLocaleDateString("ar-SA"),
+      hint: "فحص مصادر وزارة العدل"
+    },
+    { label: "تحديثات قانونية", value: String(overview.pendingLegalSourceUpdates), hint: "بانتظار اعتماد المشرف" }
+  ];
+
+  const moduleCards = [
+    { title: "مراجعة المحتوى", href: "/content-review", description: "جودة اللغة، الامتثال، المخاطر، الاعتماد، ومنع التصدير غير المعتمد.", metric: `${overview.pendingReviews} معلقة`, status: "متابعة" },
+    { title: "قاعدة المعرفة القانونية", href: "/library", description: "مصادر وزارة العدل، قواعد السلوك المهني، واللائحة التنفيذية مع سجل التحديثات.", metric: `${overview.pendingLegalSourceUpdates} تحديث`, status: "مراقبة" },
+    { title: "مسار الاعتماد", href: "/approval-workflow", description: "إدارة الحالات من المسودة حتى المشاركة مع سجل واضح للقرارات.", metric: `${overview.approvedContent} معتمد`, status: "نشط" },
+    { title: "مركز المشاركة الاجتماعية", href: "/social-media", description: "حزم تصدير ومشاركة يدوية أو مباشرة للمنصات الاجتماعية.", metric: "6 منصات", status: "جاهز" }
+  ];
+
   return (
     <>
       <PageHeader
         title="لوحة التحكم"
-        description="ملخص عملي للمهام، المسودات، النشر، الحملات، التنبيهات، والتوصيات لتحسين الحضور الإعلامي والإعلاني."
+        description="ملخص تشغيلي محسوب من سجلات سير العمل والمراجعات ومصادر وزارة العدل."
         action={<ButtonLink href="/ai-assistant">إنشاء محتوى</ButtonLink>}
       />
       <KpiGrid items={dashboardKpis} />
@@ -32,28 +54,16 @@ export default function DashboardPage() {
         </div>
         <div className="space-y-5">
           <Panel>
-            <h3 className="mb-4 font-extrabold">التنبيهات</h3>
-            <div className="space-y-3">
-              {alerts.map((alert) => (
-                <div key={alert.title} className="rounded border border-line p-3">
-                  <div className="mb-2 flex items-center justify-between">
-                    <p className="font-bold">{alert.title}</p>
-                    <StatusBadge tone={alert.severity === "HIGH" ? "danger" : "warn"}>غير مقروء</StatusBadge>
-                  </div>
-                  <p className="text-sm leading-6 text-ink/60">{alert.body}</p>
-                </div>
-              ))}
-            </div>
+            <h3 className="mb-4 font-extrabold">حالة الإنتاج</h3>
+            <p className="text-sm leading-7 text-ink/70">
+              جميع الأرقام في هذه اللوحة محسوبة من سجلات المحتوى والمراجعات ومصادر المعرفة القانونية في قاعدة البيانات.
+            </p>
           </Panel>
           <Panel>
-            <h3 className="mb-4 font-extrabold">توصيات سريعة</h3>
-            <ul className="space-y-3 text-sm leading-7 text-ink/70">
-              {recommendations.map((item) => (
-                <li key={item} className="border-b border-line pb-3 last:border-0 last:pb-0">
-                  {item}
-                </li>
-              ))}
-            </ul>
+            <h3 className="mb-4 font-extrabold">الأولوية التالية</h3>
+            <p className="text-sm leading-7 text-ink/70">
+              راجع التحديثات القانونية المعلقة والمحتوى عالي المخاطر قبل السماح بأي تصدير أو مشاركة.
+            </p>
           </Panel>
         </div>
       </div>

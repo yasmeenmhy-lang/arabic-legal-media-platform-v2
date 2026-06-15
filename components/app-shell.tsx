@@ -13,15 +13,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-screen bg-paper">
-      <aside className="fixed bottom-0 right-0 top-0 z-20 hidden w-72 border-l border-line bg-white lg:block">
-        <div className="border-b border-line p-5">
+      <aside className="fixed bottom-0 right-0 top-0 z-20 hidden w-80 border-l border-line bg-white lg:block">
+        <div className="border-b border-line bg-[#f9fbfa] p-5">
           <div className="flex items-center gap-3">
-            <div className="grid h-11 w-11 place-items-center rounded bg-palm text-white">
+            <div className="grid h-11 w-11 place-items-center rounded bg-palm text-white shadow-sm">
               <ShieldCheck size={22} />
             </div>
             <div>
               <p className="text-sm font-bold text-palm">منصة المحامين</p>
-              <p className="mt-1 text-xs leading-5 text-ink/65">إدارة وتمكين الحضور الإعلامي والإعلاني</p>
+              <p className="mt-1 text-xs leading-5 text-ink/65">إدارة الحضور القانوني والإعلامي</p>
             </div>
           </div>
         </div>
@@ -48,7 +48,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </nav>
       </aside>
 
-      <div className="lg:mr-72">
+      <div className="lg:mr-80">
         <header className="sticky top-0 z-10 border-b border-line bg-white/95 backdrop-blur">
           <div className="flex min-h-16 items-center justify-between gap-4 px-4 sm:px-6">
             <div className="flex items-center gap-3">
