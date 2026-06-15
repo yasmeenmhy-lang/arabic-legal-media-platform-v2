@@ -1,5 +1,4 @@
 import type { ApprovalStatus, ApprovalWorkflowItem, ReviewResult, RiskLevel } from "@/lib/types";
-import { prisma } from "@/lib/prisma";
 
 export const approvalWorkflowStates: ApprovalStatus[] = ["DRAFT", "REVIEW_REQUIRED", "NEEDS_CORRECTION", "APPROVED", "EXPORTED", "SHARED"];
 
@@ -27,6 +26,7 @@ export function runApprovalWorkflow(review: Pick<ReviewResult, "languageQuality"
 }
 
 export async function getApprovalWorkflowItems(): Promise<ApprovalWorkflowItem[]> {
+  const { prisma } = await import("@/lib/prisma");
   const contents = await prisma.content.findMany({
     include: {
       owner: true,

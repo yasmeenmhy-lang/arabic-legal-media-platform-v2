@@ -1,6 +1,5 @@
 import { createHash } from "crypto";
 import type { LegalSourceSyncState, SourceAuditTrailItem } from "@/lib/types";
-import { prisma } from "@/lib/prisma";
 
 function hashSource(value: string) {
   return createHash("sha256").update(value).digest("hex");
@@ -49,6 +48,7 @@ function toSyncState(source: {
 }
 
 export async function getLegalSourceUpdateCenter() {
+  const { prisma } = await import("@/lib/prisma");
   const [sources, audits] = await Promise.all([
     prisma.legalSourceDocument.findMany({
       include: {
@@ -80,6 +80,7 @@ export async function getLegalSourceUpdateCenter() {
 }
 
 export async function registerLegalSource(input: { title: string; sourceUrl: string; version: string; actor?: string }) {
+  const { prisma } = await import("@/lib/prisma");
   const sourceDocumentId = `manual-${hashSource(input.sourceUrl).slice(0, 12)}`;
   const now = new Date();
   const sourceHash = hashSource(`${input.sourceUrl}:${input.version}`);
@@ -139,6 +140,7 @@ export async function runManualSourceSync(input: {
   observedVersion?: string;
   actor?: string;
 }) {
+  const { prisma } = await import("@/lib/prisma");
   const now = new Date();
   const sources = await prisma.legalSourceDocument.findMany({
     where: input.sourceDocumentId ? { id: input.sourceDocumentId } : undefined
@@ -198,6 +200,7 @@ export async function runManualSourceSync(input: {
 }
 
 export async function approveLegalSourceUpdate(sourceDocumentId: string, actor = "admin") {
+  const { prisma } = await import("@/lib/prisma");
   const source = await prisma.legalSourceDocument.findUnique({ where: { id: sourceDocumentId } });
   if (!source) return null;
 

@@ -1,6 +1,5 @@
-import { prisma } from "@/lib/prisma";
-
 export async function getDashboardOverview() {
+  const { prisma } = await import("@/lib/prisma");
   const [
     pendingReviews,
     approvedContent,
