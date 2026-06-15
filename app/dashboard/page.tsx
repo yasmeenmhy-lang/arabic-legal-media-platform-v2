@@ -3,6 +3,9 @@ import { ArrowLeft } from "lucide-react";
 import { ButtonLink, KpiGrid, PageHeader, Panel, StatusBadge } from "@/components/ui";
 import { getDashboardOverview } from "@/lib/services/dashboard-service";
 
+export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
+
 export default async function DashboardPage() {
   const overview = await getDashboardOverview();
   const dashboardKpis = [

@@ -1,6 +1,9 @@
 import { DataTable, PageHeader, Panel, StatusBadge } from "@/components/ui";
 import { getApprovalWorkflowItems } from "@/lib/services/approval-workflow-service";
 
+export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
+
 export default async function RiskAssessmentPage() {
   const items = await getApprovalWorkflowItems();
 

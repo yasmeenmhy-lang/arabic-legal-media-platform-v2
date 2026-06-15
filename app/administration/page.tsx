@@ -1,6 +1,9 @@
 import { DataTable, PageHeader, Panel, StatusBadge } from "@/components/ui";
 import { getLegalSourceUpdateCenter } from "@/lib/services/legal-source-update-service";
 
+export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
+
 export default async function AdministrationPage() {
   const updateCenter = await getLegalSourceUpdateCenter();
 

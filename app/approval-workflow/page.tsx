@@ -1,6 +1,9 @@
 import { DataTable, PageHeader, Panel, StatusBadge, WorkflowSteps } from "@/components/ui";
 import { approvalWorkflowStates, getApprovalWorkflowItems } from "@/lib/services/approval-workflow-service";
 
+export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
+
 function statusTone(status: string): "good" | "warn" | "danger" {
   if (status === "APPROVED" || status === "EXPORTED" || status === "SHARED") return "good";
   if (status === "NEEDS_CORRECTION") return "danger";
