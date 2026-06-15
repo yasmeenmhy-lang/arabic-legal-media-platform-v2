@@ -64,7 +64,7 @@ Do not add `DATABASE_URL` for the first Vercel demo.
 
 ## Future Production Database
 
-When the demo is approved and you need real persistent data, use PostgreSQL through:
+When the demo is ready for persistent data, use PostgreSQL through:
 
 - Vercel Postgres
 - Neon

@@ -4,7 +4,7 @@ import { PageHeader, Panel, StatusBadge } from "@/components/ui";
 export default function AlertsPage() {
   return (
     <>
-      <PageHeader title="مركز التنبيهات" description="تنبيهات المحتوى عالي المخاطر والمراجعات المعلقة وفشل النشر والاتجاهات الناشئة ومشكلات الحملات." />
+      <PageHeader title="مركز التنبيهات" description="تنبيهات المحتوى عالي المخاطر والمراجعات المعلقة وتعثر النشر والاتجاهات الناشئة وملاحظات الحملات." />
       <div className="space-y-3">
         {alerts.map((alert) => (
           <Panel key={alert.title}>

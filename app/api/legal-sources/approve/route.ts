@@ -13,10 +13,10 @@ export const runtime = "nodejs";
 
 export async function POST(request: Request) {
   const parsed = schema.safeParse(await request.json());
-  if (!parsed.success) return badRequest("Legal source approval payload is incomplete.");
+  if (!parsed.success) return badRequest("بيانات مراجعة المصدر المرجعي غير مكتملة.");
 
-  const approval = await approveLegalSourceUpdate(parsed.data.sourceDocumentId, parsed.data.actor);
-  if (!approval) return NextResponse.json({ error: "LEGAL_SOURCE_NOT_FOUND" }, { status: 404 });
+  const review = await approveLegalSourceUpdate(parsed.data.sourceDocumentId, parsed.data.actor);
+  if (!review) return NextResponse.json({ error: "LEGAL_SOURCE_NOT_FOUND" }, { status: 404 });
 
-  return ok(approval);
+  return ok(review);
 }

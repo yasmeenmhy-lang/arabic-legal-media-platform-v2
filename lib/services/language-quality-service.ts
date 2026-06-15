@@ -147,14 +147,14 @@ function detectTerminology(input: LanguageQualityReviewInput, issues: LanguageQu
 
   for (const term of input.requiredTerms ?? []) {
     if (!normalized.includes(normalizeArabic(term))) {
-      addIssue(issues, "terminology_consistency", "high", "مصطلح مطلوب غير مستخدم في النص.", term, `أدرج المصطلح المعتمد "${term}" في الموضع المناسب أو وثق سبب عدم استخدامه.`);
+      addIssue(issues, "terminology_consistency", "high", "مصطلح مطلوب غير مستخدم في النص.", term, `أدرج المصطلح المفضل "${term}" في الموضع المناسب أو وثق سبب عدم استخدامه.`);
     }
   }
 
-  for (const [approvedTerm, variants] of Object.entries(input.terminologyMap ?? {})) {
+  for (const [preferredTerm, variants] of Object.entries(input.terminologyMap ?? {})) {
     for (const variant of variants) {
       for (const match of matches(input.text, wordPattern(variant))) {
-        addIssue(issues, "terminology_consistency", "medium", "يوجد استخدام غير متسق للمصطلحات.", match[0], `وحّد المصطلح إلى "${approvedTerm}".`, match.index, match.index + match[0].length);
+        addIssue(issues, "terminology_consistency", "medium", "يوجد استخدام غير متسق للمصطلحات.", match[0], `وحّد المصطلح إلى "${preferredTerm}".`, match.index, match.index + match[0].length);
       }
     }
   }

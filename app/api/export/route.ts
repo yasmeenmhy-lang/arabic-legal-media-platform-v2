@@ -11,14 +11,15 @@ const schema = z.object({
 
 export async function POST(request: Request) {
   const parsed = schema.safeParse(await request.json());
-  if (!parsed.success) return badRequest("Export content is incomplete.");
+  if (!parsed.success) return badRequest("بيانات التصدير غير مكتملة.");
 
   const exportContent = prepareExportContent(parsed.data.body);
   if (!exportContent.allowed) {
     return NextResponse.json(
       {
-        error: "EXPORT_BLOCKED_BY_REVIEW_WORKFLOW",
+        error: "EXPORT_REQUIRES_REVIEW_OBSERVATIONS",
         message: exportContent.message,
+        advisoryDisclaimer: exportContent.advisoryDisclaimer,
         data: exportContent.review
       },
       { status: 422 }
@@ -31,6 +32,8 @@ export async function POST(request: Request) {
     body: exportContent.content,
     languageQualityScore: exportContent.review.languageQuality.score,
     complianceScore: exportContent.review.complianceScore,
-    approved: true
+    readyForExport: true,
+    publishingReadiness: "مناسب للتصدير وفق نتائج المراجعة",
+    advisoryDisclaimer: exportContent.advisoryDisclaimer
   });
 }

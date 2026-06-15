@@ -12,7 +12,7 @@ const schema = z.object({
 
 export async function POST(request: Request) {
   const parsed = schema.safeParse(await request.json());
-  if (!parsed.success) return badRequest("Language quality review payload is incomplete.");
+  if (!parsed.success) return badRequest("بيانات مراجعة جودة اللغة والصياغة غير مكتملة.");
 
   return ok(reviewLanguageQuality(parsed.data));
 }

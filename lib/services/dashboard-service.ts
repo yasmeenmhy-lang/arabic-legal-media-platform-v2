@@ -4,8 +4,8 @@ import { isDemoMode } from "@/lib/services/demo-mode";
 function getDemoDashboardOverview() {
   return {
     pendingReviews: 2,
-    approvedContent: 1,
-    blockedExports: 1,
+    publishableContent: 1,
+    exportsRequiringAttention: 1,
     highRiskContent: 1,
     legalReferenceVersion: legalSourceDocuments.map((source) => source.version).filter(Boolean).join(" / ") || "غير محدد",
     lastLegalSourceCheck: new Date("2026-06-15T00:00:00.000Z").toISOString(),
@@ -19,8 +19,8 @@ export async function getDashboardOverview() {
   const { prisma } = await import("@/lib/prisma");
   const [
     pendingReviews,
-    approvedContent,
-    blockedExports,
+    publishableContent,
+    exportsRequiringAttention,
     highRiskContent,
     pendingLegalSourceUpdates,
     legalSources
@@ -49,8 +49,8 @@ export async function getDashboardOverview() {
 
   return {
     pendingReviews,
-    approvedContent,
-    blockedExports,
+    publishableContent,
+    exportsRequiringAttention,
     highRiskContent,
     legalReferenceVersion: legalSources.map((source) => source.version).filter(Boolean).join(" / ") || "غير محدد",
     lastLegalSourceCheck: lastLegalSourceCheck?.toISOString() ?? "غير محدد",

@@ -3,6 +3,15 @@ import { isDemoMode } from "@/lib/services/demo-mode";
 
 export const approvalWorkflowStates: ApprovalStatus[] = ["DRAFT", "REVIEW_REQUIRED", "NEEDS_CORRECTION", "APPROVED", "EXPORTED", "SHARED"];
 
+export const approvalWorkflowStateLabels: Record<ApprovalStatus, string> = {
+  DRAFT: "مسودة",
+  REVIEW_REQUIRED: "تتطلب مراجعة",
+  NEEDS_CORRECTION: "يتطلب معالجة الملاحظات",
+  APPROVED: "مناسب للنشر",
+  EXPORTED: "تم التصدير",
+  SHARED: "تمت المشاركة"
+};
+
 function normalizeApprovalStatus(status?: string | null): ApprovalStatus {
   return approvalWorkflowStates.includes(status as ApprovalStatus) ? (status as ApprovalStatus) : "DRAFT";
 }
@@ -79,17 +88,17 @@ function getDemoApprovalWorkflowItems(): ApprovalWorkflowItem[] {
 }
 
 export function runApprovalWorkflow(review: Pick<ReviewResult, "languageQuality" | "complianceScore" | "riskLevel">) {
-  const approved =
+  const readyForPublishing =
     review.languageQuality.passed &&
     review.complianceScore >= 82 &&
     (review.riskLevel === "LOW" || review.riskLevel === "MEDIUM");
 
   return {
-    approved,
-    status: approved ? "approved" : "needs_revision",
-    reason: approved
-      ? "Content passed language quality, legal compliance, and risk checks."
-      : "Content must be revised before approval and export."
+    readyForPublishing,
+    status: readyForPublishing ? "ready_for_publishing" : "needs_revision",
+    reason: readyForPublishing
+      ? "Content is suitable for publishing based on language quality, compliance, and risk assessment."
+      : "Content requires addressing observations before export or sharing."
   };
 }
 
@@ -129,13 +138,14 @@ export async function getApprovalWorkflowCenter() {
   const items = await getApprovalWorkflowItems();
 
   return {
-    states: approvalWorkflowStates,
+    states: approvalWorkflowStates.map((state) => approvalWorkflowStateLabels[state]),
+    stateLabels: approvalWorkflowStateLabels,
     items,
     metrics: {
       draft: items.filter((item) => item.status === "DRAFT").length,
       reviewRequired: items.filter((item) => item.status === "REVIEW_REQUIRED").length,
       needsCorrection: items.filter((item) => item.status === "NEEDS_CORRECTION").length,
-      approved: items.filter((item) => item.status === "APPROVED").length,
+      readyForPublishing: items.filter((item) => item.status === "APPROVED").length,
       exported: items.filter((item) => item.status === "EXPORTED").length,
       shared: items.filter((item) => item.status === "SHARED").length
     }

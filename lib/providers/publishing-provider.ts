@@ -26,7 +26,7 @@ export class MockPublishingProvider implements PublishingProvider {
       provider: this.name,
       status: "scheduled",
       externalId: `mock-${payload.contentId}-${Date.now()}`,
-      message: `تمت جدولة المحتوى على ${payload.channel} بشكل تجريبي.`
+      message: `تمت إضافة المحتوى إلى متابعة النشر على ${payload.channel} وفق نتائج المراجعة.`
     };
   }
 }

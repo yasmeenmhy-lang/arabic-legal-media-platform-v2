@@ -19,7 +19,7 @@ function getDemoLegalSourceUpdateCenter() {
       lastCheckedAt: checkedAt,
       changeDetected: false,
       currentVersion: source.version,
-      status: "APPROVED",
+      status: "CURRENT",
       versionHistory: [
         {
           id: `${source.id}-${source.version}`,
@@ -28,7 +28,7 @@ function getDemoLegalSourceUpdateCenter() {
           checkedAt,
           checksum,
           summary: "Demo legal source registered from bundled legal baseline.",
-          approvedBy: "demo-admin",
+          approvedBy: "demo-reviewer",
           approvedAt: checkedAt
         }
       ]
@@ -39,9 +39,9 @@ function getDemoLegalSourceUpdateCenter() {
     id: `demo-audit-${source.sourceDocumentId}`,
     sourceDocumentId: source.sourceDocumentId,
     action: "APPROVED",
-    actor: "demo-admin",
+    actor: "demo-reviewer",
     at: checkedAt,
-    details: "Demo mode uses bundled legal source metadata without database access."
+    details: "Demo mode uses bundled legal source metadata for advisory assessment without database access."
   }));
 
   return {
@@ -79,7 +79,7 @@ function toSyncState(source: {
     changeDetected: source.changeDetected,
     currentVersion: source.version,
     pendingVersion: source.pendingVersion ?? undefined,
-    status: source.status as LegalSourceSyncState["status"],
+    status: (source.status === "APPROVED" ? "CURRENT" : source.status) as LegalSourceSyncState["status"],
     versionHistory: source.versions.map((version) => ({
       id: version.id,
       sourceDocumentId: version.sourceDocumentId,
@@ -151,7 +151,7 @@ export async function registerLegalSource(input: { title: string; sourceUrl: str
         sourceDocumentId,
         action: "REGISTERED",
         actor: input.actor ?? "admin",
-        details: `Demo legal source registration accepted without database access: ${input.title}.`,
+        details: `Demo legal source registration captured without database access: ${input.title}.`,
         createdAt: now
       }
     };
@@ -188,14 +188,14 @@ export async function registerLegalSource(input: { title: string; sourceUrl: str
 
   await prisma.legalSourceVersion.upsert({
     where: { id: `${sourceDocumentId}-${input.version}` },
-    update: { checksum: sourceHash, checkedAt: now, summary: "Manual source registered and awaiting admin approval." },
+    update: { checksum: sourceHash, checkedAt: now, summary: "Manual source registered and awaiting admin review." },
     create: {
       id: `${sourceDocumentId}-${input.version}`,
       sourceDocumentId,
       version: input.version,
       checkedAt: now,
       checksum: sourceHash,
-      summary: "Manual source registered and awaiting admin approval."
+      summary: "Manual source registered and awaiting admin review."
     }
   });
 
@@ -265,14 +265,14 @@ export async function runManualSourceSync(input: {
       if (changeDetected) {
         await prisma.legalSourceVersion.upsert({
           where: { id: `${source.id}-${observedVersion}-${observedHash.slice(0, 8)}` },
-          update: { checkedAt: now, checksum: observedHash, summary: "Source hash changed and is pending admin approval." },
+          update: { checkedAt: now, checksum: observedHash, summary: "Source hash changed and is pending admin review." },
           create: {
             id: `${source.id}-${observedVersion}-${observedHash.slice(0, 8)}`,
             sourceDocumentId: source.id,
             version: observedVersion,
             checkedAt: now,
             checksum: observedHash,
-            summary: "Source hash changed and is pending admin approval."
+            summary: "Source hash changed and is pending admin review."
           }
         });
       }
@@ -312,9 +312,9 @@ export async function approveLegalSourceUpdate(sourceDocumentId: string, actor =
       changeDetected: false,
       pendingVersion: null,
       pendingSourceHash: null,
-      status: "APPROVED",
-      approvedBy: actor,
-      approvedAt: new Date().toISOString()
+      status: "CURRENT",
+      reviewedBy: actor,
+      reviewedAt: new Date().toISOString()
     };
   }
 
@@ -330,7 +330,7 @@ export async function approveLegalSourceUpdate(sourceDocumentId: string, actor =
       sourceHash: source.pendingSourceHash ?? source.sourceHash,
       pendingVersion: null,
       pendingSourceHash: null,
-      status: "APPROVED",
+      status: "CURRENT",
       approvedBy: actor,
       approvedAt: new Date()
     }
@@ -341,9 +341,21 @@ export async function approveLegalSourceUpdate(sourceDocumentId: string, actor =
       sourceDocumentId,
       action: "APPROVED",
       actor,
-      details: `Legal source update approved for ${source.title}.`
+      details: `Legal source update reviewed for ${source.title}.`
     }
   });
 
-  return approved;
+  return {
+    id: approved.id,
+    title: approved.title,
+    sourceUrl: approved.sourceUrl,
+    version: approved.version,
+    sourceHash: approved.sourceHash,
+    changeDetected: approved.changeDetected,
+    pendingVersion: approved.pendingVersion,
+    pendingSourceHash: approved.pendingSourceHash,
+    status: "CURRENT",
+    reviewedBy: approved.approvedBy,
+    reviewedAt: approved.approvedAt
+  };
 }

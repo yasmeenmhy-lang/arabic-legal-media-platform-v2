@@ -9,10 +9,10 @@ const schema = z.object({
 
 export async function POST(request: Request) {
   const parsed = schema.safeParse(await request.json());
-  if (!parsed.success) return badRequest("Export package payload is incomplete.");
+  if (!parsed.success) return badRequest("بيانات حزمة التصدير غير مكتملة.");
 
   const exportPackage = buildExportPackage(parsed.data.contentId);
-  if (!exportPackage) return NextResponse.json({ error: "SHARE_CONTENT_NOT_FOUND" }, { status: 404 });
+  if (!exportPackage) return NextResponse.json({ error: "REVIEWED_CONTENT_NOT_FOUND" }, { status: 404 });
 
   return ok(exportPackage);
 }

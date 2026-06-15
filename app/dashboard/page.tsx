@@ -9,24 +9,24 @@ export const runtime = "nodejs";
 export default async function DashboardPage() {
   const overview = await getDashboardOverview();
   const dashboardKpis = [
-    { label: "مراجعات معلقة", value: String(overview.pendingReviews), hint: "تنتظر قرار المراجع" },
-    { label: "محتوى معتمد", value: String(overview.approvedContent), hint: "جاهز للتصدير أو المشاركة" },
-    { label: "تصدير محظور", value: String(overview.blockedExports), hint: "يتطلب تصحيحا قبل النشر" },
+    { label: "مراجعات معلقة", value: String(overview.pendingReviews), hint: "تنتظر استكمال الملاحظات" },
+    { label: "محتوى مناسب للنشر", value: String(overview.publishableContent), hint: "جاهز للمراجعة قبل التصدير أو المشاركة" },
+    { label: "تصدير متوقف", value: String(overview.exportsRequiringAttention), hint: "يتطلب معالجة الملاحظات قبل النشر" },
     { label: "مخاطر عالية", value: String(overview.highRiskContent), hint: "تحتاج مراجعة قانونية" },
-    { label: "إصدار المرجع", value: overview.legalReferenceVersion, hint: "آخر نسخة قانونية معتمدة" },
+    { label: "إصدار المرجع", value: overview.legalReferenceVersion, hint: "آخر نسخة مرجعية مستخدمة في التقييم" },
     {
       label: "آخر فحص",
       value: overview.lastLegalSourceCheck === "غير محدد" ? "غير محدد" : new Date(overview.lastLegalSourceCheck).toLocaleDateString("ar-SA"),
       hint: "فحص مصادر وزارة العدل"
     },
-    { label: "تحديثات قانونية", value: String(overview.pendingLegalSourceUpdates), hint: "بانتظار اعتماد المشرف" }
+    { label: "تحديثات مرجعية", value: String(overview.pendingLegalSourceUpdates), hint: "بانتظار مراجعة المشرف" }
   ];
 
   const moduleCards = [
-    { title: "مراجعة المحتوى", href: "/content-review", description: "جودة اللغة، الامتثال، المخاطر، الاعتماد، ومنع التصدير غير المعتمد.", metric: `${overview.pendingReviews} معلقة`, status: "متابعة" },
-    { title: "قاعدة المعرفة القانونية", href: "/library", description: "مصادر وزارة العدل، قواعد السلوك المهني، واللائحة التنفيذية مع سجل التحديثات.", metric: `${overview.pendingLegalSourceUpdates} تحديث`, status: "مراقبة" },
-    { title: "مسار الاعتماد", href: "/approval-workflow", description: "إدارة الحالات من المسودة حتى المشاركة مع سجل واضح للقرارات.", metric: `${overview.approvedContent} معتمد`, status: "نشط" },
-    { title: "مركز المشاركة الاجتماعية", href: "/social-media", description: "حزم تصدير ومشاركة يدوية أو مباشرة للمنصات الاجتماعية.", metric: "6 منصات", status: "جاهز" }
+    { title: "مراجعة المحتوى الإعلامي", href: "/content-review", description: "المسار المركزي لجودة اللغة والصياغة، ملاحظات الامتثال، مؤشرات المخاطر، فرص التحسين، ونتيجة جاهزية النشر.", metric: `${overview.pendingReviews} معلقة`, status: "متابعة" },
+    { title: "المراجع المهنية والتنظيمية", href: "/library", description: "مصادر وزارة العدل، قواعد السلوك المهني، واللائحة التنفيذية مع سجل التحديثات المرجعية.", metric: `${overview.pendingLegalSourceUpdates} تحديث`, status: "مراقبة" },
+    { title: "ملخص المراجعة", href: "/approval-workflow", description: "عرض نتيجة المراجعة من المسودة حتى التصدير والمشاركة مع سجل واضح لمخرجات التقييم.", metric: `${overview.publishableContent} مناسب للنشر`, status: "نشط" },
+    { title: "مركز المشاركة الاجتماعية", href: "/social-media", description: "حزم تصدير ومشاركة للمنصات الاجتماعية بعد عرض نتائج المراجعة.", metric: "6 منصات", status: "متاح" }
   ];
 
   return (
@@ -34,7 +34,7 @@ export default async function DashboardPage() {
       <PageHeader
         title="لوحة التحكم"
         description="ملخص تشغيلي محسوب من سجلات سير العمل والمراجعات ومصادر وزارة العدل."
-        action={<ButtonLink href="/ai-assistant">إنشاء محتوى</ButtonLink>}
+        action={<ButtonLink href="/ai-assistant">مراجعة محتوى</ButtonLink>}
       />
       <KpiGrid items={dashboardKpis} />
       <div className="mt-6 grid gap-5 xl:grid-cols-[1.5fr_1fr]">
@@ -57,15 +57,15 @@ export default async function DashboardPage() {
         </div>
         <div className="space-y-5">
           <Panel>
-            <h3 className="mb-4 font-extrabold">حالة الإنتاج</h3>
+            <h3 className="mb-4 font-extrabold">حالة المراجعات</h3>
             <p className="text-sm leading-7 text-ink/70">
-              جميع الأرقام في هذه اللوحة محسوبة من سجلات المحتوى والمراجعات ومصادر المعرفة القانونية في قاعدة البيانات.
+              جميع الأرقام في هذه اللوحة محسوبة من سجلات المحتوى والمراجعات والمراجع المهنية والتنظيمية في قاعدة البيانات.
             </p>
           </Panel>
           <Panel>
             <h3 className="mb-4 font-extrabold">الأولوية التالية</h3>
             <p className="text-sm leading-7 text-ink/70">
-              راجع التحديثات القانونية المعلقة والمحتوى عالي المخاطر قبل السماح بأي تصدير أو مشاركة.
+              راجع التحديثات المرجعية والمحتوى عالي المخاطر قبل إتاحة أي تصدير أو مشاركة.
             </p>
           </Panel>
         </div>

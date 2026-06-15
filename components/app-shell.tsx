@@ -21,7 +21,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </div>
             <div>
               <p className="text-sm font-bold text-palm">منصة المحامين</p>
-              <p className="mt-1 text-xs leading-5 text-ink/65">إدارة الحضور القانوني والإعلامي</p>
+              <p className="mt-1 text-xs leading-5 text-ink/65">تمكين ومراجعة المحتوى الإعلامي القانوني</p>
             </div>
           </div>
         </div>

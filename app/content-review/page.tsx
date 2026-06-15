@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { DataTable, PageHeader, Panel, StatusBadge, WorkflowSteps } from "@/components/ui";
-import type { LanguageIssueCategory, ReviewResult } from "@/lib/types";
+import { advisoryDisclaimer } from "@/lib/governance";
+import type { LanguageIssueCategory, LanguageIssueSeverity, ReviewResult, RiskLevel } from "@/lib/types";
 
 const categoryLabels: Record<LanguageIssueCategory, string> = {
   spelling: "الإملاء",
@@ -17,6 +18,27 @@ const severityTone = {
   medium: "warn",
   high: "danger",
   critical: "danger"
+} as const;
+
+const severityLabels: Record<LanguageIssueSeverity, string> = {
+  low: "منخفضة",
+  medium: "متوسطة",
+  high: "عالية",
+  critical: "حرجة"
+};
+
+const riskLabels: Record<RiskLevel, string> = {
+  LOW: "منخفض",
+  MEDIUM: "متوسط",
+  HIGH: "عال",
+  CRITICAL: "حرج"
+};
+
+const workflowStatusLabels = {
+  pending: "قيد المتابعة",
+  blocked: "يتطلب معالجة الملاحظات",
+  passed: "مستوى مناسب",
+  failed: "يتطلب مراجعة"
 } as const;
 
 export default function ContentReviewPage() {
@@ -39,13 +61,13 @@ export default function ContentReviewPage() {
   return (
     <>
       <PageHeader
-        title="مراجعة المحتوى"
-        description="تبدأ المراجعة بفحص جودة اللغة العربية، ثم الامتثال القانوني، ثم تقييم المخاطر، ثم الاعتماد، ثم التصدير."
+        title="مراجعة المحتوى الإعلامي"
+        description="مسار موحد يعرض جودة اللغة والصياغة، ملاحظات الامتثال، مؤشرات المخاطر، فرص التحسين، المراجع المهنية والتنظيمية ذات الصلة، وملخص المراجعة."
       />
 
       <div className="grid gap-5 xl:grid-cols-[0.9fr_1.1fr]">
         <Panel>
-          <h3 className="mb-4 font-extrabold">نص للمراجعة</h3>
+          <h3 className="mb-4 font-extrabold">المحتوى محل المراجعة</h3>
           <textarea
             className="min-h-56 w-full rounded border border-line p-3 leading-7 focus-ring"
             value={text}
@@ -57,12 +79,12 @@ export default function ContentReviewPage() {
             onClick={runReview}
             disabled={loading}
           >
-            {loading ? "جار المراجعة..." : "تشغيل المراجعة"}
+            {loading ? "جار تحليل المحتوى..." : "تحليل المحتوى"}
           </button>
         </Panel>
 
         <Panel>
-          <h3 className="mb-4 font-extrabold">نتيجة جودة اللغة العربية</h3>
+          <h3 className="mb-4 font-extrabold">جودة اللغة والصياغة</h3>
           {review ? (
             <>
               <div className="grid gap-3 sm:grid-cols-3">
@@ -74,27 +96,27 @@ export default function ContentReviewPage() {
                   <p className="text-sm text-ink/60">حالة اللغة</p>
                   <p className="mt-3">
                     <StatusBadge tone={review.languageQuality.passed ? "good" : "danger"}>
-                      {review.languageQuality.passed ? "مجتاز" : "يتطلب تصحيحا"}
+                      {review.languageQuality.passed ? "مستوى مناسب" : "يتطلب تحسين الصياغة"}
                     </StatusBadge>
                   </p>
                 </div>
                 <div className="rounded bg-paper p-4">
-                  <p className="text-sm text-ink/60">السماح بالتصدير</p>
+                  <p className="text-sm text-ink/60">جاهزية النشر</p>
                   <p className="mt-3">
                     <StatusBadge tone={review.exportAllowed ? "good" : "danger"}>
-                      {review.exportAllowed ? "مسموح" : "محظور"}
+                      {review.exportAllowed ? "مناسب للتصدير وفق نتائج المراجعة" : "يتطلب معالجة الملاحظات"}
                     </StatusBadge>
                   </p>
                 </div>
               </div>
 
               <div className="mt-5 rounded border border-line bg-paper p-4">
-                <p className="mb-2 text-sm font-bold text-ink/70">الصياغة المقترحة</p>
+                <p className="mb-2 text-sm font-bold text-ink/70">فرص التحسين والصياغة المقترحة</p>
                 <p className="leading-8">{review.languageQuality.improvedDraft}</p>
               </div>
             </>
           ) : (
-            <p className="leading-7 text-ink/65">أدخل النص وشغل المراجعة لعرض درجة اللغة والملاحظات والتصحيحات.</p>
+            <p className="leading-7 text-ink/65">أدخل المحتوى لتظهر نتيجة المراجعة، ملاحظات الامتثال، مؤشرات المخاطر، وفرص التحسين.</p>
           )}
         </Panel>
       </div>
@@ -103,7 +125,7 @@ export default function ContentReviewPage() {
         <>
           <div className="mt-5 grid gap-5 xl:grid-cols-[0.9fr_1.1fr]">
             <Panel>
-              <h3 className="mb-4 font-extrabold">درجات الفئات</h3>
+              <h3 className="mb-4 font-extrabold">تفصيل جودة اللغة والصياغة</h3>
               <DataTable
                 headers={["الفئة", "الدرجة"]}
                 rows={Object.entries(review.languageQuality.categoryScores).map(([category, score]) => [
@@ -114,17 +136,17 @@ export default function ContentReviewPage() {
             </Panel>
 
             <Panel>
-              <h3 className="mb-4 font-extrabold">نتيجة الامتثال القانوني</h3>
+              <h3 className="mb-4 font-extrabold">ملخص المراجعة</h3>
               <div className="grid gap-3 sm:grid-cols-2">
                 <div className="rounded bg-paper p-4">
-                  <p className="text-sm text-ink/60">درجة الامتثال</p>
+                  <p className="text-sm text-ink/60">مستوى الامتثال</p>
                   <p className="mt-2 text-3xl font-extrabold text-gold">{review.complianceScore}%</p>
                 </div>
                 <div className="rounded bg-paper p-4">
-                  <p className="text-sm text-ink/60">مستوى المخاطر</p>
+                  <p className="text-sm text-ink/60">مؤشرات المخاطر</p>
                   <p className="mt-3">
                     <StatusBadge tone={review.riskLevel === "LOW" ? "good" : review.riskLevel === "MEDIUM" ? "warn" : "danger"}>
-                      {review.riskLevel}
+                      {riskLabels[review.riskLevel]}
                     </StatusBadge>
                   </p>
                 </div>
@@ -135,12 +157,12 @@ export default function ContentReviewPage() {
 
           <div className="mt-5">
             <Panel>
-              <h3 className="mb-4 font-extrabold">الملاحظات والتصحيحات المقترحة</h3>
+              <h3 className="mb-4 font-extrabold">فرص التحسين</h3>
               <DataTable
-                headers={["الفئة", "الشدة", "الموضع", "التصحيح المقترح"]}
+                headers={["الفئة", "الأولوية", "الموضع", "مقترح التحسين"]}
                 rows={review.languageQuality.issues.map((issue) => [
                   categoryLabels[issue.category],
-                  <StatusBadge key={issue.id} tone={severityTone[issue.severity]}>{issue.severity}</StatusBadge>,
+                  <StatusBadge key={issue.id} tone={severityTone[issue.severity]}>{severityLabels[issue.severity]}</StatusBadge>,
                   issue.excerpt || "-",
                   issue.suggestion
                 ])}
@@ -151,12 +173,12 @@ export default function ContentReviewPage() {
           {review.findings.length > 0 ? (
             <div className="mt-5">
               <Panel>
-                <h3 className="mb-4 font-extrabold">ملاحظات الامتثال</h3>
+                <h3 className="mb-4 font-extrabold">ملاحظات الامتثال والمراجع المهنية والتنظيمية</h3>
                 <DataTable
-                  headers={["الملاحظة", "الشدة", "الدليل", "السند النظامي", "الشرح", "الاقتراح"]}
+                  headers={["الملاحظة", "مؤشر المخاطر", "الموضع", "المرجع المهني أو التنظيمي", "الأثر المحتمل", "اتجاه التحسين"]}
                   rows={review.findings.map((finding) => [
                     finding.issue,
-                    <StatusBadge key={finding.evidence} tone="danger">{finding.severity}</StatusBadge>,
+                    <StatusBadge key={finding.evidence} tone="danger">{riskLabels[finding.severity]}</StatusBadge>,
                     finding.evidence,
                     `${finding.legalCitation} (${finding.sourceUrl})`,
                     finding.explanation,
@@ -168,7 +190,10 @@ export default function ContentReviewPage() {
           ) : null}
 
           <div className="mt-5">
-            <WorkflowSteps steps={review.workflow.map((step) => `${step.label}: ${step.status}`)} />
+            <WorkflowSteps steps={review.workflow.map((step) => `${step.label}: ${workflowStatusLabels[step.status]}`)} />
+          </div>
+          <div className="mt-5 rounded border border-line bg-white p-4 text-xs leading-6 text-ink/65">
+            {advisoryDisclaimer}
           </div>
         </>
       ) : null}

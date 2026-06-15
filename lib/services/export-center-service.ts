@@ -1,4 +1,5 @@
 import { assertContentCanExport } from "@/lib/services/review-service";
+import { advisoryDisclaimer } from "@/lib/governance";
 
 export function prepareExportContent(text: string) {
   const gate = assertContentCanExport(text, "social_export");
@@ -8,7 +9,8 @@ export function prepareExportContent(text: string) {
       allowed: false,
       review: gate.review,
       content: null,
-      message: gate.message
+      message: gate.message,
+      advisoryDisclaimer
     };
   }
 
@@ -16,6 +18,7 @@ export function prepareExportContent(text: string) {
     allowed: true,
     review: gate.review,
     content: gate.review.languageQuality.improvedDraft,
-    message: "Content is approved for export."
+    message: "المحتوى مناسب للتصدير وفق نتائج المراجعة.",
+    advisoryDisclaimer
   };
 }

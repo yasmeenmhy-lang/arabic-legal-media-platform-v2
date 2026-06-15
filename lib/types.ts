@@ -35,10 +35,10 @@ export type AIContentInput = {
 };
 
 export type AIContentOutput = {
-  versions: string[];
-  titles: string[];
-  hashtags: string[];
-  cta: string;
+  observations: string[];
+  riskIndicators: string[];
+  improvementSuggestions: string[];
+  referenceHighlights: string[];
   languageQuality?: {
     passed: boolean;
     score: number;
@@ -48,7 +48,9 @@ export type AIContentOutput = {
   compliance?: {
     score: number;
     riskLevel: RiskLevel;
-    approvalStatus: ApprovalStatus;
+    readinessStatus: string;
+    publishingReadiness: string;
+    advisoryDisclaimer: string;
     legalCitations: Array<{
       legalCitation: string;
       sourceDocument: string;
@@ -110,6 +112,7 @@ export type ReviewResult = {
   findings: ReviewFinding[];
   workflow: ReviewWorkflowStep[];
   exportAllowed: boolean;
+  advisoryDisclaimer: string;
 };
 
 export type ReviewWorkflowStep = {
@@ -218,11 +221,13 @@ export type ShareReadyContent = {
   body: string;
   hashtags: string[];
   mediaNotes: string;
-  approved: boolean;
+  readyForPublishing: boolean;
   complianceMetadata?: {
     complianceScore: number;
     riskLevel: RiskLevel;
-    approvalStatus: ApprovalStatus;
+    readinessStatus: string;
+    publishingReadiness: string;
+    advisoryDisclaimer: string;
     legalCitations: Array<{
       legalCitation: string;
       sourceDocument: string;

@@ -5,8 +5,8 @@ export default function MediaPlanningPage() {
   return (
     <>
       <PageHeader
-        title="التخطيط الإعلامي"
-        description="توليد خطط شهرية وأسبوعية مع اقتراح الموضوعات والحملات وتواريخ النشر وصيغ المحتوى."
+        title="مقترحات التخطيط الإعلامي"
+        description="دعم تخطيط إعلامي استرشادي لاقتراح الموضوعات واتجاهات الحملات وتواريخ النشر وصيغ المحتوى المحتملة مع مراعاة المراجعة المهنية."
       />
       <div className="grid gap-5 xl:grid-cols-[1fr_1.4fr]">
         <Panel>
@@ -29,7 +29,7 @@ export default function MediaPlanningPage() {
           </div>
         </Panel>
         <DataTable
-          headers={["الموضوع", "الصيغة", "القناة", "التاريخ", "الحالة"]}
+          headers={["الموضوع المقترح", "الصيغة", "القناة المقترحة", "التاريخ المقترح", "نتيجة المراجعة"]}
           rows={[
             ["حماية العقود", "مقال", "الموقع", "10 يونيو", <StatusBadge tone="good" key="a">مجدول</StatusBadge>],
             ["إعلان مهني", "منشور", "LinkedIn", "13 يونيو", <StatusBadge key="b">مسودة</StatusBadge>],

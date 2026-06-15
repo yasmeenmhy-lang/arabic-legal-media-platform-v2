@@ -1,4 +1,6 @@
 import type { ShareReadyContent, SocialPlatformShareTarget } from "@/lib/types";
+import { advisoryDisclaimer } from "@/lib/governance";
+import { approvalWorkflowStateLabels } from "@/lib/services/approval-workflow-service";
 import { reviewContent } from "@/lib/services/review-service";
 
 export const socialPlatforms: SocialPlatformShareTarget[] = [
@@ -8,7 +10,7 @@ export const socialPlatforms: SocialPlatformShareTarget[] = [
     characterLimit: 2200,
     supportsWebShare: true,
     supportsDeepLink: false,
-    manualInstructions: ["انسخ النص المعتمد.", "افتح TikTok وارفع الفيديو القصير.", "الصق الوصف والوسوم ثم راجع الإعدادات قبل النشر."]
+    manualInstructions: ["انسخ النص المناسب للنشر بعد مراجعة نتيجة التقييم.", "افتح TikTok وارفع الفيديو القصير.", "الصق الوصف والوسوم ثم راجع الإعدادات قبل النشر."]
   },
   {
     key: "snapchat",
@@ -34,7 +36,7 @@ export const socialPlatforms: SocialPlatformShareTarget[] = [
     supportsWebShare: true,
     supportsDeepLink: true,
     deepLink: "https://www.linkedin.com/sharing/share-offsite/?url=",
-    manualInstructions: ["افتح LinkedIn.", "اختر إنشاء منشور.", "الصق النص المعتمد وأضف الرابط أو الملف عند الحاجة."]
+    manualInstructions: ["افتح LinkedIn.", "اختر إعداد منشور.", "الصق النص المناسب للنشر وأضف الرابط أو الملف عند الحاجة."]
   },
   {
     key: "instagram",
@@ -54,14 +56,16 @@ export const socialPlatforms: SocialPlatformShareTarget[] = [
   }
 ];
 
-const approvedBody =
+const publishableBody =
   "قبل توقيع أي عقد، راجع نطاق الالتزامات، مدد التنفيذ، شروط الإنهاء، وآلية تسوية النزاع. هذه مادة توعوية عامة ولا تغني عن استشارة محام مرخص.";
-const approvedReview = reviewContent(approvedBody, "social_export");
-const approvedMetadata = {
-  complianceScore: approvedReview.complianceScore,
-  riskLevel: approvedReview.riskLevel,
-  approvalStatus: approvedReview.exportAllowed ? "APPROVED" as const : "NEEDS_CORRECTION" as const,
-  legalCitations: approvedReview.findings.map((finding) => ({
+const publishableReview = reviewContent(publishableBody, "social_export");
+const publishableMetadata = {
+  complianceScore: publishableReview.complianceScore,
+  riskLevel: publishableReview.riskLevel,
+  readinessStatus: approvalWorkflowStateLabels[publishableReview.exportAllowed ? "APPROVED" : "NEEDS_CORRECTION"],
+  publishingReadiness: approvalWorkflowStateLabels[publishableReview.exportAllowed ? "APPROVED" : "NEEDS_CORRECTION"],
+  advisoryDisclaimer,
+  legalCitations: publishableReview.findings.map((finding) => ({
     legalCitation: finding.legalCitation,
     sourceDocument: finding.sourceDocument,
     ruleOrArticleNumber: finding.ruleOrArticleNumber,
@@ -72,29 +76,31 @@ const approvedMetadata = {
 
 export const shareReadyContent: ShareReadyContent[] = [
   {
-    id: "approved-contract-awareness",
+    id: "publishable-contract-awareness",
     title: "حماية العقود قبل التوقيع",
-    body: approvedBody,
+    body: publishableBody,
     hashtags: ["#توعية_قانونية", "#العقود", "#محاماة"],
     mediaNotes: "مناسب كمنشور LinkedIn أو فيديو قصير مدته 30 ثانية.",
-    approved: approvedReview.exportAllowed,
-    complianceMetadata: approvedMetadata,
+    readyForPublishing: publishableReview.exportAllowed,
+    complianceMetadata: publishableMetadata,
     exportPackage: {
-      textFileName: "approved-contract-awareness.txt",
-      metadataFileName: "approved-contract-awareness.json",
+      textFileName: "publishable-contract-awareness.txt",
+      metadataFileName: "publishable-contract-awareness.json",
       payload: {
-        status: approvedMetadata.approvalStatus,
+        status: publishableMetadata.publishingReadiness,
         languageQuality: {
-          status: approvedReview.languageQuality.passed ? "passed" : "failed",
-          score: approvedReview.languageQuality.score
+          status: publishableReview.languageQuality.passed ? "مستوى مناسب" : "يتطلب تحسين الصياغة",
+          score: publishableReview.languageQuality.score
         },
         compliance: {
-          status: approvedReview.complianceScore >= 82 ? "passed" : "failed",
-          score: approvedReview.complianceScore,
-          legalCitations: approvedMetadata.legalCitations
+          status: publishableReview.complianceScore >= 82 ? "مستوى مناسب" : "يتطلب مراجعة الملاحظات",
+          score: publishableReview.complianceScore,
+          legalCitations: publishableMetadata.legalCitations
         },
-        riskLevel: approvedMetadata.riskLevel,
-        approvalStatus: approvedMetadata.approvalStatus,
+        riskLevel: publishableMetadata.riskLevel,
+        readinessStatus: publishableMetadata.readinessStatus,
+        publishingReadiness: publishableMetadata.publishingReadiness,
+        advisoryDisclaimer,
         platforms: ["tiktok", "snapchat", "x", "linkedin", "instagram", "youtube_shorts"]
       }
     }
@@ -127,7 +133,8 @@ export function buildExportPackage(contentId: string) {
       body: content.body,
       hashtags: content.hashtags,
       mediaNotes: content.mediaNotes,
-      approved: content.approved,
+      readyForPublishing: content.readyForPublishing,
+      advisoryDisclaimer,
       complianceMetadata: content.complianceMetadata,
       metadata: content.exportPackage.payload
     }

@@ -4,31 +4,39 @@ import { getLegalSourceUpdateCenter } from "@/lib/services/legal-source-update-s
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
+function sourceStatusLabel(status: string, changeDetected: boolean) {
+  if (changeDetected) return "تغير مرجعي مرصود";
+  if (status === "PENDING_APPROVAL") return "بانتظار المراجعة";
+  if (status === "APPROVED" || status === "CURRENT" || status === "ACTIVE") return "مرجع مستخدم في التقييم";
+  if (status === "REJECTED") return "غير مستخدم في التقييم";
+  return "قيد المتابعة";
+}
+
 export default async function AdministrationPage() {
   const updateCenter = await getLegalSourceUpdateCenter();
 
   return (
     <>
       <PageHeader
-        title="الإدارة والإعدادات"
-        description="متابعة مصادر وزارة العدل، تشغيل المزامنة اليدوية، مراجعة التغييرات، واعتماد النسخ القانونية قبل استخدامها في الامتثال."
+        title="الحوكمة والإعدادات"
+        description="متابعة مصادر وزارة العدل، تشغيل المزامنة اليدوية، مراجعة التغييرات، وتحديث النسخ المرجعية المستخدمة في تقييم الامتثال."
       />
       <div className="grid gap-5 xl:grid-cols-[1.2fr_1fr]">
         <Panel>
           <h3 className="mb-4 font-extrabold">مصادر وزارة العدل والمراجع النظامية</h3>
           <DataTable
-            headers={["المصدر", "آخر فحص", "الإصدار", "تغيير", "الحالة"]}
+            headers={["المصدر", "آخر فحص", "الإصدار", "تغير مرصود", "حالة الاستخدام"]}
             rows={updateCenter.sources.map((source) => [
               source.title,
               source.lastCheckedAt === "غير محدد" ? source.lastCheckedAt : new Date(source.lastCheckedAt).toLocaleString("ar-SA"),
               source.currentVersion,
               source.changeDetected ? "نعم" : "لا",
-              <StatusBadge key={source.sourceDocumentId} tone={source.changeDetected ? "warn" : "good"}>{source.status}</StatusBadge>
+              <StatusBadge key={source.sourceDocumentId} tone={source.changeDetected ? "warn" : "good"}>{sourceStatusLabel(source.status, source.changeDetected)}</StatusBadge>
             ])}
           />
         </Panel>
         <Panel>
-          <h3 className="mb-4 font-extrabold">اعتمادات معلقة</h3>
+          <h3 className="mb-4 font-extrabold">تحديثات مرجعية بانتظار المراجعة</h3>
           {updateCenter.pendingApprovals.length > 0 ? (
             <div className="space-y-3">
               {updateCenter.pendingApprovals.map((source) => (
@@ -40,15 +48,15 @@ export default async function AdministrationPage() {
               ))}
             </div>
           ) : (
-            <p className="text-sm leading-7 text-ink/65">لا توجد تحديثات قانونية معلقة.</p>
+            <p className="text-sm leading-7 text-ink/65">لا توجد تحديثات مرجعية معلقة.</p>
           )}
         </Panel>
       </div>
       <div className="mt-5">
         <Panel>
-          <h3 className="mb-4 font-extrabold">سجل التدقيق</h3>
+          <h3 className="mb-4 font-extrabold">سجل المتابعة</h3>
           <DataTable
-            headers={["الإجراء", "المصدر", "المستخدم", "التاريخ", "التفاصيل"]}
+            headers={["النشاط", "المصدر", "المستخدم", "التاريخ", "التفاصيل"]}
             rows={updateCenter.auditTrail.map((audit) => [
               audit.action,
               audit.sourceDocumentId,

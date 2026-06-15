@@ -3,7 +3,7 @@ import { PageHeader, Panel, StatusBadge } from "@/components/ui";
 export default function LoginPage() {
   return (
     <>
-      <PageHeader title="تسجيل الدخول" description="واجهة تجريبية للجلسات. يمكن ربطها لاحقا بمزود مصادقة مؤسسي أو NextAuth." />
+      <PageHeader title="تسجيل الدخول" description="واجهة جلسات مبدئية قابلة للربط لاحقا بمزود هوية مؤسسي أو NextAuth." />
       <Panel className="mx-auto max-w-lg">
         <label className="mb-3 block text-sm font-bold">
           البريد الإلكتروني

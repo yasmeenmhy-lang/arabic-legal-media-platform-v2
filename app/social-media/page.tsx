@@ -2,6 +2,7 @@
 
 import { Copy, Download, Share2 } from "lucide-react";
 import { PageHeader, Panel, StatusBadge } from "@/components/ui";
+import { advisoryDisclaimer } from "@/lib/governance";
 import { buildShareUrl, shareReadyContent, socialPlatforms } from "@/lib/services/social-media-service";
 
 const content = shareReadyContent[0];
@@ -30,7 +31,7 @@ export default function SocialMediaPage() {
     <>
       <PageHeader
         title="مركز المشاركة الاجتماعية"
-        description="إعداد المحتوى المعتمد للنشر اليدوي أو المشاركة عبر واجهات المشاركة المتاحة مع حزمة تصدير وتعليمات لكل منصة."
+        description="إعداد المحتوى المناسب للنشر بعد عرض نتيجة التقييم وملاحظات الامتثال والمخاطر، مع حزمة تصدير وتعليمات مشاركة لكل منصة."
       />
 
       <div className="grid gap-5 xl:grid-cols-[1fr_1.2fr]">
@@ -41,7 +42,7 @@ export default function SocialMediaPage() {
               <p className="mt-3 leading-8 text-ink/75">{content.body}</p>
               <p className="mt-4 text-sm font-bold text-palm">{content.hashtags.join(" ")}</p>
             </div>
-            <StatusBadge tone={content.approved ? "good" : "warn"}>{content.approved ? "Approved" : "Review Required"}</StatusBadge>
+            <StatusBadge tone={content.readyForPublishing ? "good" : "warn"}>{content.readyForPublishing ? "مناسب للنشر" : "يتطلب مراجعة"}</StatusBadge>
           </div>
 
           <div className="mt-5 flex flex-wrap gap-2">
@@ -90,6 +91,9 @@ export default function SocialMediaPage() {
             );
           })}
         </div>
+      </div>
+      <div className="mt-5 rounded border border-line bg-white p-4 text-xs leading-6 text-ink/65">
+        {advisoryDisclaimer}
       </div>
     </>
   );

@@ -14,6 +14,6 @@ export async function POST(request: Request) {
   const parsed = schema.safeParse(await request.json());
   if (!parsed.success) return badRequest("المدخلات غير مكتملة");
 
-  const output = await getAIService().generateContent(parsed.data);
+  const output = await getAIService().reviewMediaContent(parsed.data);
   return ok(output);
 }

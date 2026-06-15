@@ -130,7 +130,7 @@ NEXT_PUBLIC_DEMO_MODE=true
 
 ## Later: Real Production Database
 
-After the demo is approved, add a real PostgreSQL database.
+After the demo is ready for persistent data, add a real PostgreSQL database.
 
 Good options:
 
