@@ -9,6 +9,9 @@ const schema = z.object({
   actor: z.string().optional()
 });
 
+export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
+
 export async function POST(request: Request) {
   const parsed = schema.safeParse(await request.json());
   if (!parsed.success) return badRequest("Legal source registration payload is incomplete.");

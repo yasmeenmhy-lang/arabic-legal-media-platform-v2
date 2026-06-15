@@ -1,4 +1,5 @@
 import type { ApprovalStatus, ApprovalWorkflowItem, ReviewResult, RiskLevel } from "@/lib/types";
+import { isDemoMode } from "@/lib/services/demo-mode";
 
 export const approvalWorkflowStates: ApprovalStatus[] = ["DRAFT", "REVIEW_REQUIRED", "NEEDS_CORRECTION", "APPROVED", "EXPORTED", "SHARED"];
 
@@ -8,6 +9,73 @@ function normalizeApprovalStatus(status?: string | null): ApprovalStatus {
 
 function normalizeRiskLevel(riskLevel?: string | null): RiskLevel {
   return ["LOW", "MEDIUM", "HIGH", "CRITICAL"].includes(riskLevel ?? "") ? (riskLevel as RiskLevel) : "LOW";
+}
+
+function getDemoApprovalWorkflowItems(): ApprovalWorkflowItem[] {
+  const updatedAt = new Date("2026-06-15T00:00:00.000Z").toISOString();
+
+  return [
+    {
+      id: "demo-draft",
+      title: "مسودة منشور توعوي عن الاستشارات القانونية",
+      owner: "فريق المحتوى",
+      status: "DRAFT",
+      languageQualityScore: 86,
+      complianceScore: 0,
+      riskLevel: "LOW",
+      updatedAt
+    },
+    {
+      id: "demo-review-required",
+      title: "مقال تثقيفي عن حقوق الموكل",
+      owner: "المراجع القانوني",
+      status: "REVIEW_REQUIRED",
+      languageQualityScore: 91,
+      complianceScore: 84,
+      riskLevel: "MEDIUM",
+      updatedAt
+    },
+    {
+      id: "demo-needs-correction",
+      title: "حملة تتضمن ادعاء نتيجة مضمونة",
+      owner: "فريق الحملات",
+      status: "NEEDS_CORRECTION",
+      languageQualityScore: 72,
+      complianceScore: 55,
+      riskLevel: "HIGH",
+      updatedAt
+    },
+    {
+      id: "demo-approved",
+      title: "نص قصير عن سرية معلومات العميل",
+      owner: "المحرر القانوني",
+      status: "APPROVED",
+      languageQualityScore: 95,
+      complianceScore: 93,
+      riskLevel: "LOW",
+      updatedAt
+    },
+    {
+      id: "demo-exported",
+      title: "حزمة نشر LinkedIn مع بيانات الامتثال",
+      owner: "مركز التصدير",
+      status: "EXPORTED",
+      languageQualityScore: 92,
+      complianceScore: 90,
+      riskLevel: "LOW",
+      updatedAt
+    },
+    {
+      id: "demo-shared",
+      title: "منشور X تمت مشاركته يدويا",
+      owner: "مركز المشاركة",
+      status: "SHARED",
+      languageQualityScore: 89,
+      complianceScore: 88,
+      riskLevel: "MEDIUM",
+      updatedAt
+    }
+  ];
 }
 
 export function runApprovalWorkflow(review: Pick<ReviewResult, "languageQuality" | "complianceScore" | "riskLevel">) {
@@ -26,6 +94,8 @@ export function runApprovalWorkflow(review: Pick<ReviewResult, "languageQuality"
 }
 
 export async function getApprovalWorkflowItems(): Promise<ApprovalWorkflowItem[]> {
+  if (isDemoMode()) return getDemoApprovalWorkflowItems();
+
   const { prisma } = await import("@/lib/prisma");
   const contents = await prisma.content.findMany({
     include: {

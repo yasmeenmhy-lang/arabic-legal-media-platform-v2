@@ -1,4 +1,21 @@
+import { legalSourceDocuments } from "@/lib/legal-knowledge-base";
+import { isDemoMode } from "@/lib/services/demo-mode";
+
+function getDemoDashboardOverview() {
+  return {
+    pendingReviews: 2,
+    approvedContent: 1,
+    blockedExports: 1,
+    highRiskContent: 1,
+    legalReferenceVersion: legalSourceDocuments.map((source) => source.version).filter(Boolean).join(" / ") || "غير محدد",
+    lastLegalSourceCheck: new Date("2026-06-15T00:00:00.000Z").toISOString(),
+    pendingLegalSourceUpdates: 0
+  };
+}
+
 export async function getDashboardOverview() {
+  if (isDemoMode()) return getDemoDashboardOverview();
+
   const { prisma } = await import("@/lib/prisma");
   const [
     pendingReviews,

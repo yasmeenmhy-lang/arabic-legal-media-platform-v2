@@ -1,8 +1,54 @@
 import { createHash } from "crypto";
+import { legalSourceDocuments } from "@/lib/legal-knowledge-base";
+import { isDemoMode } from "@/lib/services/demo-mode";
 import type { LegalSourceSyncState, SourceAuditTrailItem } from "@/lib/types";
 
 function hashSource(value: string) {
   return createHash("sha256").update(value).digest("hex");
+}
+
+function getDemoLegalSourceUpdateCenter() {
+  const checkedAt = new Date("2026-06-15T00:00:00.000Z").toISOString();
+  const sources: LegalSourceSyncState[] = legalSourceDocuments.map((source) => {
+    const checksum = hashSource(`${source.sourceUrl}:${source.version}`);
+
+    return {
+      sourceDocumentId: source.id,
+      title: source.title,
+      sourceUrl: source.sourceUrl,
+      lastCheckedAt: checkedAt,
+      changeDetected: false,
+      currentVersion: source.version,
+      status: "APPROVED",
+      versionHistory: [
+        {
+          id: `${source.id}-${source.version}`,
+          sourceDocumentId: source.id,
+          version: source.version,
+          checkedAt,
+          checksum,
+          summary: "Demo legal source registered from bundled legal baseline.",
+          approvedBy: "demo-admin",
+          approvedAt: checkedAt
+        }
+      ]
+    };
+  });
+
+  const auditTrail: SourceAuditTrailItem[] = sources.map((source) => ({
+    id: `demo-audit-${source.sourceDocumentId}`,
+    sourceDocumentId: source.sourceDocumentId,
+    action: "APPROVED",
+    actor: "demo-admin",
+    at: checkedAt,
+    details: "Demo mode uses bundled legal source metadata without database access."
+  }));
+
+  return {
+    sources,
+    auditTrail,
+    pendingApprovals: []
+  };
 }
 
 function toSyncState(source: {
@@ -48,6 +94,8 @@ function toSyncState(source: {
 }
 
 export async function getLegalSourceUpdateCenter() {
+  if (isDemoMode()) return getDemoLegalSourceUpdateCenter();
+
   const { prisma } = await import("@/lib/prisma");
   const [sources, audits] = await Promise.all([
     prisma.legalSourceDocument.findMany({
@@ -80,6 +128,35 @@ export async function getLegalSourceUpdateCenter() {
 }
 
 export async function registerLegalSource(input: { title: string; sourceUrl: string; version: string; actor?: string }) {
+  if (isDemoMode()) {
+    const sourceDocumentId = `manual-${hashSource(input.sourceUrl).slice(0, 12)}`;
+    const now = new Date().toISOString();
+    const sourceHash = hashSource(`${input.sourceUrl}:${input.version}`);
+
+    return {
+      source: {
+        id: sourceDocumentId,
+        title: input.title,
+        documentType: "MOJ_URL",
+        sourceUrl: input.sourceUrl,
+        version: input.version,
+        sourceHash,
+        status: "PENDING_APPROVAL",
+        lastCheckedAt: now,
+        changeDetected: false,
+        ministry: "وزارة العدل"
+      },
+      audit: {
+        id: `demo-audit-${sourceDocumentId}`,
+        sourceDocumentId,
+        action: "REGISTERED",
+        actor: input.actor ?? "admin",
+        details: `Demo legal source registration accepted without database access: ${input.title}.`,
+        createdAt: now
+      }
+    };
+  }
+
   const { prisma } = await import("@/lib/prisma");
   const sourceDocumentId = `manual-${hashSource(input.sourceUrl).slice(0, 12)}`;
   const now = new Date();
@@ -140,6 +217,28 @@ export async function runManualSourceSync(input: {
   observedVersion?: string;
   actor?: string;
 }) {
+  if (isDemoMode()) {
+    const now = new Date().toISOString();
+    const center = getDemoLegalSourceUpdateCenter();
+    const checked = input.sourceDocumentId
+      ? center.sources.filter((source) => source.sourceDocumentId === input.sourceDocumentId)
+      : center.sources;
+
+    return {
+      syncedAt: now,
+      checked: checked.map((source) => ({
+        id: source.sourceDocumentId,
+        title: source.title,
+        sourceUrl: source.sourceUrl,
+        version: input.observedVersion ?? source.currentVersion,
+        sourceHash: input.observedSourceHash ?? hashSource(`${source.sourceUrl}:${source.currentVersion}`),
+        status: source.status,
+        lastCheckedAt: now,
+        changeDetected: Boolean(input.observedSourceHash || input.observedVersion)
+      }))
+    };
+  }
+
   const { prisma } = await import("@/lib/prisma");
   const now = new Date();
   const sources = await prisma.legalSourceDocument.findMany({
@@ -200,6 +299,25 @@ export async function runManualSourceSync(input: {
 }
 
 export async function approveLegalSourceUpdate(sourceDocumentId: string, actor = "admin") {
+  if (isDemoMode()) {
+    const source = getDemoLegalSourceUpdateCenter().sources.find((item) => item.sourceDocumentId === sourceDocumentId);
+    if (!source) return null;
+
+    return {
+      id: source.sourceDocumentId,
+      title: source.title,
+      sourceUrl: source.sourceUrl,
+      version: source.pendingVersion ?? source.currentVersion,
+      sourceHash: hashSource(`${source.sourceUrl}:${source.pendingVersion ?? source.currentVersion}`),
+      changeDetected: false,
+      pendingVersion: null,
+      pendingSourceHash: null,
+      status: "APPROVED",
+      approvedBy: actor,
+      approvedAt: new Date().toISOString()
+    };
+  }
+
   const { prisma } = await import("@/lib/prisma");
   const source = await prisma.legalSourceDocument.findUnique({ where: { id: sourceDocumentId } });
   if (!source) return null;

@@ -8,6 +8,9 @@ const schema = z.object({
   actor: z.string().default("admin")
 });
 
+export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
+
 export async function POST(request: Request) {
   const parsed = schema.safeParse(await request.json());
   if (!parsed.success) return badRequest("Legal source approval payload is incomplete.");

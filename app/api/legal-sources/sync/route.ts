@@ -9,6 +9,9 @@ const schema = z.object({
   actor: z.string().optional()
 });
 
+export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
+
 export async function POST(request: Request) {
   const body = await request.json().catch(() => ({}));
   const parsed = schema.parse(body);
