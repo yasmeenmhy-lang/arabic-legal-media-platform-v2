@@ -118,7 +118,7 @@ export function ProgressBar({ value, tone = "good" }: { value: number; tone?: To
   const bounded = Math.max(0, Math.min(100, value));
   return (
     <div className="h-2.5 overflow-hidden rounded-full bg-paper">
-      <div className={clsx("h-full rounded-full", toneStyles[tone].solid)} style={{ width: `${bounded}%` }} />
+      <div className={clsx("h-full rounded-full opacity-80", toneStyles[tone].solid)} style={{ width: `${bounded}%` }} />
     </div>
   );
 }
@@ -252,7 +252,7 @@ export function CircularGauge({ value, label, tone = "good" }: { value: number; 
             strokeDasharray={circumference}
             strokeDashoffset={offset}
             stroke="currentColor"
-            className={clsx("fill-none transition-[stroke-dashoffset]", toneStyle.text)}
+            className={clsx("fill-none opacity-80 transition-[stroke-dashoffset]", toneStyle.text)}
           />
         </svg>
         <div className="absolute inset-0 grid place-items-center">
@@ -267,37 +267,37 @@ export function CircularGauge({ value, label, tone = "good" }: { value: number; 
 export function NeedleGauge({ value, label, tone = "gold" }: { value: number; label?: string; tone?: Tone }) {
   const bounded = Math.max(0, Math.min(100, value));
   const angle = -90 + (bounded / 100) * 180;
-  const size = 140;
-  const inset = 12;
+  const size = 180;
+  const inset = 16;
   const radius = size / 2 - inset;
   const arcLength = Math.PI * radius;
   const toneStyle = toneStyles[tone];
 
   return (
-    <div className="flex flex-col items-center gap-2">
-      <svg width={size} height={size / 2 + inset} viewBox={`0 0 ${size} ${size / 2 + inset}`}>
+    <div className="flex flex-col items-center gap-3">
+      <svg width={size} height={size / 2 + inset} viewBox={`0 0 ${size} ${size / 2 + inset}`} className="max-w-full">
         <path
           d={`M ${inset} ${size / 2} A ${radius} ${radius} 0 0 1 ${size - inset} ${size / 2}`}
-          strokeWidth={10}
+          strokeWidth={12}
           strokeLinecap="round"
           className="fill-none stroke-line"
         />
         <path
           d={`M ${inset} ${size / 2} A ${radius} ${radius} 0 0 1 ${size - inset} ${size / 2}`}
-          strokeWidth={10}
+          strokeWidth={12}
           strokeLinecap="round"
           stroke="currentColor"
           strokeDasharray={arcLength}
           strokeDashoffset={arcLength * (1 - bounded / 100)}
-          className={clsx("fill-none", toneStyle.text)}
+          className={clsx("fill-none opacity-80", toneStyle.text)}
         />
         <g transform={`translate(${size / 2} ${size / 2}) rotate(${angle})`}>
-          <line x1="0" y1="4" x2="0" y2={-(radius - 14)} strokeWidth={3} strokeLinecap="round" className="stroke-ink" />
-          <circle cx="0" cy="0" r="5" className="fill-ink" />
+          <line x1="0" y1="4" x2="0" y2={-(radius - 18)} strokeWidth={3} strokeLinecap="round" className="stroke-ink/70" />
+          <circle cx="0" cy="0" r="6" className="fill-ink/70" />
         </g>
       </svg>
-      <span className={clsx("text-sm font-normal", toneStyle.text)}>{bounded}%</span>
-      {label ? <p className="max-w-32 text-center text-xs leading-6 text-ink/60">{label}</p> : null}
+      <span className={clsx("text-base font-normal", toneStyle.text)}>{bounded}%</span>
+      {label ? <p className="max-w-44 text-center text-xs leading-6 text-ink/60">{label}</p> : null}
     </div>
   );
 }

@@ -1,31 +1,65 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Menu, ShieldCheck } from "lucide-react";
+import { Menu, ShieldCheck, X } from "lucide-react";
 import { navItems, platformTitle } from "@/lib/navigation";
 import { demoSession } from "@/lib/rbac";
 import { clsx } from "clsx";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const [navOpen, setNavOpen] = useState(true);
   const visibleItems = navItems;
   const groups = Array.from(new Set(visibleItems.map((item) => item.group)));
 
+  useEffect(() => {
+    function handleKeydown(event: KeyboardEvent) {
+      if (event.key === "Escape") setNavOpen(false);
+    }
+    window.addEventListener("keydown", handleKeydown);
+    return () => window.removeEventListener("keydown", handleKeydown);
+  }, []);
+
   return (
     <div className="min-h-screen overflow-x-hidden bg-paper">
-      <aside className="fixed bottom-0 right-0 top-0 z-20 hidden w-80 border-l border-line bg-white lg:block">
+      {navOpen ? (
+        <div
+          aria-hidden="true"
+          onClick={() => setNavOpen(false)}
+          className="fixed inset-0 z-20 bg-ink/30 lg:hidden"
+        />
+      ) : null}
+
+      <aside
+        className={clsx(
+          "fixed bottom-0 right-0 top-0 z-30 w-80 border-l border-line bg-white transition-transform duration-200 ease-out",
+          navOpen ? "translate-x-0" : "translate-x-full"
+        )}
+      >
         <div className="border-b border-line bg-paper p-6">
-          <div className="flex items-start gap-3">
-            <div className="grid h-12 w-12 place-items-center rounded-lg bg-palm text-white shadow-sm">
-              <ShieldCheck size={24} />
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex items-start gap-3">
+              <div className="grid h-12 w-12 place-items-center rounded-lg bg-palm text-white shadow-sm">
+                <ShieldCheck size={24} />
+              </div>
+              <div>
+                <p className="text-base font-normal text-palm">منصة المحامين</p>
+                <p className="mt-1 max-w-48 text-xs leading-6 text-ink/65">
+                  تمكين الحضور الإعلامي والإعلاني وفق مراجعة مهنية استرشادية
+                </p>
+              </div>
             </div>
-            <div>
-              <p className="text-base font-normal text-palm">منصة المحامين</p>
-              <p className="mt-1 max-w-48 text-xs leading-6 text-ink/65">
-                تمكين الحضور الإعلامي والإعلاني وفق مراجعة مهنية استرشادية
-              </p>
-            </div>
+            <button
+              type="button"
+              onClick={() => setNavOpen(false)}
+              className="grid h-9 w-9 shrink-0 place-items-center rounded-md border border-line text-ink/60 transition hover:border-palm hover:text-palm focus-ring"
+              title="إغلاق القائمة"
+              aria-label="إغلاق القائمة"
+            >
+              <X size={18} />
+            </button>
           </div>
         </div>
         <nav className="h-[calc(100vh-112px)] overflow-y-auto p-4">
@@ -58,11 +92,18 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </nav>
       </aside>
 
-      <div className="lg:mr-80">
+      <div className={clsx("transition-[margin] duration-200 ease-out", navOpen && "lg:mr-80")}>
         <header className="sticky top-0 z-10 border-b border-line bg-white/95 backdrop-blur">
           <div className="flex min-h-16 items-center justify-between gap-4 px-4 sm:px-6">
             <div className="flex items-center gap-3">
-              <button className="grid h-10 w-10 place-items-center rounded-md border border-line lg:hidden" title="القائمة">
+              <button
+                type="button"
+                onClick={() => setNavOpen((open) => !open)}
+                className="grid h-10 w-10 place-items-center rounded-md border border-line transition hover:border-palm hover:text-palm focus-ring"
+                title="القائمة"
+                aria-label="فتح أو إغلاق القائمة"
+                aria-expanded={navOpen}
+              >
                 <Menu size={20} />
               </button>
               <div>

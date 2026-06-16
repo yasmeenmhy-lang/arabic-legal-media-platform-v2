@@ -26,8 +26,8 @@ export default function RiskAssessmentPage() {
         ]}
       />
 
-      <div className="grid gap-6 xl:grid-cols-[0.55fr_0.8fr_1.2fr]">
-        <Panel className="flex flex-col items-center justify-center">
+      <div className="grid gap-6 lg:grid-cols-2">
+        <Panel className="flex flex-col items-center justify-center gap-2 py-8">
           <SectionTitle title="المستوى العام للمخاطر" subtitle="مؤشر إبرة يلخص حدة المخاطر الحالية." />
           <NeedleGauge value={38} label="مرتفع جزئياً ضمن نطاق آمن" tone="gold" />
         </Panel>
@@ -43,11 +43,12 @@ export default function RiskAssessmentPage() {
             ]}
           />
         </Panel>
-        <Panel>
-          <SectionTitle title="أبرز مؤشرات المخاطر" subtitle="كل مؤشر يظهر مع اتجاه معالجة مقترح داخل تقرير المراجعة." />
-          <DataTable headers={["المؤشر", "النطاق", "المستوى", "اتجاه المعالجة"]} rows={riskRows} />
-        </Panel>
       </div>
+
+      <Panel className="overflow-hidden">
+        <SectionTitle title="أبرز مؤشرات المخاطر" subtitle="كل مؤشر يظهر مع اتجاه معالجة مقترح داخل تقرير المراجعة." />
+        <DataTable headers={["المؤشر", "النطاق", "المستوى", "اتجاه المعالجة"]} rows={riskRows} />
+      </Panel>
     </div>
   );
 }
