@@ -48,7 +48,7 @@ export const socialPlatforms: SocialPlatformShareTarget[] = [
   },
   {
     key: "youtube_shorts",
-    label: "YouTube Shorts",
+    label: "YouTube",
     characterLimit: 5000,
     supportsWebShare: true,
     supportsDeepLink: false,

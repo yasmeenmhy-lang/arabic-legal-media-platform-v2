@@ -9,7 +9,7 @@ export interface AIService {
 
 function readinessStatusFromReview(review: ReviewResult): ReviewReadinessStatus {
   if (!review.languageQuality.passed) return "NEEDS_CORRECTION";
-  if (!review.exportAllowed && review.riskLevel !== "LOW") return "NEEDS_CORRECTION";
+  if (!review.exportAllowed && review.riskLevel !== "منخفض") return "NEEDS_CORRECTION";
   if (review.exportAllowed) return "READY_FOR_PUBLISHING";
   return "REVIEW_REQUIRED";
 }
@@ -68,13 +68,11 @@ export class MockAIService implements AIService {
     const averageComplianceScore = Math.round(
       pipelineReviews.reduce((sum, review) => sum + review.complianceScore, 0) / pipelineReviews.length
     );
-    const highestRisk = pipelineReviews.some((review) => review.riskLevel === "CRITICAL")
-      ? "CRITICAL"
-      : pipelineReviews.some((review) => review.riskLevel === "HIGH")
-        ? "HIGH"
-        : pipelineReviews.some((review) => review.riskLevel === "MEDIUM")
-          ? "MEDIUM"
-          : "LOW";
+    const highestRisk = pipelineReviews.some((review) => review.riskLevel === "مرتفع")
+      ? "مرتفع"
+      : pipelineReviews.some((review) => review.riskLevel === "متوسط")
+        ? "متوسط"
+        : "منخفض";
 
     const readinessState: ReviewReadinessStatus = pipelineReviews.every((review) => review.exportAllowed)
       ? "READY_FOR_PUBLISHING"

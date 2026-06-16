@@ -7,9 +7,9 @@ export default function ExportCenterPage() {
   const firstPackage = buildExportPackage(center.content[0]?.id ?? "");
   const packageRows = center.content.map((content) => [
     content.title,
-    content.readyForPublishing ? <StatusBadge key={`${content.id}-ready`} tone="good">مناسب للتصدير وفق نتائج المراجعة</StatusBadge> : <StatusBadge key={`${content.id}-needs`} tone="warn">يتطلب معالجة الملاحظات</StatusBadge>,
+    content.readyForPublishing ? <StatusBadge key={`${content.id}-ready`} tone="good">مناسب للتصدير وفق نتائج المراجعة</StatusBadge> : <StatusBadge key={`${content.id}-needs`} tone="neutral">يتطلب معالجة الملاحظات</StatusBadge>,
     content.complianceMetadata?.complianceScore ?? "غير متاح",
-    content.complianceMetadata?.riskLevel === "LOW" ? "منخفض" : content.complianceMetadata?.riskLevel === "MEDIUM" ? "متوسط" : content.complianceMetadata?.riskLevel === "HIGH" ? "مرتفع" : "غير متاح"
+    content.complianceMetadata?.riskLevel ?? "غير متاح"
   ]);
 
   return (

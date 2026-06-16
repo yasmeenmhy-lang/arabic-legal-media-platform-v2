@@ -1,6 +1,6 @@
 export type RoleName = "LAWYER" | "SUPERVISOR" | "ADMIN";
 
-export type RiskLevel = "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
+export type RiskLevel = "منخفض" | "متوسط" | "مرتفع";
 
 export type ContentKind =
   | "post"

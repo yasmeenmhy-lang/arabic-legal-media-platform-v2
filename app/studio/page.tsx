@@ -7,8 +7,8 @@ const knowledgeRows = legalKnowledgeEntries.map((entry) => [
   entry.articleOrRuleNumber,
   entry.chapter,
   entry.riskCategories.join("، "),
-  <StatusBadge key={entry.id} tone={entry.severity === "CRITICAL" ? "danger" : entry.severity === "HIGH" ? "warn" : "neutral"}>
-    {entry.severity === "CRITICAL" ? "أولوية جوهرية" : entry.severity === "HIGH" ? "أولوية مهمة" : "أولوية متوسطة"}
+  <StatusBadge key={entry.id} tone={entry.severity === "مرتفع" ? "gold" : entry.severity === "متوسط" ? "neutral" : "good"}>
+    {entry.severity === "مرتفع" ? "أولوية جوهرية" : entry.severity === "متوسط" ? "أولوية مهمة" : "أولوية منخفضة"}
   </StatusBadge>
 ]);
 
@@ -27,7 +27,7 @@ export default function KnowledgeBasePage() {
           { label: "مدخلات معرفة", value: `${legalKnowledgeEntries.length}`, hint: "قواعد ومواد مفهرسة", tone: "good", icon: <Database size={20} /> },
           { label: "فصول مغطاة", value: "4", hint: "إعلان، سرية، صفة، خبرة", tone: "neutral", icon: <Layers size={20} /> },
           { label: "كلمات مفتاحية", value: "36", hint: "تستخدم في الربط الموضوعي", tone: "gold", icon: <Tags size={20} /> },
-          { label: "مجالات فحص", value: "6", hint: "تظهر في نتائج المراجعة", tone: "warn", icon: <FileSearch size={20} /> }
+          { label: "مجالات فحص", value: "6", hint: "تظهر في نتائج المراجعة", tone: "neutral", icon: <FileSearch size={20} /> }
         ]}
       />
 

@@ -6,7 +6,7 @@ export const legalSourceDocuments: LegalSourceDocument[] = [
     title: "قواعد السلوك المهني للمحامين",
     documentType: "PDF",
     fileName: "قواعد السلوك المهني للمحامين.pdf",
-    sourceUrl: "file:///C:/Users/Yasmeenmy/Desktop/قواعد السلوك المهني للمحامين.pdf",
+    sourceUrl: "https://laws.moj.gov.sa",
     version: "1447H",
     status: "ACTIVE",
     pages: 10,
@@ -19,7 +19,7 @@ export const legalSourceDocuments: LegalSourceDocument[] = [
     title: "اللائحة التنفيذية لنظام المحاماة",
     documentType: "PDF",
     fileName: "اللائحة التنفيذية لنظام المحاماة.pdf",
-    sourceUrl: "file:///C:/Users/Yasmeenmy/Desktop/اللائحة التنفيذية لنظام المحاماة.pdf",
+    sourceUrl: "https://laws.moj.gov.sa",
     version: "1446H",
     status: "ACTIVE",
     pages: 17,
@@ -63,7 +63,7 @@ export const legalKnowledgeEntries: LegalKnowledgeEntry[] = [
     status: "ACTIVE",
     keywords: ["إعلان", "تسويق", "مبالغة", "تضليل", "الجمهور", "محتوى مهني"],
     riskCategories: ["ادعاء تفضيلي أو تسويقي", "احتمال تضليل الجمهور"],
-    severity: "HIGH",
+    severity: "مرتفع",
     prohibitedPatterns: ["أفضل محام", "الأفضل", "رقم واحد", "الأقوى", "خبير مضمون", "سر مضمون"],
     recommendedAction: "استبدل الادعاءات التفضيلية أو المطلقة بوصف مهني محدد وقابل للتحقق."
   },
@@ -82,7 +82,7 @@ export const legalKnowledgeEntries: LegalKnowledgeEntry[] = [
     status: "ACTIVE",
     keywords: ["ضمان النتيجة", "كسب القضية", "وعد", "نتيجة", "نزاع"],
     riskCategories: ["وعد بنتيجة", "إيحاء بضمان المخرجات"],
-    severity: "CRITICAL",
+    severity: "مرتفع",
     prohibitedPatterns: ["نضمن", "مضمون", "اكسب قضيتك", "نضمن لك", "نتيجة مضمونة", "الفوز بالقضية"],
     recommendedAction: "استخدم صياغة احتمالية توضح أن النتائج تعتمد على الوقائع والمستندات والأنظمة."
   },
@@ -101,7 +101,7 @@ export const legalKnowledgeEntries: LegalKnowledgeEntry[] = [
     status: "ACTIVE",
     keywords: ["سرية", "خصوصية", "بيانات العميل", "تفاصيل القضية", "هوية العميل"],
     riskCategories: ["سرية وخصوصية", "كشف بيانات العميل"],
-    severity: "CRITICAL",
+    severity: "مرتفع",
     prohibitedPatterns: ["اسم العميل", "تفاصيل القضية", "مستندات العميل", "رقم الهوية", "بيانات سرية"],
     recommendedAction: "احذف البيانات المحددة أو عمم المثال دون كشف هوية العميل أو تفاصيله."
   },
@@ -120,7 +120,7 @@ export const legalKnowledgeEntries: LegalKnowledgeEntry[] = [
     status: "ACTIVE",
     keywords: ["استغلال", "ضغط", "إلحاح", "طلب العمل", "العميل"],
     riskCategories: ["ضغط تسويقي", "طلب عمل غير ملائم"],
-    severity: "HIGH",
+    severity: "مرتفع",
     prohibitedPatterns: ["اتصل الآن قبل فوات الأوان", "لا تضيع حقك", "فرصتك الأخيرة", "سارع قبل أن تخسر"],
     recommendedAction: "استبدل عبارات الضغط بدعوة مهنية هادئة للحصول على مراجعة أو استشارة عند الحاجة."
   },
@@ -139,7 +139,7 @@ export const legalKnowledgeEntries: LegalKnowledgeEntry[] = [
     status: "ACTIVE",
     keywords: ["مزاولة", "محام", "مستشار", "نظام المحاماة", "صفة مهنية"],
     riskCategories: ["ادعاء صفة مهنية", "صياغة صفة غير موثقة"],
-    severity: "HIGH",
+    severity: "مرتفع",
     prohibitedPatterns: ["مستشار قانوني معتمد", "محام معتمد", "مرخص دوليا", "خبير قضائي معتمد"],
     recommendedAction: "اذكر الصفة المهنية بدقة ولا تستخدم أوصافاً توحي بصفة غير موثقة."
   },
@@ -158,7 +158,7 @@ export const legalKnowledgeEntries: LegalKnowledgeEntry[] = [
     status: "ACTIVE",
     keywords: ["تدريب", "خبرة", "قيد", "تأهيل", "صفة مهنية"],
     riskCategories: ["ادعاء خبرة غير موثق", "مبالغة مهنية"],
-    severity: "MEDIUM",
+    severity: "متوسط",
     prohibitedPatterns: ["خبرة لا مثيل لها", "الأكثر خبرة", "خبرة مضمونة", "خبير في كل القضايا"],
     recommendedAction: "حوّل ادعاء الخبرة إلى وصف محدد وقابل للتحقق دون مبالغة."
   }

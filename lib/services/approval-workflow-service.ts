@@ -18,7 +18,7 @@ function normalizeReviewReadinessStatus(status?: string | null): ReviewReadiness
 }
 
 function normalizeRiskLevel(riskLevel?: string | null): RiskLevel {
-  return ["LOW", "MEDIUM", "HIGH", "CRITICAL"].includes(riskLevel ?? "") ? (riskLevel as RiskLevel) : "LOW";
+  return ["منخفض", "متوسط", "مرتفع"].includes(riskLevel ?? "") ? (riskLevel as RiskLevel) : "منخفض";
 }
 
 function getDemoReviewReadinessItems(): ReviewReadinessItem[] {
@@ -32,7 +32,7 @@ function getDemoReviewReadinessItems(): ReviewReadinessItem[] {
       status: "DRAFT",
       languageQualityScore: 86,
       complianceScore: 0,
-      riskLevel: "LOW",
+      riskLevel: "منخفض",
       updatedAt
     },
     {
@@ -42,7 +42,7 @@ function getDemoReviewReadinessItems(): ReviewReadinessItem[] {
       status: "REVIEW_REQUIRED",
       languageQualityScore: 91,
       complianceScore: 84,
-      riskLevel: "MEDIUM",
+      riskLevel: "متوسط",
       updatedAt
     },
     {
@@ -52,7 +52,7 @@ function getDemoReviewReadinessItems(): ReviewReadinessItem[] {
       status: "NEEDS_CORRECTION",
       languageQualityScore: 72,
       complianceScore: 55,
-      riskLevel: "HIGH",
+      riskLevel: "مرتفع",
       updatedAt
     },
     {
@@ -62,7 +62,7 @@ function getDemoReviewReadinessItems(): ReviewReadinessItem[] {
       status: "READY_FOR_PUBLISHING",
       languageQualityScore: 95,
       complianceScore: 93,
-      riskLevel: "LOW",
+      riskLevel: "منخفض",
       updatedAt
     },
     {
@@ -72,7 +72,7 @@ function getDemoReviewReadinessItems(): ReviewReadinessItem[] {
       status: "EXPORTED",
       languageQualityScore: 92,
       complianceScore: 90,
-      riskLevel: "LOW",
+      riskLevel: "منخفض",
       updatedAt
     },
     {
@@ -82,7 +82,7 @@ function getDemoReviewReadinessItems(): ReviewReadinessItem[] {
       status: "SHARED",
       languageQualityScore: 89,
       complianceScore: 88,
-      riskLevel: "MEDIUM",
+      riskLevel: "متوسط",
       updatedAt
     }
   ];
@@ -92,7 +92,7 @@ export function runPublishingReadinessReview(review: Pick<ReviewResult, "languag
   const readyForPublishing =
     review.languageQuality.passed &&
     review.complianceScore >= 82 &&
-    (review.riskLevel === "LOW" || review.riskLevel === "MEDIUM");
+    (review.riskLevel === "منخفض" || review.riskLevel === "متوسط");
 
   return {
     readyForPublishing,

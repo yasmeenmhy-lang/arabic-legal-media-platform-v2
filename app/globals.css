@@ -2,6 +2,27 @@
 @tailwind components;
 @tailwind utilities;
 
+/*
+ * "Najiz Muhameen" is the platform's primary Arabic typeface. Drop the licensed
+ * woff2 files into /public/fonts (najiz-muhameen-regular.woff2 / -bold.woff2) to
+ * activate it; until then the stack below falls back to IBM Plex Sans Arabic.
+ */
+@font-face {
+  font-family: "Najiz Muhameen";
+  src: url("/fonts/najiz-muhameen-regular.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Najiz Muhameen";
+  src: url("/fonts/najiz-muhameen-bold.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
 :root {
   color-scheme: light;
   background: #f4f7f6;
@@ -16,6 +37,7 @@ body {
   min-height: 100vh;
   background: #f4f7f6;
   color: #1f2933;
+  font-weight: 400;
   letter-spacing: 0;
   text-rendering: optimizeLegibility;
 }
@@ -36,5 +58,5 @@ textarea {
 }
 
 ::selection {
-  background: rgba(0, 108, 91, 0.16);
+  background: rgba(45, 106, 90, 0.16);
 }

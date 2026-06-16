@@ -2,10 +2,9 @@ import type { ReviewFinding, RiskLevel } from "@/lib/types";
 import { legalKnowledgeEntries } from "@/lib/legal-knowledge-base";
 
 const severityWeight: Record<RiskLevel, number> = {
-  LOW: 8,
-  MEDIUM: 14,
-  HIGH: 22,
-  CRITICAL: 32
+  منخفض: 8,
+  متوسط: 16,
+  مرتفع: 28
 };
 
 function buildCitation(entry: (typeof legalKnowledgeEntries)[number]) {
@@ -17,10 +16,9 @@ function findEvidence(text: string, patterns: string[]) {
 }
 
 function calculateRiskLevel(findings: ReviewFinding[]): RiskLevel {
-  if (findings.some((finding) => finding.severity === "CRITICAL") || findings.length >= 3) return "CRITICAL";
-  if (findings.some((finding) => finding.severity === "HIGH")) return "HIGH";
-  if (findings.some((finding) => finding.severity === "MEDIUM")) return "MEDIUM";
-  return "LOW";
+  if (findings.some((finding) => finding.severity === "مرتفع") || findings.length >= 3) return "مرتفع";
+  if (findings.some((finding) => finding.severity === "متوسط")) return "متوسط";
+  return "منخفض";
 }
 
 export function runLegalComplianceReview(text: string) {
@@ -48,7 +46,7 @@ export function runLegalComplianceReview(text: string) {
   const riskLevel = calculateRiskLevel(findings);
 
   return {
-    passed: riskLevel === "LOW" || riskLevel === "MEDIUM",
+    passed: riskLevel === "منخفض" || riskLevel === "متوسط",
     complianceScore,
     riskLevel,
     findings

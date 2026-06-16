@@ -5,7 +5,7 @@ describe("reviewContent", () => {
   it("flags guaranteed outcomes and exaggerated claims", () => {
     const result = reviewContent("نضمن لك أفضل محام يساعدك على اكسب قضيتك.");
 
-    expect(result.riskLevel).toBe("CRITICAL");
+    expect(result.riskLevel).toBe("مرتفع");
     expect(result.findings.length).toBeGreaterThanOrEqual(2);
     expect(result.complianceScore).toBeLessThan(60);
     expect(result.findings[0].legalCitation).toBeTruthy();
@@ -17,7 +17,7 @@ describe("reviewContent", () => {
   it("keeps neutral educational wording low risk", () => {
     const result = reviewContent("هذه مادة توعوية عامة عن الالتزامات التعاقدية ولا تغني عن مراجعة محام مختص.");
 
-    expect(result.riskLevel).toBe("LOW");
+    expect(result.riskLevel).toBe("منخفض");
     expect(result.findings).toHaveLength(0);
   });
 });

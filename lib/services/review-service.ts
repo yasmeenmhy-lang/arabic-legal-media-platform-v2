@@ -36,7 +36,7 @@ export function reviewContent(text: string, kind: ContentKind = "post"): ReviewR
     return {
       languageQuality,
       complianceScore: 0,
-      riskLevel: "HIGH",
+      riskLevel: "مرتفع",
       summary: "يتطلب المحتوى تحسين جودة اللغة والصياغة قبل استكمال عرض ملاحظات الامتثال ومؤشرات المخاطر وجاهزية النشر.",
       findings: [],
       workflow: buildWorkflow(false, false, false),

@@ -27,7 +27,7 @@ export function getAggregatedSectorAnalytics() {
     riskDistribution: [
       { label: "منخفض", value: 71 },
       { label: "متوسط", value: 21 },
-      { label: "عال", value: 8 }
+      { label: "مرتفع", value: 8 }
     ],
     note: "المؤشرات مجمعة ولا تتضمن ترتيباً فردياً أو درجات سمعة."
   };

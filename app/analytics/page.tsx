@@ -9,7 +9,7 @@ export default function AnalyticsPage() {
       <div className="grid gap-5 xl:grid-cols-3">
         <Panel><SectionTitle title="مؤشرات المحتوى" subtitle="توزيع نوع المحتوى محل المراجعة." /><BarList items={analytics.contentPerformance} tone="good" /></Panel>
         <Panel><SectionTitle title="مؤشرات القنوات" subtitle="القنوات الأكثر استخداماً في التخطيط." /><BarList items={analytics.channelPerformance} tone="gold" /></Panel>
-        <Panel><SectionTitle title="مؤشرات التخطيط" subtitle="اتجاهات المقترحات والحملات." /><BarList items={analytics.campaignPerformance} tone="warn" /></Panel>
+        <Panel><SectionTitle title="مؤشرات التخطيط" subtitle="اتجاهات المقترحات والحملات." /><BarList items={analytics.campaignPerformance} tone="neutral" /></Panel>
       </div>
     </>
   );

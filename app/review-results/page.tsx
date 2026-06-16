@@ -5,17 +5,10 @@ import { ClipboardCheck, FileWarning, Lightbulb, ShieldCheck } from "lucide-reac
 const sampleText = "يجب مراجعة صياغة الإعلان قبل نشره لأنه يتضمن وعداً بنتيجة مضمونة للعميل.";
 const review = reviewContent(sampleText, "advertisement");
 
-const riskLabels = {
-  LOW: "منخفض",
-  MEDIUM: "متوسط",
-  HIGH: "عال",
-  CRITICAL: "حرج"
-} as const;
-
 function scoreTone(value: number) {
   if (value >= 85) return "good" as const;
-  if (value >= 70) return "warn" as const;
-  return "danger" as const;
+  if (value >= 70) return "neutral" as const;
+  return "gold" as const;
 }
 
 export default function ReviewResultsPage() {
@@ -33,17 +26,17 @@ export default function ReviewResultsPage() {
         <ScoreCard label="مستوى الامتثال" value={review.complianceScore} tone={scoreTone(review.complianceScore)} detail="ملاحظات مهنية وتنظيمية" />
         <Panel>
           <ClipboardCheck className="mb-3 text-palm" />
-          <p className="text-sm font-extrabold">جاهزية النشر</p>
+          <p className="text-sm font-normal">جاهزية النشر</p>
           <div className="mt-3">
-            <StatusBadge tone={review.exportAllowed ? "good" : "warn"}>
+            <StatusBadge tone={review.exportAllowed ? "good" : "neutral"}>
               {review.exportAllowed ? "مناسب للتصدير وفق نتائج المراجعة" : "يتطلب معالجة الملاحظات"}
             </StatusBadge>
           </div>
         </Panel>
         <Panel>
-          <FileWarning className="mb-3 text-amber-700" />
-          <p className="text-sm font-extrabold">مستوى المخاطر</p>
-          <p className="mt-3 text-2xl font-extrabold text-palm">{riskLabels[review.riskLevel]}</p>
+          <FileWarning className="mb-3 text-gold" />
+          <p className="text-sm font-normal">مستوى المخاطر</p>
+          <p className="mt-3 text-2xl font-normal text-palm">{review.riskLevel}</p>
         </Panel>
       </div>
 
@@ -61,8 +54,8 @@ export default function ReviewResultsPage() {
             headers={["الملاحظة", "المخاطر", "المرجع الرسمي", "المادة أو القاعدة", "اتجاه المعالجة"]}
             rows={review.findings.map((finding) => [
               finding.issue,
-              <StatusBadge key={finding.evidence} tone="danger">{riskLabels[finding.severity]}</StatusBadge>,
-              <a key={finding.sourceUrl} href={finding.sourceUrl} className="font-extrabold text-palm underline underline-offset-4">{finding.sourceDocument}</a>,
+              <StatusBadge key={finding.evidence} tone="gold">{finding.severity}</StatusBadge>,
+              <a key={finding.sourceUrl} href={finding.sourceUrl} className="font-normal text-palm underline underline-offset-4">{finding.sourceDocument}</a>,
               finding.ruleOrArticleNumber,
               finding.advice
             ])}
@@ -74,7 +67,7 @@ export default function ReviewResultsPage() {
             headers={["المجال", "الأولوية", "المقترح"]}
             rows={review.languageQuality.issues.map((issue) => [
               issue.category,
-              <StatusBadge key={issue.id} tone="warn">{issue.severity}</StatusBadge>,
+              <StatusBadge key={issue.id} tone="neutral">{issue.severity}</StatusBadge>,
               issue.suggestion
             ])}
           />

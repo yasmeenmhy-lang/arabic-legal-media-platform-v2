@@ -4,8 +4,8 @@ import { CheckCircle2, Lightbulb, MessageSquareText, Wand2 } from "lucide-react"
 const opportunities = [
   ["الصياغة", "تحويل العبارات العامة إلى صياغة محددة ومهنية.", <StatusBadge key="style" tone="good">تحسين مباشر</StatusBadge>],
   ["الوضوح", "إضافة سياق يوضح أن المادة توعوية ولا تتناول حالة محددة.", <StatusBadge key="read" tone="good">تحسين قابل للتطبيق</StatusBadge>],
-  ["الاتساق", "توحيد المصطلحات بين الإعلان والمنشور والحملة.", <StatusBadge key="terms" tone="warn">يحتاج متابعة</StatusBadge>],
-  ["الجاهزية", "مراجعة الملاحظات المرتفعة قبل تجهيز حزمة التصدير.", <StatusBadge key="ready" tone="danger">أولوية قبل النشر</StatusBadge>]
+  ["الاتساق", "توحيد المصطلحات بين الإعلان والمنشور والحملة.", <StatusBadge key="terms" tone="neutral">يحتاج متابعة</StatusBadge>],
+  ["الجاهزية", "مراجعة الملاحظات المرتفعة قبل تجهيز حزمة التصدير.", <StatusBadge key="ready" tone="gold">أولوية قبل النشر</StatusBadge>]
 ];
 
 export default function RecommendationsPage() {
@@ -23,7 +23,7 @@ export default function RecommendationsPage() {
           { label: "فرص نشطة", value: "14", hint: "مرتبطة بسجل المراجعات", tone: "good", icon: <Lightbulb size={20} /> },
           { label: "تحسينات لغوية", value: "8", hint: "صياغة ووضوح واتساق", tone: "neutral", icon: <MessageSquareText size={20} /> },
           { label: "معالجة مكتملة", value: "11", hint: "تم تطبيقها على مسودات", tone: "good", icon: <CheckCircle2 size={20} /> },
-          { label: "جاهزية أعلى", value: "+22%", hint: "بعد تحسين المحتوى", tone: "gold", icon: <Wand2 size={20} /> }
+          { label: "جاهزية أعلى", value: "+22%", hint: "بعد تحسين المحتوى", tone: "good", icon: <Wand2 size={20} /> }
         ]}
       />
 

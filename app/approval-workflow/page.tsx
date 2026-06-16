@@ -5,7 +5,7 @@ import { FileCheck2, KeyRound, UserCog, Users } from "lucide-react";
 const users = [
   ["أحمد الحربي", "محام", "مراجعة المحتوى والتصدير", <StatusBadge key="active1" tone="good">نشط</StatusBadge>],
   ["نورة القحطاني", "مشرف محتوى", "متابعة المسودات والتقويم", <StatusBadge key="active2" tone="good">نشط</StatusBadge>],
-  ["سارة العتيبي", "إدارة", "الإعدادات والمصادر", <StatusBadge key="review" tone="warn">تحديث صلاحيات</StatusBadge>]
+  ["سارة العتيبي", "إدارة", "الإعدادات والمصادر", <StatusBadge key="review" tone="neutral">تحديث صلاحيات</StatusBadge>]
 ];
 
 const roles = rbacRoles.map((role) => [
@@ -29,7 +29,7 @@ export default function UserGovernancePage() {
           { label: "مستخدمون نشطون", value: "3", hint: "ضمن البيئة التجريبية", tone: "good", icon: <Users size={20} /> },
           { label: "أدوار معرفة", value: `${rbacRoles.length}`, hint: "محام، مشرف، إدارة", tone: "neutral", icon: <UserCog size={20} /> },
           { label: "صلاحيات مسجلة", value: "9", hint: "مرتبطة بالخدمات", tone: "gold", icon: <KeyRound size={20} /> },
-          { label: "مهام مراجعة", value: "7", hint: "قيد المتابعة", tone: "warn", icon: <FileCheck2 size={20} /> }
+          { label: "مهام مراجعة", value: "7", hint: "قيد المتابعة", tone: "neutral", icon: <FileCheck2 size={20} /> }
         ]}
       />
 

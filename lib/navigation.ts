@@ -4,10 +4,10 @@ import {
   BookOpen,
   CalendarRange,
   ClipboardCheck,
-  CalendarDays,
   FileCheck2,
   FileClock,
   Files,
+  KeyRound,
   LayoutDashboard,
   Library,
   Lightbulb,
@@ -35,7 +35,6 @@ export const navItems = [
   { title: "فرص التحسين", href: "/recommendations", icon: Lightbulb, group: "المراجعة" },
   { title: "المراجع المهنية والتنظيمية", href: "/library", icon: Library, group: "المراجع" },
   { title: "قاعدة المعرفة القانونية", href: "/studio", icon: BookOpen, group: "المراجع" },
-  { title: "التخطيط الإعلامي", href: "/media-planning", icon: CalendarDays, group: "التخطيط والنشر" },
   { title: "التقويم التفاعلي", href: "/calendar", icon: CalendarRange, group: "التخطيط والنشر" },
   { title: "دعم تخطيط الحملات", href: "/campaigns", icon: Megaphone, group: "التخطيط والنشر" },
   { title: "دعم النشر والجدولة", href: "/publishing", icon: Radio, group: "التخطيط والنشر" },
@@ -45,5 +44,6 @@ export const navItems = [
   { title: "مؤشرات القطاع", href: "/sector-analytics", icon: Files, group: "المؤشرات" },
   { title: "التنبيهات", href: "/alerts", icon: Bell, group: "الحوكمة" },
   { title: "الحوكمة والإعدادات", href: "/administration", icon: Settings, group: "الحوكمة" },
-  { title: "إدارة المستخدمين", href: "/approval-workflow", icon: Users, group: "الحوكمة" }
+  { title: "إدارة المستخدمين", href: "/approval-workflow", icon: Users, group: "الحوكمة" },
+  { title: "لوحة الإدارة", href: "/admin", icon: KeyRound, group: "الحوكمة" }
 ];

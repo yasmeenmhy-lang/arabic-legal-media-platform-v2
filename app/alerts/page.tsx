@@ -10,8 +10,8 @@ export default function AlertsPage() {
         <div className="space-y-3">
           {alerts.map((alert) => (
             <div key={alert.title} className="flex flex-col justify-between gap-3 rounded-lg border border-line bg-white p-4 sm:flex-row sm:items-center">
-              <div><h3 className="font-extrabold">{alert.title}</h3><p className="mt-2 text-sm leading-7 text-ink/65">{alert.body}</p></div>
-              <StatusBadge tone={alert.severity === "HIGH" ? "danger" : "warn"}>يتطلب متابعة</StatusBadge>
+              <div><h3 className="font-normal">{alert.title}</h3><p className="mt-2 text-sm leading-7 text-ink/65">{alert.body}</p></div>
+              <StatusBadge tone={alert.severity === "مرتفع" ? "gold" : "neutral"}>يتطلب متابعة</StatusBadge>
             </div>
           ))}
         </div>

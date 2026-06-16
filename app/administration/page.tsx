@@ -1,5 +1,6 @@
 import { DataTable, PageHeader, Panel, SectionTitle, StatusBadge } from "@/components/ui";
 import { getLegalSourceUpdateCenter } from "@/lib/services/legal-source-update-service";
+import { formatDualDateTime } from "@/lib/dates";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -34,16 +35,16 @@ export default async function AdministrationPage() {
         description="متابعة مصادر وزارة العدل والمراجع المهنية والتنظيمية وحالة استخدامها في تقييم الامتثال والمخاطر."
       />
       <div className="grid gap-5 xl:grid-cols-[1.2fr_1fr]">
-        <Panel>
+        <Panel className="overflow-hidden">
           <SectionTitle title="مصادر وزارة العدل والمراجع النظامية" subtitle="تعرض هذه القائمة حالة المراجع المستخدمة في نتائج المراجعة." />
           <DataTable
             headers={["المصدر", "آخر فحص", "الإصدار", "تغير مرصود", "حالة الاستخدام"]}
             rows={updateCenter.sources.map((source) => [
               source.title,
-              source.lastCheckedAt === "غير محدد" ? source.lastCheckedAt : new Date(source.lastCheckedAt).toLocaleString("ar-SA"),
+              source.lastCheckedAt === "غير محدد" ? source.lastCheckedAt : formatDualDateTime(source.lastCheckedAt),
               source.currentVersion,
               source.changeDetected ? "نعم" : "لا",
-              <StatusBadge key={source.sourceDocumentId} tone={source.changeDetected ? "warn" : "good"}>{sourceStatusLabel(source.status, source.changeDetected)}</StatusBadge>
+              <StatusBadge key={source.sourceDocumentId} tone={source.changeDetected ? "neutral" : "good"}>{sourceStatusLabel(source.status, source.changeDetected)}</StatusBadge>
             ])}
           />
         </Panel>
@@ -53,9 +54,9 @@ export default async function AdministrationPage() {
             <div className="space-y-3">
               {updateCenter.pendingApprovals.map((source) => (
                 <div key={source.sourceDocumentId} className="rounded-lg border border-line bg-white p-4">
-                  <p className="font-extrabold">{source.title}</p>
+                  <p className="font-normal">{source.title}</p>
                   <p className="mt-2 text-sm leading-6 text-ink/65">الإصدار المقترح: {source.pendingVersion ?? "غير محدد"}</p>
-                  <p className="mt-2 text-xs text-palm">{source.sourceUrl}</p>
+                  <p className="mt-2 break-all text-xs text-palm">{source.sourceUrl}</p>
                 </div>
               ))}
             </div>
@@ -67,7 +68,7 @@ export default async function AdministrationPage() {
           <SectionTitle title="سجل المتابعة" subtitle="سجل مختصر للتغيرات والإجراءات المرتبطة بالمراجع." />
           <DataTable
             headers={["النشاط", "المصدر", "المستخدم", "التاريخ", "التفاصيل"]}
-            rows={updateCenter.auditTrail.map((audit) => [auditActionLabel(audit.action), audit.sourceDocumentId, audit.actor, new Date(audit.at).toLocaleString("ar-SA"), audit.details])}
+            rows={updateCenter.auditTrail.map((audit) => [auditActionLabel(audit.action), audit.sourceDocumentId, audit.actor, formatDualDateTime(audit.at), audit.details])}
           />
         </Panel>
       </div>

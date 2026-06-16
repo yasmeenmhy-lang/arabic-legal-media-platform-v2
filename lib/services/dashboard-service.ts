@@ -28,7 +28,7 @@ export async function getDashboardOverview() {
     prisma.content.count({ where: { approvalStatus: "REVIEW_REQUIRED" } }),
     prisma.content.count({ where: { approvalStatus: "APPROVED" } }),
     prisma.content.count({ where: { approvalStatus: "NEEDS_CORRECTION" } }),
-    prisma.contentReview.count({ where: { riskLevel: { in: ["HIGH", "CRITICAL"] } } }),
+    prisma.contentReview.count({ where: { riskLevel: "مرتفع" } }),
     prisma.legalSourceDocument.count({
       where: {
         OR: [{ changeDetected: true }, { status: "PENDING_APPROVAL" }]

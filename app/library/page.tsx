@@ -6,7 +6,7 @@ const sourceRows = legalSourceDocuments.map((source) => [
   source.title,
   source.documentType === "MOJ_URL" ? "رابط رسمي" : "ملف مرجعي",
   source.sourceUrl ? (
-    <a key={source.id} href={source.sourceUrl} className="font-bold text-palm underline underline-offset-4">
+    <a key={source.id} href={source.sourceUrl} className="font-normal text-palm underline underline-offset-4">
       فتح المصدر
     </a>
   ) : (
@@ -44,9 +44,9 @@ export default function LibraryPage() {
         <DataTable
           headers={["الجهة أو المرجع", "الرابط"]}
           rows={[
-            ["وزارة العدل", <a key="moj" className="font-bold text-palm underline underline-offset-4" href="https://www.moj.gov.sa">فتح الرابط</a>],
-            ["ناجز", <a key="najiz" className="font-bold text-palm underline underline-offset-4" href="https://najiz.sa">فتح الرابط</a>],
-            ["الهيئة السعودية للمحامين", <a key="sba" className="font-bold text-palm underline underline-offset-4" href="https://sba.gov.sa">فتح الرابط</a>]
+            ["وزارة العدل", <a key="moj" className="font-normal text-palm underline underline-offset-4" href="https://www.moj.gov.sa">فتح الرابط</a>],
+            ["ناجز", <a key="najiz" className="font-normal text-palm underline underline-offset-4" href="https://najiz.sa">فتح الرابط</a>],
+            ["الهيئة السعودية للمحامين", <a key="sba" className="font-normal text-palm underline underline-offset-4" href="https://sba.gov.sa">فتح الرابط</a>]
           ]}
         />
       </Panel>

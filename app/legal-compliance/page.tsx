@@ -6,8 +6,8 @@ const rows = legalKnowledgeEntries.slice(0, 5).map((entry) => [
   entry.sourceDocument,
   entry.articleOrRuleNumber,
   entry.riskCategories.join("، "),
-  <StatusBadge key={entry.id} tone={entry.severity === "CRITICAL" ? "danger" : entry.severity === "HIGH" ? "warn" : "neutral"}>
-    {entry.severity === "CRITICAL" ? "مؤشر جوهري" : entry.severity === "HIGH" ? "مؤشر مهم" : "مؤشر متوسط"}
+  <StatusBadge key={entry.id} tone={entry.severity === "مرتفع" ? "gold" : entry.severity === "متوسط" ? "neutral" : "good"}>
+    {entry.severity === "مرتفع" ? "مؤشر جوهري" : entry.severity === "متوسط" ? "مؤشر مهم" : "مؤشر منخفض"}
   </StatusBadge>
 ]);
 
@@ -25,7 +25,7 @@ export default function LegalCompliancePage() {
         items={[
           { label: "مراجع فعالة", value: "4", hint: "مصادر رسمية ومسجلة", tone: "gold", icon: <Scale size={20} /> },
           { label: "قواعد قابلة للفحص", value: `${legalKnowledgeEntries.length}`, hint: "مرتبطة بالمخاطر المهنية", tone: "good", icon: <ShieldCheck size={20} /> },
-          { label: "ملاحظات عالية الأولوية", value: "3", hint: "تظهر عند وجود عبارات مؤثرة", tone: "danger", icon: <TriangleAlert size={20} /> },
+          { label: "ملاحظات عالية الأولوية", value: "3", hint: "تظهر عند وجود عبارات مؤثرة", tone: "gold", icon: <TriangleAlert size={20} /> },
           { label: "مجالات مراجعة", value: "5", hint: "إعلان، سرية، صفة، نتائج، طلب عمل", tone: "neutral", icon: <FileText size={20} /> }
         ]}
       />

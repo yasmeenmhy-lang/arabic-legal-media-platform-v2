@@ -2,8 +2,8 @@ import { ButtonLink, DataTable, KpiGrid, PageHeader, Panel, SectionTitle, Status
 import { BookOpenCheck, FileSearch, Lightbulb, ShieldAlert } from "lucide-react";
 
 const assistantOutputs = [
-  ["ملاحظة امتثال", "تجنب العبارات التي توحي بضمان النتيجة أو التفوق المطلق.", <StatusBadge key="high" tone="danger">أولوية عالية</StatusBadge>],
-  ["مؤشر مخاطر", "وجود صياغة تسويقية قد تفهم كتضليل للجمهور.", <StatusBadge key="medium" tone="warn">أولوية متوسطة</StatusBadge>],
+  ["ملاحظة امتثال", "تجنب العبارات التي توحي بضمان النتيجة أو التفوق المطلق.", <StatusBadge key="high" tone="gold">أولوية عالية</StatusBadge>],
+  ["مؤشر مخاطر", "وجود صياغة تسويقية قد تفهم كتضليل للجمهور.", <StatusBadge key="medium" tone="neutral">أولوية متوسطة</StatusBadge>],
   ["فرصة تحسين", "تحويل الرسالة إلى توعية عامة مع دعوة مهنية هادئة.", <StatusBadge key="good" tone="good">قابل للتطبيق</StatusBadge>]
 ];
 
@@ -24,8 +24,8 @@ export default function ReviewAssistantPage() {
 
       <KpiGrid
         items={[
-          { label: "ملاحظات مكتشفة", value: "7", hint: "مرتبطة بصياغة وامتثال", tone: "warn", icon: <FileSearch size={20} /> },
-          { label: "مؤشرات مخاطر", value: "3", hint: "قابلة للمعالجة قبل النشر", tone: "danger", icon: <ShieldAlert size={20} /> },
+          { label: "ملاحظات مكتشفة", value: "7", hint: "مرتبطة بصياغة وامتثال", tone: "neutral", icon: <FileSearch size={20} /> },
+          { label: "مؤشرات مخاطر", value: "3", hint: "قابلة للمعالجة قبل النشر", tone: "gold", icon: <ShieldAlert size={20} /> },
           { label: "فرص تحسين", value: "9", hint: "تحسين اللغة والوضوح المهني", tone: "good", icon: <Lightbulb size={20} /> },
           { label: "مراجع مستندة", value: "4", hint: "مصادر مهنية وتنظيمية", tone: "gold", icon: <BookOpenCheck size={20} /> }
         ]}
