@@ -26,6 +26,19 @@ const quickLinks = [
   ["اللائحة التنفيذية لنظام المحاماة", "https://laws.moj.gov.sa/ar/legislation/5huwCrAuvCK62BbuXv7fjg"]
 ];
 
+const readinessIndicators: Array<{
+  label: string;
+  value: number;
+  tone: "good" | "warn" | "danger" | "gold" | "neutral";
+  hint: string;
+  href: string;
+}> = [
+  { label: "جاهزية النشر", value: 76, tone: "good", hint: "المحتوى المناسب للتصدير بعد المراجعة.", href: "/publishing" },
+  { label: "مستوى الامتثال", value: 88, tone: "good", hint: "مدى انخفاض ملاحظات الامتثال المؤثرة.", href: "/legal-compliance" },
+  { label: "جودة المحتوى", value: 91, tone: "gold", hint: "اللغة والصياغة والوضوح واتساق المصطلحات.", href: "/content-review" },
+  { label: "مؤشر المخاطر", value: 18, tone: "warn", hint: "نسبة العناصر التي تحتاج متابعة مهنية.", href: "/risk-assessment" }
+];
+
 export default async function DashboardPage() {
   const overview = await getDashboardOverview();
 
@@ -85,19 +98,14 @@ export default async function DashboardPage() {
         <Panel>
           <SectionTitle title="مؤشرات الجاهزية" subtitle="ملخص بصري سريع يساعد على ترتيب الأولويات خلال ثوان." />
           <div className="grid gap-4 md:grid-cols-2">
-            {[
-              ["جاهزية النشر", 76, "good" as const, "المحتوى المناسب للتصدير بعد المراجعة."],
-              ["مستوى الامتثال", 88, "good" as const, "مدى انخفاض ملاحظات الامتثال المؤثرة."],
-              ["جودة المحتوى", 91, "gold" as const, "اللغة والصياغة والوضوح واتساق المصطلحات."],
-              ["مؤشر المخاطر", 18, "warn" as const, "نسبة العناصر التي تحتاج متابعة مهنية."]
-            ].map(([label, value, tone, hint]) => (
-              <Link key={label as string} href={label === "مؤشر المخاطر" ? "/risk-assessment" : "/content-review"} className="rounded-lg border border-line bg-white p-4 transition hover:border-palm hover:shadow-sm focus-ring">
+            {readinessIndicators.map((indicator) => (
+              <Link key={indicator.label} href={indicator.href} className="rounded-lg border border-line bg-white p-4 transition hover:border-palm hover:shadow-sm focus-ring">
                 <div className="flex items-center justify-between gap-4">
-                  <span className="font-extrabold text-ink">{label as string}</span>
-                  <span className="text-3xl font-extrabold text-palm">{value as number}%</span>
+                  <span className="font-extrabold text-ink">{indicator.label}</span>
+                  <span className="text-3xl font-extrabold text-palm">{indicator.value}%</span>
                 </div>
-                <div className="mt-4"><ProgressBar value={value as number} tone={tone} /></div>
-                <p className="mt-3 text-xs leading-6 text-ink/60">{hint as string}</p>
+                <div className="mt-4"><ProgressBar value={indicator.value} tone={indicator.tone} /></div>
+                <p className="mt-3 text-xs leading-6 text-ink/60">{indicator.hint}</p>
               </Link>
             ))}
           </div>
