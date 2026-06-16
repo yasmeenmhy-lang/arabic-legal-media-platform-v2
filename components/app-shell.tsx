@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Bell, Menu, ShieldCheck } from "lucide-react";
+import { Menu, ShieldCheck } from "lucide-react";
 import { navItems, platformTitle } from "@/lib/navigation";
 import { can, demoSession } from "@/lib/rbac";
 import { clsx } from "clsx";
@@ -14,18 +14,19 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-paper">
       <aside className="fixed bottom-0 right-0 top-0 z-20 hidden w-80 border-l border-line bg-white lg:block">
-        <div className="border-b border-line bg-[#f9fbfa] p-5">
-          <div className="flex items-center gap-3">
-            <div className="grid h-11 w-11 place-items-center rounded bg-palm text-white shadow-sm">
-              <ShieldCheck size={22} />
+        <div className="border-b border-line bg-[#fbfcfb] p-6">
+          <div className="flex items-start gap-3">
+            <div className="grid h-12 w-12 place-items-center rounded-lg bg-palm text-white shadow-sm">
+              <ShieldCheck size={24} />
             </div>
             <div>
-              <p className="text-sm font-bold text-palm">منصة المحامين</p>
-              <p className="mt-1 text-xs leading-5 text-ink/65">تمكين ومراجعة المحتوى الإعلامي القانوني</p>
+              <p className="text-base font-extrabold text-palm">منصة المحامين</p>
+              <p className="mt-1 max-w-48 text-xs leading-6 text-ink/65">تمكين الحضور الإعلامي والإعلاني وفق مراجعة مهنية استرشادية</p>
             </div>
           </div>
         </div>
-        <nav className="h-[calc(100vh-92px)] overflow-y-auto p-3">
+        <nav className="h-[calc(100vh-112px)] overflow-y-auto p-4">
+          <div className="mb-3 px-2 text-[11px] font-extrabold text-ink/45">الخدمات الرئيسية</div>
           {navItems
             .filter((item) => !item.permission || can(role, item.permission))
             .map((item) => {
@@ -36,8 +37,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   key={item.href}
                   href={item.href}
                   className={clsx(
-                    "mb-1 flex items-center gap-3 rounded px-3 py-2.5 text-sm transition focus-ring",
-                    active ? "bg-mint font-bold text-palm" : "text-ink/75 hover:bg-paper hover:text-ink"
+                    "mb-2 flex items-center gap-3 rounded-lg border px-3 py-3 text-sm transition focus-ring",
+                    active ? "border-palm bg-mint font-extrabold text-palm" : "border-transparent text-ink/75 hover:border-line hover:bg-paper hover:text-ink"
                   )}
                 >
                   <Icon size={18} />
@@ -52,19 +53,17 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <header className="sticky top-0 z-10 border-b border-line bg-white/95 backdrop-blur">
           <div className="flex min-h-16 items-center justify-between gap-4 px-4 sm:px-6">
             <div className="flex items-center gap-3">
-              <button className="grid h-10 w-10 place-items-center rounded border border-line lg:hidden" title="القائمة">
+              <button className="grid h-10 w-10 place-items-center rounded-md border border-line lg:hidden" title="القائمة">
                 <Menu size={20} />
               </button>
-              <h1 className="max-w-4xl text-sm font-extrabold leading-6 text-ink sm:text-base">{platformTitle}</h1>
-            </div>
-            <div className="flex items-center gap-2">
-              <button className="grid h-10 w-10 place-items-center rounded border border-line bg-white text-ink" title="التنبيهات">
-                <Bell size={18} />
-              </button>
-              <div className="hidden text-left sm:block">
-                <p className="text-sm font-bold">{demoSession.user.name}</p>
-                <p className="text-xs text-ink/60">محام</p>
+              <div>
+                <h1 className="max-w-4xl text-sm font-extrabold leading-6 text-ink sm:text-base">{platformTitle}</h1>
+                <p className="hidden text-xs text-ink/50 sm:block">مراجعة، امتثال، مخاطر، وجاهزية نشر للمحتوى المهني</p>
               </div>
+            </div>
+            <div className="hidden rounded-lg border border-line bg-[#fbfcfb] px-3 py-2 text-left sm:block">
+              <p className="text-sm font-extrabold">{demoSession.user.name}</p>
+              <p className="text-xs text-ink/60">محام</p>
             </div>
           </div>
         </header>

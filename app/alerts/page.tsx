@@ -4,7 +4,10 @@ import { PageHeader, Panel, StatusBadge } from "@/components/ui";
 export default function AlertsPage() {
   return (
     <>
-      <PageHeader title="مركز التنبيهات" description="تنبيهات المحتوى عالي المخاطر والمراجعات المعلقة وتعثر النشر والاتجاهات الناشئة وملاحظات الحملات." />
+      <PageHeader
+        title="مركز التنبيهات"
+        description="تنبيهات المحتوى عالي المخاطر والمراجعات المعلقة وتعثر التصدير وملاحظات التخطيط الإعلامي."
+      />
       <div className="space-y-3">
         {alerts.map((alert) => (
           <Panel key={alert.title}>
@@ -13,7 +16,7 @@ export default function AlertsPage() {
                 <h3 className="font-extrabold">{alert.title}</h3>
                 <p className="mt-2 text-sm leading-7 text-ink/65">{alert.body}</p>
               </div>
-              <StatusBadge tone={alert.severity === "HIGH" ? "danger" : "warn"}>غير مقروء</StatusBadge>
+              <StatusBadge tone={alert.severity === "HIGH" ? "danger" : "warn"}>يتطلب متابعة</StatusBadge>
             </div>
           </Panel>
         ))}

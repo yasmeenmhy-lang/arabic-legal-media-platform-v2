@@ -1,15 +1,15 @@
 import type { ContentKind, ReviewResult, ReviewWorkflowStep } from "@/lib/types";
 import { advisoryDisclaimer } from "@/lib/governance";
 import { reviewLanguageQuality } from "@/lib/services/language-quality-service";
-import { runApprovalWorkflow } from "@/lib/services/approval-workflow-service";
+import { runPublishingReadinessReview } from "@/lib/services/approval-workflow-service";
 import { runLegalComplianceReview } from "@/lib/services/legal-compliance-service";
 
 const workflowLabels: Array<[ReviewWorkflowStep["key"], string]> = [
   ["language_quality_review", "جودة اللغة والصياغة"],
   ["legal_compliance_review", "ملاحظات الامتثال"],
   ["risk_assessment", "مؤشرات المخاطر"],
-  ["approval_workflow", "ملخص المراجعة وجاهزية النشر"],
-  ["export_center", "جاهزية التصدير"]
+  ["publishing_readiness", "ملخص المراجعة وجاهزية النشر"],
+  ["export_support", "دعم التصدير"]
 ];
 
 function buildWorkflow(languageQualityPassed: boolean, compliancePassed: boolean, readinessPassed: boolean): ReviewWorkflowStep[] {
@@ -22,7 +22,7 @@ function buildWorkflow(languageQualityPassed: boolean, compliancePassed: boolean
   });
 }
 
-export function reviewContent(text: string, kind: ContentKind = "ai_response"): ReviewResult {
+export function reviewContent(text: string, kind: ContentKind = "post"): ReviewResult {
   const languageQuality = reviewLanguageQuality({
     text,
     kind,
@@ -37,7 +37,7 @@ export function reviewContent(text: string, kind: ContentKind = "ai_response"): 
       languageQuality,
       complianceScore: 0,
       riskLevel: "HIGH",
-      summary: "يجب استكمال جودة اللغة والصياغة قبل عرض ملاحظات الامتثال ومؤشرات المخاطر وجاهزية النشر أو التصدير.",
+      summary: "يتطلب المحتوى تحسين جودة اللغة والصياغة قبل استكمال عرض ملاحظات الامتثال ومؤشرات المخاطر وجاهزية النشر.",
       findings: [],
       workflow: buildWorkflow(false, false, false),
       exportAllowed: false,
@@ -46,7 +46,7 @@ export function reviewContent(text: string, kind: ContentKind = "ai_response"): 
   }
 
   const compliance = runLegalComplianceReview(languageQuality.improvedDraft);
-  const readiness = runApprovalWorkflow({
+  const readiness = runPublishingReadinessReview({
     languageQuality,
     complianceScore: compliance.complianceScore,
     riskLevel: compliance.riskLevel
@@ -58,8 +58,8 @@ export function reviewContent(text: string, kind: ContentKind = "ai_response"): 
     riskLevel: compliance.riskLevel,
     summary:
       compliance.findings.length > 0
-        ? "توجد عبارات تحتاج مراجعة امتثالية مستندة إلى المراجع المهنية والتنظيمية قبل النشر."
-        : "لا توجد مؤشرات عالية المخاطر في النص وفقا للمراجع المهنية والتنظيمية.",
+        ? "توجد ملاحظات امتثال ومؤشرات مخاطر تستند إلى المراجع المهنية والتنظيمية، ويجب معالجتها قبل التصدير أو المشاركة."
+        : "لا تظهر مؤشرات مخاطر عالية في النص وفق المراجع المهنية والتنظيمية المسجلة في قاعدة المعرفة.",
     findings: compliance.findings,
     workflow: buildWorkflow(true, compliance.passed, readiness.readyForPublishing),
     exportAllowed: readiness.readyForPublishing,

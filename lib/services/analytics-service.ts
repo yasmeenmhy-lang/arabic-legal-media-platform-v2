@@ -4,14 +4,14 @@ export function getDashboardAnalytics() {
   return {
     contentPerformance: [
       { label: "توعوي", value: 42 },
-      { label: "تعليمي", value: 31 },
+      { label: "تثقيفي", value: 31 },
       { label: "مهني", value: 19 },
       { label: "إعلاني", value: 8 }
     ],
     channelPerformance: [
       { label: "X", value: 36 },
       { label: "LinkedIn", value: 44 },
-      { label: "الموقع", value: 20 }
+      { label: "الموقع الإلكتروني", value: 20 }
     ],
     campaignPerformance: [
       { label: "حملة العقود", value: 78 },
@@ -29,6 +29,6 @@ export function getAggregatedSectorAnalytics() {
       { label: "متوسط", value: 21 },
       { label: "عال", value: 8 }
     ],
-    note: "المؤشرات مجمعة ولا تتضمن ترتيبا فرديا أو درجات سمعة."
+    note: "المؤشرات مجمعة ولا تتضمن ترتيباً فردياً أو درجات سمعة."
   };
 }

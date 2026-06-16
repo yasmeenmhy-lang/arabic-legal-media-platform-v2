@@ -12,6 +12,17 @@ function sourceStatusLabel(status: string, changeDetected: boolean) {
   return "قيد المتابعة";
 }
 
+function auditActionLabel(action: string) {
+  const labels: Record<string, string> = {
+    REGISTERED: "تسجيل مرجع",
+    MANUAL_SYNC: "مزامنة يدوية",
+    CHANGE_DETECTED: "رصد تغير",
+    APPROVED: "استخدام المرجع في التقييم",
+    REJECTED: "استبعاد التحديث"
+  };
+  return labels[action] ?? action;
+}
+
 export default async function AdministrationPage() {
   const updateCenter = await getLegalSourceUpdateCenter();
 
@@ -19,7 +30,7 @@ export default async function AdministrationPage() {
     <>
       <PageHeader
         title="الحوكمة والإعدادات"
-        description="متابعة مصادر وزارة العدل، تشغيل المزامنة اليدوية، مراجعة التغييرات، وتحديث النسخ المرجعية المستخدمة في تقييم الامتثال."
+        description="متابعة مصادر وزارة العدل والمراجع المهنية والتنظيمية وحالة استخدامها في تقييم الامتثال والمخاطر."
       />
       <div className="grid gap-5 xl:grid-cols-[1.2fr_1fr]">
         <Panel>
@@ -58,7 +69,7 @@ export default async function AdministrationPage() {
           <DataTable
             headers={["النشاط", "المصدر", "المستخدم", "التاريخ", "التفاصيل"]}
             rows={updateCenter.auditTrail.map((audit) => [
-              audit.action,
+              auditActionLabel(audit.action),
               audit.sourceDocumentId,
               audit.actor,
               new Date(audit.at).toLocaleString("ar-SA"),

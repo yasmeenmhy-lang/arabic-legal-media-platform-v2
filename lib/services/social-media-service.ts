@@ -1,6 +1,6 @@
 import type { ShareReadyContent, SocialPlatformShareTarget } from "@/lib/types";
 import { advisoryDisclaimer } from "@/lib/governance";
-import { approvalWorkflowStateLabels } from "@/lib/services/approval-workflow-service";
+import { reviewReadinessStateLabels } from "@/lib/services/approval-workflow-service";
 import { reviewContent } from "@/lib/services/review-service";
 
 export const socialPlatforms: SocialPlatformShareTarget[] = [
@@ -62,8 +62,8 @@ const publishableReview = reviewContent(publishableBody, "social_export");
 const publishableMetadata = {
   complianceScore: publishableReview.complianceScore,
   riskLevel: publishableReview.riskLevel,
-  readinessStatus: approvalWorkflowStateLabels[publishableReview.exportAllowed ? "APPROVED" : "NEEDS_CORRECTION"],
-  publishingReadiness: approvalWorkflowStateLabels[publishableReview.exportAllowed ? "APPROVED" : "NEEDS_CORRECTION"],
+  readinessStatus: reviewReadinessStateLabels[publishableReview.exportAllowed ? "READY_FOR_PUBLISHING" : "NEEDS_CORRECTION"],
+  publishingReadiness: reviewReadinessStateLabels[publishableReview.exportAllowed ? "READY_FOR_PUBLISHING" : "NEEDS_CORRECTION"],
   advisoryDisclaimer,
   legalCitations: publishableReview.findings.map((finding) => ({
     legalCitation: finding.legalCitation,

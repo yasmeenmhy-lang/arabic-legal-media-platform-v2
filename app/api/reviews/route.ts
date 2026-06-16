@@ -5,7 +5,7 @@ import { reviewContent } from "@/lib/services/review-service";
 const schema = z.object({
   text: z.string().min(5),
   kind: z
-    .enum(["post", "article", "script", "campaign", "title", "hashtag", "caption", "publishing_plan", "ai_response", "social_export"])
+    .enum(["post", "advertisement", "article", "script", "campaign", "visual_content", "infographic", "title", "hashtag", "caption", "publishing_plan", "social_export"])
     .optional()
 });
 

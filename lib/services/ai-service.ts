@@ -1,16 +1,16 @@
-import type { AIContentInput, AIContentOutput, ApprovalStatus, ContentKind, ReviewResult } from "@/lib/types";
+import type { AIContentInput, AIContentOutput, ContentKind, ReviewReadinessStatus, ReviewResult } from "@/lib/types";
 import { advisoryDisclaimer } from "@/lib/governance";
-import { approvalWorkflowStateLabels } from "@/lib/services/approval-workflow-service";
+import { reviewReadinessStateLabels } from "@/lib/services/approval-workflow-service";
 import { reviewContent } from "@/lib/services/review-service";
 
 export interface AIService {
   reviewMediaContent(input: AIContentInput): Promise<AIContentOutput>;
 }
 
-function readinessStatusFromReview(review: ReviewResult): ApprovalStatus {
+function readinessStatusFromReview(review: ReviewResult): ReviewReadinessStatus {
   if (!review.languageQuality.passed) return "NEEDS_CORRECTION";
   if (!review.exportAllowed && review.riskLevel !== "LOW") return "NEEDS_CORRECTION";
-  if (review.exportAllowed) return "APPROVED";
+  if (review.exportAllowed) return "READY_FOR_PUBLISHING";
   return "REVIEW_REQUIRED";
 }
 
@@ -46,10 +46,10 @@ export class MockAIService implements AIService {
     };
 
     const pipelineReviews = reviewSuggestedItems([
-      ...output.observations.map((text) => ({ text, kind: "ai_response" as const })),
-      ...output.riskIndicators.map((text) => ({ text, kind: "ai_response" as const })),
-      ...output.improvementSuggestions.map((text) => ({ text, kind: "ai_response" as const })),
-      ...output.referenceHighlights.map((text) => ({ text, kind: "ai_response" as const }))
+      ...output.observations.map((text) => ({ text, kind: "post" as const })),
+      ...output.riskIndicators.map((text) => ({ text, kind: "post" as const })),
+      ...output.improvementSuggestions.map((text) => ({ text, kind: "post" as const })),
+      ...output.referenceHighlights.map((text) => ({ text, kind: "post" as const }))
     ]);
 
     const legalCitations = pipelineReviews.flatMap((review) =>
@@ -76,8 +76,8 @@ export class MockAIService implements AIService {
           ? "MEDIUM"
           : "LOW";
 
-    const readinessState: ApprovalStatus = pipelineReviews.every((review) => review.exportAllowed)
-      ? "APPROVED"
+    const readinessState: ReviewReadinessStatus = pipelineReviews.every((review) => review.exportAllowed)
+      ? "READY_FOR_PUBLISHING"
       : pipelineReviews.some((review) => readinessStatusFromReview(review) === "NEEDS_CORRECTION")
         ? "NEEDS_CORRECTION"
         : "REVIEW_REQUIRED";
@@ -93,8 +93,8 @@ export class MockAIService implements AIService {
       compliance: {
         score: averageComplianceScore,
         riskLevel: highestRisk,
-        readinessStatus: approvalWorkflowStateLabels[readinessState],
-        publishingReadiness: approvalWorkflowStateLabels[readinessState],
+        readinessStatus: reviewReadinessStateLabels[readinessState],
+        publishingReadiness: reviewReadinessStateLabels[readinessState],
         advisoryDisclaimer,
         legalCitations,
         reviews: pipelineReviews

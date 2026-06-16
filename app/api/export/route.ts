@@ -6,7 +6,9 @@ import { prepareExportContent } from "@/lib/services/export-center-service";
 const schema = z.object({
   body: z.string().min(5),
   platform: z.string().min(1),
-  format: z.enum(["post", "article", "script", "caption", "publishing_plan", "social_export"]).default("social_export")
+  format: z
+    .enum(["post", "advertisement", "article", "script", "campaign", "visual_content", "infographic", "title", "hashtag", "caption", "publishing_plan", "social_export"])
+    .default("social_export")
 });
 
 export async function POST(request: Request) {

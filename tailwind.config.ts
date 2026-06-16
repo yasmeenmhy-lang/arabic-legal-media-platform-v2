@@ -9,7 +9,7 @@ const config: Config = {
         palm: "#006c5b",
         mint: "#e6f3ef",
         gold: "#a7782b",
-        paper: "#f5f7f6",
+        paper: "#f4f7f6",
         line: "#d8e1de"
       },
       fontFamily: {

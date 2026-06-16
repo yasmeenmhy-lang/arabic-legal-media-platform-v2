@@ -27,8 +27,8 @@ function getDemoLegalSourceUpdateCenter() {
           version: source.version,
           checkedAt,
           checksum,
-          summary: "Demo legal source registered from bundled legal baseline.",
-          approvedBy: "demo-reviewer",
+          summary: "مرجع قانوني مسجل من خط الأساس المرفق بالمنصة.",
+          approvedBy: "مشرف النظام",
           approvedAt: checkedAt
         }
       ]
@@ -39,9 +39,9 @@ function getDemoLegalSourceUpdateCenter() {
     id: `demo-audit-${source.sourceDocumentId}`,
     sourceDocumentId: source.sourceDocumentId,
     action: "APPROVED",
-    actor: "demo-reviewer",
+    actor: "مشرف النظام",
     at: checkedAt,
-    details: "Demo mode uses bundled legal source metadata for advisory assessment without database access."
+    details: "تستخدم المنصة بيانات المراجع المرفقة لأغراض التقييم الاسترشادي دون اتصال بقاعدة بيانات."
   }));
 
   return {
@@ -151,7 +151,7 @@ export async function registerLegalSource(input: { title: string; sourceUrl: str
         sourceDocumentId,
         action: "REGISTERED",
         actor: input.actor ?? "admin",
-        details: `Demo legal source registration captured without database access: ${input.title}.`,
+        details: `تم تسجيل المرجع في وضع العرض دون اتصال بقاعدة بيانات: ${input.title}.`,
         createdAt: now
       }
     };
@@ -188,14 +188,14 @@ export async function registerLegalSource(input: { title: string; sourceUrl: str
 
   await prisma.legalSourceVersion.upsert({
     where: { id: `${sourceDocumentId}-${input.version}` },
-    update: { checksum: sourceHash, checkedAt: now, summary: "Manual source registered and awaiting admin review." },
+    update: { checksum: sourceHash, checkedAt: now, summary: "تم تسجيل المرجع يدوياً وهو بانتظار مراجعة المشرف." },
     create: {
       id: `${sourceDocumentId}-${input.version}`,
       sourceDocumentId,
       version: input.version,
       checkedAt: now,
       checksum: sourceHash,
-      summary: "Manual source registered and awaiting admin review."
+      summary: "تم تسجيل المرجع يدوياً وهو بانتظار مراجعة المشرف."
     }
   });
 
@@ -265,14 +265,14 @@ export async function runManualSourceSync(input: {
       if (changeDetected) {
         await prisma.legalSourceVersion.upsert({
           where: { id: `${source.id}-${observedVersion}-${observedHash.slice(0, 8)}` },
-          update: { checkedAt: now, checksum: observedHash, summary: "Source hash changed and is pending admin review." },
+          update: { checkedAt: now, checksum: observedHash, summary: "تم رصد تغير في المصدر وهو بانتظار مراجعة المشرف." },
           create: {
             id: `${source.id}-${observedVersion}-${observedHash.slice(0, 8)}`,
             sourceDocumentId: source.id,
             version: observedVersion,
             checkedAt: now,
             checksum: observedHash,
-            summary: "Source hash changed and is pending admin review."
+            summary: "تم رصد تغير في المصدر وهو بانتظار مراجعة المشرف."
           }
         });
       }
@@ -283,8 +283,8 @@ export async function runManualSourceSync(input: {
           action: changeDetected ? "CHANGE_DETECTED" : "MANUAL_SYNC",
           actor: input.actor ?? "admin",
           details: changeDetected
-            ? `Source hash/version changed from ${source.version} to ${observedVersion}.`
-            : "Manual source sync completed with no change."
+            ? `تغيرت نسخة المصدر من ${source.version} إلى ${observedVersion}.`
+            : "اكتملت المزامنة اليدوية دون رصد تغير."
         }
       });
 
@@ -341,7 +341,7 @@ export async function approveLegalSourceUpdate(sourceDocumentId: string, actor =
       sourceDocumentId,
       action: "APPROVED",
       actor,
-      details: `Legal source update reviewed for ${source.title}.`
+      details: `تمت مراجعة تحديث المرجع: ${source.title}.`
     }
   });
 

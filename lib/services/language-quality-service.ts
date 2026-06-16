@@ -11,6 +11,10 @@ const DEFAULT_THRESHOLD = 82;
 const ARABIC_BOUNDARY_START = "(?<![\\u0600-\\u06FF])";
 const ARABIC_BOUNDARY_END = "(?![\\u0600-\\u06FF])";
 
+function escapeRegExp(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
 function wordPattern(value: string) {
   return new RegExp(`${ARABIC_BOUNDARY_START}${escapeRegExp(value)}${ARABIC_BOUNDARY_END}`, "g");
 }
@@ -19,32 +23,28 @@ const spellingRules: Array<{ pattern: RegExp; correction: string; message: strin
   { pattern: wordPattern("ان"), correction: "أن", message: "استخدم الهمزة في (أن) عند فتح الجملة المصدرية." },
   { pattern: wordPattern("الى"), correction: "إلى", message: "اكتب حرف الجر بصيغته الصحيحة: إلى." },
   { pattern: wordPattern("علي"), correction: "على", message: "اكتب حرف الجر بصيغته الصحيحة: على." },
-  { pattern: wordPattern("اجراءات"), correction: "إجراءات", message: "أضف الهمزة في المصطلح القانوني: إجراءات." },
+  { pattern: wordPattern("اجراءات"), correction: "إجراءات", message: "أضف الهمزة في المصطلح المهني: إجراءات." },
   { pattern: wordPattern("مسؤليه"), correction: "مسؤولية", message: "صحح رسم الكلمة إلى: مسؤولية." },
   { pattern: wordPattern("شي"), correction: "شيء", message: "اكتب الكلمة بصيغتها الفصيحة: شيء." }
 ];
 
 const weakPhrases: Array<{ pattern: RegExp; suggestion: string }> = [
   { pattern: wordPattern("نوعا ما"), suggestion: "استبدلها بعبارة محددة تبين درجة الأثر أو المخاطر." },
-  { pattern: wordPattern("بشكل كبير"), suggestion: "حدد معيار الكبر أو استخدم وصفا قانونيا أدق." },
-  { pattern: wordPattern("قد يكون"), suggestion: "اذكر سبب الاحتمال أو استخدم صياغة حاسمة عندما يكون الحكم مؤكدا." },
-  { pattern: wordPattern("أشياء"), suggestion: "استخدم اسما محددا بدلا من كلمة عامة." },
-  { pattern: wordPattern("موضوع"), suggestion: "استبدلها بمصطلح أدق مثل: نزاع، طلب، إجراء، التزام، مخالفة." }
+  { pattern: wordPattern("بشكل كبير"), suggestion: "حدد معيار الأثر أو استخدم وصفاً مهنياً أدق." },
+  { pattern: wordPattern("قد يكون"), suggestion: "اذكر سبب الاحتمال أو استخدم صياغة أكثر تحديداً إذا كان الحكم واضحاً." },
+  { pattern: wordPattern("أشياء"), suggestion: "استخدم اسماً محدداً بدلاً من كلمة عامة." },
+  { pattern: wordPattern("موضوع"), suggestion: "استبدلها بمصطلح أدق مثل: إجراء، التزام، مخالفة، نزاع، أو طلب." }
 ];
 
 const nonProfessionalLegalWording: Array<{ pattern: RegExp; suggestion: string }> = [
-  { pattern: wordPattern("أكيد"), suggestion: "استخدم: من المرجح، يثبت، يتبين، بحسب المستندات." },
-  { pattern: wordPattern("مضمون"), suggestion: "تجنب ضمان النتائج القانونية واستخدم صياغة احتمالية منضبطة." },
+  { pattern: wordPattern("أكيد"), suggestion: "استخدم: من المرجح، يتبين، يثبت، بحسب المستندات، أو وفق السياق." },
+  { pattern: wordPattern("مضمون"), suggestion: "تجنب ضمان النتائج واستخدم صياغة مهنية غير قطعية." },
   { pattern: wordPattern("راح"), suggestion: "استخدم: سوف أو سيتم." },
   { pattern: wordPattern("لازم"), suggestion: "استخدم: يجب أو يتعين." },
-  { pattern: wordPattern("مشكلة"), suggestion: "استخدم: إشكال قانوني أو مخالفة أو نزاع بحسب السياق." }
+  { pattern: wordPattern("مشكلة"), suggestion: "استخدم: إشكال مهني، مخالفة محتملة، نزاع، أو ملاحظة بحسب السياق." }
 ];
 
-const legalTerms = ["النظام", "اللائحة", "العقد", "الالتزام", "المسؤولية", "المخالفة", "الجهة المختصة", "الإجراء", "القرار", "التنفيذ"];
-
-function escapeRegExp(value: string) {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
+const legalTerms = ["النظام", "اللائحة", "العقد", "الالتزام", "المسؤولية", "المخالفة", "الجهة المختصة", "الإجراء", "التنفيذ", "الموكل"];
 
 function normalizeArabic(content: string) {
   return content
@@ -87,15 +87,20 @@ function detectSpelling(content: string, issues: LanguageQualityIssue[]) {
 
 function detectGrammarAndPunctuation(content: string, issues: LanguageQualityIssue[]) {
   for (const match of matches(content, /[,;]/g)) {
-    addIssue(issues, "grammar", "low", "استخدم علامات الترقيم العربية المناسبة داخل النص العربي.", match[0], match[0] === "," ? "استبدلها بالفاصلة العربية،" : "استبدلها بالفاصلة المنقوطة العربية؛", match.index, match.index + 1);
+    addIssue(
+      issues,
+      "grammar",
+      "low",
+      "استخدم علامات الترقيم العربية المناسبة داخل النص العربي.",
+      match[0],
+      match[0] === "," ? "استبدلها بالفاصلة العربية،" : "استبدلها بالفاصلة المنقوطة العربية؛",
+      match.index,
+      match.index + 1
+    );
   }
 
   for (const match of matches(content, /[؟!،؛.](?=\S)/g)) {
     addIssue(issues, "grammar", "low", "تحتاج علامة الترقيم إلى مسافة بعدها.", content.slice(match.index, match.index + 8), "أضف مسافة بعد علامة الترقيم.", match.index, match.index + 1);
-  }
-
-  for (const match of matches(content, /(?<![\u0600-\u06FF])(الذي|التي|اللذين|اللتين)\s+(?:هو|هي|هم)(?![\u0600-\u06FF])/g)) {
-    addIssue(issues, "grammar", "medium", "تركيب الصلة زائد ويمكن صياغته بإيجاز أفصح.", match[0], `اختصر العبارة إلى "${match[1]}" متبوعة بالفعل أو الوصف مباشرة.`, match.index, match.index + match[0].length);
   }
 }
 
@@ -108,7 +113,7 @@ function detectDuplication(content: string, issues: LanguageQualityIssue[]) {
   for (const sentence of content.split(/(?<=[.!؟])\s+/).map((item) => item.trim()).filter(Boolean)) {
     const normalized = normalizeArabic(sentence);
     if (normalized.length > 20 && seen.has(normalized)) {
-      addIssue(issues, "readability", "high", "توجد جملة مكررة.", sentence, "احذف الجملة المكررة أو ادمجها مع الجملة السابقة دون فقدان المعنى القانوني.");
+      addIssue(issues, "readability", "high", "توجد جملة مكررة.", sentence, "احذف الجملة المكررة أو ادمجها دون فقدان المعنى.");
     }
     seen.add(normalized);
   }
@@ -123,7 +128,7 @@ function detectStyle(content: string, issues: LanguageQualityIssue[]) {
 
   for (const rule of nonProfessionalLegalWording) {
     for (const match of matches(content, rule.pattern)) {
-      addIssue(issues, "style", "high", "الصياغة لا تناسب محتوى قانونيا مهنيا.", match[0], rule.suggestion, match.index, match.index + match[0].length);
+      addIssue(issues, "style", "high", "الصياغة لا تناسب محتوى مهنياً موجهاً لجمهور قانوني أو إعلامي.", match[0], rule.suggestion, match.index, match.index + match[0].length);
     }
   }
 }
@@ -134,7 +139,7 @@ function detectReadability(content: string, issues: LanguageQualityIssue[]) {
   const averageWordsPerSentence = sentences.length ? words.length / sentences.length : words.length;
 
   if (averageWordsPerSentence > 32) {
-    addIssue(issues, "readability", "medium", "الجمل طويلة وتضعف وضوح الرسالة.", sentences[0]?.slice(0, 140) ?? content.slice(0, 140), "قسّم الجمل الطويلة إلى جمل أقصر مع الحفاظ على الحكم والاستثناءات.");
+    addIssue(issues, "readability", "medium", "الجمل طويلة وقد تضعف وضوح الرسالة.", sentences[0]?.slice(0, 140) ?? content.slice(0, 140), "قسّم الجمل الطويلة إلى جمل أقصر مع الحفاظ على المعنى.");
   }
 
   if (!/[.!؟]$/.test(content.trim()) && words.length > 8) {
@@ -147,7 +152,7 @@ function detectTerminology(input: LanguageQualityReviewInput, issues: LanguageQu
 
   for (const term of input.requiredTerms ?? []) {
     if (!normalized.includes(normalizeArabic(term))) {
-      addIssue(issues, "terminology_consistency", "high", "مصطلح مطلوب غير مستخدم في النص.", term, `أدرج المصطلح المفضل "${term}" في الموضع المناسب أو وثق سبب عدم استخدامه.`);
+      addIssue(issues, "terminology_consistency", "high", "مصطلح مطلوب غير مستخدم في النص.", term, `أدرج المصطلح "${term}" في الموضع المناسب أو وثق سبب عدم استخدامه.`);
     }
   }
 
@@ -161,7 +166,7 @@ function detectTerminology(input: LanguageQualityReviewInput, issues: LanguageQu
 
   const hasLegalTerm = legalTerms.some((term) => normalized.includes(normalizeArabic(term)));
   if (!["title", "hashtag"].includes(input.kind) && !hasLegalTerm) {
-    addIssue(issues, "terminology_consistency", "low", "النص لا يحتوي على مصطلح قانوني واضح.", input.text.slice(0, 100), "أضف المصطلح القانوني الدقيق الذي يصف الحكم أو الإجراء أو الالتزام.");
+    addIssue(issues, "terminology_consistency", "low", "النص لا يحتوي على مصطلح مهني أو تنظيمي واضح.", input.text.slice(0, 100), "أضف المصطلح المهني الدقيق الذي يصف الالتزام أو الإجراء أو موضوع الرسالة.");
   }
 }
 
@@ -170,7 +175,7 @@ function improvedDraft(content: string) {
   for (const rule of spellingRules) draft = draft.replace(rule.pattern, rule.correction);
   draft = draft.replace(wordPattern("راح"), "سوف");
   draft = draft.replace(wordPattern("لازم"), "يجب");
-  draft = draft.replace(wordPattern("مشكلة"), "إشكال قانوني");
+  draft = draft.replace(wordPattern("مشكلة"), "إشكال مهني");
   draft = draft.replace(/(?<![\u0600-\u06FF])([\u0600-\u06FF]+)\s+\1(?![\u0600-\u06FF])/g, "$1");
   draft = draft.replace(/([؟!،؛.])(?=\S)/g, "$1 ");
   return !/[.!؟]$/.test(draft) && draft.split(/\s+/).length > 8 ? `${draft}.` : draft;

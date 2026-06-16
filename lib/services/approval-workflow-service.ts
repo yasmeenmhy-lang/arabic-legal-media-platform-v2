@@ -1,26 +1,27 @@
-import type { ApprovalStatus, ApprovalWorkflowItem, ReviewResult, RiskLevel } from "@/lib/types";
+import type { ReviewReadinessItem, ReviewReadinessStatus, ReviewResult, RiskLevel } from "@/lib/types";
 import { isDemoMode } from "@/lib/services/demo-mode";
 
-export const approvalWorkflowStates: ApprovalStatus[] = ["DRAFT", "REVIEW_REQUIRED", "NEEDS_CORRECTION", "APPROVED", "EXPORTED", "SHARED"];
+export const reviewReadinessStates: ReviewReadinessStatus[] = ["DRAFT", "REVIEW_REQUIRED", "NEEDS_CORRECTION", "READY_FOR_PUBLISHING", "EXPORTED", "SHARED"];
 
-export const approvalWorkflowStateLabels: Record<ApprovalStatus, string> = {
+export const reviewReadinessStateLabels: Record<ReviewReadinessStatus, string> = {
   DRAFT: "مسودة",
   REVIEW_REQUIRED: "تتطلب مراجعة",
   NEEDS_CORRECTION: "يتطلب معالجة الملاحظات",
-  APPROVED: "مناسب للنشر",
+  READY_FOR_PUBLISHING: "مناسب للنشر وفق نتائج المراجعة",
   EXPORTED: "تم التصدير",
   SHARED: "تمت المشاركة"
 };
 
-function normalizeApprovalStatus(status?: string | null): ApprovalStatus {
-  return approvalWorkflowStates.includes(status as ApprovalStatus) ? (status as ApprovalStatus) : "DRAFT";
+function normalizeReviewReadinessStatus(status?: string | null): ReviewReadinessStatus {
+  if (status === "APPROVED") return "READY_FOR_PUBLISHING";
+  return reviewReadinessStates.includes(status as ReviewReadinessStatus) ? (status as ReviewReadinessStatus) : "DRAFT";
 }
 
 function normalizeRiskLevel(riskLevel?: string | null): RiskLevel {
   return ["LOW", "MEDIUM", "HIGH", "CRITICAL"].includes(riskLevel ?? "") ? (riskLevel as RiskLevel) : "LOW";
 }
 
-function getDemoApprovalWorkflowItems(): ApprovalWorkflowItem[] {
+function getDemoReviewReadinessItems(): ReviewReadinessItem[] {
   const updatedAt = new Date("2026-06-15T00:00:00.000Z").toISOString();
 
   return [
@@ -37,7 +38,7 @@ function getDemoApprovalWorkflowItems(): ApprovalWorkflowItem[] {
     {
       id: "demo-review-required",
       title: "مقال تثقيفي عن حقوق الموكل",
-      owner: "المراجع القانوني",
+      owner: "المراجع المهني",
       status: "REVIEW_REQUIRED",
       languageQualityScore: 91,
       complianceScore: 84,
@@ -55,10 +56,10 @@ function getDemoApprovalWorkflowItems(): ApprovalWorkflowItem[] {
       updatedAt
     },
     {
-      id: "demo-approved",
+      id: "demo-ready",
       title: "نص قصير عن سرية معلومات العميل",
-      owner: "المحرر القانوني",
-      status: "APPROVED",
+      owner: "المحرر المهني",
+      status: "READY_FOR_PUBLISHING",
       languageQualityScore: 95,
       complianceScore: 93,
       riskLevel: "LOW",
@@ -67,7 +68,7 @@ function getDemoApprovalWorkflowItems(): ApprovalWorkflowItem[] {
     {
       id: "demo-exported",
       title: "حزمة نشر LinkedIn مع بيانات الامتثال",
-      owner: "مركز التصدير",
+      owner: "دعم التصدير",
       status: "EXPORTED",
       languageQualityScore: 92,
       complianceScore: 90,
@@ -76,8 +77,8 @@ function getDemoApprovalWorkflowItems(): ApprovalWorkflowItem[] {
     },
     {
       id: "demo-shared",
-      title: "منشور X تمت مشاركته يدويا",
-      owner: "مركز المشاركة",
+      title: "منشور X تمت مشاركته يدوياً",
+      owner: "دعم المشاركة",
       status: "SHARED",
       languageQualityScore: 89,
       complianceScore: 88,
@@ -87,7 +88,7 @@ function getDemoApprovalWorkflowItems(): ApprovalWorkflowItem[] {
   ];
 }
 
-export function runApprovalWorkflow(review: Pick<ReviewResult, "languageQuality" | "complianceScore" | "riskLevel">) {
+export function runPublishingReadinessReview(review: Pick<ReviewResult, "languageQuality" | "complianceScore" | "riskLevel">) {
   const readyForPublishing =
     review.languageQuality.passed &&
     review.complianceScore >= 82 &&
@@ -97,13 +98,13 @@ export function runApprovalWorkflow(review: Pick<ReviewResult, "languageQuality"
     readyForPublishing,
     status: readyForPublishing ? "ready_for_publishing" : "needs_revision",
     reason: readyForPublishing
-      ? "Content is suitable for publishing based on language quality, compliance, and risk assessment."
-      : "Content requires addressing observations before export or sharing."
+      ? "المحتوى مناسب للنشر وفق نتائج مراجعة اللغة والامتثال ومؤشرات المخاطر."
+      : "يتطلب المحتوى معالجة الملاحظات قبل التصدير أو المشاركة."
   };
 }
 
-export async function getApprovalWorkflowItems(): Promise<ApprovalWorkflowItem[]> {
-  if (isDemoMode()) return getDemoApprovalWorkflowItems();
+export async function getReviewReadinessItems(): Promise<ReviewReadinessItem[]> {
+  if (isDemoMode()) return getDemoReviewReadinessItems();
 
   const { prisma } = await import("@/lib/prisma");
   const contents = await prisma.content.findMany({
@@ -119,7 +120,7 @@ export async function getApprovalWorkflowItems(): Promise<ApprovalWorkflowItem[]
 
   return contents.map((content) => {
     const latestReview = content.reviews[0];
-    const status = normalizeApprovalStatus(content.approvalStatus || content.status);
+    const status = normalizeReviewReadinessStatus(content.approvalStatus || content.status);
 
     return {
       id: content.id,
@@ -134,18 +135,18 @@ export async function getApprovalWorkflowItems(): Promise<ApprovalWorkflowItem[]
   });
 }
 
-export async function getApprovalWorkflowCenter() {
-  const items = await getApprovalWorkflowItems();
+export async function getReviewReadinessCenter() {
+  const items = await getReviewReadinessItems();
 
   return {
-    states: approvalWorkflowStates.map((state) => approvalWorkflowStateLabels[state]),
-    stateLabels: approvalWorkflowStateLabels,
+    states: reviewReadinessStates.map((state) => reviewReadinessStateLabels[state]),
+    stateLabels: reviewReadinessStateLabels,
     items,
     metrics: {
       draft: items.filter((item) => item.status === "DRAFT").length,
       reviewRequired: items.filter((item) => item.status === "REVIEW_REQUIRED").length,
       needsCorrection: items.filter((item) => item.status === "NEEDS_CORRECTION").length,
-      readyForPublishing: items.filter((item) => item.status === "APPROVED").length,
+      readyForPublishing: items.filter((item) => item.status === "READY_FOR_PUBLISHING").length,
       exported: items.filter((item) => item.status === "EXPORTED").length,
       shared: items.filter((item) => item.status === "SHARED").length
     }

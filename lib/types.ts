@@ -4,14 +4,16 @@ export type RiskLevel = "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
 
 export type ContentKind =
   | "post"
+  | "advertisement"
   | "article"
   | "script"
   | "campaign"
+  | "visual_content"
+  | "infographic"
   | "title"
   | "hashtag"
   | "caption"
   | "publishing_plan"
-  | "ai_response"
   | "social_export";
 
 export type LanguageIssueCategory = "spelling" | "grammar" | "style" | "readability" | "terminology_consistency";
@@ -116,7 +118,7 @@ export type ReviewResult = {
 };
 
 export type ReviewWorkflowStep = {
-  key: "language_quality_review" | "legal_compliance_review" | "risk_assessment" | "approval_workflow" | "export_center";
+  key: "language_quality_review" | "legal_compliance_review" | "risk_assessment" | "publishing_readiness" | "export_support";
   label: string;
   status: "pending" | "blocked" | "passed" | "failed";
 };
@@ -190,13 +192,13 @@ export type SourceAuditTrailItem = {
   details: string;
 };
 
-export type ApprovalStatus = "DRAFT" | "REVIEW_REQUIRED" | "NEEDS_CORRECTION" | "APPROVED" | "EXPORTED" | "SHARED";
+export type ReviewReadinessStatus = "DRAFT" | "REVIEW_REQUIRED" | "NEEDS_CORRECTION" | "READY_FOR_PUBLISHING" | "EXPORTED" | "SHARED";
 
-export type ApprovalWorkflowItem = {
+export type ReviewReadinessItem = {
   id: string;
   title: string;
   owner: string;
-  status: ApprovalStatus;
+  status: ReviewReadinessStatus;
   languageQualityScore: number;
   complianceScore: number;
   riskLevel: RiskLevel;

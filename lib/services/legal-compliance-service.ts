@@ -37,7 +37,7 @@ export function runLegalComplianceReview(text: string) {
         legalCitation: buildCitation(entry),
         sourceDocument: entry.sourceDocument,
         ruleOrArticleNumber: entry.articleOrRuleNumber,
-        explanation: `النص يتضمن "${evidence}"، وهو يتعارض مع متطلب: ${entry.fullText}`,
+        explanation: `يتضمن النص عبارة "${evidence}"، وقد ترتبط بملاحظة امتثال وفق المرجع: ${entry.fullText}`,
         sourceUrl: entry.sourceUrl
       }
     ];

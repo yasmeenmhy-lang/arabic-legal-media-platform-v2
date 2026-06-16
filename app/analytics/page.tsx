@@ -5,7 +5,10 @@ export default function AnalyticsPage() {
   const analytics = getDashboardAnalytics();
   return (
     <>
-      <PageHeader title="المؤشرات والتقارير" description="مؤشرات مراجعة المحتوى والقنوات والحملات مع خيارات تصفية وتصدير للتقارير." />
+      <PageHeader
+        title="المؤشرات والتقارير"
+        description="مؤشرات مراجعة المحتوى والقنوات والحملات لدعم تحسين الجودة المهنية ومتابعة الامتثال والمخاطر وجاهزية النشر."
+      />
       <div className="grid gap-5 xl:grid-cols-3">
         <Panel>
           <h3 className="mb-4 font-extrabold">مؤشرات المحتوى</h3>
@@ -16,7 +19,7 @@ export default function AnalyticsPage() {
           <BarList items={analytics.channelPerformance} />
         </Panel>
         <Panel>
-          <h3 className="mb-4 font-extrabold">مؤشرات الحملات</h3>
+          <h3 className="mb-4 font-extrabold">مؤشرات التخطيط</h3>
           <BarList items={analytics.campaignPerformance} />
         </Panel>
       </div>

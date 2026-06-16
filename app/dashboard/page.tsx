@@ -10,36 +10,60 @@ export default async function DashboardPage() {
   const overview = await getDashboardOverview();
   const dashboardKpis = [
     { label: "مراجعات معلقة", value: String(overview.pendingReviews), hint: "تنتظر استكمال الملاحظات" },
-    { label: "محتوى مناسب للنشر", value: String(overview.publishableContent), hint: "جاهز للمراجعة قبل التصدير أو المشاركة" },
+    { label: "محتوى مناسب للنشر", value: String(overview.publishableContent), hint: "جاهز للتصدير وفق نتائج المراجعة" },
     { label: "تصدير متوقف", value: String(overview.exportsRequiringAttention), hint: "يتطلب معالجة الملاحظات قبل النشر" },
-    { label: "مخاطر عالية", value: String(overview.highRiskContent), hint: "تحتاج مراجعة قانونية" },
+    { label: "مخاطر عالية", value: String(overview.highRiskContent), hint: "تحتاج مراجعة مهنية إضافية" },
     { label: "إصدار المرجع", value: overview.legalReferenceVersion, hint: "آخر نسخة مرجعية مستخدمة في التقييم" },
     {
       label: "آخر فحص",
       value: overview.lastLegalSourceCheck === "غير محدد" ? "غير محدد" : new Date(overview.lastLegalSourceCheck).toLocaleDateString("ar-SA"),
       hint: "فحص مصادر وزارة العدل"
     },
-    { label: "تحديثات مرجعية", value: String(overview.pendingLegalSourceUpdates), hint: "بانتظار مراجعة المشرف" }
+    { label: "تحديثات مرجعية", value: String(overview.pendingLegalSourceUpdates), hint: "بانتظار متابعة المشرف" }
   ];
 
-  const moduleCards = [
-    { title: "مراجعة المحتوى الإعلامي", href: "/content-review", description: "المسار المركزي لجودة اللغة والصياغة، ملاحظات الامتثال، مؤشرات المخاطر، فرص التحسين، ونتيجة جاهزية النشر.", metric: `${overview.pendingReviews} معلقة`, status: "متابعة" },
-    { title: "المراجع المهنية والتنظيمية", href: "/library", description: "مصادر وزارة العدل، قواعد السلوك المهني، واللائحة التنفيذية مع سجل التحديثات المرجعية.", metric: `${overview.pendingLegalSourceUpdates} تحديث`, status: "مراقبة" },
-    { title: "ملخص المراجعة", href: "/approval-workflow", description: "عرض نتيجة المراجعة من المسودة حتى التصدير والمشاركة مع سجل واضح لمخرجات التقييم.", metric: `${overview.publishableContent} مناسب للنشر`, status: "نشط" },
-    { title: "مركز المشاركة الاجتماعية", href: "/social-media", description: "حزم تصدير ومشاركة للمنصات الاجتماعية بعد عرض نتائج المراجعة.", metric: "6 منصات", status: "متاح" }
+  const workflowCards = [
+    {
+      title: "بدء مراجعة محتوى",
+      href: "/content-review",
+      description: "إدخال المحتوى الإعلامي أو الإعلاني وعرض نتيجة موحدة تشمل اللغة، الامتثال، المخاطر، فرص التحسين، المراجع، وجاهزية النشر.",
+      metric: `${overview.pendingReviews} مراجعات معلقة`,
+      status: "المسار الرئيسي"
+    },
+    {
+      title: "دعم التخطيط الإعلامي",
+      href: "/media-planning",
+      description: "تنظيم المقترحات والتوقيت والقنوات بعد الاطلاع على نتيجة المراجعة ومؤشرات المخاطر.",
+      metric: "مقترحات استرشادية",
+      status: "دعم"
+    },
+    {
+      title: "المؤشرات والتقارير",
+      href: "/analytics",
+      description: "متابعة اتجاهات جودة المحتوى، الامتثال، المخاطر، وجاهزية النشر على مستوى المكتب أو الفريق.",
+      metric: "مؤشرات تشغيلية",
+      status: "قياس"
+    },
+    {
+      title: "مركز التنبيهات",
+      href: "/alerts",
+      description: "متابعة المحتوى عالي المخاطر، المراجعات المتعثرة، والتنبيهات المرتبطة بالمراجع المهنية والتنظيمية.",
+      metric: `${overview.highRiskContent} عالية المخاطر`,
+      status: "متابعة"
+    }
   ];
 
   return (
     <>
       <PageHeader
         title="لوحة التحكم"
-        description="ملخص تشغيلي محسوب من سجلات سير العمل والمراجعات ومصادر وزارة العدل."
-        action={<ButtonLink href="/ai-assistant">مراجعة محتوى</ButtonLink>}
+        description="ملخص تشغيلي لمنصة تمكين وإدارة المحتوى الإعلامي والإعلاني للمحامين، محسوب من سجلات المراجعة ومؤشرات الامتثال والمخاطر."
+        action={<ButtonLink href="/content-review">مراجعة محتوى</ButtonLink>}
       />
       <KpiGrid items={dashboardKpis} />
       <div className="mt-6 grid gap-5 xl:grid-cols-[1.5fr_1fr]">
         <div className="grid gap-4 md:grid-cols-2">
-          {moduleCards.map((card) => (
+          {workflowCards.map((card) => (
             <Link key={card.href} href={card.href} className="rounded border border-line bg-white p-5 transition hover:border-palm">
               <div className="flex items-start justify-between gap-4">
                 <div>
@@ -57,15 +81,15 @@ export default async function DashboardPage() {
         </div>
         <div className="space-y-5">
           <Panel>
-            <h3 className="mb-4 font-extrabold">حالة المراجعات</h3>
+            <h3 className="mb-4 font-extrabold">المسار الرئيسي للتشغيل</h3>
             <p className="text-sm leading-7 text-ink/70">
-              جميع الأرقام في هذه اللوحة محسوبة من سجلات المحتوى والمراجعات والمراجع المهنية والتنظيمية في قاعدة البيانات.
+              تبدأ رحلة المستخدم من مراجعة المحتوى الإعلامي والإعلاني، وتظهر ملاحظات الامتثال ومؤشرات المخاطر وفرص التحسين وجاهزية النشر والتصدير كمخرجات من نتيجة واحدة.
             </p>
           </Panel>
           <Panel>
             <h3 className="mb-4 font-extrabold">الأولوية التالية</h3>
             <p className="text-sm leading-7 text-ink/70">
-              راجع التحديثات المرجعية والمحتوى عالي المخاطر قبل إتاحة أي تصدير أو مشاركة.
+              عالج المراجعات المعلقة والمحتوى عالي المخاطر قبل تجهيز أي حزمة تصدير أو مشاركة.
             </p>
           </Panel>
         </div>
