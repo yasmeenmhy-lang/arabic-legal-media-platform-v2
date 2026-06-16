@@ -5,11 +5,11 @@ import { clsx } from "clsx";
 type Tone = "neutral" | "good" | "warn" | "danger" | "gold";
 
 const toneStyles: Record<Tone, { soft: string; text: string; border: string; solid: string }> = {
-  neutral: { soft: "bg-slate-50", text: "text-ink/70", border: "border-line", solid: "bg-slate-500" },
-  good: { soft: "bg-emerald-50", text: "text-emerald-800", border: "border-emerald-200", solid: "bg-emerald-600" },
-  warn: { soft: "bg-amber-50", text: "text-amber-800", border: "border-amber-200", solid: "bg-amber-500" },
-  danger: { soft: "bg-red-50", text: "text-red-800", border: "border-red-200", solid: "bg-red-600" },
-  gold: { soft: "bg-[#fbf6ea]", text: "text-gold", border: "border-[#ead8ad]", solid: "bg-gold" }
+  neutral: { soft: "bg-neutralSoft", text: "text-ink/70", border: "border-line", solid: "bg-neutralSolid" },
+  good: { soft: "bg-successSoft", text: "text-successText", border: "border-successBorder", solid: "bg-success" },
+  warn: { soft: "bg-warningSoft", text: "text-warningText", border: "border-warningBorder", solid: "bg-warning" },
+  danger: { soft: "bg-dangerSoft", text: "text-dangerText", border: "border-dangerBorder", solid: "bg-danger" },
+  gold: { soft: "bg-goldSoft", text: "text-gold", border: "border-goldBorder", solid: "bg-gold" }
 };
 
 export function PageHeader({
@@ -41,7 +41,7 @@ export function ButtonLink({ href, children }: { href: string; children: React.R
   return (
     <Link
       href={href}
-      className="inline-flex items-center gap-2 rounded-md bg-palm px-4 py-2.5 text-sm font-extrabold text-white shadow-sm transition hover:bg-[#005647] focus-ring"
+      className="inline-flex items-center gap-2 rounded-md bg-palm px-4 py-2.5 text-sm font-extrabold text-white shadow-sm transition hover:bg-palmDark focus-ring"
     >
       {children}
       <ArrowLeft size={16} />
@@ -119,7 +119,7 @@ export function StatusBadge({ children, tone = "neutral" }: { children: React.Re
 export function ProgressBar({ value, tone = "good" }: { value: number; tone?: Tone }) {
   const bounded = Math.max(0, Math.min(100, value));
   return (
-    <div className="h-2.5 overflow-hidden rounded-full bg-slate-100">
+    <div className="h-2.5 overflow-hidden rounded-full bg-paper">
       <div className={clsx("h-full rounded-full", toneStyles[tone].solid)} style={{ width: `${bounded}%` }} />
     </div>
   );
@@ -189,7 +189,7 @@ export function DataTable({
     <div className="overflow-hidden rounded-lg border border-line bg-white">
       <div className="overflow-x-auto">
         <table className="w-full min-w-[760px] text-sm">
-          <thead className="bg-[#f8faf9] text-ink/65">
+          <thead className="bg-paper text-ink/65">
             <tr>
               {headers.map((header) => (
                 <th key={header} className="px-4 py-3 text-right text-xs font-extrabold">
@@ -200,7 +200,7 @@ export function DataTable({
           </thead>
           <tbody>
             {rows.map((row, index) => (
-              <tr key={index} className="border-t border-line align-top hover:bg-[#fbfcfb]">
+              <tr key={index} className="border-t border-line align-top hover:bg-paper">
                 {row.map((cell, cellIndex) => (
                   <td key={cellIndex} className="px-4 py-3 leading-7">
                     {cell}
