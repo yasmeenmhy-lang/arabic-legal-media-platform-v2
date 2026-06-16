@@ -67,16 +67,18 @@ export function KpiCard({
   value,
   hint,
   tone = "neutral",
-  icon
+  icon,
+  href
 }: {
   label: string;
   value: string;
   hint: string;
   tone?: Tone;
   icon?: React.ReactNode;
+  href?: string;
 }) {
   const toneStyle = toneStyles[tone];
-  return (
+  const content = (
     <Panel className={clsx("relative overflow-hidden", toneStyle.border)}>
       <div className={clsx("absolute inset-x-0 top-0 h-1", toneStyle.solid)} />
       <div className="flex items-start justify-between gap-3">
@@ -89,9 +91,17 @@ export function KpiCard({
       <p className="mt-3 text-xs leading-6 text-ink/55">{hint}</p>
     </Panel>
   );
+
+  if (!href) return content;
+
+  return (
+    <Link href={href} className="block rounded-lg transition hover:-translate-y-0.5 hover:shadow-md focus-ring">
+      {content}
+    </Link>
+  );
 }
 
-export function KpiGrid({ items }: { items: { label: string; value: string; hint: string; tone?: Tone; icon?: React.ReactNode }[] }) {
+export function KpiGrid({ items }: { items: { label: string; value: string; hint: string; tone?: Tone; icon?: React.ReactNode; href?: string }[] }) {
   return (
     <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
       {items.map((item) => (

@@ -22,6 +22,24 @@ export const rolePermissions: Record<RoleName, string[]> = {
   ADMIN: ["*"]
 };
 
+export const rbacRoles = [
+  {
+    name: "محام",
+    description: "مراجعة المحتوى ومتابعة جاهزية النشر والتصدير",
+    permissions: rolePermissions.LAWYER
+  },
+  {
+    name: "مشرف محتوى",
+    description: "متابعة المراجعات والمؤشرات والتنبيهات",
+    permissions: rolePermissions.SUPERVISOR
+  },
+  {
+    name: "إدارة المنصة",
+    description: "إدارة الإعدادات والمصادر والصلاحيات",
+    permissions: rolePermissions.ADMIN
+  }
+];
+
 export function can(role: RoleName, permission: string) {
   const permissions = rolePermissions[role] ?? [];
   return permissions.includes("*") || permissions.includes(permission);
