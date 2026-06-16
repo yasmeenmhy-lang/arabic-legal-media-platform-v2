@@ -1,4 +1,4 @@
-import { DataTable, PageHeader, Panel, StatusBadge } from "@/components/ui";
+import { DataTable, PageHeader, Panel, SectionTitle, StatusBadge } from "@/components/ui";
 import { getLegalSourceUpdateCenter } from "@/lib/services/legal-source-update-service";
 
 export const dynamic = "force-dynamic";
@@ -29,12 +29,13 @@ export default async function AdministrationPage() {
   return (
     <>
       <PageHeader
+        eyebrow="حوكمة المراجع"
         title="الحوكمة والإعدادات"
         description="متابعة مصادر وزارة العدل والمراجع المهنية والتنظيمية وحالة استخدامها في تقييم الامتثال والمخاطر."
       />
       <div className="grid gap-5 xl:grid-cols-[1.2fr_1fr]">
         <Panel>
-          <h3 className="mb-4 font-extrabold">مصادر وزارة العدل والمراجع النظامية</h3>
+          <SectionTitle title="مصادر وزارة العدل والمراجع النظامية" subtitle="تعرض هذه القائمة حالة المراجع المستخدمة في نتائج المراجعة." />
           <DataTable
             headers={["المصدر", "آخر فحص", "الإصدار", "تغير مرصود", "حالة الاستخدام"]}
             rows={updateCenter.sources.map((source) => [
@@ -47,34 +48,26 @@ export default async function AdministrationPage() {
           />
         </Panel>
         <Panel>
-          <h3 className="mb-4 font-extrabold">تحديثات مرجعية بانتظار المراجعة</h3>
+          <SectionTitle title="تحديثات مرجعية" subtitle="تظهر هنا التغيرات التي تحتاج مراجعة المشرف." />
           {updateCenter.pendingApprovals.length > 0 ? (
             <div className="space-y-3">
               {updateCenter.pendingApprovals.map((source) => (
-                <div key={source.sourceDocumentId} className="rounded border border-line bg-white p-4">
-                  <p className="font-bold">{source.title}</p>
+                <div key={source.sourceDocumentId} className="rounded-lg border border-line bg-white p-4">
+                  <p className="font-extrabold">{source.title}</p>
                   <p className="mt-2 text-sm leading-6 text-ink/65">الإصدار المقترح: {source.pendingVersion ?? "غير محدد"}</p>
                   <p className="mt-2 text-xs text-palm">{source.sourceUrl}</p>
                 </div>
               ))}
             </div>
-          ) : (
-            <p className="text-sm leading-7 text-ink/65">لا توجد تحديثات مرجعية معلقة.</p>
-          )}
+          ) : <p className="text-sm leading-7 text-ink/65">لا توجد تحديثات مرجعية معلقة.</p>}
         </Panel>
       </div>
       <div className="mt-5">
         <Panel>
-          <h3 className="mb-4 font-extrabold">سجل المتابعة</h3>
+          <SectionTitle title="سجل المتابعة" subtitle="سجل مختصر للتغيرات والإجراءات المرتبطة بالمراجع." />
           <DataTable
             headers={["النشاط", "المصدر", "المستخدم", "التاريخ", "التفاصيل"]}
-            rows={updateCenter.auditTrail.map((audit) => [
-              auditActionLabel(audit.action),
-              audit.sourceDocumentId,
-              audit.actor,
-              new Date(audit.at).toLocaleString("ar-SA"),
-              audit.details
-            ])}
+            rows={updateCenter.auditTrail.map((audit) => [auditActionLabel(audit.action), audit.sourceDocumentId, audit.actor, new Date(audit.at).toLocaleString("ar-SA"), audit.details])}
           />
         </Panel>
       </div>

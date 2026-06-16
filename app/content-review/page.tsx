@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { Download, FileText, Link2, Share2 } from "lucide-react";
-import { DataTable, PageHeader, Panel, StatusBadge, WorkflowSteps } from "@/components/ui";
+import { DataTable, PageHeader, Panel, ScoreCard, SectionTitle, StatusBadge, WorkflowSteps } from "@/components/ui";
 import { advisoryDisclaimer } from "@/lib/governance";
 import type { ContentKind, LanguageIssueCategory, LanguageIssueSeverity, ReviewResult, RiskLevel } from "@/lib/types";
 
@@ -23,8 +23,8 @@ const channels = ["LinkedIn", "X", "Instagram", "TikTok", "Snapchat", "YouTube S
 const categoryLabels: Record<LanguageIssueCategory, string> = {
   spelling: "الإملاء",
   grammar: "النحو والترقيم",
-  style: "الأسلوب",
-  readability: "المقروئية",
+  style: "الأسلوب المهني",
+  readability: "وضوح القراءة",
   terminology_consistency: "اتساق المصطلحات"
 };
 
@@ -62,6 +62,12 @@ function readinessTone(review: ReviewResult) {
   return "danger";
 }
 
+function scoreTone(value: number) {
+  if (value >= 85) return "good";
+  if (value >= 70) return "warn";
+  return "danger";
+}
+
 function buildExportPayload(review: ReviewResult, text: string, context: Record<string, string>) {
   return {
     title: "تقرير مراجعة المحتوى الإعلامي والإعلاني",
@@ -88,7 +94,7 @@ function buildExportPayload(review: ReviewResult, text: string, context: Record<
 
 export default function ContentReviewPage() {
   const [text, setText] = useState("يجب مراجعة صياغة الإعلان قبل نشره لأنه يتضمن وعداً بنتيجة مضمونة للعميل.");
-  const [kind, setKind] = useState<ContentKind>("post");
+  const [kind, setKind] = useState<ContentKind>("advertisement");
   const [audience, setAudience] = useState("عملاء محتملون من الأفراد");
   const [channel, setChannel] = useState("LinkedIn");
   const [purpose, setPurpose] = useState("رفع الوعي بالخدمات المهنية دون تقديم وعود أو نتائج قطعية");
@@ -138,150 +144,112 @@ export default function ContentReviewPage() {
   const planningSuggestions = [
     ["توقيت مقترح", "بعد معالجة الملاحظات ذات الأولوية العالية ومراجعة الصياغة النهائية."],
     ["قناة مقترحة", channel],
-    ["اتجاه الرسالة", "صياغة مهنية تثقيفية تركّز على الوعي والالتزامات دون وعود بنتائج."],
+    ["اتجاه الرسالة", "صياغة مهنية تثقيفية تركز على الوعي والالتزامات دون وعود بنتائج."],
     ["ملاحظة تخطيطية", "يفضل ربط النشر بسياق توعوي أو موسمي وتجنب العبارات الترويجية المطلقة."]
   ];
 
   return (
     <>
       <PageHeader
+        eyebrow="مسار التقييم الرئيسي"
         title="مراجعة المحتوى الإعلامي والإعلاني"
-        description="مسار موحد لمراجعة جودة اللغة والصياغة، ملاحظات الامتثال، مؤشرات المخاطر، فرص التحسين، المراجع المهنية والتنظيمية، جاهزية النشر، ودعم التصدير."
+        description="تجربة موحدة تعرض جودة الصياغة، ملاحظات الامتثال، مؤشرات المخاطر، فرص التحسين، المراجع المهنية، جاهزية النشر، ودعم التصدير في تقرير تنفيذي واحد."
       />
 
-      <div className="grid gap-5 xl:grid-cols-[0.85fr_1.15fr]">
+      <div className="grid gap-5 xl:grid-cols-[0.8fr_1.2fr]">
         <Panel>
-          <h3 className="mb-4 font-extrabold">بيانات المراجعة</h3>
+          <SectionTitle title="بيانات المحتوى" subtitle="تساعد هذه البيانات على ضبط سياق المراجعة وملاءمة القناة والجمهور." />
           <div className="grid gap-3 sm:grid-cols-2">
-            <label className="text-sm font-bold">
+            <label className="text-sm font-extrabold">
               نوع المحتوى
-              <select className="mt-2 w-full rounded border border-line bg-white px-3 py-2 focus-ring" value={kind} onChange={(event) => setKind(event.target.value as ContentKind)}>
+              <select className="mt-2 w-full rounded-md border border-line bg-white px-3 py-2.5 focus-ring" value={kind} onChange={(event) => setKind(event.target.value as ContentKind)}>
                 {contentTypes.map((item) => (
-                  <option key={item.value} value={item.value}>
-                    {item.label}
-                  </option>
+                  <option key={item.value} value={item.value}>{item.label}</option>
                 ))}
               </select>
             </label>
-            <label className="text-sm font-bold">
+            <label className="text-sm font-extrabold">
               القناة
-              <select className="mt-2 w-full rounded border border-line bg-white px-3 py-2 focus-ring" value={channel} onChange={(event) => setChannel(event.target.value)}>
-                {channels.map((item) => (
-                  <option key={item}>{item}</option>
-                ))}
+              <select className="mt-2 w-full rounded-md border border-line bg-white px-3 py-2.5 focus-ring" value={channel} onChange={(event) => setChannel(event.target.value)}>
+                {channels.map((item) => <option key={item}>{item}</option>)}
               </select>
             </label>
-            <label className="text-sm font-bold sm:col-span-2">
+            <label className="text-sm font-extrabold sm:col-span-2">
               الجمهور المستهدف
-              <input className="mt-2 w-full rounded border border-line px-3 py-2 focus-ring" value={audience} onChange={(event) => setAudience(event.target.value)} />
+              <input className="mt-2 w-full rounded-md border border-line px-3 py-2.5 focus-ring" value={audience} onChange={(event) => setAudience(event.target.value)} />
             </label>
-            <label className="text-sm font-bold sm:col-span-2">
+            <label className="text-sm font-extrabold sm:col-span-2">
               الغرض من المحتوى
-              <input className="mt-2 w-full rounded border border-line px-3 py-2 focus-ring" value={purpose} onChange={(event) => setPurpose(event.target.value)} />
+              <input className="mt-2 w-full rounded-md border border-line px-3 py-2.5 focus-ring" value={purpose} onChange={(event) => setPurpose(event.target.value)} />
             </label>
-            <label className="text-sm font-bold sm:col-span-2">
-              ملف داعم للمراجعة
-              <input
-                className="mt-2 w-full rounded border border-line px-3 py-2 text-sm focus-ring"
-                type="file"
-                accept=".pdf,.doc,.docx,.png,.jpg,.jpeg"
-                onChange={(event) => setFileName(event.target.files?.[0]?.name ?? "")}
-              />
-              <span className="mt-2 block text-xs leading-6 text-ink/55">
-                يمكن إرفاق ملف داعم لتوثيق سياق المراجعة. تتم مراجعة النص المدخل في هذه المرحلة، وتظهر المرفقات ضمن بيانات التقرير.
-              </span>
+            <label className="text-sm font-extrabold sm:col-span-2">
+              ملف داعم
+              <input className="mt-2 w-full rounded-md border border-line px-3 py-2.5 text-sm focus-ring" type="file" accept=".pdf,.doc,.docx,.png,.jpg,.jpeg" onChange={(event) => setFileName(event.target.files?.[0]?.name ?? "")} />
+              <span className="mt-2 block text-xs leading-6 text-ink/55">تتم مراجعة النص المدخل حالياً، ويظهر اسم الملف ضمن تقرير المراجعة لتوثيق السياق.</span>
             </label>
           </div>
 
-          <label className="mt-4 block text-sm font-bold">
+          <label className="mt-4 block text-sm font-extrabold">
             المحتوى محل المراجعة
-            <textarea className="mt-2 min-h-56 w-full rounded border border-line p-3 leading-7 focus-ring" value={text} onChange={(event) => setText(event.target.value)} />
+            <textarea className="mt-2 min-h-56 w-full rounded-md border border-line p-3 leading-8 focus-ring" value={text} onChange={(event) => setText(event.target.value)} />
           </label>
-          <button
-            className="mt-4 inline-flex items-center gap-2 rounded bg-palm px-5 py-2 text-sm font-bold text-white focus-ring disabled:cursor-not-allowed disabled:opacity-60"
-            type="button"
-            onClick={runReview}
-            disabled={loading || text.trim().length < 5}
-          >
+          <button className="mt-4 inline-flex items-center gap-2 rounded-md bg-palm px-5 py-2.5 text-sm font-extrabold text-white focus-ring disabled:cursor-not-allowed disabled:opacity-60" type="button" onClick={runReview} disabled={loading || text.trim().length < 5}>
             <FileText size={16} />
             {loading ? "جار تحليل المحتوى..." : "تحليل المحتوى"}
           </button>
         </Panel>
 
         <Panel>
-          <h3 className="mb-4 font-extrabold">ملخص تنفيذي لنتيجة المراجعة</h3>
+          <SectionTitle title="تقرير المراجعة التنفيذي" subtitle="ملخص بصري سريع قبل التفاصيل." />
           {review ? (
             <>
-              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                <div className="rounded bg-paper p-4">
-                  <p className="text-sm text-ink/60">جودة اللغة</p>
-                  <p className="mt-2 text-3xl font-extrabold text-gold">{review.languageQuality.score}%</p>
-                </div>
-                <div className="rounded bg-paper p-4">
-                  <p className="text-sm text-ink/60">مستوى الامتثال</p>
-                  <p className="mt-2 text-3xl font-extrabold text-gold">{review.complianceScore}%</p>
-                </div>
-                <div className="rounded bg-paper p-4">
-                  <p className="text-sm text-ink/60">مستوى المخاطر</p>
-                  <p className="mt-3">
-                    <StatusBadge tone={review.riskLevel === "LOW" ? "good" : review.riskLevel === "MEDIUM" ? "warn" : "danger"}>{riskLabels[review.riskLevel]}</StatusBadge>
-                  </p>
-                </div>
-                <div className="rounded bg-paper p-4">
-                  <p className="text-sm text-ink/60">جاهزية النشر</p>
-                  <p className="mt-3">
+              <div className="grid gap-3 md:grid-cols-3">
+                <ScoreCard label="جودة المحتوى" value={review.languageQuality.score} tone={scoreTone(review.languageQuality.score)} detail="لغة وصياغة ومقروئية" />
+                <ScoreCard label="مستوى الامتثال" value={review.complianceScore} tone={scoreTone(review.complianceScore)} detail="ملاحظات مهنية وتنظيمية" />
+                <div className="rounded-lg border border-line bg-white p-4">
+                  <p className="text-sm font-extrabold text-ink">جاهزية النشر</p>
+                  <div className="mt-3">
                     <StatusBadge tone={readinessTone(review)}>
                       {review.exportAllowed ? "مناسب للتصدير وفق نتائج المراجعة" : "يتطلب معالجة الملاحظات"}
                     </StatusBadge>
-                  </p>
+                  </div>
+                  <p className="mt-4 text-xs leading-6 text-ink/60">مستوى المخاطر: <span className="font-extrabold">{riskLabels[review.riskLevel]}</span></p>
                 </div>
               </div>
-              <p className="mt-4 leading-8 text-ink/70">{review.summary}</p>
+              <div className="mt-4 rounded-lg border border-line bg-[#fbfcfb] p-4">
+                <p className="text-sm font-extrabold text-ink">الملخص التنفيذي</p>
+                <p className="mt-2 leading-8 text-ink/75">{review.summary}</p>
+              </div>
               <div className="mt-4 grid gap-3 sm:grid-cols-3">
-                <div className="rounded border border-line p-3 text-sm">
-                  <span className="text-ink/55">ملاحظات الامتثال</span>
-                  <p className="mt-1 text-xl font-extrabold">{review.findings.length}</p>
-                </div>
-                <div className="rounded border border-line p-3 text-sm">
-                  <span className="text-ink/55">فرص التحسين</span>
-                  <p className="mt-1 text-xl font-extrabold">{review.languageQuality.issues.length}</p>
-                </div>
-                <div className="rounded border border-line p-3 text-sm">
-                  <span className="text-ink/55">المراجع ذات الصلة</span>
-                  <p className="mt-1 text-xl font-extrabold">{review.findings.length}</p>
-                </div>
+                <div className="rounded-lg border border-line p-3"><span className="text-xs text-ink/55">ملاحظات الامتثال</span><p className="mt-1 text-2xl font-extrabold">{review.findings.length}</p></div>
+                <div className="rounded-lg border border-line p-3"><span className="text-xs text-ink/55">فرص التحسين</span><p className="mt-1 text-2xl font-extrabold">{review.languageQuality.issues.length}</p></div>
+                <div className="rounded-lg border border-line p-3"><span className="text-xs text-ink/55">المراجع ذات الصلة</span><p className="mt-1 text-2xl font-extrabold">{review.findings.length}</p></div>
               </div>
             </>
           ) : (
-            <p className="leading-7 text-ink/65">أدخل بيانات المحتوى ثم ابدأ التحليل لعرض نتيجة موحدة تشمل الامتثال، المخاطر، فرص التحسين، المراجع، جاهزية النشر، والتصدير.</p>
+            <div className="rounded-lg border border-dashed border-line bg-[#fbfcfb] p-6">
+              <p className="text-sm leading-7 text-ink/65">أدخل بيانات المحتوى ثم ابدأ التحليل لعرض تقرير تنفيذي يشمل الامتثال، المخاطر، فرص التحسين، المراجع، جاهزية النشر، والتصدير.</p>
+            </div>
           )}
         </Panel>
       </div>
 
       {review ? (
         <>
-          <div className="mt-5">
-            <Panel>
-              <h3 className="mb-4 font-extrabold">مسار نتيجة المراجعة</h3>
-              <WorkflowSteps steps={review.workflow.map((step) => `${step.label}: ${workflowStatusLabels[step.status]}`)} />
-            </Panel>
-          </div>
+          <div className="mt-5"><WorkflowSteps steps={review.workflow.map((step) => `${step.label}: ${workflowStatusLabels[step.status]}`)} /></div>
 
           <div className="mt-5 grid gap-5 xl:grid-cols-2">
             <Panel>
-              <h3 className="mb-4 font-extrabold">جودة اللغة والصياغة</h3>
-              <DataTable
-                headers={["الفئة", "الدرجة"]}
-                rows={Object.entries(review.languageQuality.categoryScores).map(([category, score]) => [categoryLabels[category as LanguageIssueCategory], `${score}%`])}
-              />
-              <div className="mt-4 rounded border border-line bg-paper p-4">
-                <p className="mb-2 text-sm font-bold text-ink/70">صياغة محسنة مقترحة</p>
+              <SectionTitle title="جودة اللغة والصياغة" subtitle="تفصيل درجات الجودة واقتراح الصياغة المحسنة." />
+              <DataTable headers={["الفئة", "الدرجة"]} rows={Object.entries(review.languageQuality.categoryScores).map(([category, score]) => [categoryLabels[category as LanguageIssueCategory], `${score}%`])} />
+              <div className="mt-4 rounded-lg border border-line bg-[#fbfcfb] p-4">
+                <p className="mb-2 text-sm font-extrabold text-ink/70">صياغة محسنة مقترحة</p>
                 <p className="leading-8">{review.languageQuality.improvedDraft}</p>
               </div>
             </Panel>
 
             <Panel>
-              <h3 className="mb-4 font-extrabold">فرص التحسين</h3>
+              <SectionTitle title="فرص التحسين" subtitle="ملاحظات قابلة للمعالجة قبل النشر." />
               <DataTable
                 headers={["الفئة", "الأولوية", "الموضع", "اتجاه التحسين"]}
                 rows={review.languageQuality.issues.length > 0 ? review.languageQuality.issues.map((issue) => [
@@ -296,52 +264,44 @@ export default function ContentReviewPage() {
 
           <div className="mt-5">
             <Panel>
-              <h3 className="mb-4 font-extrabold">ملاحظات الامتثال ومؤشرات المخاطر والمراجع المهنية</h3>
+              <SectionTitle title="ملاحظات الامتثال ومؤشرات المخاطر والمراجع" subtitle="كل ملاحظة تعرض أثرها والمرجع الرسمي المرتبط بها." />
               <DataTable
-                headers={["الملاحظة", "مستوى المخاطر", "الموضع", "المرجع الرسمي", "المادة أو القاعدة", "الأثر المحتمل", "اتجاه التحسين"]}
+                headers={["الملاحظة", "المخاطر", "الموضع", "المرجع الرسمي", "المادة أو القاعدة", "الأثر المحتمل", "اتجاه التحسين"]}
                 rows={review.findings.length > 0 ? review.findings.map((finding) => [
                   finding.issue,
                   <StatusBadge key={finding.evidence} tone="danger">{riskLabels[finding.severity]}</StatusBadge>,
                   finding.evidence,
-                  <a key={finding.sourceUrl} href={finding.sourceUrl} target="_blank" rel="noreferrer" className="font-bold text-palm underline">{finding.sourceDocument}</a>,
+                  <a key={finding.sourceUrl} href={finding.sourceUrl} target="_blank" rel="noreferrer" className="font-extrabold text-palm underline">{finding.sourceDocument}</a>,
                   finding.ruleOrArticleNumber,
                   finding.explanation,
                   finding.advice
-                ]) : [["لا توجد ملاحظات امتثال عالية الأثر", <StatusBadge key="low" tone="good">منخفض</StatusBadge>, "-", "المراجع المهنية والتنظيمية المسجلة في قاعدة المعرفة", "-", "لا تظهر مؤشرات مخالفة واضحة في النص المدخل.", "استمر في الحفاظ على صياغة مهنية غير قطعية."]]}
+                ]) : [["لا توجد ملاحظات امتثال عالية الأثر", <StatusBadge key="low" tone="good">منخفض</StatusBadge>, "-", "المراجع المهنية والتنظيمية المسجلة", "-", "لا تظهر مؤشرات مخالفة واضحة في النص المدخل.", "استمر في الحفاظ على صياغة مهنية غير قطعية."]]}
               />
             </Panel>
           </div>
 
           <div className="mt-5 grid gap-5 xl:grid-cols-2">
             <Panel>
-              <h3 className="mb-4 font-extrabold">مقترحات التخطيط الإعلامي</h3>
+              <SectionTitle title="مقترحات التخطيط الإعلامي" subtitle="توجيهات استرشادية للقناة والتوقيت والرسالة." />
               <DataTable headers={["البند", "المقترح"]} rows={planningSuggestions} />
             </Panel>
 
             <Panel>
-              <h3 className="mb-4 font-extrabold">دعم التصدير والمشاركة</h3>
-              <p className="text-sm leading-7 text-ink/65">
-                يتاح تجهيز حزمة التصدير بعد عرض نتيجة المراجعة. تتضمن الحزمة ملخص النتيجة، ملاحظات الامتثال، مؤشرات المخاطر، المراجع ذات الصلة، وحالة جاهزية النشر.
-              </p>
-              <div className="mt-4 flex flex-wrap gap-3">
-                <button type="button" onClick={copyReviewPackage} className="inline-flex items-center gap-2 rounded border border-line bg-white px-4 py-2 text-sm font-bold focus-ring">
-                  <Link2 size={16} />
-                  نسخ تقرير المراجعة
-                </button>
-                <button type="button" onClick={downloadReviewPackage} className="inline-flex items-center gap-2 rounded bg-palm px-4 py-2 text-sm font-bold text-white focus-ring">
-                  <Download size={16} />
-                  تنزيل حزمة التصدير
-                </button>
-                <button type="button" onClick={copyReviewPackage} className="inline-flex items-center gap-2 rounded border border-line bg-white px-4 py-2 text-sm font-bold focus-ring">
-                  <Share2 size={16} />
-                  تجهيز بيانات المشاركة
-                </button>
+              <SectionTitle title="جاهزية التصدير والمشاركة" subtitle="حزمة قابلة للاستخدام بعد الاطلاع على نتيجة المراجعة." />
+              <div className="rounded-lg border border-line bg-[#fbfcfb] p-4">
+                <StatusBadge tone={readinessTone(review)}>{review.exportAllowed ? "مناسب للتصدير وفق نتائج المراجعة" : "يتطلب معالجة الملاحظات"}</StatusBadge>
+                <p className="mt-3 text-sm leading-7 text-ink/65">تتضمن الحزمة الملخص التنفيذي، درجات الجودة والامتثال، مستوى المخاطر، المراجع ذات الصلة، وملاحظات التحسين.</p>
               </div>
-              {exportMessage ? <p className="mt-3 text-sm font-bold text-palm">{exportMessage}</p> : null}
+              <div className="mt-4 flex flex-wrap gap-3">
+                <button type="button" onClick={copyReviewPackage} className="inline-flex items-center gap-2 rounded-md border border-line bg-white px-4 py-2.5 text-sm font-extrabold focus-ring"><Link2 size={16} />نسخ التقرير</button>
+                <button type="button" onClick={downloadReviewPackage} className="inline-flex items-center gap-2 rounded-md bg-palm px-4 py-2.5 text-sm font-extrabold text-white focus-ring"><Download size={16} />تنزيل الحزمة</button>
+                <button type="button" onClick={copyReviewPackage} className="inline-flex items-center gap-2 rounded-md border border-line bg-white px-4 py-2.5 text-sm font-extrabold focus-ring"><Share2 size={16} />تجهيز المشاركة</button>
+              </div>
+              {exportMessage ? <p className="mt-3 text-sm font-extrabold text-palm">{exportMessage}</p> : null}
             </Panel>
           </div>
 
-          <div className="mt-5 rounded border border-line bg-white p-4 text-xs leading-6 text-ink/65">{advisoryDisclaimer}</div>
+          <div className="mt-5 rounded-lg border border-line bg-white p-4 text-xs leading-6 text-ink/65">{advisoryDisclaimer}</div>
         </>
       ) : null}
     </>
