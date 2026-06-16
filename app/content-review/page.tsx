@@ -13,12 +13,30 @@ const contentTypes = contentKindOptions.filter((item) =>
 
 const channels = ["LinkedIn", "X", "Instagram", "TikTok", "Snapchat", "YouTube", "الموقع الإلكتروني", "قناة أخرى"];
 
+const audienceOptions = [
+  "عملاء محتملون من الأفراد",
+  "منشآت ورواد أعمال",
+  "عملاء قائمون",
+  "زملاء وقطاع قانوني",
+  "الجمهور العام",
+  "أخرى"
+];
+
+const purposeOptions = [
+  "رفع الوعي بالخدمات المهنية دون تقديم وعود أو نتائج قطعية",
+  "تثقيف الجمهور حول موضوع قانوني",
+  "الترويج لخدمة جديدة ضمن الأطر المهنية المسموحة",
+  "تعزيز الحضور المهني والثقة",
+  "دعوة لاستشارة أو تواصل مهني هادئ",
+  "أخرى"
+];
+
 const categoryLabels: Record<LanguageIssueCategory, string> = {
   spelling: "الإملاء",
   grammar: "النحو والترقيم",
   style: "الأسلوب المهني",
   readability: "وضوح القراءة",
-  terminology_consistency: "اتساق المصطلحات"
+  "اتساق المصطلحات": "اتساق المصطلحات"
 };
 
 const severityTone: Record<LanguageIssueSeverity, "neutral" | "good" | "gold"> = {
@@ -81,14 +99,18 @@ function buildExportPayload(review: ReviewResult, text: string, context: Record<
 export default function ContentReviewPage() {
   const [text, setText] = useState("يجب مراجعة صياغة الإعلان قبل نشره لأنه يتضمن وعداً بنتيجة مضمونة للعميل.");
   const [kind, setKind] = useState<ContentKind>("advertisement");
-  const [audience, setAudience] = useState("عملاء محتملون من الأفراد");
+  const [audienceChoice, setAudienceChoice] = useState(audienceOptions[0]);
+  const [audienceOther, setAudienceOther] = useState("");
   const [channel, setChannel] = useState("لينكدإن");
-  const [purpose, setPurpose] = useState("رفع الوعي بالخدمات المهنية دون تقديم وعود أو نتائج قطعية");
+  const [purposeChoice, setPurposeChoice] = useState(purposeOptions[0]);
+  const [purposeOther, setPurposeOther] = useState("");
   const [fileName, setFileName] = useState("");
   const [review, setReview] = useState<ReviewResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [exportMessage, setExportMessage] = useState("");
 
+  const audience = audienceChoice === "أخرى" ? audienceOther : audienceChoice;
+  const purpose = purposeChoice === "أخرى" ? purposeOther : purposeChoice;
   const selectedKind = contentTypes.find((item) => item.value === kind)?.label ?? "محتوى إعلامي";
   const context = useMemo(
     () => ({
@@ -166,11 +188,31 @@ export default function ContentReviewPage() {
             </label>
             <label className="text-sm font-normal sm:col-span-2">
               الجمهور المستهدف
-              <input className="mt-2 w-full rounded-md border border-line px-3 py-2.5 focus-ring" value={audience} onChange={(event) => setAudience(event.target.value)} />
+              <select className="mt-2 w-full rounded-md border border-line bg-white px-3 py-2.5 focus-ring" value={audienceChoice} onChange={(event) => setAudienceChoice(event.target.value)}>
+                {audienceOptions.map((item) => <option key={item} value={item}>{item}</option>)}
+              </select>
+              {audienceChoice === "أخرى" ? (
+                <input
+                  className="mt-2 w-full rounded-md border border-line px-3 py-2.5 focus-ring"
+                  placeholder="حدد الجمهور المستهدف"
+                  value={audienceOther}
+                  onChange={(event) => setAudienceOther(event.target.value)}
+                />
+              ) : null}
             </label>
             <label className="text-sm font-normal sm:col-span-2">
               الغرض من المحتوى
-              <input className="mt-2 w-full rounded-md border border-line px-3 py-2.5 focus-ring" value={purpose} onChange={(event) => setPurpose(event.target.value)} />
+              <select className="mt-2 w-full rounded-md border border-line bg-white px-3 py-2.5 focus-ring" value={purposeChoice} onChange={(event) => setPurposeChoice(event.target.value)}>
+                {purposeOptions.map((item) => <option key={item} value={item}>{item}</option>)}
+              </select>
+              {purposeChoice === "أخرى" ? (
+                <input
+                  className="mt-2 w-full rounded-md border border-line px-3 py-2.5 focus-ring"
+                  placeholder="حدد الغرض من المحتوى"
+                  value={purposeOther}
+                  onChange={(event) => setPurposeOther(event.target.value)}
+                />
+              ) : null}
             </label>
             <label className="text-sm font-normal sm:col-span-2">
               ملف داعم

@@ -1,48 +1,30 @@
 import type { LegalKnowledgeEntry, LegalSourceDocument } from "@/lib/types";
 
+// Single canonical entry per official Ministry of Justice document — every page
+// that needs to show or link to a source reads from this list rather than
+// keeping its own copy, so the same reference can never appear twice with
+// different URLs.
 export const legalSourceDocuments: LegalSourceDocument[] = [
   {
-    id: "rules-professional-conduct-lawyers-pdf",
+    id: "rules-professional-conduct-lawyers",
     title: "قواعد السلوك المهني للمحامين",
-    documentType: "PDF",
-    fileName: "قواعد السلوك المهني للمحامين.pdf",
-    sourceUrl: "https://laws.moj.gov.sa",
+    documentType: "MOJ_URL",
+    sourceUrl: "https://laws.moj.gov.sa/ar/legislation/JmI0BPgVlA5GuIxkJUi08A",
     version: "1447H",
     status: "ACTIVE",
-    pages: 10,
     issuedHijri: "24/12/1442",
     effectiveHijri: "26/01/1443",
     ministry: "وزارة العدل"
   },
   {
-    id: "advocacy-law-executive-regulations-pdf",
+    id: "advocacy-law-executive-regulations",
     title: "اللائحة التنفيذية لنظام المحاماة",
-    documentType: "PDF",
-    fileName: "اللائحة التنفيذية لنظام المحاماة.pdf",
-    sourceUrl: "https://laws.moj.gov.sa",
-    version: "1446H",
-    status: "ACTIVE",
-    pages: 17,
-    issuedHijri: "19/04/1446",
-    effectiveHijri: "13/06/1446",
-    ministry: "وزارة العدل"
-  },
-  {
-    id: "moj-rules-professional-conduct-lawyers",
-    title: "قواعد السلوك المهني للمحامين - وزارة العدل",
-    documentType: "MOJ_URL",
-    sourceUrl: "https://laws.moj.gov.sa/ar/legislation/JmI0BPgVlA5GuIxkJUi08A",
-    version: "MOJ current",
-    status: "ACTIVE",
-    ministry: "وزارة العدل"
-  },
-  {
-    id: "moj-advocacy-law-executive-regulations",
-    title: "اللائحة التنفيذية لنظام المحاماة - وزارة العدل",
     documentType: "MOJ_URL",
     sourceUrl: "https://laws.moj.gov.sa/ar/legislation/5huwCrAuvCK62BbuXv7fjg",
-    version: "MOJ current",
+    version: "1446H",
     status: "ACTIVE",
+    issuedHijri: "19/04/1446",
+    effectiveHijri: "13/06/1446",
     ministry: "وزارة العدل"
   }
 ];
@@ -50,7 +32,7 @@ export const legalSourceDocuments: LegalSourceDocument[] = [
 export const legalKnowledgeEntries: LegalKnowledgeEntry[] = [
   {
     id: "conduct-advertising-accuracy",
-    sourceDocumentId: "rules-professional-conduct-lawyers-pdf",
+    sourceDocumentId: "rules-professional-conduct-lawyers",
     sourceDocument: "قواعد السلوك المهني للمحامين",
     articleOrRuleNumber: "قواعد الإعلان والتواصل المهني",
     chapter: "الأحكام والقواعد العامة",
@@ -69,7 +51,7 @@ export const legalKnowledgeEntries: LegalKnowledgeEntry[] = [
   },
   {
     id: "conduct-no-guaranteed-outcomes",
-    sourceDocumentId: "rules-professional-conduct-lawyers-pdf",
+    sourceDocumentId: "rules-professional-conduct-lawyers",
     sourceDocument: "قواعد السلوك المهني للمحامين",
     articleOrRuleNumber: "قواعد النزاهة والصدق في التواصل المهني",
     chapter: "الأحكام والقواعد العامة",
@@ -88,7 +70,7 @@ export const legalKnowledgeEntries: LegalKnowledgeEntry[] = [
   },
   {
     id: "conduct-confidentiality",
-    sourceDocumentId: "rules-professional-conduct-lawyers-pdf",
+    sourceDocumentId: "rules-professional-conduct-lawyers",
     sourceDocument: "قواعد السلوك المهني للمحامين",
     articleOrRuleNumber: "قواعد السرية وحماية معلومات العميل",
     chapter: "العلاقة بين المحامي والعميل",
@@ -107,7 +89,7 @@ export const legalKnowledgeEntries: LegalKnowledgeEntry[] = [
   },
   {
     id: "conduct-client-solicitation",
-    sourceDocumentId: "rules-professional-conduct-lawyers-pdf",
+    sourceDocumentId: "rules-professional-conduct-lawyers",
     sourceDocument: "قواعد السلوك المهني للمحامين",
     articleOrRuleNumber: "قواعد التعامل مع العملاء وطلب العمل",
     chapter: "العلاقة بين المحامي والعميل",
@@ -126,7 +108,7 @@ export const legalKnowledgeEntries: LegalKnowledgeEntry[] = [
   },
   {
     id: "regulations-license-and-capacity",
-    sourceDocumentId: "advocacy-law-executive-regulations-pdf",
+    sourceDocumentId: "advocacy-law-executive-regulations",
     sourceDocument: "اللائحة التنفيذية لنظام المحاماة",
     articleOrRuleNumber: "المادة الأولى وما يتصل بمزاولة المهنة",
     chapter: "التعريفات والأحكام العامة",
@@ -145,7 +127,7 @@ export const legalKnowledgeEntries: LegalKnowledgeEntry[] = [
   },
   {
     id: "regulations-training-claims",
-    sourceDocumentId: "advocacy-law-executive-regulations-pdf",
+    sourceDocumentId: "advocacy-law-executive-regulations",
     sourceDocument: "اللائحة التنفيذية لنظام المحاماة",
     articleOrRuleNumber: "مواد التدريب والخبرة المهنية",
     chapter: "مزاولة مهنة المحاماة",

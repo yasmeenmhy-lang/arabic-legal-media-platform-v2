@@ -2,8 +2,8 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { CalendarDays, Edit3, Link2, Save, Trash2, X } from "lucide-react";
-import { DataTable, PageHeader, Panel, SectionTitle, StatusBadge } from "@/components/ui";
+import { CalendarCheck, CalendarDays, Edit3, Link2, Megaphone, MessageCircle, Save, ShieldAlert, Trash2, X } from "lucide-react";
+import { DataTable, KpiGrid, PageHeader, Panel, SectionTitle, StatusBadge } from "@/components/ui";
 import { contentKindOptions } from "@/lib/content-types";
 import { formatDualDate } from "@/lib/dates";
 import type { ContentKind, RiskLevel } from "@/lib/types";
@@ -30,6 +30,12 @@ const initialItems: CalendarItem[] = [
   { id: "cal-1", title: "منشور توعوي عن العقود", contentType: "post", channel: "X", date: 7, priority: "متوسط", reviewRef: "نتيجة مراجعة 1042" },
   { id: "cal-2", title: "حملة الإعلان المهني", contentType: "campaign", channel: "LinkedIn", date: 14, priority: "مرتفع", reviewRef: "بانتظار الربط" },
   { id: "cal-3", title: "فيديو قصير عن السرية", contentType: "script", channel: "YouTube", date: 21, priority: "مرتفع", reviewRef: "نتيجة مراجعة 1037" }
+];
+
+const campaignProposals = [
+  ["التوعية بالعقود", "أفراد ورواد أعمال", "لينكدإن ومنصة إكس", <StatusBadge key="ready" tone="good">جاهز للمراجعة</StatusBadge>],
+  ["سرية معلومات العميل", "عملاء محتملون", "فيديو قصير", <StatusBadge key="risk" tone="neutral">يتطلب ملاحظات امتثال</StatusBadge>],
+  ["الإعلان المهني المنضبط", "منشآت قانونية", "منشورات متعددة", <StatusBadge key="draft" tone="neutral">مقترح تخطيطي</StatusBadge>]
 ];
 
 function sortByPriority(items: CalendarItem[]) {
@@ -93,9 +99,9 @@ export default function CalendarPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="التقويم الإعلامي الموحد"
-        title="التقويم التفاعلي"
-        description="تقويم موحد لتنظيم المواد الإعلامية والإعلانية: عرض شهري، ترتيب الأولوية، إدارة العناصر، وربط كل عنصر بنتيجة مراجعة قبل النشر."
+        eyebrow="التقويم والحملات الإعلامية"
+        title="التقويم التفاعلي ودعم تخطيط الحملات"
+        description="تقويم موحد لتنظيم المواد الإعلامية والإعلانية: عرض شهري، ترتيب الأولوية، إدارة العناصر، وربط كل عنصر بنتيجة مراجعة قبل النشر، إلى جانب مقترحات الحملات التي تغذي هذا التقويم."
       />
 
       <div className="grid gap-5 xl:grid-cols-[1.1fr_0.9fr]">
@@ -234,6 +240,26 @@ export default function CalendarPage() {
             </button>
           ])}
         />
+      </Panel>
+
+      <PageHeader
+        eyebrow="دعم تخطيط الحملات"
+        title="الحملات الإعلامية والإعلانية"
+        description="تنظيم مقترحات الحملات والرسائل والجمهور والقنوات، مع إبقاء الامتثال والمخاطر وجاهزية النشر ضمن مسار المراجعة. ترتبط الحملات الجاهزة بعناصر في التقويم أعلاه."
+      />
+
+      <KpiGrid
+        items={[
+          { label: "حملات مقترحة", value: "6", hint: "مرتبطة بموضوعات مهنية", tone: "neutral", icon: <Megaphone size={20} /> },
+          { label: "رسائل مقترحة", value: "18", hint: "تحتاج مراجعة قبل الاستخدام", tone: "gold", icon: <MessageCircle size={20} /> },
+          { label: "ملاحظات مخاطر", value: "4", hint: "مرتبطة بالمحتوى الإعلاني", tone: "neutral", icon: <ShieldAlert size={20} /> },
+          { label: "مرتبطة بالتقويم", value: "9", hint: "مواد مجدولة أو مقترحة", tone: "good", icon: <CalendarCheck size={20} /> }
+        ]}
+      />
+
+      <Panel className="overflow-hidden">
+        <SectionTitle title="مقترحات الحملات" subtitle="تعرض كدعم تخطيطي، ولا تعني إطلاق الحملة أو تشغيلها آلياً." />
+        <DataTable headers={["الحملة", "الجمهور المقترح", "القنوات", "الحالة"]} rows={campaignProposals} />
       </Panel>
     </div>
   );

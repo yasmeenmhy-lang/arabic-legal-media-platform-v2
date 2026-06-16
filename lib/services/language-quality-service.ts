@@ -152,21 +152,21 @@ function detectTerminology(input: LanguageQualityReviewInput, issues: LanguageQu
 
   for (const term of input.requiredTerms ?? []) {
     if (!normalized.includes(normalizeArabic(term))) {
-      addIssue(issues, "terminology_consistency", "high", "مصطلح مطلوب غير مستخدم في النص.", term, `أدرج المصطلح "${term}" في الموضع المناسب أو وثق سبب عدم استخدامه.`);
+      addIssue(issues, "اتساق المصطلحات", "high", "مصطلح مطلوب غير مستخدم في النص.", term, `أدرج المصطلح "${term}" في الموضع المناسب أو وثق سبب عدم استخدامه.`);
     }
   }
 
   for (const [preferredTerm, variants] of Object.entries(input.terminologyMap ?? {})) {
     for (const variant of variants) {
       for (const match of matches(input.text, wordPattern(variant))) {
-        addIssue(issues, "terminology_consistency", "medium", "يوجد استخدام غير متسق للمصطلحات.", match[0], `وحّد المصطلح إلى "${preferredTerm}".`, match.index, match.index + match[0].length);
+        addIssue(issues, "اتساق المصطلحات", "medium", "يوجد استخدام غير متسق للمصطلحات.", match[0], `وحّد المصطلح إلى "${preferredTerm}".`, match.index, match.index + match[0].length);
       }
     }
   }
 
   const hasLegalTerm = legalTerms.some((term) => normalized.includes(normalizeArabic(term)));
   if (!["title", "hashtag"].includes(input.kind) && !hasLegalTerm) {
-    addIssue(issues, "terminology_consistency", "low", "النص لا يحتوي على مصطلح مهني أو تنظيمي واضح.", input.text.slice(0, 100), "أضف المصطلح المهني الدقيق الذي يصف الالتزام أو الإجراء أو موضوع الرسالة.");
+    addIssue(issues, "اتساق المصطلحات", "low", "النص لا يحتوي على مصطلح مهني أو تنظيمي واضح.", input.text.slice(0, 100), "أضف المصطلح المهني الدقيق الذي يصف الالتزام أو الإجراء أو موضوع الرسالة.");
   }
 }
 
@@ -188,7 +188,7 @@ function calculateScores(issues: LanguageQualityIssue[]) {
     grammar: 100,
     style: 100,
     readability: 100,
-    terminology_consistency: 100
+    "اتساق المصطلحات": 100
   };
 
   for (const issue of issues) categoryScores[issue.category] = Math.max(0, categoryScores[issue.category] - weights[issue.severity]);

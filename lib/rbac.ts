@@ -29,11 +29,6 @@ export const rbacRoles = [
     permissions: rolePermissions.LAWYER
   },
   {
-    name: "مشرف محتوى",
-    description: "متابعة المراجعات والمؤشرات والتنبيهات",
-    permissions: rolePermissions.SUPERVISOR
-  },
-  {
     name: "إدارة المنصة",
     description: "إدارة الإعدادات والمصادر والصلاحيات",
     permissions: rolePermissions.ADMIN

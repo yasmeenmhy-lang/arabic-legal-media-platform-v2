@@ -1,54 +1,55 @@
-import { ButtonLink, DataTable, KpiGrid, PageHeader, Panel, SectionTitle, StatusBadge } from "@/components/ui";
-import { legalSourceDocuments } from "@/lib/legal-knowledge-base";
-import { BookOpen, ExternalLink, FileText, Landmark } from "lucide-react";
+import { ButtonLink, DataTable, KpiGrid, Panel, PageHeader, SectionTitle, StatusBadge } from "@/components/ui";
+import { legalKnowledgeEntries, legalSourceDocuments } from "@/lib/legal-knowledge-base";
+import { BookOpen, Database, FileSearch, Landmark } from "lucide-react";
 
+// Only official Ministry of Justice links are kept — every entry here resolves
+// to laws.moj.gov.sa or moj.gov.sa, with a single canonical row per document.
 const sourceRows = legalSourceDocuments.map((source) => [
   source.title,
-  source.documentType === "MOJ_URL" ? "رابط رسمي" : "ملف مرجعي",
-  source.sourceUrl ? (
-    <a key={source.id} href={source.sourceUrl} className="font-normal text-palm underline underline-offset-4">
-      فتح المصدر
-    </a>
-  ) : (
-    "غير متاح"
-  ),
-  <StatusBadge key={source.id} tone="good">مرجع فعال</StatusBadge>
+  "رابط رسمي",
+  <a key={source.id} href={source.sourceUrl} target="_blank" rel="noreferrer" className="font-normal text-palm underline underline-offset-4">
+    فتح المصدر
+  </a>,
+  <StatusBadge key={`${source.id}-status`} tone="good">مرجع فعال</StatusBadge>
+]);
+
+const knowledgeRows = legalKnowledgeEntries.map((entry) => [
+  entry.sourceDocument,
+  entry.articleOrRuleNumber,
+  entry.chapter,
+  entry.riskCategories.join("، "),
+  <StatusBadge key={entry.id} tone={entry.severity === "مرتفع" ? "gold" : entry.severity === "متوسط" ? "neutral" : "good"}>
+    {entry.severity === "مرتفع" ? "أولوية جوهرية" : entry.severity === "متوسط" ? "أولوية مهمة" : "أولوية منخفضة"}
+  </StatusBadge>
 ]);
 
 export default function LibraryPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="المراجع المهنية والتنظيمية"
+        eyebrow="المراجع وقاعدة المعرفة القانونية"
         title="المراجع المهنية والتنظيمية"
-        description="عرض المصادر الرسمية والمرجعية المستخدمة في ملاحظات الامتثال ومؤشرات المخاطر، دون إظهار تفاصيل تقنية أو بيانات تشغيلية غير لازمة للمستخدم."
-        action={<ButtonLink href="/studio">استعراض قاعدة المعرفة</ButtonLink>}
+        description="عرض موحد للمصادر الرسمية لوزارة العدل ومواد قاعدة المعرفة القانونية المستخدمة في ملاحظات الامتثال ومؤشرات المخاطر، دون إظهار تفاصيل تقنية أو بيانات تشغيلية غير لازمة للمستخدم."
+        action={<ButtonLink href="/content-review">مراجعة محتوى</ButtonLink>}
       />
 
       <KpiGrid
         items={[
-          { label: "مصادر مسجلة", value: `${legalSourceDocuments.length}`, hint: "ملفات وروابط رسمية", tone: "gold", icon: <BookOpen size={20} /> },
-          { label: "روابط وزارة العدل", value: "2", hint: "مصادر رسمية قابلة للفتح", tone: "good", icon: <Landmark size={20} /> },
-          { label: "ملفات مرجعية", value: "2", hint: "مستخدمة في قاعدة المعرفة", tone: "neutral", icon: <FileText size={20} /> },
-          { label: "روابط سريعة", value: "5", hint: "جهات ومراجع مهنية", tone: "neutral", icon: <ExternalLink size={20} /> }
+          { label: "مصادر وزارة العدل", value: `${legalSourceDocuments.length}`, hint: "روابط رسمية فعالة فقط", tone: "gold", icon: <Landmark size={20} /> },
+          { label: "مدخلات معرفة", value: `${legalKnowledgeEntries.length}`, hint: "قواعد ومواد مفهرسة", tone: "good", icon: <Database size={20} /> },
+          { label: "فصول مغطاة", value: "4", hint: "إعلان، سرية، صفة، خبرة", tone: "neutral", icon: <BookOpen size={20} /> },
+          { label: "مجالات فحص", value: "6", hint: "تظهر في نتائج المراجعة", tone: "neutral", icon: <FileSearch size={20} /> }
         ]}
       />
 
-      <Panel>
-        <SectionTitle title="المصادر المسجلة داخل المنصة" subtitle="تظهر هذه المصادر في نتائج المراجعة عند وجود ملاحظة مرتبطة بها." />
+      <Panel className="overflow-hidden">
+        <SectionTitle title="مصادر وزارة العدل المسجلة" subtitle="تظهر هذه المصادر في نتائج المراجعة عند وجود ملاحظة مرتبطة بها، ولا تتضمن سوى روابط moj.gov.sa الرسمية." />
         <DataTable headers={["المصدر", "النوع", "الرابط", "الحالة"]} rows={sourceRows} />
       </Panel>
 
-      <Panel>
-        <SectionTitle title="روابط وصول سريعة" subtitle="روابط مساندة للمستخدمين للوصول إلى الجهات والمراجع ذات الصلة." />
-        <DataTable
-          headers={["الجهة أو المرجع", "الرابط"]}
-          rows={[
-            ["وزارة العدل", <a key="moj" className="font-normal text-palm underline underline-offset-4" href="https://www.moj.gov.sa">فتح الرابط</a>],
-            ["ناجز", <a key="najiz" className="font-normal text-palm underline underline-offset-4" href="https://najiz.sa">فتح الرابط</a>],
-            ["الهيئة السعودية للمحامين", <a key="sba" className="font-normal text-palm underline underline-offset-4" href="https://sba.gov.sa">فتح الرابط</a>]
-          ]}
-        />
+      <Panel className="overflow-hidden">
+        <SectionTitle title="قاعدة المعرفة القانونية" subtitle="يعرض الجدول نطاق الاستخدام المهني لكل مرجع داخل مخرجات المراجعة." />
+        <DataTable headers={["المصدر", "القاعدة أو المادة", "الفصل", "مجالات المخاطر", "الأولوية"]} rows={knowledgeRows} />
       </Panel>
     </div>
   );

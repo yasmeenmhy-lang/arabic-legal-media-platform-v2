@@ -77,7 +77,7 @@ export function KpiCard({
 }) {
   const toneStyle = toneStyles[tone];
   const content = (
-    <Panel className={clsx("relative overflow-hidden", toneStyle.border)}>
+    <Panel className={clsx("relative h-full overflow-hidden", toneStyle.border)}>
       <div className={clsx("absolute inset-x-0 top-0 h-1", toneStyle.solid)} />
       <div className="flex items-start justify-between gap-3">
         <div>
@@ -184,13 +184,13 @@ export function DataTable({
   rows: Array<Array<React.ReactNode>>;
 }) {
   return (
-    <div className="overflow-hidden rounded-lg border border-line bg-white">
+    <div className="max-w-full overflow-hidden rounded-lg border border-line bg-white">
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[760px] text-sm">
+        <table className="w-full min-w-[720px] table-fixed text-sm">
           <thead className="bg-paper text-ink/65">
             <tr>
               {headers.map((header) => (
-                <th key={header} className="px-4 py-3 text-right text-xs font-normal">
+                <th key={header} className="whitespace-normal break-words px-4 py-3 text-right text-xs font-normal leading-6">
                   {header}
                 </th>
               ))}
@@ -200,8 +200,10 @@ export function DataTable({
             {rows.map((row, index) => (
               <tr key={index} className="border-t border-line align-top hover:bg-paper">
                 {row.map((cell, cellIndex) => (
-                  <td key={cellIndex} className="px-4 py-3 leading-7">
-                    {cell}
+                  <td key={cellIndex} className="max-w-0 whitespace-normal break-words px-4 py-3 leading-7">
+                    <div className="min-w-0 max-w-full overflow-hidden text-wrap break-words">
+                      {cell}
+                    </div>
                   </td>
                 ))}
               </tr>

@@ -7,6 +7,15 @@ function hashSource(value: string) {
   return createHash("sha256").update(value).digest("hex");
 }
 
+function isOfficialMinistrySource(sourceUrl: string) {
+  try {
+    const hostname = new URL(sourceUrl).hostname.toLowerCase();
+    return hostname === "moj.gov.sa" || hostname.endsWith(".moj.gov.sa") || hostname === "laws.moj.gov.sa";
+  } catch {
+    return false;
+  }
+}
+
 function getDemoLegalSourceUpdateCenter() {
   const checkedAt = new Date("2026-06-15T00:00:00.000Z").toISOString();
   const sources: LegalSourceSyncState[] = legalSourceDocuments.map((source) => {
@@ -28,7 +37,7 @@ function getDemoLegalSourceUpdateCenter() {
           checkedAt,
           checksum,
           summary: "مرجع قانوني مسجل من خط الأساس المرفق بالمنصة.",
-          approvedBy: "مشرف النظام",
+          approvedBy: "مسؤول المنصة",
           approvedAt: checkedAt
         }
       ]
@@ -39,7 +48,7 @@ function getDemoLegalSourceUpdateCenter() {
     id: `demo-audit-${source.sourceDocumentId}`,
     sourceDocumentId: source.sourceDocumentId,
     action: "APPROVED",
-    actor: "مشرف النظام",
+    actor: "مسؤول المنصة",
     at: checkedAt,
     details: "تستخدم المنصة بيانات المراجع المرفقة لأغراض التقييم الاسترشادي دون اتصال بقاعدة بيانات."
   }));
@@ -128,6 +137,10 @@ export async function getLegalSourceUpdateCenter() {
 }
 
 export async function registerLegalSource(input: { title: string; sourceUrl: string; version: string; actor?: string }) {
+  if (!isOfficialMinistrySource(input.sourceUrl)) {
+    throw new Error("لا يمكن تسجيل مصدر غير تابع لوزارة العدل.");
+  }
+
   if (isDemoMode()) {
     const sourceDocumentId = `manual-${hashSource(input.sourceUrl).slice(0, 12)}`;
     const now = new Date().toISOString();
@@ -188,14 +201,14 @@ export async function registerLegalSource(input: { title: string; sourceUrl: str
 
   await prisma.legalSourceVersion.upsert({
     where: { id: `${sourceDocumentId}-${input.version}` },
-    update: { checksum: sourceHash, checkedAt: now, summary: "تم تسجيل المرجع يدوياً وهو بانتظار مراجعة المشرف." },
+    update: { checksum: sourceHash, checkedAt: now, summary: "تم تسجيل المرجع يدوياً وهو بانتظار مراجعة مسؤول المنصة." },
     create: {
       id: `${sourceDocumentId}-${input.version}`,
       sourceDocumentId,
       version: input.version,
       checkedAt: now,
       checksum: sourceHash,
-      summary: "تم تسجيل المرجع يدوياً وهو بانتظار مراجعة المشرف."
+      summary: "تم تسجيل المرجع يدوياً وهو بانتظار مراجعة مسؤول المنصة."
     }
   });
 
@@ -265,14 +278,14 @@ export async function runManualSourceSync(input: {
       if (changeDetected) {
         await prisma.legalSourceVersion.upsert({
           where: { id: `${source.id}-${observedVersion}-${observedHash.slice(0, 8)}` },
-          update: { checkedAt: now, checksum: observedHash, summary: "تم رصد تغير في المصدر وهو بانتظار مراجعة المشرف." },
+          update: { checkedAt: now, checksum: observedHash, summary: "تم رصد تغير في المصدر وهو بانتظار مراجعة مسؤول المنصة." },
           create: {
             id: `${source.id}-${observedVersion}-${observedHash.slice(0, 8)}`,
             sourceDocumentId: source.id,
             version: observedVersion,
             checkedAt: now,
             checksum: observedHash,
-            summary: "تم رصد تغير في المصدر وهو بانتظار مراجعة المشرف."
+            summary: "تم رصد تغير في المصدر وهو بانتظار مراجعة مسؤول المنصة."
           }
         });
       }

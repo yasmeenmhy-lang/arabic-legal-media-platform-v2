@@ -16,7 +16,7 @@ export type ContentKind =
   | "publishing_plan"
   | "social_export";
 
-export type LanguageIssueCategory = "spelling" | "grammar" | "style" | "readability" | "terminology_consistency";
+export type LanguageIssueCategory = "spelling" | "grammar" | "style" | "readability" | "اتساق المصطلحات";
 
 export type LanguageIssueSeverity = "low" | "medium" | "high" | "critical";
 

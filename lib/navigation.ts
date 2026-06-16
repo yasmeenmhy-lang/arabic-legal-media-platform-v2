@@ -1,29 +1,25 @@
 import {
   BarChart3,
-  Bell,
-  BookOpen,
   CalendarRange,
   ClipboardCheck,
   FileCheck2,
   FileClock,
-  Files,
-  KeyRound,
   LayoutDashboard,
-  Library,
   Lightbulb,
-  Megaphone,
+  Library,
   MessageSquareText,
   Radio,
   Settings,
   Share2,
   ShieldAlert,
-  ShieldCheck,
-  UploadCloud,
-  Users
+  ShieldCheck
 } from "lucide-react";
 
 export const platformTitle = "منصة تمكين وإدارة المحتوى الإعلامي والإعلاني للمحامين";
 
+// Lawyer-facing navigation only. The platform-owner /admin dashboard and any
+// user/role management are intentionally absent here — regular users must
+// never see them (reachable only via the password-gated /admin URL directly).
 export const navItems = [
   { title: "لوحة التحكم", href: "/dashboard", icon: LayoutDashboard, group: "الرئيسية" },
   { title: "مراجعة المحتوى الإعلامي والإعلاني", href: "/content-review", icon: FileCheck2, group: "المراجعة" },
@@ -33,17 +29,10 @@ export const navItems = [
   { title: "ملاحظات الامتثال", href: "/legal-compliance", icon: ShieldCheck, group: "المراجعة" },
   { title: "مؤشرات المخاطر", href: "/risk-assessment", icon: ShieldAlert, group: "المراجعة" },
   { title: "فرص التحسين", href: "/recommendations", icon: Lightbulb, group: "المراجعة" },
-  { title: "المراجع المهنية والتنظيمية", href: "/library", icon: Library, group: "المراجع" },
-  { title: "قاعدة المعرفة القانونية", href: "/studio", icon: BookOpen, group: "المراجع" },
-  { title: "التقويم التفاعلي", href: "/calendar", icon: CalendarRange, group: "التخطيط والنشر" },
-  { title: "دعم تخطيط الحملات", href: "/campaigns", icon: Megaphone, group: "التخطيط والنشر" },
+  { title: "المراجع وقاعدة المعرفة القانونية", href: "/library", icon: Library, group: "المراجع" },
+  { title: "التقويم والحملات الإعلامية", href: "/calendar", icon: CalendarRange, group: "التخطيط والنشر" },
   { title: "دعم النشر والجدولة", href: "/publishing", icon: Radio, group: "التخطيط والنشر" },
-  { title: "مركز المشاركة الاجتماعية", href: "/social-media", icon: Share2, group: "التخطيط والنشر" },
-  { title: "مركز التصدير", href: "/export-center", icon: UploadCloud, group: "التخطيط والنشر" },
+  { title: "المشاركة الاجتماعية والتصدير", href: "/social-media", icon: Share2, group: "التخطيط والنشر" },
   { title: "التقارير والمؤشرات", href: "/analytics", icon: BarChart3, group: "المؤشرات" },
-  { title: "مؤشرات القطاع", href: "/sector-analytics", icon: Files, group: "المؤشرات" },
-  { title: "التنبيهات", href: "/alerts", icon: Bell, group: "الحوكمة" },
-  { title: "الحوكمة والإعدادات", href: "/administration", icon: Settings, group: "الحوكمة" },
-  { title: "إدارة المستخدمين", href: "/approval-workflow", icon: Users, group: "الحوكمة" },
-  { title: "لوحة الإدارة", href: "/admin", icon: KeyRound, group: "الحوكمة" }
+  { title: "الحوكمة والتنبيهات", href: "/administration", icon: Settings, group: "الحوكمة" }
 ];

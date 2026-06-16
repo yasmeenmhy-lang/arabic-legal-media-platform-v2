@@ -15,16 +15,17 @@ import {
 import { BarList, ButtonLink, CircularGauge, KpiGrid, NeedleGauge, PageHeader, Panel, ProgressBar, SectionTitle, StatusBadge } from "@/components/ui";
 import { getDashboardOverview } from "@/lib/services/dashboard-service";
 import { formatDualDate } from "@/lib/dates";
+import { legalSourceDocuments } from "@/lib/legal-knowledge-base";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
+// Official Ministry of Justice links only — the law-specific deep links are
+// read from the single canonical source list so this can never drift out of
+// sync with what /library shows.
 const quickLinks = [
   ["وزارة العدل", "https://www.moj.gov.sa"],
-  ["ناجز", "https://najiz.sa"],
-  ["الهيئة السعودية للمحامين", "https://sba.gov.sa"],
-  ["قواعد السلوك المهني", "https://laws.moj.gov.sa"],
-  ["اللائحة التنفيذية لنظام المحاماة", "https://laws.moj.gov.sa"]
+  ...legalSourceDocuments.map((source) => [source.title, source.sourceUrl])
 ];
 
 const readinessIndicators: Array<{
@@ -67,7 +68,7 @@ export default async function DashboardPage() {
       hint: "يتطلب معالجة قبل المشاركة",
       tone: "gold" as const,
       icon: <AlertTriangle size={19} />,
-      href: "/export-center"
+      href: "/social-media"
     },
     {
       label: "مخاطر عالية",
@@ -123,7 +124,7 @@ export default async function DashboardPage() {
 
         <Panel>
           <SectionTitle title="ملخص تنفيذي" subtitle="أهم ما يحتاج متابعة اليوم." />
-          <Link href="/alerts" className="block rounded-lg border border-goldBorder bg-goldSoft p-4 transition hover:border-gold focus-ring">
+          <Link href="/administration" className="block rounded-lg border border-goldBorder bg-goldSoft p-4 transition hover:border-gold focus-ring">
             <div className="mb-3 flex items-center gap-2 text-gold">
               <AlertTriangle size={18} />
               <p className="font-normal">أولوية عالية</p>
@@ -218,7 +219,7 @@ export default async function DashboardPage() {
               ["الامتثال", "/legal-compliance", ShieldCheck],
               ["المراجع", "/library", BookOpen],
               ["المخاطر", "/risk-assessment", ShieldAlert],
-              ["التصدير", "/export-center", TrendingUp]
+              ["التصدير", "/social-media", TrendingUp]
             ].map(([label, href, Icon]) => {
               const ServiceIcon = Icon as typeof FileCheck2;
               return (

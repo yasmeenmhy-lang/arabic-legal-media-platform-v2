@@ -1,9 +1,32 @@
 import { ButtonLink, DataTable, PageHeader, Panel, ScoreCard, SectionTitle, StatusBadge, WorkflowSteps } from "@/components/ui";
 import { reviewContent } from "@/lib/services/review-service";
+import type { LanguageIssueCategory, LanguageIssueSeverity } from "@/lib/types";
 import { ClipboardCheck, FileWarning, Lightbulb, ShieldCheck } from "lucide-react";
 
 const sampleText = "يجب مراجعة صياغة الإعلان قبل نشره لأنه يتضمن وعداً بنتيجة مضمونة للعميل.";
 const review = reviewContent(sampleText, "advertisement");
+
+const categoryLabels: Record<LanguageIssueCategory, string> = {
+  spelling: "الإملاء",
+  grammar: "النحو والترقيم",
+  style: "الأسلوب المهني",
+  readability: "وضوح القراءة",
+  "اتساق المصطلحات": "اتساق المصطلحات"
+};
+
+const severityTone: Record<LanguageIssueSeverity, "neutral" | "good" | "gold"> = {
+  low: "neutral",
+  medium: "neutral",
+  high: "gold",
+  critical: "gold"
+};
+
+const severityLabels: Record<LanguageIssueSeverity, string> = {
+  low: "منخفضة",
+  medium: "متوسطة",
+  high: "عالية",
+  critical: "حرجة"
+};
 
 function scoreTone(value: number) {
   if (value >= 85) return "good" as const;
