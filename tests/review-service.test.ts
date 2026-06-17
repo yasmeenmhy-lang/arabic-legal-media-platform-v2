@@ -66,4 +66,18 @@ describe("reviewContent", () => {
     expect(result.riskLevel).toBe("منخفض");
     expect(result.findings).toHaveLength(0);
   });
+
+  it("returns compact review context without exposing the full submitted content", () => {
+    const submittedContent = "يقدم المكتب خدمات قانونية للأفراد والمنشآت وفق الأنظمة والتعليمات ذات العلاقة. ".repeat(8);
+    const result = reviewContent(submittedContent, "post", { contentType: "منشور", channel: "LinkedIn" });
+
+    expect(result.reviewContext.reviewId).toMatch(/^REV-/);
+    expect(result.reviewContext.contentType).toBe("منشور");
+    expect(result.reviewContext.channel).toBe("LinkedIn");
+    expect(result.reviewContext.shortExcerpt.length).toBeLessThan(submittedContent.length);
+    expect(result.reviewContext.shortExcerpt.length).toBeLessThanOrEqual(123);
+    expect(result.reviewContext.shortExcerpt).not.toBe(submittedContent);
+    expect((result as unknown as { submittedContent?: string }).submittedContent).toBeUndefined();
+    expect((result as unknown as { text?: string }).text).toBeUndefined();
+  });
 });

@@ -133,7 +133,7 @@ export default function CalendarPage() {
                 >
                   <span className="font-normal">{day}</span>
                   {dayItems.slice(0, 2).map((item) => (
-                    <span key={item.id} className="mt-1 block truncate rounded-md bg-white px-1.5 py-0.5 text-palm shadow-sm">{item.title}</span>
+                    <span key={item.id} className="mt-1 block whitespace-normal break-words rounded-md bg-white px-1.5 py-0.5 leading-5 text-palm shadow-sm">{item.title}</span>
                   ))}
                   {dayItems.length > 2 ? <span className="mt-1 block text-[10px] text-ink/50">+{dayItems.length - 2}</span> : null}
                 </button>

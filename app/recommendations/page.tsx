@@ -1,5 +1,5 @@
-import { ButtonLink, PageHeader, Panel, SectionTitle } from "@/components/ui";
-import { Lightbulb } from "lucide-react";
+import { ButtonLink, PageHeader } from "@/components/ui";
+import { ReviewContextSummary, ReviewOpportunitiesSection } from "@/components/review-context-summary";
 
 export default function RecommendationsPage() {
   return (
@@ -11,16 +11,8 @@ export default function RecommendationsPage() {
         action={<ButtonLink href="/content-review">تحليل محتوى</ButtonLink>}
       />
 
-      <Panel className="text-center">
-        <Lightbulb className="mx-auto text-palm" size={34} />
-        <SectionTitle
-          title="لا توجد فرص تحسين معروضة"
-          subtitle="تظهر فرص التحسين بعد إدخال محتوى وتشغيل التحليل، ولن تُعرض كتوصيات نظامية إلا إذا ارتبطت بقاعدة مهنية أو تنظيمية مسجلة."
-        />
-        <p className="mx-auto mt-3 max-w-2xl text-sm leading-7 text-ink/65">
-          الملاحظات اللغوية أو التحريرية التي لا ترتبط بمرجع نظامي محدد تُعرض بوصفها: ملاحظة تحسين صياغي غير مرتبطة بمرجع نظامي محدد.
-        </p>
-      </Panel>
+      <ReviewContextSummary focus="opportunities" />
+      <ReviewOpportunitiesSection />
     </div>
   );
 }

@@ -104,6 +104,16 @@ export type ReviewContext = {
   purpose?: string;
 };
 
+export type ReviewedContentContext = {
+  reviewId: string;
+  shortExcerpt: string;
+  contentType?: string;
+  channel?: string;
+  audience?: string;
+  purpose?: string;
+  reviewedAt: string;
+};
+
 export type ReviewFinding = {
   legalKnowledgeEntryId: string;
   sourceDocumentId: string;
@@ -148,6 +158,7 @@ export type LegalRiskAssessment = {
 };
 
 export type ReviewResult = {
+  reviewContext: ReviewedContentContext;
   languageQuality: LanguageQualityReviewResult;
   complianceScore: number;
   riskLevel: RiskLevel;

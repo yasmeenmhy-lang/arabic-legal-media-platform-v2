@@ -23,7 +23,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }, []);
 
   return (
-    <div className="min-h-screen overflow-x-hidden bg-paper">
+    <div className="min-h-screen w-full max-w-full overflow-x-hidden bg-paper">
       {navOpen ? (
         <div
           aria-hidden="true"
@@ -34,11 +34,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       <aside
         className={clsx(
-          "fixed bottom-0 right-0 top-0 z-30 w-80 border-l border-line bg-white transition-transform duration-200 ease-out",
+          "fixed bottom-0 right-0 top-0 z-30 w-[min(20rem,100vw)] max-w-full border-l border-line bg-white transition-transform duration-200 ease-out",
           navOpen ? "translate-x-0" : "translate-x-full"
         )}
       >
-        <div className="border-b border-line bg-paper p-6">
+        <div className="border-b border-line bg-paper p-4 sm:p-6">
           <div className="flex items-start justify-between gap-3">
             <div className="flex items-start gap-3">
               <div className="grid h-12 w-12 place-items-center rounded-lg bg-palm text-white shadow-sm">
@@ -92,10 +92,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </nav>
       </aside>
 
-      <div className={clsx("transition-[margin] duration-200 ease-out", navOpen && "lg:mr-80")}>
+      <div className={clsx("w-full max-w-full overflow-x-hidden transition-[margin] duration-200 ease-out", navOpen && "lg:mr-80")}>
         <header className="sticky top-0 z-10 border-b border-line bg-white/95 backdrop-blur">
-          <div className="flex min-h-16 items-center justify-between gap-4 px-4 sm:px-6">
-            <div className="flex items-center gap-3">
+          <div className="flex min-h-16 max-w-full items-center justify-between gap-3 px-3 sm:gap-4 sm:px-6">
+            <div className="flex min-w-0 items-center gap-3">
               <button
                 type="button"
                 onClick={() => setNavOpen((open) => !open)}
@@ -106,7 +106,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               >
                 <Menu size={20} />
               </button>
-              <div>
+              <div className="min-w-0">
                 <h1 className="max-w-4xl text-sm font-bold leading-6 text-ink sm:text-base">{platformTitle}</h1>
                 <p className="hidden text-xs text-ink/50 sm:block">
                   مراجعة، امتثال، مخاطر، وتحسين جاهزية النشر للمحتوى المهني
@@ -119,7 +119,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </div>
           </div>
         </header>
-        <main className="min-w-0 px-4 py-6 sm:px-6">{children}</main>
+        <main className="min-w-0 max-w-full overflow-x-hidden px-3 py-5 sm:px-6 sm:py-6">{children}</main>
       </div>
     </div>
   );

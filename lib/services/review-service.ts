@@ -1,5 +1,6 @@
 import type { ContentKind, ReviewContext, ReviewResult, ReviewWorkflowStep } from "@/lib/types";
 import { advisoryDisclaimer } from "@/lib/governance";
+import { createReviewedContentContext } from "@/lib/review-context";
 import { reviewLanguageQuality } from "@/lib/services/language-quality-service";
 import { runPublishingReadinessReview } from "@/lib/services/approval-workflow-service";
 import { runLegalComplianceReview } from "@/lib/services/legal-compliance-service";
@@ -54,6 +55,7 @@ export function reviewContent(text: string, kind: ContentKind = "post", context:
   const readyForPublishing = readiness.readyForPublishing && publishingReadinessScore >= 82;
 
   return {
+    reviewContext: createReviewedContentContext(text, context),
     languageQuality,
     complianceScore: compliance.complianceScore,
     riskLevel: compliance.riskLevel,

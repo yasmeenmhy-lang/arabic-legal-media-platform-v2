@@ -1,6 +1,7 @@
 ﻿import Link from "next/link";
 import { ArrowLeft, CheckCircle2, Clock3, FileText, ShieldAlert } from "lucide-react";
 import { clsx } from "clsx";
+import React from "react";
 
 type Tone = "neutral" | "good" | "gold";
 
@@ -22,14 +23,14 @@ export function PageHeader({
   eyebrow?: string;
 }) {
   return (
-    <div className="mb-6 rounded-lg border border-line bg-white p-6 shadow-sm">
+    <div className="mb-6 w-full max-w-full overflow-hidden rounded-lg border border-line bg-white p-4 shadow-sm sm:p-6">
       <div className="flex flex-col justify-between gap-5 lg:flex-row lg:items-center">
-        <div>
+        <div className="min-w-0 max-w-full">
           {eyebrow ? <p className="mb-2 text-xs font-normal text-palm">{eyebrow}</p> : null}
-          <h2 className="text-[1.65rem] font-bold leading-10 text-ink">{title}</h2>
+          <h2 className="text-xl font-bold leading-9 text-ink sm:text-[1.65rem] sm:leading-10">{title}</h2>
           <p className="mt-2 max-w-4xl text-sm leading-7 text-ink/65">{description}</p>
         </div>
-        {action ? <div className="shrink-0">{action}</div> : null}
+        {action ? <div className="min-w-0 shrink-0">{action}</div> : null}
       </div>
     </div>
   );
@@ -39,21 +40,25 @@ export function ButtonLink({ href, children }: { href: string; children: React.R
   return (
     <Link
       href={href}
-      className="inline-flex items-center gap-2 rounded-md bg-palm px-4 py-2.5 text-sm font-normal text-white shadow-sm transition hover:bg-palmDark focus-ring"
+      className="inline-flex max-w-full items-center gap-2 rounded-md bg-palm px-4 py-2.5 text-sm font-normal text-white shadow-sm transition hover:bg-palmDark focus-ring"
     >
-      {children}
-      <ArrowLeft size={16} />
+      <span className="min-w-0">{children}</span>
+      <ArrowLeft size={16} className="shrink-0" />
     </Link>
   );
 }
 
-export function Panel({ children, className }: { children: React.ReactNode; className?: string }) {
-  return <section className={clsx("rounded-lg border border-line bg-white p-5 shadow-sm", className)}>{children}</section>;
+export function Panel({
+  children,
+  className,
+  ...props
+}: React.HTMLAttributes<HTMLElement> & { children: React.ReactNode }) {
+  return <section {...props} className={clsx("w-full max-w-full overflow-hidden rounded-lg border border-line bg-white p-4 shadow-sm sm:p-5", className)}>{children}</section>;
 }
 
 export function SectionTitle({ title, subtitle }: { title: string; subtitle?: string }) {
   return (
-    <div className="mb-4 flex flex-col gap-1">
+    <div className="mb-4 flex max-w-full flex-col gap-1">
       <h3 className="text-base font-normal text-ink">{title}</h3>
       {subtitle ? <p className="text-xs leading-6 text-ink/55">{subtitle}</p> : null}
     </div>
@@ -79,12 +84,12 @@ export function KpiCard({
   const content = (
     <Panel className={clsx("relative h-full overflow-hidden", toneStyle.border)}>
       <div className={clsx("absolute inset-x-0 top-0 h-1", toneStyle.solid)} />
-      <div className="flex items-start justify-between gap-3">
-        <div>
+      <div className="flex min-w-0 items-start justify-between gap-3">
+        <div className="min-w-0">
           <p className="text-xs font-normal text-ink/55">{label}</p>
           <p className={clsx("mt-2 break-words text-3xl font-normal leading-none", toneStyle.text)}>{value}</p>
         </div>
-        {icon ? <div className={clsx("grid h-10 w-10 place-items-center rounded-md", toneStyle.soft, toneStyle.text)}>{icon}</div> : null}
+        {icon ? <div className={clsx("grid h-10 w-10 shrink-0 place-items-center rounded-md", toneStyle.soft, toneStyle.text)}>{icon}</div> : null}
       </div>
       <p className="mt-3 text-xs leading-6 text-ink/55">{hint}</p>
     </Panel>
@@ -93,7 +98,7 @@ export function KpiCard({
   if (!href) return content;
 
   return (
-    <Link href={href} className="block rounded-lg transition hover:-translate-y-0.5 hover:shadow-md focus-ring">
+    <Link href={href} className="block w-full max-w-full rounded-lg transition hover:-translate-y-0.5 hover:shadow-md focus-ring">
       {content}
     </Link>
   );
@@ -111,7 +116,7 @@ export function KpiGrid({ items }: { items: { label: string; value: string; hint
 
 export function StatusBadge({ children, tone = "neutral" }: { children: React.ReactNode; tone?: Tone }) {
   const toneStyle = toneStyles[tone];
-  return <span className={clsx("inline-flex rounded-md border px-2.5 py-1 text-xs font-normal", toneStyle.soft, toneStyle.text, toneStyle.border)}>{children}</span>;
+  return <span className={clsx("inline-flex max-w-full rounded-md border px-2.5 py-1 text-xs font-normal leading-5", toneStyle.soft, toneStyle.text, toneStyle.border)}>{children}</span>;
 }
 
 export function ProgressBar({ value, tone = "good" }: { value: number; tone?: Tone }) {
@@ -135,10 +140,10 @@ export function ScoreCard({
   detail?: string;
 }) {
   return (
-    <div className={clsx("rounded-lg border p-4", toneStyles[tone].soft, toneStyles[tone].border)}>
-      <div className="flex items-center justify-between gap-3">
+    <div className={clsx("w-full max-w-full rounded-lg border p-4", toneStyles[tone].soft, toneStyles[tone].border)}>
+      <div className="flex min-w-0 items-center justify-between gap-3">
         <p className="text-sm font-normal text-ink">{label}</p>
-        <p className={clsx("text-2xl font-normal", toneStyles[tone].text)}>{value}%</p>
+        <p className={clsx("shrink-0 text-2xl font-normal", toneStyles[tone].text)}>{value}%</p>
       </div>
       <div className="mt-3">
         <ProgressBar value={value} tone={tone} />
@@ -164,7 +169,7 @@ export function WorkflowSteps({ steps }: { steps: string[] }) {
   return (
     <div className="grid gap-3 md:grid-cols-5">
       {steps.map((step, index) => (
-        <div key={step} className="rounded-lg border border-line bg-white p-4 shadow-sm">
+        <div key={step} className="w-full max-w-full overflow-hidden rounded-lg border border-line bg-white p-4 shadow-sm">
           <div className="mb-3 flex items-center justify-between">
             <span className="grid h-8 w-8 place-items-center rounded-md bg-mint text-sm font-normal text-palm">{index + 1}</span>
             {index === 0 ? <Clock3 size={18} className="text-palm" /> : index === 1 ? <ShieldAlert size={18} className="text-gold" /> : <CheckCircle2 size={18} className="text-palm" />}
@@ -184,9 +189,27 @@ export function DataTable({
   rows: Array<Array<React.ReactNode>>;
 }) {
   return (
-    <div className="max-w-full overflow-hidden rounded-lg border border-line bg-white">
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-[720px] table-fixed text-sm">
+    <div className="w-full max-w-full overflow-hidden rounded-lg border border-line bg-white">
+      <div className="md:hidden">
+        <div className="space-y-4 p-3">
+          {rows.map((row, rowIndex) => (
+            <article key={rowIndex} className="w-full max-w-full rounded-lg border border-line bg-white p-4 shadow-sm">
+              <dl className="space-y-4">
+                {row.map((cell, cellIndex) => (
+                  <div key={cellIndex} className="w-full max-w-full border-b border-line/70 pb-3 last:border-b-0 last:pb-0">
+                    <dt className="mb-1 text-xs font-normal leading-6 text-ink/55">{headers[cellIndex] ?? ""}</dt>
+                    <dd className="min-w-0 max-w-full text-sm leading-7 text-ink">
+                      {cell}
+                    </dd>
+                  </div>
+                ))}
+              </dl>
+            </article>
+          ))}
+        </div>
+      </div>
+      <div className="hidden md:block">
+        <table className="w-full table-fixed text-sm">
           <thead className="bg-paper text-ink/65">
             <tr>
               {headers.map((header) => (
@@ -201,7 +224,7 @@ export function DataTable({
               <tr key={index} className="border-t border-line align-top hover:bg-paper">
                 {row.map((cell, cellIndex) => (
                   <td key={cellIndex} className="max-w-0 whitespace-normal break-words px-4 py-3 leading-7">
-                    <div className="min-w-0 max-w-full overflow-hidden text-wrap break-words">
+                    <div className="min-w-0 max-w-full whitespace-normal break-words">
                       {cell}
                     </div>
                   </td>

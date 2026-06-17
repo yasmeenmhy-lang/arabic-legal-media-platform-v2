@@ -1,4 +1,5 @@
 import { ButtonLink, PageHeader, Panel, SectionTitle } from "@/components/ui";
+import { ReviewContextSummary } from "@/components/review-context-summary";
 import { ClipboardCheck } from "lucide-react";
 
 export default function ReviewResultsPage() {
@@ -10,6 +11,8 @@ export default function ReviewResultsPage() {
         description="لا تعرض هذه الصفحة نتائج افتراضية. تظهر النتائج التنفيذية بعد تحليل محتوى فعلي من مسار مراجعة المحتوى الإعلامي والإعلاني."
         action={<ButtonLink href="/content-review">بدء مراجعة محتوى</ButtonLink>}
       />
+
+      <ReviewContextSummary focus="results" />
 
       <Panel className="text-center">
         <ClipboardCheck className="mx-auto text-palm" size={34} />

@@ -1,8 +1,9 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { Download, FileText, Link2, Share2 } from "lucide-react";
 import { BarList, DataTable, PageHeader, Panel, ScoreCard, SectionTitle, StatusBadge, WorkflowSteps } from "@/components/ui";
+import { saveLatestReviewSnapshot } from "@/components/review-context-summary";
 import { advisoryDisclaimer } from "@/lib/governance";
 import { contentKindOptions } from "@/lib/content-types";
 import type { ContentKind, LanguageIssueCategory, LanguageIssueSeverity, ReviewResult, RiskLevel } from "@/lib/types";
@@ -72,11 +73,14 @@ function toneFromRisk(risk: RiskLevel) {
   return "gold" as const;
 }
 
-function buildExportPayload(review: ReviewResult, text: string, context: Record<string, string>) {
+function buildExportPayload(review: ReviewResult, context: Record<string, string>) {
   return {
     عنوان: "تقرير مراجعة المحتوى الإعلامي والإعلاني",
-    المحتوى_محل_المراجعة: text,
-    سياق_المراجعة: context,
+    سياق_المراجعة: {
+      معرف_المراجعة: review.reviewContext.reviewId,
+      مقتطف_مختصر: review.reviewContext.shortExcerpt,
+      ...context
+    },
     نتيجة_المراجعة: {
       جودة_المحتوى: review.languageQuality.score,
       مستوى_الامتثال: review.complianceScore,
@@ -98,6 +102,176 @@ function buildExportPayload(review: ReviewResult, text: string, context: Record<
     })),
     ملاحظة_استرشادية: review.advisoryDisclaimer
   };
+}
+
+function ReadableBlock({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div className="w-full max-w-full border-b border-line/70 pb-3 last:border-b-0 last:pb-0">
+      <p className="mb-1 text-xs font-normal leading-6 text-ink/55">{label}</p>
+      <div className="text-sm leading-8 text-ink">{children}</div>
+    </div>
+  );
+}
+
+function LanguageQualityMobile({ review }: { review: ReviewResult }) {
+  return (
+    <div className="space-y-4 md:hidden">
+      {Object.entries(review.languageQuality.categoryScores).map(([category, score]) => (
+        <article key={category} className="w-full rounded-lg border border-line bg-white p-4">
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-sm font-normal text-ink">{categoryLabels[category as LanguageIssueCategory]}</p>
+            <span className="shrink-0 rounded-md bg-mint px-3 py-1 text-sm font-normal text-palm">{score}%</span>
+          </div>
+          <div className="mt-3 h-2.5 overflow-hidden rounded-full bg-paper">
+            <div className="h-full rounded-full bg-palm/80" style={{ width: `${score}%` }} />
+          </div>
+        </article>
+      ))}
+      <article className="w-full rounded-lg border border-line bg-paper p-4">
+        <p className="mb-2 text-sm font-normal text-ink">صياغة محسنة مقترحة</p>
+        <p className="text-sm leading-8 text-ink/75">{review.languageQuality.improvedDraft}</p>
+      </article>
+    </div>
+  );
+}
+
+function ReviewContextHeader({
+  review,
+  contentType,
+  channel
+}: {
+  review: ReviewResult;
+  contentType: string;
+  channel: string;
+}) {
+  return (
+    <section id="review-results" className="mt-6 rounded-lg border border-line bg-white p-4 shadow-sm sm:p-5">
+      <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+        <div className="min-w-0">
+          <p className="text-xs font-normal leading-6 text-palm">سياق المراجعة الحالية</p>
+          <p className="mt-1 text-sm font-normal leading-7 text-ink">{review.reviewContext.reviewId}</p>
+          <p className="mt-1 text-sm leading-7 text-ink/75">{review.reviewContext.shortExcerpt || "محتوى إعلامي أو إعلاني محل المراجعة"}</p>
+        </div>
+        <div className="grid gap-2 text-xs sm:grid-cols-2 lg:grid-cols-5 xl:min-w-[720px]">
+          <div className="rounded-md bg-paper p-3"><span className="block text-ink/50">نوع المحتوى</span><strong className="mt-1 block font-normal text-ink">{contentType}</strong></div>
+          <div className="rounded-md bg-paper p-3"><span className="block text-ink/50">القناة</span><strong className="mt-1 block font-normal text-ink">{channel}</strong></div>
+          <div className="rounded-md bg-paper p-3"><span className="block text-ink/50">مستوى المخاطر</span><strong className="mt-1 block font-normal text-ink">{review.riskLevel}</strong></div>
+          <div className="rounded-md bg-paper p-3"><span className="block text-ink/50">الامتثال</span><strong className="mt-1 block font-normal text-ink">{review.complianceScore}%</strong></div>
+          <div className="rounded-md bg-paper p-3"><span className="block text-ink/50">جاهزية النشر</span><strong className="mt-1 block font-normal text-ink">{review.publishingReadinessScore}%</strong></div>
+        </div>
+      </div>
+      <nav className="mt-4 flex flex-wrap gap-2 text-xs">
+        {[
+          ["#language-quality", "جودة اللغة"],
+          ["#opportunities", "فرص التحسين"],
+          ["#findings", "الملاحظات"],
+          ["#references", "المراجع"],
+          ["#recommendations", "التوصيات"],
+          ["#export", "التصدير"]
+        ].map(([href, label]) => (
+          <a key={href} href={href} className="rounded-md border border-line bg-paper px-3 py-2 text-ink/70 transition hover:border-palm hover:text-palm focus-ring">
+            {label}
+          </a>
+        ))}
+      </nav>
+    </section>
+  );
+}
+
+function OpportunityCards({ review }: { review: ReviewResult }) {
+  const issues = review.languageQuality.issues;
+  return (
+    <div className="space-y-5">
+      {issues.length > 0 ? issues.map((issue) => (
+        <article key={issue.id} className="w-full rounded-lg border border-line bg-white p-4 shadow-sm">
+          <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+            <p className="text-sm font-normal leading-7 text-ink">{categoryLabels[issue.category]} - ملاحظة تحسين صياغي غير مرتبطة بمرجع نظامي محدد.</p>
+            <StatusBadge tone={severityTone[issue.severity]}>{severityLabels[issue.severity]}</StatusBadge>
+          </div>
+          <div className="space-y-4">
+            <ReadableBlock label="الموضع">{issue.excerpt || "-"}</ReadableBlock>
+            <ReadableBlock label="اتجاه التحسين">{issue.suggestion}</ReadableBlock>
+          </div>
+        </article>
+      )) : (
+        <article className="w-full rounded-lg border border-line bg-white p-4">
+          <div className="mb-3"><StatusBadge tone="good">مناسب</StatusBadge></div>
+          <p className="text-sm leading-8 text-ink/75">لا توجد ملاحظات لغوية مؤثرة. يمكن الانتقال إلى مراجعة الامتثال والمخاطر.</p>
+        </article>
+      )}
+    </div>
+  );
+}
+
+function FindingCards({ review }: { review: ReviewResult }) {
+  return (
+    <div className="space-y-5">
+      {review.findings.length > 0 ? review.findings.map((finding) => (
+        <article key={`${finding.legalKnowledgeEntryId}-${finding.evidence}`} className="w-full rounded-lg border border-line bg-white p-4 shadow-sm sm:p-5">
+          <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-base font-normal leading-8 text-ink">{finding.issue}</p>
+              <p className="mt-1 text-sm leading-7 text-ink/55">{finding.legalReference} - {finding.articleTitle}</p>
+            </div>
+            <StatusBadge tone={toneFromRisk(finding.severity)}>{finding.severity}</StatusBadge>
+          </div>
+          <div className="grid gap-4 lg:grid-cols-2">
+            <ReadableBlock label="العبارة محل المراجعة">{finding.evidence}</ReadableBlock>
+            <ReadableBlock label="المصدر القانوني">
+              <a href={finding.sourceUrl} target="_blank" rel="noreferrer" className="font-normal text-palm underline underline-offset-4">{finding.sourceDocument}</a>
+            </ReadableBlock>
+            <ReadableBlock label="مقتطف المرجع النظامي">{finding.articleTextExcerpt}</ReadableBlock>
+            <ReadableBlock label="الشرح القانوني">
+              {finding.legalExplanation} نتيجة الفحص: {finding.reviewOutcome}. مستوى الثقة: {finding.confidenceLevel}.
+            </ReadableBlock>
+            <ReadableBlock label="التوصية">{finding.suggestedSaferWording}</ReadableBlock>
+          </div>
+        </article>
+      )) : (
+        <article className="w-full rounded-lg border border-line bg-white p-4">
+          <div className="mb-3"><StatusBadge tone="good">منخفض</StatusBadge></div>
+          <p className="text-sm leading-8 text-ink/75">{review.summary}</p>
+          <p className="mt-3 text-sm leading-8 text-ink/75">استمر في الحفاظ على صياغة مهنية غير قطعية.</p>
+        </article>
+      )}
+    </div>
+  );
+}
+
+function ReferencesMobile({ review }: { review: ReviewResult }) {
+  return (
+    <div className="space-y-4">
+      {review.referencesPanel.length > 0 ? review.referencesPanel.map((reference) => (
+        <article key={`${reference.sourceDocument}-${reference.legalReference}`} className="w-full rounded-lg border border-line bg-white p-4">
+          <div className="space-y-4">
+            <ReadableBlock label="المصدر">{reference.sourceDocument}</ReadableBlock>
+            <ReadableBlock label="المرجع النظامي">{reference.legalReference}</ReadableBlock>
+            <ReadableBlock label="عنوان المرجع">{reference.articleTitle}</ReadableBlock>
+            <ReadableBlock label="مقتطف النص">{reference.articleTextExcerpt}</ReadableBlock>
+            <ReadableBlock label="الرابط الرسمي">
+              <a href={reference.sourceUrl} target="_blank" rel="noreferrer" className="font-normal text-palm underline underline-offset-4">فتح المصدر الرسمي</a>
+            </ReadableBlock>
+          </div>
+        </article>
+      )) : (
+        <article className="w-full rounded-lg border border-line bg-white p-4">
+          <p className="text-sm leading-8 text-ink/75">{review.summary}</p>
+        </article>
+      )}
+    </div>
+  );
+}
+
+function RecommendationCards({ items }: { items: string[][] }) {
+  return (
+    <div className="space-y-4">
+      {items.map(([label, value]) => (
+        <article key={label} className="w-full rounded-lg border border-line bg-white p-4">
+          <ReadableBlock label={label}>{value}</ReadableBlock>
+        </article>
+      ))}
+    </div>
+  );
 }
 
 export default function ContentReviewPage() {
@@ -137,18 +311,19 @@ export default function ContentReviewPage() {
     });
     const payload = await response.json();
     setReview(payload.data);
+    if (payload.data?.reviewContext) saveLatestReviewSnapshot(payload.data);
     setLoading(false);
   }
 
   async function copyReviewPackage() {
     if (!review) return;
-    await navigator.clipboard.writeText(JSON.stringify(buildExportPayload(review, text, context), null, 2));
+    await navigator.clipboard.writeText(JSON.stringify(buildExportPayload(review, context), null, 2));
     setExportMessage("تم نسخ تقرير المراجعة وبيانات التصدير.");
   }
 
   function downloadReviewPackage() {
     if (!review) return;
-    const payload = buildExportPayload(review, text, context);
+    const payload = buildExportPayload(review, context);
     const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
@@ -286,46 +461,32 @@ export default function ContentReviewPage() {
 
       {review ? (
         <>
+          <ReviewContextHeader review={review} contentType={selectedKind} channel={channel} />
           <div className="mt-5"><WorkflowSteps steps={review.workflow.map((step) => `${step.label}: ${workflowStatusLabels[step.status]}`)} /></div>
 
           <div className="mt-5 grid gap-5 xl:grid-cols-2">
-            <Panel>
+            <Panel id="language-quality">
               <SectionTitle title="جودة اللغة والصياغة" subtitle="تفصيل درجات الجودة واقتراح الصياغة المحسنة." />
-              <DataTable headers={["الفئة", "الدرجة"]} rows={Object.entries(review.languageQuality.categoryScores).map(([category, score]) => [categoryLabels[category as LanguageIssueCategory], `${score}%`])} />
-              <div className="mt-4 rounded-lg border border-line bg-paper p-4">
-                <p className="mb-2 text-sm font-normal text-ink/70">صياغة محسنة مقترحة</p>
-                <p className="leading-8">{review.languageQuality.improvedDraft}</p>
+              <LanguageQualityMobile review={review} />
+              <div className="hidden md:block">
+                <DataTable headers={["الفئة", "الدرجة"]} rows={Object.entries(review.languageQuality.categoryScores).map(([category, score]) => [categoryLabels[category as LanguageIssueCategory], `${score}%`])} />
+                <div className="mt-4 rounded-lg border border-line bg-paper p-5">
+                  <p className="mb-2 text-sm font-normal text-ink/70">صياغة محسنة مقترحة</p>
+                  <p className="leading-8">{review.languageQuality.improvedDraft}</p>
+                </div>
               </div>
             </Panel>
 
-            <Panel>
+            <Panel id="opportunities">
               <SectionTitle title="فرص التحسين" subtitle="ملاحظات قابلة للمعالجة قبل النشر." />
-              <DataTable
-                headers={["الفئة", "الأولوية", "الموضع", "اتجاه التحسين"]}
-                rows={review.languageQuality.issues.length > 0 ? review.languageQuality.issues.map((issue) => [
-                  `${categoryLabels[issue.category]} - ملاحظة تحسين صياغي غير مرتبطة بمرجع نظامي محدد.`,
-                  <StatusBadge key={issue.id} tone={severityTone[issue.severity]}>{severityLabels[issue.severity]}</StatusBadge>,
-                  issue.excerpt || "-",
-                  issue.suggestion
-                ]) : [["لا توجد ملاحظات لغوية مؤثرة", <StatusBadge key="ok" tone="good">مناسب</StatusBadge>, "-", "يمكن الانتقال إلى مراجعة الامتثال والمخاطر."]]}
-              />
+              <OpportunityCards review={review} />
             </Panel>
           </div>
 
           <div className="mt-5">
-            <Panel>
+            <Panel id="findings">
               <SectionTitle title="ملاحظات الامتثال ومؤشرات المخاطر والمراجع" subtitle="كل ملاحظة مرتبطة بمصدر رسمي ومادة أو قاعدة محددة مع سبب الرصد ومستوى الثقة." />
-              <DataTable
-                headers={["الملاحظة", "الشدة", "المصدر القانوني", "المرجع النظامي", "الشرح القانوني", "التوصية"]}
-                rows={review.findings.length > 0 ? review.findings.map((finding) => [
-                  finding.issue,
-                  <StatusBadge key={finding.evidence} tone={toneFromRisk(finding.severity)}>{finding.severity}</StatusBadge>,
-                  <a key={finding.sourceUrl} href={finding.sourceUrl} target="_blank" rel="noreferrer" className="font-normal text-palm underline underline-offset-4">{finding.sourceDocument}</a>,
-                  `${finding.legalReference} - ${finding.articleTitle}`,
-                  `${finding.legalExplanation} نتيجة الفحص: ${finding.reviewOutcome}. مستوى الثقة: ${finding.confidenceLevel}.`,
-                  finding.suggestedSaferWording
-                ]) : [["لا توجد ملاحظات امتثال", <StatusBadge key="low" tone="good">منخفض</StatusBadge>, "قواعد السلوك المهني للمحامين واللائحة التنفيذية لنظام المحاماة في المملكة العربية السعودية", "-", review.summary, "استمر في الحفاظ على صياغة مهنية غير قطعية."]]}
-              />
+              <FindingCards review={review} />
             </Panel>
           </div>
 
@@ -352,28 +513,19 @@ export default function ContentReviewPage() {
           </div>
 
           <div className="mt-5">
-            <Panel>
+            <Panel id="references">
               <SectionTitle title="المراجع ذات الصلة" subtitle="تعرض فقط المراجع الرسمية التي استندت إليها نتيجة المراجعة." />
-              <DataTable
-                headers={["المصدر", "المرجع النظامي", "عنوان المرجع", "مقتطف النص", "الرابط الرسمي"]}
-                rows={review.referencesPanel.length > 0 ? review.referencesPanel.map((reference) => [
-                  reference.sourceDocument,
-                  reference.legalReference,
-                  reference.articleTitle,
-                  reference.articleTextExcerpt,
-                  <a key={reference.sourceUrl} href={reference.sourceUrl} target="_blank" rel="noreferrer" className="font-normal text-palm underline underline-offset-4">فتح المصدر الرسمي</a>
-                ]) : [["قواعد السلوك المهني للمحامين واللائحة التنفيذية لنظام المحاماة في المملكة العربية السعودية", "-", "-", review.summary, "لا توجد مادة محددة لأن المراجعة لم ترصد مخالفة ذات صلة."]]}
-              />
+              <ReferencesMobile review={review} />
             </Panel>
           </div>
 
           <div className="mt-5 grid gap-5 xl:grid-cols-2">
-            <Panel>
+            <Panel id="recommendations">
               <SectionTitle title="مقترحات التخطيط الإعلامي" subtitle="توجيهات استرشادية للقناة والتوقيت والرسالة." />
-              <DataTable headers={["البند", "المقترح"]} rows={planningSuggestions} />
+              <RecommendationCards items={planningSuggestions} />
             </Panel>
 
-            <Panel>
+            <Panel id="export">
               <SectionTitle title="جاهزية التصدير والمشاركة" subtitle="حزمة قابلة للاستخدام بعد الاطلاع على نتيجة المراجعة." />
               <div className="rounded-lg border border-line bg-paper p-4">
                 <StatusBadge tone={review.exportAllowed ? "good" : toneFromRisk(review.riskLevel)}>

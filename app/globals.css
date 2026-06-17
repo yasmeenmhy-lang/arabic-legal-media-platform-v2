@@ -31,10 +31,14 @@
 html {
   direction: rtl;
   scroll-behavior: smooth;
+  max-width: 100%;
+  overflow-x: hidden;
 }
 
 body {
   min-height: 100vh;
+  max-width: 100%;
+  overflow-x: hidden;
   background: #f4f7f6;
   color: #1f2933;
   font-weight: 400;
@@ -44,6 +48,38 @@ body {
 
 * {
   box-sizing: border-box;
+  min-width: 0;
+}
+
+p,
+span,
+div,
+section,
+article,
+aside,
+main,
+header,
+footer,
+li,
+td,
+th,
+label,
+button,
+a {
+  overflow-wrap: break-word;
+  word-break: break-word;
+  white-space: normal;
+}
+
+table,
+img,
+svg,
+video,
+canvas,
+iframe,
+pre,
+code {
+  max-width: 100%;
 }
 
 button,
