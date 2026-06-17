@@ -57,7 +57,10 @@ export type AIContentOutput = {
       legalCitation: string;
       sourceDocument: string;
       ruleOrArticleNumber: string;
+      articleTitle: string;
+      articleTextExcerpt: string;
       explanation: string;
+      confidenceLevel: string;
       sourceUrl: string;
     }>;
     reviews: ReviewResult[];
@@ -102,8 +105,33 @@ export type ReviewFinding = {
   legalCitation: string;
   sourceDocument: string;
   ruleOrArticleNumber: string;
+  articleTitle: string;
+  articleTextExcerpt: string;
   explanation: string;
+  legalExplanation: string;
+  reviewOutcome: "لم ترصد ملاحظة" | "رصدت ملاحظة";
+  confidenceLevel: "منخفض" | "متوسط" | "مرتفع";
   sourceUrl: string;
+};
+
+export type LegalReviewSection = {
+  title: string;
+  sourceDocument: string;
+  sourceUrl: string;
+  findings: ReviewFinding[];
+  passed: boolean;
+  summary: string;
+};
+
+export type LegalRiskAssessment = {
+  level: RiskLevel;
+  reason: string;
+  supportingArticle?: {
+    sourceDocument: string;
+    ruleOrArticleNumber: string;
+    articleTitle: string;
+    sourceUrl: string;
+  };
 };
 
 export type ReviewResult = {
@@ -112,6 +140,16 @@ export type ReviewResult = {
   riskLevel: RiskLevel;
   summary: string;
   findings: ReviewFinding[];
+  professionalConductCompliance: LegalReviewSection;
+  executiveRegulationCompliance: LegalReviewSection;
+  legalRiskAssessment: LegalRiskAssessment;
+  referencesPanel: Array<{
+    sourceDocument: string;
+    ruleOrArticleNumber: string;
+    articleTitle: string;
+    articleTextExcerpt: string;
+    sourceUrl: string;
+  }>;
   workflow: ReviewWorkflowStep[];
   exportAllowed: boolean;
   advisoryDisclaimer: string;
@@ -144,6 +182,7 @@ export type LegalKnowledgeEntry = {
   sourceDocumentId: string;
   sourceDocument: string;
   articleOrRuleNumber: string;
+  articleTitle?: string;
   chapter: string;
   section: string;
   fullText: string;
@@ -234,7 +273,10 @@ export type ShareReadyContent = {
       legalCitation: string;
       sourceDocument: string;
       ruleOrArticleNumber: string;
+      articleTitle: string;
+      articleTextExcerpt: string;
       explanation: string;
+      confidenceLevel: string;
       sourceUrl: string;
     }>;
   };

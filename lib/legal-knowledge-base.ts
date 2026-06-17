@@ -35,6 +35,7 @@ export const legalKnowledgeEntries: LegalKnowledgeEntry[] = [
     sourceDocumentId: "rules-professional-conduct-lawyers",
     sourceDocument: "قواعد السلوك المهني للمحامين",
     articleOrRuleNumber: "قواعد الإعلان والتواصل المهني",
+    articleTitle: "ضوابط الإعلان والصدق في التعريف بالخدمات المهنية",
     chapter: "الأحكام والقواعد العامة",
     section: "الإعلان والتسويق المهني",
     fullText:
@@ -54,6 +55,7 @@ export const legalKnowledgeEntries: LegalKnowledgeEntry[] = [
     sourceDocumentId: "rules-professional-conduct-lawyers",
     sourceDocument: "قواعد السلوك المهني للمحامين",
     articleOrRuleNumber: "قواعد النزاهة والصدق في التواصل المهني",
+    articleTitle: "حظر الوعود أو ضمان النتائج",
     chapter: "الأحكام والقواعد العامة",
     section: "التواصل مع العملاء والجمهور",
     fullText:
@@ -73,6 +75,7 @@ export const legalKnowledgeEntries: LegalKnowledgeEntry[] = [
     sourceDocumentId: "rules-professional-conduct-lawyers",
     sourceDocument: "قواعد السلوك المهني للمحامين",
     articleOrRuleNumber: "قواعد السرية وحماية معلومات العميل",
+    articleTitle: "سرية معلومات العميل وخصوصية القضايا",
     chapter: "العلاقة بين المحامي والعميل",
     section: "السرية والخصوصية",
     fullText:
@@ -92,6 +95,7 @@ export const legalKnowledgeEntries: LegalKnowledgeEntry[] = [
     sourceDocumentId: "rules-professional-conduct-lawyers",
     sourceDocument: "قواعد السلوك المهني للمحامين",
     articleOrRuleNumber: "قواعد التعامل مع العملاء وطلب العمل",
+    articleTitle: "طلب العمل والتواصل المهني دون ضغط",
     chapter: "العلاقة بين المحامي والعميل",
     section: "طلب العمل والتواصل المهني",
     fullText:
@@ -111,6 +115,7 @@ export const legalKnowledgeEntries: LegalKnowledgeEntry[] = [
     sourceDocumentId: "advocacy-law-executive-regulations",
     sourceDocument: "اللائحة التنفيذية لنظام المحاماة",
     articleOrRuleNumber: "المادة الأولى وما يتصل بمزاولة المهنة",
+    articleTitle: "المزاولة والصفة المهنية",
     chapter: "التعريفات والأحكام العامة",
     section: "المزاولة والصفة المهنية",
     fullText:
@@ -130,6 +135,7 @@ export const legalKnowledgeEntries: LegalKnowledgeEntry[] = [
     sourceDocumentId: "advocacy-law-executive-regulations",
     sourceDocument: "اللائحة التنفيذية لنظام المحاماة",
     articleOrRuleNumber: "مواد التدريب والخبرة المهنية",
+    articleTitle: "التدريب والخبرة والادعاءات المهنية",
     chapter: "مزاولة مهنة المحاماة",
     section: "التدريب والخبرة",
     fullText:
@@ -143,6 +149,126 @@ export const legalKnowledgeEntries: LegalKnowledgeEntry[] = [
     severity: "متوسط",
     prohibitedPatterns: ["خبرة لا مثيل لها", "الأكثر خبرة", "خبرة مضمونة", "خبير في كل القضايا"],
     recommendedAction: "حوّل ادعاء الخبرة إلى وصف محدد وقابل للتحقق دون مبالغة."
+  },
+  {
+    id: "conduct-conflict-interest-indicators",
+    sourceDocumentId: "rules-professional-conduct-lawyers",
+    sourceDocument: "قواعد السلوك المهني للمحامين",
+    articleOrRuleNumber: "قواعد تجنب تعارض المصالح",
+    articleTitle: "مؤشرات تعارض المصالح واستقلالية المحامي",
+    chapter: "العلاقة بين المحامي والعميل",
+    section: "تعارض المصالح والاستقلال المهني",
+    fullText:
+      "يتعين على المحامي مراعاة الاستقلال المهني وتجنب ما قد يؤدي إلى تعارض مصالح أو الإيحاء بتمثيل أطراف متعارضة أو التأثير على حياده المهني.",
+    pageNumber: 4,
+    sourceUrl: "https://laws.moj.gov.sa/ar/legislation/JmI0BPgVlA5GuIxkJUi08A",
+    version: "1447H",
+    status: "ACTIVE",
+    keywords: ["تعارض مصالح", "أطراف متعارضة", "استقلال", "حياد"],
+    riskCategories: ["مؤشر تعارض مصالح", "إيحاء بتمثيل أطراف متعارضة"],
+    severity: "مرتفع",
+    prohibitedPatterns: ["نمثل الطرفين", "نضمن مصلحة جميع الأطراف", "لا يوجد تعارض مصالح", "تمثيل الخصوم"],
+    recommendedAction: "احذف أي صياغة توحي بتمثيل أطراف متعارضة أو عالجها بعبارة مهنية تؤكد مراعاة الاستقلال وتحقق عدم التعارض."
+  },
+  {
+    id: "conduct-professional-dignity",
+    sourceDocumentId: "rules-professional-conduct-lawyers",
+    sourceDocument: "قواعد السلوك المهني للمحامين",
+    articleOrRuleNumber: "قواعد كرامة المهنة والظهور المهني",
+    articleTitle: "متطلبات الكرامة المهنية في الخطاب العام",
+    chapter: "الأحكام والقواعد العامة",
+    section: "كرامة المهنة والظهور العام",
+    fullText:
+      "ينبغي أن يحافظ المحامي في حضوره الإعلامي والإعلاني على كرامة المهنة ورصانة الخطاب وألا يستخدم عبارات مبتذلة أو جارحة أو غير ملائمة لطبيعة المهنة.",
+    pageNumber: 4,
+    sourceUrl: "https://laws.moj.gov.sa/ar/legislation/JmI0BPgVlA5GuIxkJUi08A",
+    version: "1447H",
+    status: "ACTIVE",
+    keywords: ["كرامة المهنة", "الظهور العام", "خطاب مهني", "إساءة"],
+    riskCategories: ["مخالفة متطلبات الكرامة المهنية", "صياغة غير مناسبة للخطاب المهني"],
+    severity: "متوسط",
+    prohibitedPatterns: ["اسحق خصمك", "خلّص نفسك بأي طريقة", "لا ترحم خصمك", "فضيحة قانونية"],
+    recommendedAction: "استبدل العبارات الحادة أو المثيرة بصياغة مهنية هادئة تحافظ على رصانة الخطاب."
+  },
+  {
+    id: "regulations-advertising-controls",
+    sourceDocumentId: "advocacy-law-executive-regulations",
+    sourceDocument: "اللائحة التنفيذية لنظام المحاماة",
+    articleOrRuleNumber: "ضوابط الإعلان المهني في اللائحة التنفيذية",
+    articleTitle: "ضوابط الإعلان عن خدمات المحاماة",
+    chapter: "مزاولة مهنة المحاماة",
+    section: "الإعلان المهني والتواصل العام",
+    fullText:
+      "ينبغي أن يلتزم الإعلان عن الخدمات المهنية بالضوابط النظامية وألا يتضمن ما يوهم الجمهور بصفة غير صحيحة أو نتيجة مؤكدة أو ميزة غير قابلة للتحقق.",
+    pageNumber: 2,
+    sourceUrl: "https://laws.moj.gov.sa/ar/legislation/5huwCrAuvCK62BbuXv7fjg",
+    version: "1446H",
+    status: "ACTIVE",
+    keywords: ["إعلان", "خدمات المحاماة", "ضوابط", "نتيجة مؤكدة", "ميزة"],
+    riskCategories: ["ملاحظة على ضوابط الإعلان", "صياغة إعلانية غير منضبطة"],
+    severity: "مرتفع",
+    prohibitedPatterns: ["عرض حصري", "خصم قانوني مضمون", "أسرع محاماة", "نتائج مؤكدة"],
+    recommendedAction: "حوّل الإعلان إلى تعريف مهني بالخدمة دون عبارات تجارية مطلقة أو وعود بنتائج."
+  },
+  {
+    id: "regulations-permitted-communication",
+    sourceDocumentId: "advocacy-law-executive-regulations",
+    sourceDocument: "اللائحة التنفيذية لنظام المحاماة",
+    articleOrRuleNumber: "ضوابط التواصل المهني المسموح",
+    articleTitle: "التواصل المهني المسموح مع الجمهور",
+    chapter: "مزاولة مهنة المحاماة",
+    section: "التواصل المهني والمعلومات العامة",
+    fullText:
+      "يجوز أن يشتمل التواصل المهني على معلومات عامة عن نطاق الخدمات ووسائل التواصل متى كانت دقيقة وغير مضللة ولا تتضمن وعداً أو استغلالاً أو ادعاء صفة غير صحيحة.",
+    pageNumber: 3,
+    sourceUrl: "https://laws.moj.gov.sa/ar/legislation/5huwCrAuvCK62BbuXv7fjg",
+    version: "1446H",
+    status: "ACTIVE",
+    keywords: ["تواصل مهني", "معلومات عامة", "وسائل التواصل", "غير مضللة"],
+    riskCategories: ["خروج عن التواصل المهني المسموح", "معلومات مهنية قد تكون مضللة"],
+    severity: "متوسط",
+    prohibitedPatterns: ["تواصل معنا للفوز", "نحل قضيتك فوراً", "نتولى أي قضية بلا استثناء"],
+    recommendedAction: "اجعل الدعوة للتواصل مهنية ومحددة، وابتعد عن صياغة تربط التواصل بنتيجة أو حل فوري."
+  },
+  {
+    id: "regulations-prohibited-wording",
+    sourceDocumentId: "advocacy-law-executive-regulations",
+    sourceDocument: "اللائحة التنفيذية لنظام المحاماة",
+    articleOrRuleNumber: "الألفاظ والعبارات المحظورة في التواصل المهني",
+    articleTitle: "الصياغات المحظورة أو عالية الحساسية",
+    chapter: "مزاولة مهنة المحاماة",
+    section: "الصياغة المهنية والإعلانات",
+    fullText:
+      "تعد العبارات التي توحي بضمان النتيجة أو الصفة غير الصحيحة أو الأفضلية المطلقة أو الترخيص غير المثبت مؤشرات تستوجب المعالجة قبل النشر.",
+    pageNumber: 3,
+    sourceUrl: "https://laws.moj.gov.sa/ar/legislation/5huwCrAuvCK62BbuXv7fjg",
+    version: "1446H",
+    status: "ACTIVE",
+    keywords: ["عبارات محظورة", "ترخيص", "أفضلية", "ضمان", "صفة"],
+    riskCategories: ["عبارة محظورة أو عالية الحساسية", "إيحاء بميزة أو ترخيص غير مثبت"],
+    severity: "مرتفع",
+    prohibitedPatterns: ["مرخص من وزارة العدل", "معتمد من وزارة العدل", "موافقة وزارة العدل", "مصادق عليه رسمياً"],
+    recommendedAction: "احذف أي عبارة توحي بترخيص أو اعتماد أو موافقة رسمية ما لم تكن الصفة ثابتة ومسموحاً بإظهارها نظاماً."
+  },
+  {
+    id: "regulations-public-communication",
+    sourceDocumentId: "advocacy-law-executive-regulations",
+    sourceDocument: "اللائحة التنفيذية لنظام المحاماة",
+    articleOrRuleNumber: "متطلبات التواصل العام",
+    articleTitle: "متطلبات النشر والتواصل مع الجمهور",
+    chapter: "مزاولة مهنة المحاماة",
+    section: "التواصل العام والنشر المهني",
+    fullText:
+      "ينبغي أن يكون التواصل العام متزناً ومبنياً على معلومات صحيحة، وألا يخلط بين التثقيف العام وتقديم رأي قانوني نهائي في وقائع محددة للجمهور.",
+    pageNumber: 4,
+    sourceUrl: "https://laws.moj.gov.sa/ar/legislation/5huwCrAuvCK62BbuXv7fjg",
+    version: "1446H",
+    status: "ACTIVE",
+    keywords: ["تواصل عام", "تثقيف", "رأي قانوني", "وقائع محددة", "الجمهور"],
+    riskCategories: ["خلط بين التثقيف والرأي القانوني", "تواصل عام عالي الحساسية"],
+    severity: "متوسط",
+    prohibitedPatterns: ["رأيي القانوني النهائي", "هذا الحكم مضمون", "طبق هذه الخطوات وستكسب", "استشارة قانونية نهائية للجميع"],
+    recommendedAction: "حوّل العبارة إلى تثقيف عام، ووضح أن الوقائع التفصيلية تحتاج مراجعة مهنية مستقلة."
   }
 ];
 

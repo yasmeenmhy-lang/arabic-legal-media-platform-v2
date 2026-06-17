@@ -46,7 +46,7 @@ export default function ReviewResultsPage() {
 
       <div className="grid gap-4 md:grid-cols-4">
         <ScoreCard label="جودة المحتوى" value={review.languageQuality.score} tone={scoreTone(review.languageQuality.score)} detail="لغة وصياغة ووضوح" />
-        <ScoreCard label="مستوى الامتثال" value={review.complianceScore} tone={scoreTone(review.complianceScore)} detail="ملاحظات مهنية وتنظيمية" />
+        <ScoreCard label="مستوى الامتثال" value={review.complianceScore} tone={scoreTone(review.complianceScore)} detail="محسوب من ملاحظات مرتبطة بمواد ومراجع رسمية" />
         <Panel>
           <ClipboardCheck className="mb-3 text-palm" />
           <p className="text-sm font-normal">جاهزية النشر</p>
@@ -72,16 +72,17 @@ export default function ReviewResultsPage() {
 
       <div className="grid gap-6 xl:grid-cols-2">
         <Panel>
-          <SectionTitle title="ملاحظات الامتثال والمخاطر" subtitle="كل ملاحظة تعرض المرجع الرسمي واتجاه المعالجة." />
+          <SectionTitle title="ملاحظات الامتثال والمخاطر" subtitle="كل ملاحظة تعرض المصدر القانوني والمادة والشرح والتوصية." />
           <DataTable
-            headers={["الملاحظة", "المخاطر", "المرجع الرسمي", "المادة أو القاعدة", "اتجاه المعالجة"]}
-            rows={review.findings.map((finding) => [
+            headers={["الملاحظة", "الشدة", "المصدر القانوني", "المادة", "الشرح القانوني", "التوصية"]}
+            rows={review.findings.length > 0 ? review.findings.map((finding) => [
               finding.issue,
               <StatusBadge key={finding.evidence} tone="gold">{finding.severity}</StatusBadge>,
               <a key={finding.sourceUrl} href={finding.sourceUrl} className="font-normal text-palm underline underline-offset-4">{finding.sourceDocument}</a>,
-              finding.ruleOrArticleNumber,
+              `${finding.ruleOrArticleNumber} - ${finding.articleTitle}`,
+              `${finding.legalExplanation} نتيجة الفحص: ${finding.reviewOutcome}. مستوى الثقة: ${finding.confidenceLevel}.`,
               finding.advice
-            ])}
+            ]) : [["لا توجد ملاحظات امتثال", <StatusBadge key="low" tone="good">منخفض</StatusBadge>, "قواعد السلوك المهني للمحامين واللائحة التنفيذية لنظام المحاماة", "-", review.summary, "استمر في الحفاظ على صياغة مهنية غير قطعية."]]}
           />
         </Panel>
         <Panel>
@@ -96,6 +97,53 @@ export default function ReviewResultsPage() {
           />
         </Panel>
       </div>
+
+      <div className="grid gap-6 xl:grid-cols-2">
+        <Panel>
+          <SectionTitle title="امتثال قواعد السلوك المهني" subtitle="الإعلان، الادعاءات المضللة، ضمان النتائج، السرية، تعارض المصالح، وكرامة المهنة." />
+          <p className="leading-8 text-ink/75">{review.professionalConductCompliance.summary}</p>
+          <div className="mt-3">
+            <StatusBadge tone={review.professionalConductCompliance.passed ? "good" : "gold"}>
+              {review.professionalConductCompliance.passed ? "لم ترصد ملاحظة ذات صلة" : "رصدت ملاحظات مرتبطة بالمصدر"}
+            </StatusBadge>
+          </div>
+        </Panel>
+        <Panel>
+          <SectionTitle title="امتثال اللائحة التنفيذية لنظام المحاماة" subtitle="ضوابط الإعلان، التواصل المهني، الألفاظ المحظورة، الصفة المهنية، ومتطلبات التواصل العام." />
+          <p className="leading-8 text-ink/75">{review.executiveRegulationCompliance.summary}</p>
+          <div className="mt-3">
+            <StatusBadge tone={review.executiveRegulationCompliance.passed ? "good" : "gold"}>
+              {review.executiveRegulationCompliance.passed ? "لم ترصد ملاحظة ذات صلة" : "رصدت ملاحظات مرتبطة بالمصدر"}
+            </StatusBadge>
+          </div>
+        </Panel>
+      </div>
+
+      <Panel>
+        <SectionTitle title="تقييم المخاطر القانوني" subtitle="مستوى المخاطر وسبب التصنيف والمادة الداعمة." />
+        <DataTable
+          headers={["المستوى", "سبب التصنيف", "المادة الداعمة"]}
+          rows={[[
+            <StatusBadge key="risk" tone={review.riskLevel === "منخفض" ? "good" : review.riskLevel === "متوسط" ? "neutral" : "gold"}>{review.legalRiskAssessment.level}</StatusBadge>,
+            review.legalRiskAssessment.reason,
+            review.legalRiskAssessment.supportingArticle ? `${review.legalRiskAssessment.supportingArticle.sourceDocument} - ${review.legalRiskAssessment.supportingArticle.ruleOrArticleNumber} - ${review.legalRiskAssessment.supportingArticle.articleTitle}` : "-"
+          ]]}
+        />
+      </Panel>
+
+      <Panel>
+        <SectionTitle title="المراجع ذات الصلة" subtitle="المواد والقواعد الرسمية التي استندت إليها النتيجة." />
+        <DataTable
+          headers={["المصدر", "المادة أو القاعدة", "عنوان المادة", "مقتطف النص", "الرابط الرسمي"]}
+          rows={review.referencesPanel.length > 0 ? review.referencesPanel.map((reference) => [
+            reference.sourceDocument,
+            reference.ruleOrArticleNumber,
+            reference.articleTitle,
+            reference.articleTextExcerpt,
+            <a key={reference.sourceUrl} href={reference.sourceUrl} className="font-normal text-palm underline underline-offset-4">فتح المصدر الرسمي</a>
+          ]) : [["قواعد السلوك المهني للمحامين واللائحة التنفيذية لنظام المحاماة", "-", "-", review.summary, "لا توجد مادة محددة لأن المراجعة لم ترصد مخالفة ذات صلة."]]}
+        />
+      </Panel>
 
       <div className="grid gap-4 md:grid-cols-3">
         <ButtonLink href="/legal-compliance"><ShieldCheck size={16} />ملاحظات الامتثال</ButtonLink>

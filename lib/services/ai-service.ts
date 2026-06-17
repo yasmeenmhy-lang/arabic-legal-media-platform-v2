@@ -57,7 +57,10 @@ export class MockAIService implements AIService {
         legalCitation: finding.legalCitation,
         sourceDocument: finding.sourceDocument,
         ruleOrArticleNumber: finding.ruleOrArticleNumber,
-        explanation: finding.explanation,
+        articleTitle: finding.articleTitle,
+        articleTextExcerpt: finding.articleTextExcerpt,
+        explanation: finding.legalExplanation,
+        confidenceLevel: finding.confidenceLevel,
         sourceUrl: finding.sourceUrl
       }))
     );
