@@ -4,7 +4,7 @@ import { FileText, Scale, ShieldCheck, TriangleAlert } from "lucide-react";
 
 const rows = legalKnowledgeEntries.slice(0, 5).map((entry) => [
   entry.sourceDocument,
-  entry.articleOrRuleNumber,
+  entry.legalReference ?? "غير محدد",
   entry.riskCategories.join("، "),
   <StatusBadge key={entry.id} tone={entry.severity === "مرتفع" ? "gold" : entry.severity === "متوسط" ? "neutral" : "good"}>
     {entry.severity === "مرتفع" ? "مؤشر جوهري" : entry.severity === "متوسط" ? "مؤشر مهم" : "مؤشر منخفض"}
@@ -32,7 +32,7 @@ export default function LegalCompliancePage() {
 
       <Panel>
         <SectionTitle title="نطاقات الامتثال المسجلة" subtitle="تستخدم هذه النطاقات في نتائج المراجعة لإظهار الملاحظة والدلالة والمرجع المهني." />
-        <DataTable headers={["المصدر", "القاعدة أو المادة", "الدلالة", "مستوى الأولوية"]} rows={rows} />
+        <DataTable headers={["المصدر", "المرجع النظامي", "الدلالة", "مستوى الأولوية"]} rows={rows} />
       </Panel>
     </div>
   );

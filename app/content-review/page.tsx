@@ -82,6 +82,7 @@ function buildExportPayload(review: ReviewResult, text: string, context: Record<
       مستوى_الامتثال: review.complianceScore,
       مستوى_المخاطر: review.riskLevel,
       جاهزية_النشر: review.exportAllowed ? "مناسب للتصدير وفق نتائج المراجعة" : "يتطلب معالجة الملاحظات",
+      درجة_جاهزية_النشر: review.publishingReadinessScore,
       الملخص_التنفيذي: review.summary,
       عدد_ملاحظات_الامتثال: review.findings.length,
       عدد_فرص_التحسين: review.languageQuality.issues.length
@@ -89,8 +90,8 @@ function buildExportPayload(review: ReviewResult, text: string, context: Record<
     المراجع_الرسمية: review.findings.map((finding) => ({
       الملاحظة: finding.issue,
       المصدر: finding.sourceDocument,
-      المادة_أو_القاعدة: finding.ruleOrArticleNumber,
-      عنوان_المادة: finding.articleTitle,
+      المرجع_النظامي: finding.legalReference,
+      عنوان_المرجع: finding.articleTitle,
       مقتطف_النص: finding.articleTextExcerpt,
       مستوى_الثقة: finding.confidenceLevel,
       الرابط_الرسمي: finding.sourceUrl
@@ -100,7 +101,7 @@ function buildExportPayload(review: ReviewResult, text: string, context: Record<
 }
 
 export default function ContentReviewPage() {
-  const [text, setText] = useState("يجب مراجعة صياغة الإعلان قبل نشره لأنه يتضمن وعداً بنتيجة مضمونة للعميل.");
+  const [text, setText] = useState("");
   const [kind, setKind] = useState<ContentKind>("advertisement");
   const [audienceChoice, setAudienceChoice] = useState(audienceOptions[0]);
   const [audienceOther, setAudienceOther] = useState("");
@@ -132,7 +133,7 @@ export default function ContentReviewPage() {
     const response = await fetch("/api/reviews", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text, kind })
+      body: JSON.stringify({ text, kind, contentType: selectedKind, channel, audience, purpose })
     });
     const payload = await response.json();
     setReview(payload.data);
@@ -261,7 +262,7 @@ export default function ContentReviewPage() {
                   items={[
                     { label: "جودة اللغة", value: review.languageQuality.score },
                     { label: "مستوى الامتثال", value: review.complianceScore },
-                    { label: "جاهزية النشر", value: review.exportAllowed ? 86 : 48 }
+                    { label: "جاهزية النشر", value: review.publishingReadinessScore }
                   ]}
                   tone={review.exportAllowed ? "good" : "neutral"}
                 />
@@ -302,7 +303,7 @@ export default function ContentReviewPage() {
               <DataTable
                 headers={["الفئة", "الأولوية", "الموضع", "اتجاه التحسين"]}
                 rows={review.languageQuality.issues.length > 0 ? review.languageQuality.issues.map((issue) => [
-                  categoryLabels[issue.category],
+                  `${categoryLabels[issue.category]} - ملاحظة تحسين صياغي غير مرتبطة بمرجع نظامي محدد.`,
                   <StatusBadge key={issue.id} tone={severityTone[issue.severity]}>{severityLabels[issue.severity]}</StatusBadge>,
                   issue.excerpt || "-",
                   issue.suggestion
@@ -315,15 +316,15 @@ export default function ContentReviewPage() {
             <Panel>
               <SectionTitle title="ملاحظات الامتثال ومؤشرات المخاطر والمراجع" subtitle="كل ملاحظة مرتبطة بمصدر رسمي ومادة أو قاعدة محددة مع سبب الرصد ومستوى الثقة." />
               <DataTable
-                headers={["الملاحظة", "الشدة", "المصدر القانوني", "المادة", "الشرح القانوني", "التوصية"]}
+                headers={["الملاحظة", "الشدة", "المصدر القانوني", "المرجع النظامي", "الشرح القانوني", "التوصية"]}
                 rows={review.findings.length > 0 ? review.findings.map((finding) => [
                   finding.issue,
                   <StatusBadge key={finding.evidence} tone={toneFromRisk(finding.severity)}>{finding.severity}</StatusBadge>,
                   <a key={finding.sourceUrl} href={finding.sourceUrl} target="_blank" rel="noreferrer" className="font-normal text-palm underline underline-offset-4">{finding.sourceDocument}</a>,
-                  `${finding.ruleOrArticleNumber} - ${finding.articleTitle}`,
+                  `${finding.legalReference} - ${finding.articleTitle}`,
                   `${finding.legalExplanation} نتيجة الفحص: ${finding.reviewOutcome}. مستوى الثقة: ${finding.confidenceLevel}.`,
-                  finding.advice
-                ]) : [["لا توجد ملاحظات امتثال", <StatusBadge key="low" tone="good">منخفض</StatusBadge>, "قواعد السلوك المهني للمحامين واللائحة التنفيذية لنظام المحاماة", "-", review.summary, "استمر في الحفاظ على صياغة مهنية غير قطعية."]]}
+                  finding.suggestedSaferWording
+                ]) : [["لا توجد ملاحظات امتثال", <StatusBadge key="low" tone="good">منخفض</StatusBadge>, "قواعد السلوك المهني للمحامين واللائحة التنفيذية لنظام المحاماة في المملكة العربية السعودية", "-", review.summary, "استمر في الحفاظ على صياغة مهنية غير قطعية."]]}
               />
             </Panel>
           </div>
@@ -340,7 +341,7 @@ export default function ContentReviewPage() {
             </Panel>
 
             <Panel>
-              <SectionTitle title="امتثال اللائحة التنفيذية لنظام المحاماة" subtitle="ضوابط الإعلان، التواصل المهني، الألفاظ المحظورة، الصفة المهنية، ومتطلبات التواصل العام." />
+              <SectionTitle title="امتثال اللائحة التنفيذية لنظام المحاماة في المملكة العربية السعودية" subtitle="ضوابط الإعلان، التواصل المهني، الألفاظ المحظورة، الصفة المهنية، ومتطلبات التواصل العام." />
               <p className="leading-8 text-ink/75">{review.executiveRegulationCompliance.summary}</p>
               <div className="mt-3">
                 <StatusBadge tone={review.executiveRegulationCompliance.passed ? "good" : "gold"}>
@@ -354,14 +355,14 @@ export default function ContentReviewPage() {
             <Panel>
               <SectionTitle title="المراجع ذات الصلة" subtitle="تعرض فقط المراجع الرسمية التي استندت إليها نتيجة المراجعة." />
               <DataTable
-                headers={["المصدر", "المادة أو القاعدة", "عنوان المادة", "مقتطف النص", "الرابط الرسمي"]}
+                headers={["المصدر", "المرجع النظامي", "عنوان المرجع", "مقتطف النص", "الرابط الرسمي"]}
                 rows={review.referencesPanel.length > 0 ? review.referencesPanel.map((reference) => [
                   reference.sourceDocument,
-                  reference.ruleOrArticleNumber,
+                  reference.legalReference,
                   reference.articleTitle,
                   reference.articleTextExcerpt,
                   <a key={reference.sourceUrl} href={reference.sourceUrl} target="_blank" rel="noreferrer" className="font-normal text-palm underline underline-offset-4">فتح المصدر الرسمي</a>
-                ]) : [["قواعد السلوك المهني للمحامين واللائحة التنفيذية لنظام المحاماة", "-", "-", review.summary, "لا توجد مادة محددة لأن المراجعة لم ترصد مخالفة ذات صلة."]]}
+                ]) : [["قواعد السلوك المهني للمحامين واللائحة التنفيذية لنظام المحاماة في المملكة العربية السعودية", "-", "-", review.summary, "لا توجد مادة محددة لأن المراجعة لم ترصد مخالفة ذات صلة."]]}
               />
             </Panel>
           </div>

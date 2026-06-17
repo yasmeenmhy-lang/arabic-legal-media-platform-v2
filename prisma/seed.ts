@@ -71,7 +71,7 @@ async function main() {
       update: {
         sourceDocumentId: entry.sourceDocumentId,
         sourceDocument: entry.sourceDocument,
-        articleOrRuleNumber: entry.articleOrRuleNumber,
+        articleOrRuleNumber: entry.legalReference ?? "غير محدد",
         chapter: entry.chapter,
         section: entry.section,
         fullText: entry.fullText,
@@ -89,7 +89,7 @@ async function main() {
         id: entry.id,
         sourceDocumentId: entry.sourceDocumentId,
         sourceDocument: entry.sourceDocument,
-        articleOrRuleNumber: entry.articleOrRuleNumber,
+        articleOrRuleNumber: entry.legalReference ?? "غير محدد",
         chapter: entry.chapter,
         section: entry.section,
         fullText: entry.fullText,

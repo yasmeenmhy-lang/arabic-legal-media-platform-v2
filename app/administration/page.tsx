@@ -1,7 +1,6 @@
 import { DataTable, PageHeader, Panel, SectionTitle, StatusBadge } from "@/components/ui";
 import { getLegalSourceUpdateCenter } from "@/lib/services/legal-source-update-service";
 import { formatDualDateTime } from "@/lib/dates";
-import { alerts } from "@/lib/data";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -75,16 +74,8 @@ export default async function AdministrationPage() {
 
       <Panel className="overflow-hidden">
         <SectionTitle title="التنبيهات الحالية" subtitle="تنبيهات المحتوى عالي المخاطر والمراجعات المعلقة وتعثر التصدير، مرتبة لمساعدة على معالجة الملاحظات حسب الأولوية." />
-        <div className="space-y-3">
-          {alerts.map((alert) => (
-            <div key={alert.title} className="flex flex-col justify-between gap-3 rounded-lg border border-line bg-white p-4 sm:flex-row sm:items-center">
-              <div className="min-w-0">
-                <h3 className="font-normal">{alert.title}</h3>
-                <p className="mt-2 text-sm leading-7 text-ink/65">{alert.body}</p>
-              </div>
-              <StatusBadge tone={alert.severity === "مرتفع" ? "gold" : "neutral"}>يتطلب متابعة</StatusBadge>
-            </div>
-          ))}
+        <div className="rounded-lg border border-dashed border-line bg-paper p-5 text-sm leading-7 text-ink/65">
+          لا توجد تنبيهات مراجعة معروضة. تظهر التنبيهات فقط عند وجود مراجعات فعلية محفوظة أو تحديثات مرجعية مرصودة.
         </div>
       </Panel>
     </div>

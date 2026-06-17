@@ -15,7 +15,7 @@ const sourceRows = legalSourceDocuments.map((source) => [
 
 const knowledgeRows = legalKnowledgeEntries.map((entry) => [
   entry.sourceDocument,
-  entry.articleOrRuleNumber,
+  entry.legalReference ?? "غير محدد",
   entry.chapter,
   entry.riskCategories.join("، "),
   <StatusBadge key={entry.id} tone={entry.severity === "مرتفع" ? "gold" : entry.severity === "متوسط" ? "neutral" : "good"}>
@@ -49,7 +49,7 @@ export default function LibraryPage() {
 
       <Panel className="overflow-hidden">
         <SectionTitle title="قاعدة المعرفة القانونية" subtitle="يعرض الجدول نطاق الاستخدام المهني لكل مرجع داخل مخرجات المراجعة." />
-        <DataTable headers={["المصدر", "القاعدة أو المادة", "الفصل", "مجالات المخاطر", "الأولوية"]} rows={knowledgeRows} />
+        <DataTable headers={["المصدر", "المرجع النظامي", "الفصل", "مجالات المخاطر", "الأولوية"]} rows={knowledgeRows} />
       </Panel>
     </div>
   );

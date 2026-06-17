@@ -10,49 +10,18 @@ export type UserActivityLogEntry = {
   at: string;
 };
 
-// Demo-grade activity feed — wire this to AuditLog/AIRequestLog once the
-// platform is connected to a live database (see prisma/schema.prisma).
-const userActivityLog: UserActivityLogEntry[] = [
-  { user: "أحمد الحربي", role: "محام", action: "إرسال مراجعة محتوى جديدة", at: "2026-06-15T09:20:00.000Z" },
-  { user: "نورة القحطاني", role: "مسؤول المنصة", action: "مراجعة تحديث مرجعي من وزارة العدل", at: "2026-06-14T14:05:00.000Z" },
-  { user: "سارة العتيبي", role: "مسؤول المنصة", action: "تحديث إعدادات الحوكمة", at: "2026-06-14T11:40:00.000Z" },
-  { user: "أحمد الحربي", role: "محام", action: "تجهيز حزمة تصدير لمنشور توعوي", at: "2026-06-13T16:30:00.000Z" },
-  { user: "نورة القحطاني", role: "مسؤول المنصة", action: "مراجعة مسودة محفوظة", at: "2026-06-13T10:15:00.000Z" },
-  { user: "أحمد الحربي", role: "محام", action: "ربط عنصر بالتقويم التفاعلي", at: "2026-06-12T08:50:00.000Z" }
-];
+const userActivityLog: UserActivityLogEntry[] = [];
 
-const contentTypeCounts: Record<ContentKind, number> = {
-  post: 34,
-  advertisement: 18,
-  campaign: 9,
-  article: 21,
-  script: 14,
-  caption: 26,
-  visual_content: 12,
-  infographic: 7,
-  publishing_plan: 5,
-  title: 3,
-  hashtag: 2,
-  social_export: 6
-};
+const contentTypeCounts: Partial<Record<ContentKind, number>> = {};
 
-const weeklyTrend = [
-  { label: "الأسبوع 1", value: 58 },
-  { label: "الأسبوع 2", value: 64 },
-  { label: "الأسبوع 3", value: 71 },
-  { label: "الأسبوع 4", value: 76 }
-];
+const weeklyTrend: Array<{ label: string; value: number }> = [];
 
-const monthlyTrend = [
-  { label: "أبريل", value: 61 },
-  { label: "مايو", value: 68 },
-  { label: "يونيو", value: 76 }
-];
+const monthlyTrend: Array<{ label: string; value: number }> = [];
 
 function buildContentTypeDistribution() {
   return (Object.keys(contentTypeCounts) as ContentKind[]).map((kind) => ({
     label: contentKindLabels[kind],
-    value: contentTypeCounts[kind]
+    value: contentTypeCounts[kind] ?? 0
   }));
 }
 

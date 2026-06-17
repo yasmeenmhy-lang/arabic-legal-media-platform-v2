@@ -57,8 +57,8 @@ export default function SocialMediaPage() {
         items={[
           { label: "منصات مدعومة", value: `${center.platforms.length}`, hint: "X، LinkedIn، Instagram، TikTok، Snapchat، YouTube", tone: "good", icon: <Smartphone size={20} /> },
           { label: "حزم متاحة", value: `${center.content.length}`, hint: "مرتبطة بمحتوى مناسب للتصدير", tone: "gold", icon: <PackageCheck size={20} /> },
-          { label: "بيانات امتثال", value: "مضمنة", hint: "درجة ومراجع وملاحظات", tone: "neutral", icon: <ShieldCheck size={20} /> },
-          { label: "صيغة الحزمة", value: "ملف بيانات", hint: firstPackage?.fileName ?? "حزمة قابلة للتجهيز", tone: "neutral", icon: <FileText size={20} /> }
+          { label: "بيانات امتثال", value: "بعد المراجعة", hint: "لا تُعرض دون نتيجة تحليل فعلية", tone: "neutral", icon: <ShieldCheck size={20} /> },
+          { label: "صيغة الحزمة", value: "ملف بيانات", hint: firstPackage?.fileName ?? "تُجهز بعد مراجعة المحتوى", tone: "neutral", icon: <FileText size={20} /> }
         ]}
       />
 
@@ -69,7 +69,13 @@ export default function SocialMediaPage() {
 
       <Panel className="overflow-hidden">
         <SectionTitle title="حزم التصدير" subtitle="كل حزمة تتضمن نتيجة المراجعة ومؤشرات المخاطر وبيانات الاستناد المهني." />
-        <DataTable headers={["المحتوى", "جاهزية التصدير", "مستوى الامتثال", "مستوى المخاطر"]} rows={packageRows} />
+        {packageRows.length > 0 ? (
+          <DataTable headers={["المحتوى", "جاهزية التصدير", "مستوى الامتثال", "مستوى المخاطر"]} rows={packageRows} />
+        ) : (
+          <div className="rounded-lg border border-dashed border-line bg-paper p-5 text-sm leading-7 text-ink/65">
+            لا توجد حزم تصدير معروضة. تُنشأ الحزمة من نتيجة مراجعة محتوى فعلية فقط، وتتضمن عندها الملاحظات والدرجات والمراجع التي فعّلها النص المدخل.
+          </div>
+        )}
         <p className="mt-3 flex items-center gap-2 text-xs leading-6 text-ink/55">
           <Copy size={14} className="text-palm" />
           <Download size={14} className="text-palm" />

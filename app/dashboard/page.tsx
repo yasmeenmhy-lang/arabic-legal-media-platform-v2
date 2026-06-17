@@ -12,7 +12,7 @@ import {
   ShieldCheck,
   TrendingUp
 } from "lucide-react";
-import { BarList, ButtonLink, CircularGauge, KpiGrid, NeedleGauge, PageHeader, Panel, ProgressBar, SectionTitle, StatusBadge } from "@/components/ui";
+import { ButtonLink, KpiGrid, PageHeader, Panel, SectionTitle } from "@/components/ui";
 import { getDashboardOverview } from "@/lib/services/dashboard-service";
 import { formatDualDate } from "@/lib/dates";
 import { legalSourceDocuments } from "@/lib/legal-knowledge-base";
@@ -26,20 +26,6 @@ export const runtime = "nodejs";
 const quickLinks = [
   ["وزارة العدل", "https://www.moj.gov.sa"],
   ...legalSourceDocuments.map((source) => [source.title, source.sourceUrl])
-];
-
-const readinessIndicators: Array<{
-  label: string;
-  value: number;
-  tone: "good" | "neutral" | "gold";
-  hint: string;
-  href: string;
-  shape: "bar" | "circle" | "needle";
-}> = [
-  { label: "جاهزية النشر", value: 76, tone: "good", hint: "المحتوى المناسب للتصدير بعد المراجعة.", href: "/publishing", shape: "bar" },
-  { label: "مستوى الامتثال", value: 88, tone: "good", hint: "مدى انخفاض ملاحظات الامتثال المؤثرة.", href: "/legal-compliance", shape: "circle" },
-  { label: "جودة المحتوى", value: 91, tone: "gold", hint: "اللغة والصياغة والوضوح واتساق المصطلحات.", href: "/content-review", shape: "bar" },
-  { label: "مؤشر المخاطر", value: 18, tone: "neutral", hint: "نسبة العناصر التي تحتاج متابعة مهنية.", href: "/risk-assessment", shape: "needle" }
 ];
 
 export default async function DashboardPage() {
@@ -80,12 +66,6 @@ export default async function DashboardPage() {
     }
   ];
 
-  const recentActivity = [
-    ["مراجعة إعلان خدمات للشركات الناشئة", "يتطلب معالجة الملاحظات", "مرتفع", "قبل 18 دقيقة", "/content-review"],
-    ["منشور توعوي عن العقود", "مناسب للنشر وفق النتائج", "منخفض", "قبل ساعة", "/publishing"],
-    ["نص فيديو قصير", "يتطلب مراجعة إضافية", "متوسط", "اليوم", "/content-management"]
-  ];
-
   return (
     <>
       <PageHeader
@@ -99,40 +79,23 @@ export default async function DashboardPage() {
 
       <div className="mt-6 grid gap-5 xl:grid-cols-[1.15fr_0.85fr]">
         <Panel>
-          <SectionTitle title="مؤشرات الجاهزية" subtitle="ملخص بصري سريع يساعد على ترتيب الأولويات خلال ثوان، بأشكال مختلفة حسب نوع المؤشر." />
-          <div className="grid gap-4 sm:grid-cols-2">
-            {readinessIndicators.map((indicator) => (
-              <Link key={indicator.label} href={indicator.href} className="flex flex-col items-center rounded-lg border border-line bg-white p-4 text-center transition hover:border-palm hover:shadow-sm focus-ring">
-                {indicator.shape === "circle" ? (
-                  <CircularGauge value={indicator.value} label={indicator.label} tone={indicator.tone} />
-                ) : indicator.shape === "needle" ? (
-                  <NeedleGauge value={indicator.value} label={indicator.label} tone={indicator.tone} />
-                ) : (
-                  <div className="w-full">
-                    <div className="flex items-center justify-between gap-4">
-                      <span className="font-normal text-ink">{indicator.label}</span>
-                      <span className="text-2xl font-normal text-palm">{indicator.value}%</span>
-                    </div>
-                    <div className="mt-4"><ProgressBar value={indicator.value} tone={indicator.tone} /></div>
-                  </div>
-                )}
-                <p className="mt-3 text-xs leading-6 text-ink/60">{indicator.hint}</p>
-              </Link>
-            ))}
+          <SectionTitle title="مؤشرات الجاهزية" subtitle="تظهر درجات الجاهزية والامتثال والمخاطر بعد تحليل محتوى فعلي فقط." />
+          <div className="rounded-lg border border-dashed border-line bg-paper p-6 text-sm leading-7 text-ink/65">
+            لا توجد درجات مراجعة معروضة حالياً. ابدأ مراجعة محتوى لإظهار المؤشرات المحسوبة من الملاحظات الفعلية والمواد المهنية والتنظيمية المرتبطة بها.
           </div>
         </Panel>
 
         <Panel>
           <SectionTitle title="ملخص تنفيذي" subtitle="أهم ما يحتاج متابعة اليوم." />
-          <Link href="/administration" className="block rounded-lg border border-goldBorder bg-goldSoft p-4 transition hover:border-gold focus-ring">
-            <div className="mb-3 flex items-center gap-2 text-gold">
+          <div className="rounded-lg border border-line bg-paper p-4">
+            <div className="mb-3 flex items-center gap-2 text-palm">
               <AlertTriangle size={18} />
-              <p className="font-normal">أولوية عالية</p>
+              <p className="font-normal">لا توجد ملاحظات مراجعة معروضة</p>
             </div>
             <p className="text-sm leading-7 text-ink/75">
-              توجد مواد عالية المخاطر وتصدير متوقف. يوصى بمعالجة ملاحظات الامتثال والمخاطر قبل أي مشاركة خارجية.
+              لا تعرض اللوحة تنبيهات امتثال أو مخاطر ما لم تكن ناتجة عن محتوى تمت مراجعته فعلياً.
             </p>
-          </Link>
+          </div>
           <div className="mt-4 grid grid-cols-2 gap-3">
             <Link href="/library" className="rounded-lg border border-line p-3 transition hover:border-palm focus-ring">
               <p className="text-xs text-ink/55">آخر فحص للمراجع</p>
@@ -151,13 +114,9 @@ export default async function DashboardPage() {
       <div className="mt-6 grid gap-5 xl:grid-cols-3">
         <Panel>
           <SectionTitle title="الاتجاهات" subtitle="مؤشرات مختصرة لمتابعة التحسن." />
-          <BarList
-            items={[
-              { label: "تحسن جودة الصياغة", value: 91 },
-              { label: "انخفاض الملاحظات العالية", value: 64 },
-              { label: "جاهزية التصدير", value: 76 }
-            ]}
-          />
+          <div className="rounded-lg border border-dashed border-line bg-paper p-5 text-sm leading-7 text-ink/65">
+            لا توجد اتجاهات محسوبة قبل توفر مراجعات فعلية محفوظة.
+          </div>
           <Link href="/analytics" className="mt-4 inline-flex items-center gap-2 text-sm font-normal text-palm">
             <BarChart3 size={16} />
             عرض التقارير والمؤشرات
@@ -166,33 +125,15 @@ export default async function DashboardPage() {
 
         <Panel>
           <SectionTitle title="تنبيهات مهنية" subtitle="عناصر تحتاج متابعة." />
-          <div className="space-y-3">
-            <Link href="/risk-assessment" className="block rounded-lg border border-goldBorder bg-goldSoft p-3 transition hover:border-gold focus-ring">
-              <StatusBadge tone="gold">مخاطر عالية</StatusBadge>
-              <p className="mt-2 text-sm font-normal">إعلان يتضمن وعداً بنتيجة مضمونة.</p>
-            </Link>
-            <Link href="/content-review" className="block rounded-lg border border-warmGrayBorder bg-warmGraySoft p-3 transition hover:border-warmGray focus-ring">
-              <StatusBadge tone="neutral">مراجعة مطلوبة</StatusBadge>
-              <p className="mt-2 text-sm font-normal">صياغة تحتاج توضيحاً قبل النشر.</p>
-            </Link>
+          <div className="rounded-lg border border-dashed border-line bg-paper p-5 text-sm leading-7 text-ink/65">
+            لا توجد تنبيهات مهنية مشتقة من مراجعة فعلية حالياً.
           </div>
         </Panel>
 
         <Panel>
           <SectionTitle title="النشاط الأخير" subtitle="آخر عناصر المراجعة." />
-          <div className="space-y-3">
-            {recentActivity.map(([title, status, risk, time, href]) => (
-              <Link key={title} href={href} className="block rounded-lg border border-line p-3 transition hover:border-palm hover:bg-paper focus-ring">
-                <div className="flex items-start justify-between gap-3">
-                  <p className="text-sm font-normal leading-6">{title}</p>
-                  <StatusBadge tone={risk === "مرتفع" ? "gold" : risk === "متوسط" ? "neutral" : "good"}>{risk}</StatusBadge>
-                </div>
-                <div className="mt-2 flex items-center justify-between text-xs text-ink/55">
-                  <span>{status}</span>
-                  <span>{time}</span>
-                </div>
-              </Link>
-            ))}
+          <div className="rounded-lg border border-dashed border-line bg-paper p-5 text-sm leading-7 text-ink/65">
+            يظهر النشاط الأخير بعد حفظ مراجعات فعلية أو استكمال تصدير مبني على نتيجة مراجعة.
           </div>
         </Panel>
       </div>

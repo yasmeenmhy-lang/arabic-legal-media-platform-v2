@@ -22,70 +22,7 @@ function normalizeRiskLevel(riskLevel?: string | null): RiskLevel {
 }
 
 function getDemoReviewReadinessItems(): ReviewReadinessItem[] {
-  const updatedAt = new Date("2026-06-15T00:00:00.000Z").toISOString();
-
-  return [
-    {
-      id: "demo-draft",
-      title: "مسودة منشور توعوي عن الاستشارات القانونية",
-      owner: "فريق المحتوى",
-      status: "DRAFT",
-      languageQualityScore: 86,
-      complianceScore: 0,
-      riskLevel: "منخفض",
-      updatedAt
-    },
-    {
-      id: "demo-review-required",
-      title: "مقال تثقيفي عن حقوق الموكل",
-      owner: "المراجع المهني",
-      status: "REVIEW_REQUIRED",
-      languageQualityScore: 91,
-      complianceScore: 84,
-      riskLevel: "متوسط",
-      updatedAt
-    },
-    {
-      id: "demo-needs-correction",
-      title: "حملة تتضمن ادعاء نتيجة مضمونة",
-      owner: "فريق الحملات",
-      status: "NEEDS_CORRECTION",
-      languageQualityScore: 72,
-      complianceScore: 55,
-      riskLevel: "مرتفع",
-      updatedAt
-    },
-    {
-      id: "demo-ready",
-      title: "نص قصير عن سرية معلومات العميل",
-      owner: "المحرر المهني",
-      status: "READY_FOR_PUBLISHING",
-      languageQualityScore: 95,
-      complianceScore: 93,
-      riskLevel: "منخفض",
-      updatedAt
-    },
-    {
-      id: "demo-exported",
-      title: "حزمة نشر LinkedIn مع بيانات الامتثال",
-      owner: "دعم التصدير",
-      status: "EXPORTED",
-      languageQualityScore: 92,
-      complianceScore: 90,
-      riskLevel: "منخفض",
-      updatedAt
-    },
-    {
-      id: "demo-shared",
-      title: "منشور X تمت مشاركته يدوياً",
-      owner: "دعم المشاركة",
-      status: "SHARED",
-      languageQualityScore: 89,
-      complianceScore: 88,
-      riskLevel: "متوسط",
-      updatedAt
-    }
-  ];
+  return [];
 }
 
 export function runPublishingReadinessReview(review: Pick<ReviewResult, "languageQuality" | "complianceScore" | "riskLevel">) {

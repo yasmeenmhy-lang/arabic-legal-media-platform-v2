@@ -56,7 +56,7 @@ export type AIContentOutput = {
     legalCitations: Array<{
       legalCitation: string;
       sourceDocument: string;
-      ruleOrArticleNumber: string;
+      legalReference: string;
       articleTitle: string;
       articleTextExcerpt: string;
       explanation: string;
@@ -97,14 +97,26 @@ export type LanguageQualityReviewResult = {
   reviewedAt: string;
 };
 
+export type ReviewContext = {
+  contentType?: string;
+  channel?: string;
+  audience?: string;
+  purpose?: string;
+};
+
 export type ReviewFinding = {
+  legalKnowledgeEntryId: string;
+  sourceDocumentId: string;
   issue: string;
   severity: RiskLevel;
   evidence: string;
+  matchedPattern: string;
+  contentClassification: "معلومة قانونية" | "وصف مهني" | "ادعاء تسويقي" | "وعد بنتيجة" | "إعلان مضلل محتمل";
   advice: string;
+  suggestedSaferWording: string;
   legalCitation: string;
   sourceDocument: string;
-  ruleOrArticleNumber: string;
+  legalReference: string;
   articleTitle: string;
   articleTextExcerpt: string;
   explanation: string;
@@ -126,9 +138,10 @@ export type LegalReviewSection = {
 export type LegalRiskAssessment = {
   level: RiskLevel;
   reason: string;
+  publishingReadinessScore: number;
   supportingArticle?: {
     sourceDocument: string;
-    ruleOrArticleNumber: string;
+    legalReference: string;
     articleTitle: string;
     sourceUrl: string;
   };
@@ -138,6 +151,7 @@ export type ReviewResult = {
   languageQuality: LanguageQualityReviewResult;
   complianceScore: number;
   riskLevel: RiskLevel;
+  publishingReadinessScore: number;
   summary: string;
   findings: ReviewFinding[];
   professionalConductCompliance: LegalReviewSection;
@@ -145,7 +159,7 @@ export type ReviewResult = {
   legalRiskAssessment: LegalRiskAssessment;
   referencesPanel: Array<{
     sourceDocument: string;
-    ruleOrArticleNumber: string;
+    legalReference: string;
     articleTitle: string;
     articleTextExcerpt: string;
     sourceUrl: string;
@@ -181,7 +195,7 @@ export type LegalKnowledgeEntry = {
   id: string;
   sourceDocumentId: string;
   sourceDocument: string;
-  articleOrRuleNumber: string;
+  legalReference: string | null;
   articleTitle?: string;
   chapter: string;
   section: string;
@@ -194,6 +208,7 @@ export type LegalKnowledgeEntry = {
   riskCategories: string[];
   severity: RiskLevel;
   prohibitedPatterns: string[];
+  contextualPatterns?: string[];
   recommendedAction: string;
 };
 
@@ -272,7 +287,7 @@ export type ShareReadyContent = {
     legalCitations: Array<{
       legalCitation: string;
       sourceDocument: string;
-      ruleOrArticleNumber: string;
+      legalReference: string;
       articleTitle: string;
       articleTextExcerpt: string;
       explanation: string;

@@ -3,10 +3,10 @@ import { isDemoMode } from "@/lib/services/demo-mode";
 
 function getDemoDashboardOverview() {
   return {
-    pendingReviews: 2,
-    publishableContent: 1,
-    exportsRequiringAttention: 1,
-    highRiskContent: 1,
+    pendingReviews: 0,
+    publishableContent: 0,
+    exportsRequiringAttention: 0,
+    highRiskContent: 0,
     legalReferenceVersion: legalSourceDocuments.map((source) => source.version).filter(Boolean).join(" / ") || "غير محدد",
     lastLegalSourceCheck: new Date("2026-06-15T00:00:00.000Z").toISOString(),
     pendingLegalSourceUpdates: 0

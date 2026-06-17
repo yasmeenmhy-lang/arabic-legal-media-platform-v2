@@ -1,11 +1,5 @@
-import { ButtonLink, DataTable, KpiGrid, PageHeader, Panel, SectionTitle, StatusBadge } from "@/components/ui";
-import { CalendarDays, Clock, Radio, Send } from "lucide-react";
-
-const scheduleRows = [
-  ["منشور توعوي عن العقود", "X", "الثلاثاء 10:00 ص", <StatusBadge key="ready" tone="good">مناسب للنشر وفق المراجعة</StatusBadge>],
-  ["سيناريو قصير عن السرية", "YouTube", "الخميس 7:00 م", <StatusBadge key="needs" tone="neutral">يتطلب معالجة ملاحظات</StatusBadge>],
-  ["مقال عن الإعلان المهني", "LinkedIn", "الأحد 1:00 م", <StatusBadge key="planned" tone="neutral">مقترح جدولة</StatusBadge>]
-];
+import { ButtonLink, PageHeader, Panel, SectionTitle } from "@/components/ui";
+import { Send } from "lucide-react";
 
 export default function PublishingPage() {
   return (
@@ -13,22 +7,19 @@ export default function PublishingPage() {
       <PageHeader
         eyebrow="دعم النشر والجدولة"
         title="جاهزية النشر"
-        description="تنظيم المواد المناسبة للنشر وفق نتائج المراجعة، مع عرض المواد التي تتطلب معالجة الملاحظات قبل المشاركة أو التصدير."
-        action={<ButtonLink href="/social-media">فتح مركز المشاركة</ButtonLink>}
+        description="لا تعرض هذه الصفحة جاهزية نشر افتراضية. تُحسب الجاهزية بعد تحليل محتوى فعلي وفق الملاحظات المرصودة وشدتها والمراجع التي تم تفعيلها."
+        action={<ButtonLink href="/content-review">تحليل محتوى</ButtonLink>}
       />
 
-      <KpiGrid
-        items={[
-          { label: "مواد مناسبة للنشر", value: "17", hint: "وفق نتائج المراجعة", tone: "good", icon: <Send size={20} /> },
-          { label: "مجدولة", value: "11", hint: "مرتبطة بتواريخ نشر", tone: "gold", icon: <CalendarDays size={20} /> },
-          { label: "تنتظر معالجة", value: "5", hint: "قبل المشاركة أو التصدير", tone: "neutral", icon: <Clock size={20} /> },
-          { label: "قنوات مدعومة", value: "6", hint: "منصات اجتماعية مدعومة", tone: "neutral", icon: <Radio size={20} /> }
-        ]}
-      />
-
-      <Panel>
-        <SectionTitle title="خطة النشر" subtitle="لا يتم النشر المباشر من المنصة؛ تعرض هذه الصفحة دعم الجدولة والاستعداد للمشاركة." />
-        <DataTable headers={["المادة", "القناة", "الوقت المقترح", "جاهزية النشر"]} rows={scheduleRows} />
+      <Panel className="text-center">
+        <Send className="mx-auto text-palm" size={34} />
+        <SectionTitle
+          title="لا توجد مواد جاهزة للنشر معروضة"
+          subtitle="تظهر جاهزية النشر بعد مراجعة محتوى فعلي، ولا تُعرض أي درجة أو حالة إلا إذا كانت محسوبة من نتائج التحليل."
+        />
+        <p className="mx-auto mt-3 max-w-2xl text-sm leading-7 text-ink/65">
+          عند وجود ملاحظات مهنية أو تنظيمية مؤثرة، ستتغير جاهزية النشر تلقائياً إلى يتطلب معالجة الملاحظات قبل التصدير أو المشاركة.
+        </p>
       </Panel>
     </div>
   );

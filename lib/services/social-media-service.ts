@@ -1,7 +1,4 @@
 import type { ShareReadyContent, SocialPlatformShareTarget } from "@/lib/types";
-import { advisoryDisclaimer } from "@/lib/governance";
-import { reviewReadinessStateLabels } from "@/lib/services/approval-workflow-service";
-import { reviewContent } from "@/lib/services/review-service";
 
 export const socialPlatforms: SocialPlatformShareTarget[] = [
   {
@@ -56,59 +53,7 @@ export const socialPlatforms: SocialPlatformShareTarget[] = [
   }
 ];
 
-const publishableBody =
-  "قبل توقيع أي عقد، راجع نطاق الالتزامات، مدد التنفيذ، شروط الإنهاء، وآلية تسوية النزاع. هذه مادة توعوية عامة ولا تغني عن استشارة محام مرخص.";
-const publishableReview = reviewContent(publishableBody, "social_export");
-const publishableMetadata = {
-  complianceScore: publishableReview.complianceScore,
-  riskLevel: publishableReview.riskLevel,
-  readinessStatus: reviewReadinessStateLabels[publishableReview.exportAllowed ? "READY_FOR_PUBLISHING" : "NEEDS_CORRECTION"],
-  publishingReadiness: reviewReadinessStateLabels[publishableReview.exportAllowed ? "READY_FOR_PUBLISHING" : "NEEDS_CORRECTION"],
-  advisoryDisclaimer,
-  legalCitations: publishableReview.findings.map((finding) => ({
-    legalCitation: finding.legalCitation,
-    sourceDocument: finding.sourceDocument,
-    ruleOrArticleNumber: finding.ruleOrArticleNumber,
-    articleTitle: finding.articleTitle,
-    articleTextExcerpt: finding.articleTextExcerpt,
-    explanation: finding.legalExplanation,
-    confidenceLevel: finding.confidenceLevel,
-    sourceUrl: finding.sourceUrl
-  }))
-};
-
-export const shareReadyContent: ShareReadyContent[] = [
-  {
-    id: "publishable-contract-awareness",
-    title: "حماية العقود قبل التوقيع",
-    body: publishableBody,
-    hashtags: ["#توعية_قانونية", "#العقود", "#محاماة"],
-    mediaNotes: "مناسب كمنشور LinkedIn أو فيديو قصير مدته 30 ثانية.",
-    readyForPublishing: publishableReview.exportAllowed,
-    complianceMetadata: publishableMetadata,
-    exportPackage: {
-      textFileName: "publishable-contract-awareness.txt",
-      metadataFileName: "publishable-contract-awareness.json",
-      payload: {
-        status: publishableMetadata.publishingReadiness,
-        languageQuality: {
-          status: publishableReview.languageQuality.passed ? "مستوى مناسب" : "يتطلب تحسين الصياغة",
-          score: publishableReview.languageQuality.score
-        },
-        compliance: {
-          status: publishableReview.complianceScore >= 82 ? "مستوى مناسب" : "يتطلب مراجعة الملاحظات",
-          score: publishableReview.complianceScore,
-          legalCitations: publishableMetadata.legalCitations
-        },
-        riskLevel: publishableMetadata.riskLevel,
-        readinessStatus: publishableMetadata.readinessStatus,
-        publishingReadiness: publishableMetadata.publishingReadiness,
-        advisoryDisclaimer,
-        platforms: ["tiktok", "snapchat", "x", "linkedin", "instagram", "youtube_shorts"]
-      }
-    }
-  }
-];
+export const shareReadyContent: ShareReadyContent[] = [];
 
 export function getSocialMediaCenter() {
   return {
@@ -137,7 +82,6 @@ export function buildExportPackage(contentId: string) {
       hashtags: content.hashtags,
       mediaNotes: content.mediaNotes,
       readyForPublishing: content.readyForPublishing,
-      advisoryDisclaimer,
       complianceMetadata: content.complianceMetadata,
       metadata: content.exportPackage.payload
     }

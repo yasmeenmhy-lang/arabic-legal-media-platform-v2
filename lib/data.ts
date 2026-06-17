@@ -1,24 +1,7 @@
-export const contentRows = [
-  { title: "كيف تحمي شركتك بعقد واضح", category: "توعوي", status: "تمت المراجعة", owner: "أحمد الحربي" },
-  { title: "أخطاء شائعة في الإعلانات القانونية", category: "تثقيفي", status: "مسودة", owner: "أحمد الحربي" },
-  { title: "إعلان مراجعة مهنية للشركات الناشئة", category: "إعلاني", status: "مجدول", owner: "أحمد الحربي" }
-];
+export const contentRows: Array<{ title: string; category: string; status: string; owner: string }> = [];
 
-export const alerts = [
-  { title: "تحديث مرجعي بانتظار المراجعة", body: "رصدت المنصة تغيراً محتملاً في مصدر من مصادر وزارة العدل ويحتاج متابعة المسؤول عن المنصة.", severity: "مرتفع" },
-  { title: "تصدير متوقف", body: "يوجد محتوى عالي المخاطر يتطلب معالجة الملاحظات قبل التصدير.", severity: "مرتفع" },
-  { title: "مراجعة لغة معلقة", body: "بعض المحتوى يحتاج تحسين الصياغة قبل استكمال ملاحظات الامتثال والمخاطر.", severity: "متوسط" }
-] as const;
+export const alerts: Array<{ title: string; body: string; severity: string }> = [];
 
-export const recommendations = [
-  "ابدأ بمراجعة جودة اللغة قبل عرض ملاحظات الامتثال.",
-  "راجع تحديثات مصادر وزارة العدل قبل استخدام أي خطة حملة جديدة.",
-  "استخدم دعم التصدير والمشاركة فقط للمحتوى المناسب للنشر وفق نتيجة المراجعة."
-];
+export const recommendations: string[] = [];
 
-export const sectorMetrics = [
-  { label: "حجم المحتوى", value: "12,840", trend: "+18%" },
-  { label: "توزيع المخاطر المنخفضة", value: "71%", trend: "+6%" },
-  { label: "معدل استخدام أدوات المراجعة", value: "54%", trend: "+11%" },
-  { label: "موضوعات ناشئة", value: "32", trend: "+9%" }
-];
+export const sectorMetrics: Array<{ label: string; value: string; trend: string }> = [];

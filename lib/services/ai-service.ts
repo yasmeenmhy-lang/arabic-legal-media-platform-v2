@@ -1,4 +1,4 @@
-import type { AIContentInput, AIContentOutput, ContentKind, ReviewReadinessStatus, ReviewResult } from "@/lib/types";
+import type { AIContentInput, AIContentOutput, ReviewReadinessStatus, ReviewResult } from "@/lib/types";
 import { advisoryDisclaimer } from "@/lib/governance";
 import { reviewReadinessStateLabels } from "@/lib/services/approval-workflow-service";
 import { reviewContent } from "@/lib/services/review-service";
@@ -12,10 +12,6 @@ function readinessStatusFromReview(review: ReviewResult): ReviewReadinessStatus 
   if (!review.exportAllowed && review.riskLevel !== "منخفض") return "NEEDS_CORRECTION";
   if (review.exportAllowed) return "READY_FOR_PUBLISHING";
   return "REVIEW_REQUIRED";
-}
-
-function reviewSuggestedItems(items: Array<{ text: string; kind: ContentKind }>) {
-  return items.map((item) => reviewContent(item.text, item.kind));
 }
 
 export class MockAIService implements AIService {
@@ -40,23 +36,24 @@ export class MockAIService implements AIService {
       ],
       referenceHighlights: [
         "قواعد السلوك المهني للمحامين",
-        "اللائحة التنفيذية لنظام المحاماة",
+        "اللائحة التنفيذية لنظام المحاماة في المملكة العربية السعودية",
         "مصادر قاعدة المراجع المهنية والتنظيمية"
       ]
     };
 
-    const pipelineReviews = reviewSuggestedItems([
-      ...output.observations.map((text) => ({ text, kind: "post" as const })),
-      ...output.riskIndicators.map((text) => ({ text, kind: "post" as const })),
-      ...output.improvementSuggestions.map((text) => ({ text, kind: "post" as const })),
-      ...output.referenceHighlights.map((text) => ({ text, kind: "post" as const }))
-    ]);
+    const submittedContextText = [input.topic, input.audience, input.practiceArea, input.channel, input.objective].filter(Boolean).join(" ");
+    const pipelineReviews = [reviewContent(submittedContextText, "post", {
+      contentType: "طلب مراجعة مساند",
+      channel: input.channel,
+      audience: input.audience,
+      purpose: input.objective
+    })];
 
     const legalCitations = pipelineReviews.flatMap((review) =>
       review.findings.map((finding) => ({
         legalCitation: finding.legalCitation,
         sourceDocument: finding.sourceDocument,
-        ruleOrArticleNumber: finding.ruleOrArticleNumber,
+        legalReference: finding.legalReference,
         articleTitle: finding.articleTitle,
         articleTextExcerpt: finding.articleTextExcerpt,
         explanation: finding.legalExplanation,
