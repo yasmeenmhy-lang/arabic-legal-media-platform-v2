@@ -48,6 +48,29 @@ export function ButtonLink({ href, children }: { href: string; children: React.R
   );
 }
 
+export function ModuleTabs({
+  items
+}: {
+  items: Array<{ label: string; href: string; active?: boolean }>;
+}) {
+  return (
+    <nav className="mb-6 flex w-full max-w-full gap-2 overflow-x-auto rounded-lg border border-line bg-white p-2 shadow-sm">
+      {items.map((item) => (
+        <Link
+          key={item.href}
+          href={item.href}
+          className={clsx(
+            "shrink-0 rounded-md px-4 py-2.5 text-sm font-normal transition focus-ring",
+            item.active ? "bg-mint text-palm" : "text-ink/70 hover:bg-paper hover:text-ink"
+          )}
+        >
+          {item.label}
+        </Link>
+      ))}
+    </nav>
+  );
+}
+
 export function Panel({
   children,
   className,

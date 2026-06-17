@@ -2,7 +2,7 @@
 
 import { useMemo, useState, type ReactNode } from "react";
 import { Download, FileText, Link2, Share2 } from "lucide-react";
-import { BarList, DataTable, PageHeader, Panel, ScoreCard, SectionTitle, StatusBadge, WorkflowSteps } from "@/components/ui";
+import { BarList, DataTable, ModuleTabs, PageHeader, Panel, ScoreCard, SectionTitle, StatusBadge, WorkflowSteps } from "@/components/ui";
 import { saveLatestReviewSnapshot } from "@/components/review-context-summary";
 import { advisoryDisclaimer } from "@/lib/governance";
 import { contentKindOptions } from "@/lib/content-types";
@@ -344,13 +344,25 @@ export default function ContentReviewPage() {
   return (
     <>
       <PageHeader
-        eyebrow="مسار المراجعة الرئيسي"
-        title="مراجعة المحتوى الإعلامي والإعلاني"
+        eyebrow="المراجعة"
+        title="المراجعة"
         description="تجربة موحدة تعرض جودة الصياغة، ملاحظات الامتثال، مؤشرات المخاطر، فرص التحسين، المراجع الرسمية، جاهزية النشر، ودعم التصدير في تقرير تنفيذي واحد."
       />
 
+      <ModuleTabs
+        items={[
+          { label: "إدخال المحتوى", href: "#input", active: !review },
+          { label: "النتائج التنفيذية", href: "#results", active: Boolean(review) },
+          { label: "الملاحظات", href: "#findings" },
+          { label: "المخاطر", href: "#risk" },
+          { label: "فرص التحسين", href: "#opportunities" },
+          { label: "المراجع", href: "#references" },
+          { label: "التصدير", href: "#export" }
+        ]}
+      />
+
       <div className="grid gap-5 xl:grid-cols-[0.82fr_1.18fr]">
-        <Panel>
+        <Panel id="input">
           <SectionTitle title="بيانات المحتوى" subtitle="تساعد هذه البيانات على ضبط سياق المراجعة وملاءمة القناة والجمهور." />
           <div className="grid gap-3 sm:grid-cols-2">
             <label className="text-sm font-normal">
@@ -410,7 +422,7 @@ export default function ContentReviewPage() {
           </button>
         </Panel>
 
-        <Panel>
+        <Panel id="results">
           <SectionTitle title="تقرير المراجعة التنفيذي" subtitle="ملخص بصري سريع قبل تفاصيل الملاحظات والمراجع." />
           {review ? (
             <>
@@ -491,6 +503,15 @@ export default function ContentReviewPage() {
           </div>
 
           <div className="mt-5 grid gap-5 xl:grid-cols-2">
+            <Panel id="risk">
+              <SectionTitle title="مؤشرات المخاطر" subtitle="تصنيف المخاطر وسبب التصنيف بناء على الملاحظات المرتبطة بالمراجع المهنية والتنظيمية." />
+              <div className="rounded-lg border border-line bg-paper p-4">
+                <StatusBadge tone={toneFromRisk(review.riskLevel)}>{review.riskLevel}</StatusBadge>
+                <p className="mt-3 text-sm leading-8 text-ink/75">{review.legalRiskAssessment.reason}</p>
+                <p className="mt-3 text-xs leading-6 text-ink/60">جاهزية النشر: {review.publishingReadinessScore}%</p>
+              </div>
+            </Panel>
+
             <Panel>
               <SectionTitle title="امتثال قواعد السلوك المهني" subtitle="الإعلان، الادعاءات المضللة، ضمان النتائج، السرية، تعارض المصالح، وكرامة المهنة." />
               <p className="leading-8 text-ink/75">{review.professionalConductCompliance.summary}</p>

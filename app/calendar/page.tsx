@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { CalendarCheck, CalendarDays, Edit3, Link2, Megaphone, MessageCircle, Save, ShieldAlert, Trash2, X } from "lucide-react";
-import { DataTable, KpiGrid, PageHeader, Panel, SectionTitle, StatusBadge } from "@/components/ui";
+import { DataTable, KpiGrid, ModuleTabs, PageHeader, Panel, SectionTitle, StatusBadge } from "@/components/ui";
 import { contentKindOptions } from "@/lib/content-types";
 import { formatDualDate } from "@/lib/dates";
 import type { ContentKind, RiskLevel } from "@/lib/types";
@@ -99,13 +99,23 @@ export default function CalendarPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="التقويم والحملات الإعلامية"
-        title="التقويم التفاعلي ودعم تخطيط الحملات"
+        eyebrow="التخطيط والنشر"
+        title="التخطيط والنشر"
         description="تقويم موحد لتنظيم المواد الإعلامية والإعلانية: عرض شهري، ترتيب الأولوية، إدارة العناصر، وربط كل عنصر بنتيجة مراجعة قبل النشر، إلى جانب مقترحات الحملات التي تغذي هذا التقويم."
       />
 
+      <ModuleTabs
+        items={[
+          { label: "التقويم", href: "#calendar", active: true },
+          { label: "الحملات", href: "#campaigns" },
+          { label: "جدولة النشر", href: "#publishing" },
+          { label: "المحتوى المخطط", href: "#planned-content" },
+          { label: "تخطيط القنوات", href: "#channels" }
+        ]}
+      />
+
       <div className="grid gap-5 xl:grid-cols-[1.1fr_0.9fr]">
-        <Panel className="overflow-hidden">
+        <Panel id="calendar" className="overflow-hidden">
           <SectionTitle
             title="عرض الشهر"
             subtitle={`${formatDualDate(new Date(year, month, Math.min(selectedDate, daysInMonth)))} — اختر يوماً لعرض عناصره أو إضافة عنصر جديد.`}
@@ -224,7 +234,7 @@ export default function CalendarPage() {
         </Panel>
       </div>
 
-      <Panel className="overflow-hidden">
+      <Panel id="planned-content" className="overflow-hidden">
         <SectionTitle title="جدول العناصر المخططة" subtitle="قائمة تشغيلية مرتبة حسب الأولوية، مع تاريخ هجري وميلادي وحالة الربط بالمراجعة." />
         <DataTable
           headers={["الموضوع", "الصيغة", "القناة", "الأولوية", "التاريخ", "نتيجة المراجعة", "الإجراء"]}
@@ -243,7 +253,7 @@ export default function CalendarPage() {
       </Panel>
 
       <PageHeader
-        eyebrow="دعم تخطيط الحملات"
+        eyebrow="الحملات"
         title="الحملات الإعلامية والإعلانية"
         description="تنظيم مقترحات الحملات والرسائل والجمهور والقنوات، مع إبقاء الامتثال والمخاطر وجاهزية النشر ضمن مسار المراجعة. ترتبط الحملات الجاهزة بعناصر في التقويم أعلاه."
       />
@@ -257,10 +267,35 @@ export default function CalendarPage() {
         ]}
       />
 
-      <Panel className="overflow-hidden">
+      <Panel id="campaigns" className="overflow-hidden">
         <SectionTitle title="مقترحات الحملات" subtitle="تعرض كدعم تخطيطي، ولا تعني إطلاق الحملة أو تشغيلها آلياً." />
         <DataTable headers={["الحملة", "الجمهور المقترح", "القنوات", "الحالة"]} rows={campaignProposals} />
       </Panel>
+
+      <div id="publishing" className="grid gap-5 xl:grid-cols-2">
+        <Panel>
+          <SectionTitle title="جدولة النشر" subtitle="تظهر عناصر الجدولة من التقويم والعناصر المرتبطة بنتائج مراجعة." />
+          <DataTable
+            headers={["العنصر", "القناة", "التاريخ", "حالة الربط"]}
+            rows={orderedItems.map((item) => [
+              item.title,
+              item.channel,
+              formatDualDate(new Date(year, month, item.date)),
+              item.reviewRef
+            ])}
+          />
+        </Panel>
+        <Panel id="channels">
+          <SectionTitle title="تخطيط القنوات" subtitle="توزيع مختصر للقنوات المستخدمة في العناصر المخططة." />
+          <DataTable
+            headers={["القناة", "عدد العناصر"]}
+            rows={channels.map((channelName) => [
+              channelName,
+              orderedItems.filter((item) => item.channel === channelName).length.toLocaleString("ar-SA")
+            ])}
+          />
+        </Panel>
+      </div>
     </div>
   );
 }
