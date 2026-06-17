@@ -34,7 +34,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       <aside
         className={clsx(
-          "fixed bottom-0 right-0 top-0 z-30 w-[min(20rem,100vw)] max-w-full border-l border-line bg-white transition-transform duration-200 ease-out",
+          "fixed bottom-0 right-0 top-0 z-30 flex w-[min(20rem,100vw)] max-w-full flex-col border-l border-line bg-white transition-transform duration-200 ease-out lg:top-16",
           navOpen ? "translate-x-0" : "translate-x-full"
         )}
       >
@@ -62,7 +62,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </button>
           </div>
         </div>
-        <nav className="h-[calc(100vh-112px)] overflow-y-auto p-4">
+        <nav className="min-h-0 flex-1 overflow-y-auto p-4">
           {groups.map((group) => (
             <div key={group} className="mb-5">
               <div className="mb-2 px-2 text-[11px] font-normal text-ink/45">{group}</div>
@@ -92,8 +92,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </nav>
       </aside>
 
-      <div className={clsx("w-full max-w-full overflow-x-hidden transition-[margin] duration-200 ease-out", navOpen && "lg:mr-80")}>
-        <header className="sticky top-0 z-10 border-b border-line bg-white/95 backdrop-blur">
+      <div className="w-full max-w-full overflow-x-hidden">
+        <header className="sticky top-0 z-40 border-b border-line bg-white/95 backdrop-blur">
           <div className="flex min-h-16 max-w-full items-center justify-between gap-3 px-3 sm:gap-4 sm:px-6">
             <div className="flex min-w-0 items-center gap-3">
               <button
