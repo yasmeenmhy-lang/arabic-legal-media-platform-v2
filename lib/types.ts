@@ -49,11 +49,21 @@ export type AIContentOutput = {
   };
   compliance?: {
     score: number;
+    scoreExplanation: ComplianceScoreExplanation;
+    riskScore: number;
     riskLevel: RiskLevel;
+    riskScoreExplanation: RiskScoreExplanation;
+    publishingReadinessScore: number;
+    publishingReadinessExplanation: PublishingReadinessExplanation;
     readinessStatus: string;
     publishingReadiness: string;
     advisoryDisclaimer: string;
     legalCitations: Array<{
+      traceabilityId: string;
+      title: string;
+      category: FindingCategory;
+      weight: number;
+      scoreImpact: number;
       legalCitation: string;
       sourceDocument: string;
       legalReference: string;
@@ -63,6 +73,7 @@ export type AIContentOutput = {
       confidenceLevel: string;
       sourceUrl: string;
     }>;
+    traceability: ReviewTraceability;
     reviews: ReviewResult[];
   };
 };
@@ -102,6 +113,7 @@ export type ReviewContext = {
   channel?: string;
   audience?: string;
   purpose?: string;
+  reviewStatus?: ReviewReadinessStatus;
 };
 
 export type ReviewedContentContext = {
@@ -115,8 +127,15 @@ export type ReviewedContentContext = {
 };
 
 export type ReviewFinding = {
+  traceabilityId: string;
   legalKnowledgeEntryId: string;
   sourceDocumentId: string;
+  title: string;
+  category: FindingCategory;
+  domain: FindingDomain;
+  potentialImpact: RiskLevel;
+  weight: number;
+  scoreImpact: number;
   issue: string;
   severity: RiskLevel;
   evidence: string;
@@ -136,6 +155,72 @@ export type ReviewFinding = {
   sourceUrl: string;
 };
 
+export type FindingCategory =
+  | "ضوابط الإعلان"
+  | "الوعود بالنتائج"
+  | "السرية والخصوصية"
+  | "استقطاب العملاء"
+  | "الصفة المهنية"
+  | "الخبرة المهنية"
+  | "تعارض المصالح"
+  | "كرامة المهنة"
+  | "التواصل العام";
+
+export type FindingDomain = "نظامي" | "مهني" | "إعلاني" | "لغوي" | "إجرائي";
+
+export type ScoreContribution = {
+  traceabilityId: string;
+  label: string;
+  value: number;
+  explanation: string;
+};
+
+export type ComplianceScoreExplanation = {
+  modelVersion: string;
+  baseScore: number;
+  totalDeduction: number;
+  finalScore: number;
+  calculatedFromFindingsOnly: true;
+  contributions: ScoreContribution[];
+};
+
+export type RiskScoreExplanation = {
+  modelVersion: string;
+  score: number;
+  level: RiskLevel;
+  findingCount: number;
+  severityContribution: number;
+  categoryContribution: number;
+  impactContribution: number;
+  domainContribution: number;
+  countContribution: number;
+  contributions: ScoreContribution[];
+};
+
+export type PublishingReadinessExplanation = {
+  modelVersion: string;
+  finalScore: number;
+  metadataCompletenessScore: number;
+  reviewStatus: ReviewReadinessStatus;
+  factors: Array<{
+    key: "compliance" | "risk" | "language" | "metadata" | "review_status";
+    label: string;
+    sourceScore: number;
+    weight: number;
+    weightedScore: number;
+    explanation: string;
+  }>;
+};
+
+export type ReviewTraceability = {
+  reviewId: string;
+  scoringModelVersion: string;
+  calculatedAt: string;
+  findingTraceabilityIds: string[];
+  legalKnowledgeEntryIds: string[];
+  sourceDocumentIds: string[];
+};
+
 export type LegalReviewSection = {
   title: string;
   sourceDocument: string;
@@ -147,6 +232,7 @@ export type LegalReviewSection = {
 
 export type LegalRiskAssessment = {
   level: RiskLevel;
+  score: number;
   reason: string;
   publishingReadinessScore: number;
   supportingArticle?: {
@@ -161,8 +247,13 @@ export type ReviewResult = {
   reviewContext: ReviewedContentContext;
   languageQuality: LanguageQualityReviewResult;
   complianceScore: number;
+  complianceScoreExplanation: ComplianceScoreExplanation;
   riskLevel: RiskLevel;
+  riskScore: number;
+  riskScoreExplanation: RiskScoreExplanation;
   publishingReadinessScore: number;
+  publishingReadinessExplanation: PublishingReadinessExplanation;
+  reviewStatus: ReviewReadinessStatus;
   summary: string;
   findings: ReviewFinding[];
   professionalConductCompliance: LegalReviewSection;
@@ -175,9 +266,51 @@ export type ReviewResult = {
     articleTextExcerpt: string;
     sourceUrl: string;
   }>;
+  governedRewrites: GovernedRewriteSuggestion[];
+  traceability: ReviewTraceability;
   workflow: ReviewWorkflowStep[];
   exportAllowed: boolean;
   advisoryDisclaimer: string;
+};
+
+export type GovernedRewriteValidationStatus = "passed" | "failed";
+
+export type GovernedRewriteRiskImpact = "reduced" | "unchanged";
+
+export type GovernedRewriteReference = {
+  sourceDocument: string;
+  legalReference?: string;
+  articleTitle?: string;
+  articleTextExcerpt?: string;
+  sourceUrl: string;
+};
+
+export type GovernedRewriteSuggestion = {
+  id: string;
+  suggestedText: string;
+  basis: string;
+  originalComplianceScore: number;
+  proposedComplianceScore: number;
+  originalLanguageQuality: number;
+  proposedLanguageQuality: number;
+  originalRiskLevel: RiskLevel;
+  proposedRiskLevel: RiskLevel;
+  originalRiskScore: number;
+  proposedRiskScore: number;
+  validation: {
+    legalCompliance: GovernedRewriteValidationStatus;
+    compliance: GovernedRewriteValidationStatus;
+    languageQuality: GovernedRewriteValidationStatus;
+    riskImpact: GovernedRewriteRiskImpact;
+  };
+  referencesUsed: GovernedRewriteReference[];
+};
+
+export type GovernedRewriteSettings = {
+  requireLegalValidation: boolean;
+  requireLanguageValidation: boolean;
+  minimumComplianceThreshold: number;
+  minimumLanguageQualityThreshold: number;
 };
 
 export type ReviewWorkflowStep = {

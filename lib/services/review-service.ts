@@ -4,6 +4,12 @@ import { createReviewedContentContext } from "@/lib/review-context";
 import { reviewLanguageQuality } from "@/lib/services/language-quality-service";
 import { runPublishingReadinessReview } from "@/lib/services/approval-workflow-service";
 import { runLegalComplianceReview } from "@/lib/services/legal-compliance-service";
+import { buildGovernedRewriteSuggestions } from "@/lib/services/recommendation-service";
+import {
+  calculatePublishingReadiness,
+  deriveReviewStatus,
+  SCORING_MODEL_VERSION
+} from "@/lib/services/scoring-service";
 
 const noRegisteredViolationMessage = "لم يتم رصد ملاحظة مرتبطة بالمراجع المهنية والتنظيمية المسجلة.";
 
@@ -25,11 +31,6 @@ function buildWorkflow(languageQualityPassed: boolean, compliancePassed: boolean
   });
 }
 
-function calculatePublishingReadinessScore(languageScore: number, complianceScore: number, riskLevel: ReviewResult["riskLevel"], legalReadinessScore: number) {
-  const riskPenalty = riskLevel === "مرتفع" ? 22 : riskLevel === "متوسط" ? 8 : 0;
-  return Math.max(0, Math.min(100, Math.round(languageScore * 0.25 + complianceScore * 0.45 + legalReadinessScore * 0.3 - riskPenalty)));
-}
-
 export function reviewContent(text: string, kind: ContentKind = "post", context: ReviewContext = {}): ReviewResult {
   const languageQuality = reviewLanguageQuality({
     text,
@@ -41,25 +42,52 @@ export function reviewContent(text: string, kind: ContentKind = "post", context:
   });
 
   const compliance = runLegalComplianceReview(text, context);
-  const publishingReadinessScore = calculatePublishingReadinessScore(
-    languageQuality.score,
-    compliance.complianceScore,
-    compliance.riskLevel,
-    compliance.legalRiskAssessment.publishingReadinessScore
-  );
-  const readiness = runPublishingReadinessReview({
-    languageQuality,
+  const reviewStatus = deriveReviewStatus({
+    languageScore: languageQuality.score,
     complianceScore: compliance.complianceScore,
-    riskLevel: compliance.riskLevel
+    riskLevel: compliance.riskLevel,
+    requestedStatus: context.reviewStatus
   });
-  const readyForPublishing = readiness.readyForPublishing && publishingReadinessScore >= 82;
-
-  return {
-    reviewContext: createReviewedContentContext(text, context),
+  const publishingReadinessExplanation = calculatePublishingReadiness({
+    complianceScore: compliance.complianceScore,
+    riskScore: compliance.riskScore,
+    languageScore: languageQuality.score,
+    context,
+    reviewStatus
+  });
+  const publishingReadinessScore = publishingReadinessExplanation.finalScore;
+  const readiness = runPublishingReadinessReview({
     languageQuality,
     complianceScore: compliance.complianceScore,
     riskLevel: compliance.riskLevel,
     publishingReadinessScore,
+    reviewStatus
+  });
+  const readyForPublishing = readiness.readyForPublishing;
+  const governedRewrites = buildGovernedRewriteSuggestions({
+    text,
+    kind,
+    context,
+    originalFindings: compliance.findings,
+    originalComplianceScore: compliance.complianceScore,
+    originalLanguageQuality: languageQuality.score,
+    originalRiskLevel: compliance.riskLevel,
+    originalRiskScore: compliance.riskScore
+  });
+  const reviewContext = createReviewedContentContext(text, context);
+  const calculatedAt = new Date().toISOString();
+
+  return {
+    reviewContext,
+    languageQuality,
+    complianceScore: compliance.complianceScore,
+    complianceScoreExplanation: compliance.complianceScoreExplanation,
+    riskLevel: compliance.riskLevel,
+    riskScore: compliance.riskScore,
+    riskScoreExplanation: compliance.riskScoreExplanation,
+    publishingReadinessScore,
+    publishingReadinessExplanation,
+    reviewStatus,
     summary:
       compliance.findings.length > 0
         ? `توجد ${compliance.findings.length} ملاحظة مهنية أو تنظيمية مرتبطة بمواد وقواعد محددة من قواعد السلوك المهني أو اللائحة التنفيذية. تظهر كل ملاحظة سبب الرصد، مستوى الثقة، والمصدر الرسمي.`
@@ -69,6 +97,15 @@ export function reviewContent(text: string, kind: ContentKind = "post", context:
     executiveRegulationCompliance: compliance.executiveRegulationCompliance,
     legalRiskAssessment: compliance.legalRiskAssessment,
     referencesPanel: compliance.referencesPanel,
+    governedRewrites,
+    traceability: {
+      reviewId: reviewContext.reviewId,
+      scoringModelVersion: SCORING_MODEL_VERSION,
+      calculatedAt,
+      findingTraceabilityIds: compliance.findings.map((finding) => finding.traceabilityId),
+      legalKnowledgeEntryIds: [...new Set(compliance.findings.map((finding) => finding.legalKnowledgeEntryId))],
+      sourceDocumentIds: [...new Set(compliance.findings.map((finding) => finding.sourceDocumentId))]
+    },
     workflow: buildWorkflow(languageQuality.passed, compliance.passed, readyForPublishing),
     exportAllowed: readyForPublishing,
     advisoryDisclaimer

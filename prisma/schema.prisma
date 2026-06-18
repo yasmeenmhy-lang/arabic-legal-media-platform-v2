@@ -94,6 +94,13 @@ model ContentReview {
   complianceScore Int
   languageQualityScore Int         @default(0)
   riskLevel       String
+  riskScore       Int             @default(0)
+  publishingReadinessScore Int    @default(0)
+  reviewStatus    String          @default("REVIEW_REQUIRED")
+  complianceScoreExplanation String @default("{}")
+  riskScoreExplanation String     @default("{}")
+  publishingReadinessExplanation String @default("{}")
+  traceability    String          @default("{}")
   summary         String
   findings        ReviewFinding[]
   createdAt       DateTime        @default(now())
@@ -103,6 +110,13 @@ model ReviewFinding {
   id        String        @id @default(cuid())
   reviewId  String
   review    ContentReview @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+  traceabilityId String?
+  title     String?
+  category  String?
+  domain    String?
+  potentialImpact String?
+  weight    Int           @default(0)
+  scoreImpact Int         @default(0)
   issue     String
   severity  String
   evidence  String
@@ -110,6 +124,9 @@ model ReviewFinding {
   legalCitation String?
   sourceDocument String?
   ruleOrArticleNumber String?
+  articleTitle String?
+  articleTextExcerpt String?
+  confidenceLevel String?
   explanation String?
   sourceUrl String?
 }

@@ -16,31 +16,6 @@ function readinessStatusFromReview(review: ReviewResult): ReviewReadinessStatus 
 
 export class MockAIService implements AIService {
   async reviewMediaContent(input: AIContentInput): Promise<AIContentOutput> {
-    const base = `مراجعة محتوى ${input.objective} موجه إلى ${input.audience} حول ${input.topic} في مجال ${input.practiceArea} لقناة ${input.channel}.`;
-
-    const output = {
-      observations: [
-        `${base} يحتاج إلى وضوح في نطاق الرسالة الإعلامية وتجنب أي وعد بنتيجة.`,
-        "ينبغي التحقق من اتساق المصطلحات المهنية مع سياق المحاماة والخدمة المعروضة.",
-        "يلزم عرض أي دعوة للتواصل بصياغة مهنية لا توحي بضمان نتيجة أو استغلال حاجة المتلقي."
-      ],
-      riskIndicators: [
-        "مؤشر خطر عند وجود عبارات تفضيل مطلقة أو وعود بنتائج.",
-        "مؤشر خطر عند عرض صفة مهنية أو خبرة دون سياق موثق.",
-        "مؤشر خطر عند استخدام أمثلة قد تكشف بيانات عميل أو واقعة محددة."
-      ],
-      improvementSuggestions: [
-        "استخدم صياغة توعوية محددة ومباشرة وتجنب المبالغة.",
-        "اربط الرسالة بموضوع مهني واضح وقابل للمراجعة.",
-        "أضف تنبيها توعويا مناسبا عند تناول حالات عامة أو أمثلة تطبيقية."
-      ],
-      referenceHighlights: [
-        "قواعد السلوك المهني للمحامين",
-        "اللائحة التنفيذية لنظام المحاماة في المملكة العربية السعودية",
-        "مصادر قاعدة المراجع المهنية والتنظيمية"
-      ]
-    };
-
     const submittedContextText = [input.topic, input.audience, input.practiceArea, input.channel, input.objective].filter(Boolean).join(" ");
     const pipelineReviews = [reviewContent(submittedContextText, "post", {
       contentType: "طلب مراجعة مساند",
@@ -51,6 +26,11 @@ export class MockAIService implements AIService {
 
     const legalCitations = pipelineReviews.flatMap((review) =>
       review.findings.map((finding) => ({
+        traceabilityId: finding.traceabilityId,
+        title: finding.title,
+        category: finding.category,
+        weight: finding.weight,
+        scoreImpact: finding.scoreImpact,
         legalCitation: finding.legalCitation,
         sourceDocument: finding.sourceDocument,
         legalReference: finding.legalReference,
@@ -61,6 +41,9 @@ export class MockAIService implements AIService {
         sourceUrl: finding.sourceUrl
       }))
     );
+    const findings = pipelineReviews.flatMap((review) => review.findings);
+    const governedRewrites = pipelineReviews.flatMap((review) => review.governedRewrites);
+    const primaryReview = pipelineReviews[0];
 
     const averageLanguageScore = Math.round(
       pipelineReviews.reduce((sum, review) => sum + review.languageQuality.score, 0) / pipelineReviews.length
@@ -81,7 +64,14 @@ export class MockAIService implements AIService {
         : "REVIEW_REQUIRED";
 
     return {
-      ...output,
+      observations: findings.map((finding) => finding.legalExplanation),
+      riskIndicators: findings.map(
+        (finding) => `${finding.title}: شدة ${finding.severity} وأثر محتمل ${finding.potentialImpact} (${finding.traceabilityId}).`
+      ),
+      improvementSuggestions: governedRewrites.map((rewrite) => rewrite.suggestedText),
+      referenceHighlights: primaryReview.referencesPanel.map(
+        (reference) => `${reference.sourceDocument} - ${reference.legalReference}`
+      ),
       languageQuality: {
         passed: pipelineReviews.every((review) => review.languageQuality.passed),
         score: averageLanguageScore,
@@ -90,11 +80,17 @@ export class MockAIService implements AIService {
       },
       compliance: {
         score: averageComplianceScore,
+        scoreExplanation: primaryReview.complianceScoreExplanation,
+        riskScore: primaryReview.riskScore,
         riskLevel: highestRisk,
+        riskScoreExplanation: primaryReview.riskScoreExplanation,
+        publishingReadinessScore: primaryReview.publishingReadinessScore,
+        publishingReadinessExplanation: primaryReview.publishingReadinessExplanation,
         readinessStatus: reviewReadinessStateLabels[readinessState],
         publishingReadiness: reviewReadinessStateLabels[readinessState],
         advisoryDisclaimer,
         legalCitations,
+        traceability: primaryReview.traceability,
         reviews: pipelineReviews
       }
     };

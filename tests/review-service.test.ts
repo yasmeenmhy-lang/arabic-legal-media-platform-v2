@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { legalKnowledgeEntries, legalSourceDocuments } from "@/lib/legal-knowledge-base";
 import { reviewContent } from "@/lib/services/review-service";
+import { buildReviewPersistenceData } from "@/lib/services/review-persistence-service";
 
 function isOfficialMojUrl(sourceUrl: string) {
   const hostname = new URL(sourceUrl).hostname.toLowerCase();
@@ -42,6 +43,13 @@ describe("reviewContent", () => {
       expect([...(entry?.prohibitedPatterns ?? []), ...(entry?.contextualPatterns ?? [])]).toContain(finding.matchedPattern);
       expect(finding.evidence).toContain(finding.matchedPattern);
       expect(finding.contentClassification).toBeTruthy();
+      expect(finding.traceabilityId).toMatch(/^FND-/);
+      expect(finding.title).toBeTruthy();
+      expect(finding.category).toBeTruthy();
+      expect(finding.domain).toBeTruthy();
+      expect(finding.potentialImpact).toBeTruthy();
+      expect(finding.weight).toBeGreaterThan(0);
+      expect(finding.scoreImpact).toBe(finding.weight);
 
       const registeredSource = legalSourceDocuments.find((source) => source.id === finding.sourceDocumentId);
       expect(registeredSource).toBeTruthy();
@@ -79,5 +87,131 @@ describe("reviewContent", () => {
     expect(result.reviewContext.shortExcerpt).not.toBe(submittedContent);
     expect((result as unknown as { submittedContent?: string }).submittedContent).toBeUndefined();
     expect((result as unknown as { text?: string }).text).toBeUndefined();
+  });
+
+  it("shows governed rewrites only after legal, compliance, language, and risk validation", () => {
+    const result = reviewContent("يضمن مكتبنا تحقيق أفضل النتائج لعملائه.", "advertisement", {
+      contentType: "إعلان مهني",
+      channel: "LinkedIn",
+      audience: "عملاء محتملون"
+    });
+
+    expect(result.findings.length).toBeGreaterThan(0);
+    expect(result.governedRewrites).toHaveLength(1);
+
+    const rewrite = result.governedRewrites[0];
+    expect(rewrite.proposedComplianceScore).toBeGreaterThanOrEqual(95);
+    expect(rewrite.proposedComplianceScore).toBeGreaterThanOrEqual(rewrite.originalComplianceScore);
+    expect(rewrite.proposedLanguageQuality).toBeGreaterThanOrEqual(95);
+    expect(rewrite.proposedRiskScore).toBeLessThanOrEqual(rewrite.originalRiskScore);
+    expect(rewrite.validation.legalCompliance).toBe("passed");
+    expect(rewrite.validation.compliance).toBe("passed");
+    expect(rewrite.validation.languageQuality).toBe("passed");
+    expect(rewrite.referencesUsed.length).toBeGreaterThan(0);
+    expect(rewrite.referencesUsed.every((reference) => isOfficialMojUrl(reference.sourceUrl))).toBe(true);
+    expect(rewrite.suggestedText).not.toContain("يضمن");
+    expect(rewrite.suggestedText).not.toContain("أفضل النتائج");
+  });
+
+  it("does not display a rewrite for neutral content that needs no governed correction", () => {
+    const result = reviewContent("يقدم المكتب خدمات قانونية للأفراد والمنشآت وفق الأنظمة والتعليمات ذات العلاقة.", "post");
+
+    expect(result.findings).toHaveLength(0);
+    expect(result.complianceScore).toBe(100);
+    expect(result.governedRewrites).toHaveLength(0);
+  });
+
+  it("calculates compliance exclusively from finding score impacts", () => {
+    const result = reviewContent("يضمن مكتبنا تحقيق أفضل النتائج لعملائه.", "advertisement");
+    const expectedDeduction = result.findings.reduce((sum, finding) => sum + finding.scoreImpact, 0);
+
+    expect(result.complianceScoreExplanation.calculatedFromFindingsOnly).toBe(true);
+    expect(result.complianceScoreExplanation.totalDeduction).toBe(expectedDeduction);
+    expect(result.complianceScore).toBe(Math.max(0, 100 - expectedDeduction));
+    expect(result.complianceScoreExplanation.contributions).toHaveLength(result.findings.length);
+  });
+
+  it("calculates risk from severity, category, impact, domains, and finding count", () => {
+    const result = reviewContent("نضمن أفضل النتائج ونمثل الطرفين دون تعارض مصالح.", "advertisement");
+    const explanation = result.riskScoreExplanation;
+    const expected = Math.min(
+      100,
+      explanation.severityContribution +
+        explanation.categoryContribution +
+        explanation.impactContribution +
+        explanation.domainContribution +
+        explanation.countContribution
+    );
+
+    expect(result.findings.length).toBeGreaterThan(1);
+    expect(result.riskScore).toBe(expected);
+    expect(explanation.findingCount).toBe(result.findings.length);
+    expect(explanation.severityContribution).toBeGreaterThan(0);
+    expect(explanation.categoryContribution).toBeGreaterThan(0);
+    expect(explanation.impactContribution).toBeGreaterThan(0);
+    expect(explanation.domainContribution).toBeGreaterThan(0);
+    expect(explanation.countContribution).toBeGreaterThan(0);
+  });
+
+  it("calculates publishing readiness from all five governed factors", () => {
+    const result = reviewContent(
+      "يقدم المكتب خدمات قانونية للأفراد والمنشآت وفق الأنظمة والتعليمات ذات العلاقة.",
+      "post",
+      {
+        contentType: "منشور",
+        channel: "LinkedIn",
+        audience: "منشآت",
+        purpose: "تثقيف مهني"
+      }
+    );
+    const explanation = result.publishingReadinessExplanation;
+    const expected = Math.round(explanation.factors.reduce((sum, factor) => sum + factor.weightedScore, 0));
+
+    expect(explanation.factors.map((factor) => factor.key)).toEqual([
+      "compliance",
+      "risk",
+      "language",
+      "metadata",
+      "review_status"
+    ]);
+    expect(explanation.metadataCompletenessScore).toBe(100);
+    expect(result.publishingReadinessScore).toBe(expected);
+  });
+
+  it("penalizes incomplete review metadata in publishing readiness", () => {
+    const text = "يقدم المكتب خدمات قانونية للأفراد والمنشآت وفق الأنظمة والتعليمات ذات العلاقة.";
+    const incomplete = reviewContent(text, "post");
+    const complete = reviewContent(text, "post", {
+      contentType: "منشور",
+      channel: "LinkedIn",
+      audience: "منشآت",
+      purpose: "تثقيف مهني"
+    });
+
+    expect(incomplete.publishingReadinessExplanation.metadataCompletenessScore).toBe(0);
+    expect(complete.publishingReadinessExplanation.metadataCompletenessScore).toBe(100);
+    expect(complete.publishingReadinessScore).toBeGreaterThan(incomplete.publishingReadinessScore);
+  });
+
+  it("returns a versioned review traceability record", () => {
+    const result = reviewContent("يضمن مكتبنا تحقيق أفضل النتائج لعملائه.");
+
+    expect(result.traceability.reviewId).toBe(result.reviewContext.reviewId);
+    expect(result.traceability.scoringModelVersion).toBe("governed-scoring-v1");
+    expect(result.traceability.findingTraceabilityIds).toEqual(result.findings.map((finding) => finding.traceabilityId));
+    expect(result.traceability.legalKnowledgeEntryIds.length).toBeGreaterThan(0);
+    expect(result.traceability.sourceDocumentIds.length).toBeGreaterThan(0);
+  });
+
+  it("serializes governed scores and finding traceability for persistence", () => {
+    const result = reviewContent("يضمن مكتبنا تحقيق أفضل النتائج لعملائه.");
+    const data = buildReviewPersistenceData("content-1", result);
+
+    expect(data.riskScore).toBe(result.riskScore);
+    expect(data.publishingReadinessScore).toBe(result.publishingReadinessScore);
+    expect(JSON.parse(data.complianceScoreExplanation)).toEqual(result.complianceScoreExplanation);
+    expect(JSON.parse(data.traceability)).toEqual(result.traceability);
+    expect(data.findings.create[0].traceabilityId).toBe(result.findings[0].traceabilityId);
+    expect(data.findings.create[0].scoreImpact).toBe(result.findings[0].scoreImpact);
   });
 });

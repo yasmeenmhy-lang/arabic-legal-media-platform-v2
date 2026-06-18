@@ -34,6 +34,13 @@ export type StoredReviewSnapshot = {
   summary: string;
   findings: Pick<
     ReviewFinding,
+    | "traceabilityId"
+    | "title"
+    | "category"
+    | "domain"
+    | "potentialImpact"
+    | "weight"
+    | "scoreImpact"
     | "issue"
     | "severity"
     | "evidence"
@@ -72,6 +79,13 @@ export function saveLatestReviewSnapshot(review: ReviewResult) {
     context,
     summary: review.summary,
     findings: review.findings.map((finding) => ({
+      traceabilityId: finding.traceabilityId,
+      title: finding.title,
+      category: finding.category,
+      domain: finding.domain,
+      potentialImpact: finding.potentialImpact,
+      weight: finding.weight,
+      scoreImpact: finding.scoreImpact,
       issue: finding.issue,
       severity: finding.severity,
       evidence: finding.evidence,
@@ -225,12 +239,16 @@ export function ReviewFindingsSection() {
           <article key={`${finding.legalReference}-${index}`} className="rounded-lg border border-line bg-white p-4 shadow-sm">
             <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
               <div>
-                <p className="text-base font-normal leading-8 text-ink">{finding.issue}</p>
+                <p className="text-base font-normal leading-8 text-ink">{finding.title}</p>
                 <p className="mt-1 text-sm leading-7 text-ink/55">{finding.legalReference} - {finding.articleTitle}</p>
               </div>
               <StatusBadge tone={finding.severity === "مرتفع" ? "gold" : finding.severity === "متوسط" ? "neutral" : "good"}>{finding.severity}</StatusBadge>
             </div>
             <div className="grid gap-4 lg:grid-cols-2">
+              <FieldBlock label="الفئة والمجال">{finding.category} - {finding.domain}</FieldBlock>
+              <FieldBlock label="الشدة والأثر المحتمل">{finding.severity} - {finding.potentialImpact}</FieldBlock>
+              <FieldBlock label="الوزن وأثر الدرجة">{finding.weight} نقطة - خصم {finding.scoreImpact} نقطة</FieldBlock>
+              <FieldBlock label="معرف التتبع">{finding.traceabilityId}</FieldBlock>
               <FieldBlock label="العبارة محل المراجعة">{finding.evidence}</FieldBlock>
               <FieldBlock label="المصدر الرسمي">
                 <a href={finding.sourceUrl} target="_blank" rel="noreferrer" className="font-normal text-palm underline underline-offset-4">{finding.sourceDocument}</a>

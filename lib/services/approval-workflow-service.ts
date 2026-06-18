@@ -25,11 +25,15 @@ function getDemoReviewReadinessItems(): ReviewReadinessItem[] {
   return [];
 }
 
-export function runPublishingReadinessReview(review: Pick<ReviewResult, "languageQuality" | "complianceScore" | "riskLevel">) {
+export function runPublishingReadinessReview(
+  review: Pick<ReviewResult, "languageQuality" | "complianceScore" | "riskLevel" | "publishingReadinessScore" | "reviewStatus">
+) {
   const readyForPublishing =
     review.languageQuality.passed &&
     review.complianceScore >= 82 &&
-    (review.riskLevel === "منخفض" || review.riskLevel === "متوسط");
+    review.riskLevel !== "مرتفع" &&
+    review.publishingReadinessScore >= 82 &&
+    ["READY_FOR_PUBLISHING", "EXPORTED", "SHARED"].includes(review.reviewStatus);
 
   return {
     readyForPublishing,

@@ -34,6 +34,22 @@ export async function POST(request: Request) {
     body: exportContent.content,
     languageQualityScore: exportContent.review.languageQuality.score,
     complianceScore: exportContent.review.complianceScore,
+    complianceScoreExplanation: exportContent.review.complianceScoreExplanation,
+    riskScore: exportContent.review.riskScore,
+    riskLevel: exportContent.review.riskLevel,
+    riskScoreExplanation: exportContent.review.riskScoreExplanation,
+    publishingReadinessScore: exportContent.review.publishingReadinessScore,
+    publishingReadinessExplanation: exportContent.review.publishingReadinessExplanation,
+    reviewStatus: exportContent.review.reviewStatus,
+    traceability: exportContent.review.traceability,
+    governedRewrite: exportContent.governedRewrite
+      ? {
+          legalCompliance: exportContent.governedRewrite.validation.legalCompliance,
+          languageQuality: exportContent.governedRewrite.validation.languageQuality,
+          riskImpact: exportContent.governedRewrite.validation.riskImpact,
+          referencesUsed: exportContent.governedRewrite.referencesUsed
+        }
+      : null,
     readyForExport: true,
     publishingReadiness: "مناسب للتصدير وفق نتائج المراجعة",
     advisoryDisclaimer: exportContent.advisoryDisclaimer

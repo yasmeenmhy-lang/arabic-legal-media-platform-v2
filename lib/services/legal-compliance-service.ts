@@ -1,14 +1,14 @@
 import type { LegalReviewSection, ReviewContext, ReviewFinding, RiskLevel } from "@/lib/types";
 import { legalKnowledgeEntries, legalSourceDocuments } from "@/lib/legal-knowledge-base";
+import {
+  calculateComplianceScore,
+  calculateFindingWeight,
+  calculateRiskScore,
+  classifyLegalKnowledgeEntry
+} from "@/lib/services/scoring-service";
 
 const PROFESSIONAL_CONDUCT_SOURCE_ID = "rules-professional-conduct-lawyers";
 const EXECUTIVE_REGULATION_SOURCE_ID = "advocacy-law-executive-regulations";
-
-const severityWeight: Record<RiskLevel, number> = {
-  منخفض: 8,
-  متوسط: 16,
-  مرتفع: 28
-};
 
 const noViolationMessage = "لم يتم رصد ملاحظة مرتبطة بالمراجع المهنية والتنظيمية المسجلة.";
 
@@ -134,14 +134,30 @@ function buildLegalExplanation(entry: (typeof legalKnowledgeEntries)[number], ev
   return `وردت العبارة محل المراجعة "${evidencePhrase}" وصُنفت سياقياً على أنها "${classification}" ضمن نطاق ${entry.section}${contextNote ? `، مع سياق المراجعة (${contextNote})` : ""}. ترتبط هذه الملاحظة بالمرجع الرسمي لأن النص المرجعي يؤكد: ${entry.fullText}`;
 }
 
+function createTraceabilityId(entryId: string, evidence: string) {
+  let hash = 0;
+  const value = `${entryId}:${evidence}`;
+  for (let index = 0; index < value.length; index += 1) hash = (hash * 31 + value.charCodeAt(index)) >>> 0;
+  return `FND-${hash.toString(16).toUpperCase().padStart(8, "0")}`;
+}
+
 function buildFinding(entry: (typeof legalKnowledgeEntries)[number], evidence: { matchedPattern: string; phrase: string }, context?: ReviewContext): ReviewFinding {
   if (!entry.legalReference) {
     throw new Error(`Legal knowledge entry ${entry.id} is missing a legal reference.`);
   }
+  const classification = classifyLegalKnowledgeEntry(entry);
+  const weight = calculateFindingWeight(entry.severity, classification.category, classification.potentialImpact);
 
   return {
+    traceabilityId: createTraceabilityId(entry.id, evidence.phrase),
     legalKnowledgeEntryId: entry.id,
     sourceDocumentId: entry.sourceDocumentId,
+    title: entry.articleTitle ?? entry.section,
+    category: classification.category,
+    domain: classification.domain,
+    potentialImpact: classification.potentialImpact,
+    weight,
+    scoreImpact: weight,
     issue: entry.riskCategories.join("، "),
     severity: entry.severity,
     evidence: evidence.phrase,
@@ -164,8 +180,14 @@ function buildFinding(entry: (typeof legalKnowledgeEntries)[number], evidence: {
 
 function isAuditableFinding(finding: ReviewFinding) {
   return Boolean(
-    finding.legalKnowledgeEntryId &&
+      finding.legalKnowledgeEntryId &&
+      finding.traceabilityId &&
       finding.sourceDocumentId &&
+      finding.title &&
+      finding.category &&
+      finding.domain &&
+      finding.weight > 0 &&
+      finding.scoreImpact > 0 &&
       finding.sourceDocument &&
       finding.legalReference &&
       finding.articleTitle &&
@@ -188,12 +210,6 @@ function isAuditableFinding(finding: ReviewFinding) {
           (entry.prohibitedPatterns.includes(finding.matchedPattern) || (entry.contextualPatterns ?? []).includes(finding.matchedPattern))
       )
   );
-}
-
-function calculateRiskLevel(findings: ReviewFinding[]): RiskLevel {
-  if (findings.some((finding) => finding.severity === "مرتفع") || findings.length >= 3) return "مرتفع";
-  if (findings.some((finding) => finding.severity === "متوسط")) return "متوسط";
-  return "منخفض";
 }
 
 function buildSection(title: string, sourceDocumentId: string, findings: ReviewFinding[]): LegalReviewSection {
@@ -235,10 +251,9 @@ function buildReferencesPanel(findings: ReviewFinding[]) {
   }));
 }
 
-function buildRiskAssessment(findings: ReviewFinding[]) {
-  const level = calculateRiskLevel(findings);
-  const penalty = findings.reduce((sum, finding) => sum + severityWeight[finding.severity], 0);
-  const publishingReadinessScore = findings.length === 0 ? 92 : Math.max(15, 100 - penalty - (level === "مرتفع" ? 18 : level === "متوسط" ? 8 : 0));
+function buildRiskAssessment(findings: ReviewFinding[], riskScoreExplanation: ReturnType<typeof calculateRiskScore>) {
+  const level = riskScoreExplanation.level;
+  const publishingReadinessScore = Math.max(0, 100 - riskScoreExplanation.score);
   const highestFinding =
     findings.find((finding) => finding.severity === "مرتفع") ??
     findings.find((finding) => finding.severity === "متوسط") ??
@@ -246,6 +261,7 @@ function buildRiskAssessment(findings: ReviewFinding[]) {
 
   return {
     level,
+    score: riskScoreExplanation.score,
     publishingReadinessScore,
     reason: highestFinding
       ? `مستوى المخاطر ${level} بسبب الملاحظة المرتبطة بـ "${highestFinding.articleTitle}" في ${highestFinding.sourceDocument}.`
@@ -270,18 +286,22 @@ export function runLegalComplianceReview(text: string, context?: ReviewContext) 
     return [buildFinding(entry, evidence, context)];
   }).filter(isAuditableFinding);
 
-  const penalty = findings.reduce((sum, finding) => sum + severityWeight[finding.severity], 0);
-  const complianceScore = findings.length === 0 ? 100 : Math.max(20, 100 - penalty);
-  const riskLevel = calculateRiskLevel(findings);
+  const complianceScoreExplanation = calculateComplianceScore(findings);
+  const riskScoreExplanation = calculateRiskScore(findings);
+  const complianceScore = complianceScoreExplanation.finalScore;
+  const riskLevel = riskScoreExplanation.level;
   const professionalConductCompliance = buildSection("امتثال قواعد السلوك المهني", PROFESSIONAL_CONDUCT_SOURCE_ID, findings);
   const executiveRegulationCompliance = buildSection("امتثال اللائحة التنفيذية لنظام المحاماة في المملكة العربية السعودية", EXECUTIVE_REGULATION_SOURCE_ID, findings);
-  const legalRiskAssessment = buildRiskAssessment(findings);
+  const legalRiskAssessment = buildRiskAssessment(findings, riskScoreExplanation);
   const referencesPanel = buildReferencesPanel(findings);
 
   return {
     passed: riskLevel === "منخفض" || riskLevel === "متوسط",
     complianceScore,
+    complianceScoreExplanation,
     riskLevel,
+    riskScore: riskScoreExplanation.score,
+    riskScoreExplanation,
     findings,
     professionalConductCompliance,
     executiveRegulationCompliance,

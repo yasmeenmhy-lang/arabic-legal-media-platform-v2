@@ -6,7 +6,7 @@ import { BarList, DataTable, ModuleTabs, PageHeader, Panel, ScoreCard, SectionTi
 import { saveLatestReviewSnapshot } from "@/components/review-context-summary";
 import { advisoryDisclaimer } from "@/lib/governance";
 import { contentKindOptions } from "@/lib/content-types";
-import type { ContentKind, LanguageIssueCategory, LanguageIssueSeverity, ReviewResult, RiskLevel } from "@/lib/types";
+import type { ContentKind, GovernedRewriteSuggestion, LanguageIssueCategory, LanguageIssueSeverity, ReviewResult, RiskLevel } from "@/lib/types";
 
 const contentTypes = contentKindOptions.filter((item) =>
   (["post", "advertisement", "campaign", "article", "script", "caption", "visual_content", "infographic", "publishing_plan"] as ContentKind[]).includes(item.value)
@@ -84,14 +84,26 @@ function buildExportPayload(review: ReviewResult, context: Record<string, string
     نتيجة_المراجعة: {
       جودة_المحتوى: review.languageQuality.score,
       مستوى_الامتثال: review.complianceScore,
+      شرح_درجة_الامتثال: review.complianceScoreExplanation,
       مستوى_المخاطر: review.riskLevel,
+      درجة_المخاطر: review.riskScore,
+      شرح_درجة_المخاطر: review.riskScoreExplanation,
       جاهزية_النشر: review.exportAllowed ? "مناسب للتصدير وفق نتائج المراجعة" : "يتطلب معالجة الملاحظات",
       درجة_جاهزية_النشر: review.publishingReadinessScore,
+      شرح_جاهزية_النشر: review.publishingReadinessExplanation,
+      حالة_المراجعة: review.reviewStatus,
       الملخص_التنفيذي: review.summary,
       عدد_ملاحظات_الامتثال: review.findings.length,
       عدد_فرص_التحسين: review.languageQuality.issues.length
     },
     المراجع_الرسمية: review.findings.map((finding) => ({
+      معرف_التتبع: finding.traceabilityId,
+      عنوان_الملاحظة: finding.title,
+      الفئة: finding.category,
+      المجال: finding.domain,
+      الشدة: finding.severity,
+      الوزن: finding.weight,
+      أثر_الدرجة: finding.scoreImpact,
       الملاحظة: finding.issue,
       المصدر: finding.sourceDocument,
       المرجع_النظامي: finding.legalReference,
@@ -99,6 +111,16 @@ function buildExportPayload(review: ReviewResult, context: Record<string, string
       مقتطف_النص: finding.articleTextExcerpt,
       مستوى_الثقة: finding.confidenceLevel,
       الرابط_الرسمي: finding.sourceUrl
+    })),
+    التتبع: review.traceability,
+    مقترحات_الصياغة_المحوكمة: review.governedRewrites.map((rewrite) => ({
+      النص_المقترح: rewrite.suggestedText,
+      نتيجة_التحقق_القانوني: validationLabel(rewrite.validation.legalCompliance),
+      نتيجة_جودة_اللغة: validationLabel(rewrite.validation.languageQuality),
+      أثر_المخاطر: riskImpactLabel(rewrite.validation.riskImpact),
+      مستوى_الامتثال_بعد_المقترح: rewrite.proposedComplianceScore,
+      جودة_اللغة_بعد_المقترح: rewrite.proposedLanguageQuality,
+      المراجع_المستخدمة: rewrite.referencesUsed
     })),
     ملاحظة_استرشادية: review.advisoryDisclaimer
   };
@@ -127,10 +149,7 @@ function LanguageQualityMobile({ review }: { review: ReviewResult }) {
           </div>
         </article>
       ))}
-      <article className="w-full rounded-lg border border-line bg-paper p-4">
-        <p className="mb-2 text-sm font-normal text-ink">صياغة محسنة مقترحة</p>
-        <p className="text-sm leading-8 text-ink/75">{review.languageQuality.improvedDraft}</p>
-      </article>
+      <GovernedRewriteCards rewrites={review.governedRewrites} />
     </div>
   );
 }
@@ -210,12 +229,16 @@ function FindingCards({ review }: { review: ReviewResult }) {
         <article key={`${finding.legalKnowledgeEntryId}-${finding.evidence}`} className="w-full rounded-lg border border-line bg-white p-4 shadow-sm sm:p-5">
           <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
             <div className="min-w-0">
-              <p className="text-base font-normal leading-8 text-ink">{finding.issue}</p>
+              <p className="text-base font-normal leading-8 text-ink">{finding.title}</p>
               <p className="mt-1 text-sm leading-7 text-ink/55">{finding.legalReference} - {finding.articleTitle}</p>
             </div>
             <StatusBadge tone={toneFromRisk(finding.severity)}>{finding.severity}</StatusBadge>
           </div>
           <div className="grid gap-4 lg:grid-cols-2">
+            <ReadableBlock label="فئة الملاحظة">{finding.category} - {finding.domain}</ReadableBlock>
+            <ReadableBlock label="الشدة والأثر المحتمل">{finding.severity} - {finding.potentialImpact}</ReadableBlock>
+            <ReadableBlock label="الوزن وأثره على الامتثال">{finding.weight} نقطة - خصم {finding.scoreImpact} نقطة</ReadableBlock>
+            <ReadableBlock label="معرف التتبع">{finding.traceabilityId}</ReadableBlock>
             <ReadableBlock label="العبارة محل المراجعة">{finding.evidence}</ReadableBlock>
             <ReadableBlock label="المصدر القانوني">
               <a href={finding.sourceUrl} target="_blank" rel="noreferrer" className="font-normal text-palm underline underline-offset-4">{finding.sourceDocument}</a>
@@ -262,12 +285,140 @@ function ReferencesMobile({ review }: { review: ReviewResult }) {
   );
 }
 
+function ScoreExplanationPanels({ review }: { review: ReviewResult }) {
+  return (
+    <div className="mt-5 grid gap-5 xl:grid-cols-3">
+      <Panel>
+        <SectionTitle title="شرح درجة الامتثال" subtitle="نموذج الاحتساب المحكوم - الإصدار الأول" />
+        <div className="grid gap-3 sm:grid-cols-3 xl:grid-cols-1">
+          <ReadableBlock label="الدرجة الأساسية">{review.complianceScoreExplanation.baseScore}%</ReadableBlock>
+          <ReadableBlock label="إجمالي الخصم">{review.complianceScoreExplanation.totalDeduction} نقطة</ReadableBlock>
+          <ReadableBlock label="الدرجة النهائية">{review.complianceScoreExplanation.finalScore}%</ReadableBlock>
+        </div>
+        <div className="mt-4 space-y-3">
+          {review.complianceScoreExplanation.contributions.length > 0 ? review.complianceScoreExplanation.contributions.map((item) => (
+            <div key={item.traceabilityId} className="rounded-md border border-line bg-paper p-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="text-sm font-normal">{item.label}</p>
+                <StatusBadge tone="gold">-{item.value}</StatusBadge>
+              </div>
+              <p className="mt-2 text-xs leading-6 text-ink/60">{item.explanation}</p>
+            </div>
+          )) : <p className="text-sm leading-7 text-ink/65">لم تسجل خصومات لعدم وجود ملاحظات مرتبطة بالمراجع المسجلة.</p>}
+        </div>
+      </Panel>
+
+      <Panel>
+        <SectionTitle title="شرح درجة المخاطر" subtitle={`الدرجة ${review.riskScore}% - المستوى ${review.riskLevel}`} />
+        <div className="space-y-3">
+          {[
+            ["شدة الملاحظات", review.riskScoreExplanation.severityContribution],
+            ["نوع المخالفة", review.riskScoreExplanation.categoryContribution],
+            ["الأثر المحتمل", review.riskScoreExplanation.impactContribution],
+            ["مجالات الملاحظات", review.riskScoreExplanation.domainContribution],
+            ["تعدد الملاحظات", review.riskScoreExplanation.countContribution]
+          ].map(([label, value]) => (
+            <div key={label} className="flex items-center justify-between gap-3 rounded-md bg-paper p-3 text-sm">
+              <span>{label}</span>
+              <strong className="font-normal">{value} نقطة</strong>
+            </div>
+          ))}
+        </div>
+      </Panel>
+
+      <Panel>
+        <SectionTitle title="شرح جاهزية النشر" subtitle={`اكتمال البيانات ${review.publishingReadinessExplanation.metadataCompletenessScore}%`} />
+        <div className="space-y-3">
+          {review.publishingReadinessExplanation.factors.map((factor) => (
+            <div key={factor.key} className="rounded-md border border-line bg-paper p-3">
+              <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
+                <span className="font-normal">{factor.label}</span>
+                <span>{factor.sourceScore}% × {factor.weight}% = {factor.weightedScore.toFixed(1)}</span>
+              </div>
+              <p className="mt-2 text-xs leading-6 text-ink/60">{factor.explanation}</p>
+            </div>
+          ))}
+        </div>
+      </Panel>
+    </div>
+  );
+}
+
 function RecommendationCards({ items }: { items: string[][] }) {
   return (
     <div className="space-y-4">
       {items.map(([label, value]) => (
         <article key={label} className="w-full rounded-lg border border-line bg-white p-4">
           <ReadableBlock label={label}>{value}</ReadableBlock>
+        </article>
+      ))}
+    </div>
+  );
+}
+
+function validationLabel(value: "passed" | "failed") {
+  return value === "passed" ? "مجتاز" : "غير مجتاز";
+}
+
+function riskImpactLabel(value: GovernedRewriteSuggestion["validation"]["riskImpact"]) {
+  return value === "reduced" ? "منخفض" : "دون زيادة";
+}
+
+function GovernedRewriteCards({ rewrites }: { rewrites: GovernedRewriteSuggestion[] }) {
+  if (rewrites.length === 0) {
+    return (
+      <article className="w-full rounded-lg border border-line bg-paper p-4">
+        <p className="text-sm leading-8 text-ink/70">
+          لا توجد صياغة بديلة قابلة للعرض حالياً. لا تعرض المنصة أي مقترح صياغي ما لم يجتز التحقق القانوني، وإعادة فحص الامتثال، وجودة اللغة، وأثر المخاطر.
+        </p>
+      </article>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      {rewrites.map((rewrite) => (
+        <article key={rewrite.id} className="w-full rounded-lg border border-line bg-paper p-4">
+          <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <p className="text-sm font-normal leading-7 text-ink">صياغة مقترحة بعد التحقق</p>
+              <p className="mt-1 text-xs leading-6 text-ink/55">{rewrite.basis}</p>
+            </div>
+            <StatusBadge tone="good">اجتازت بوابة الجودة</StatusBadge>
+          </div>
+          <div className="space-y-4">
+            <ReadableBlock label="النص المقترح">{rewrite.suggestedText}</ReadableBlock>
+            <div className="grid gap-3 sm:grid-cols-3">
+              <div className="rounded-md bg-white p-3 text-xs leading-6">
+                <span className="block text-ink/55">التحقق القانوني</span>
+                <strong className="font-normal text-palm">{validationLabel(rewrite.validation.legalCompliance)}</strong>
+              </div>
+              <div className="rounded-md bg-white p-3 text-xs leading-6">
+                <span className="block text-ink/55">جودة اللغة</span>
+                <strong className="font-normal text-palm">{validationLabel(rewrite.validation.languageQuality)} - {rewrite.proposedLanguageQuality}%</strong>
+              </div>
+              <div className="rounded-md bg-white p-3 text-xs leading-6">
+                <span className="block text-ink/55">أثر المخاطر</span>
+                <strong className="font-normal text-palm">{riskImpactLabel(rewrite.validation.riskImpact)}</strong>
+              </div>
+            </div>
+            <ReadableBlock label="مستوى الامتثال بعد المقترح">{rewrite.proposedComplianceScore}% مقارنة بـ {rewrite.originalComplianceScore}% قبل المعالجة</ReadableBlock>
+            <ReadableBlock label="المراجع المستخدمة">
+              <div className="space-y-2">
+                {rewrite.referencesUsed.map((reference) => (
+                  <a
+                    key={`${reference.sourceDocument}-${reference.legalReference ?? reference.sourceUrl}`}
+                    href={reference.sourceUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="block rounded-md border border-line bg-white p-3 text-palm underline underline-offset-4"
+                  >
+                    {reference.sourceDocument}{reference.legalReference ? ` - ${reference.legalReference}` : ""}
+                  </a>
+                ))}
+              </div>
+            </ReadableBlock>
+          </div>
         </article>
       ))}
     </div>
@@ -460,6 +611,9 @@ export default function ContentReviewPage() {
                 <div className="rounded-lg border border-line p-3"><span className="text-xs text-ink/55">فرص التحسين</span><p className="mt-1 text-2xl font-normal">{review.languageQuality.issues.length}</p></div>
                 <div className="rounded-lg border border-line p-3"><span className="text-xs text-ink/55">مراجع ذات صلة</span><p className="mt-1 text-2xl font-normal">{review.findings.length}</p></div>
               </div>
+              <div className="mt-4 rounded-lg border border-line bg-paper p-4 text-xs leading-6 text-ink/60">
+                نموذج الاحتساب المحكوم - الإصدار الأول - معرف المراجعة: {review.traceability.reviewId}
+              </div>
             </>
           ) : (
             <div className="rounded-lg border border-dashed border-line bg-paper p-6">
@@ -475,17 +629,15 @@ export default function ContentReviewPage() {
         <>
           <ReviewContextHeader review={review} contentType={selectedKind} channel={channel} />
           <div className="mt-5"><WorkflowSteps steps={review.workflow.map((step) => `${step.label}: ${workflowStatusLabels[step.status]}`)} /></div>
+          <ScoreExplanationPanels review={review} />
 
           <div className="mt-5 grid gap-5 xl:grid-cols-2">
             <Panel id="language-quality">
-              <SectionTitle title="جودة اللغة والصياغة" subtitle="تفصيل درجات الجودة واقتراح الصياغة المحسنة." />
+              <SectionTitle title="جودة اللغة والصياغة" subtitle="تفصيل درجات الجودة ومقترحات الصياغة التي اجتازت بوابة التحقق." />
               <LanguageQualityMobile review={review} />
               <div className="hidden md:block">
                 <DataTable headers={["الفئة", "الدرجة"]} rows={Object.entries(review.languageQuality.categoryScores).map(([category, score]) => [categoryLabels[category as LanguageIssueCategory], `${score}%`])} />
-                <div className="mt-4 rounded-lg border border-line bg-paper p-5">
-                  <p className="mb-2 text-sm font-normal text-ink/70">صياغة محسنة مقترحة</p>
-                  <p className="leading-8">{review.languageQuality.improvedDraft}</p>
-                </div>
+                <div className="mt-4"><GovernedRewriteCards rewrites={review.governedRewrites} /></div>
               </div>
             </Panel>
 
@@ -507,7 +659,8 @@ export default function ContentReviewPage() {
               <SectionTitle title="مؤشرات المخاطر" subtitle="تصنيف المخاطر وسبب التصنيف بناء على الملاحظات المرتبطة بالمراجع المهنية والتنظيمية." />
               <div className="rounded-lg border border-line bg-paper p-4">
                 <StatusBadge tone={toneFromRisk(review.riskLevel)}>{review.riskLevel}</StatusBadge>
-                <p className="mt-3 text-sm leading-8 text-ink/75">{review.legalRiskAssessment.reason}</p>
+                <p className="mt-3 text-sm leading-8 text-ink/75">درجة المخاطر: {review.riskScore}%</p>
+                <p className="mt-2 text-sm leading-8 text-ink/75">{review.legalRiskAssessment.reason}</p>
                 <p className="mt-3 text-xs leading-6 text-ink/60">جاهزية النشر: {review.publishingReadinessScore}%</p>
               </div>
             </Panel>
