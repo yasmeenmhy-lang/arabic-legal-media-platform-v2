@@ -89,19 +89,6 @@ export default async function AdminPage() {
         />
       </Panel>
 
-      <Panel className="overflow-hidden">
-        <SectionTitle title="رؤى سلوك المحامين" subtitle="عدد المراجعات ومتوسط الامتثال وعدد العناصر مرتفعة المخاطر لكل مسؤول." />
-        <DataTable
-          headers={["المسؤول", "عدد المراجعات", "متوسط الامتثال", "عناصر مرتفعة المخاطر"]}
-          rows={insights.lawyerBehavior.map((entry) => [
-            entry.owner,
-            `${entry.reviews}`,
-            `${entry.avgCompliance}%`,
-            <StatusBadge key={entry.owner} tone={entry.highRisk > 0 ? "gold" : "good"}>{entry.highRisk}</StatusBadge>
-          ])}
-        />
-      </Panel>
-
       <div className="rounded-lg border border-line bg-white p-4 text-xs leading-6 text-ink/65">
         <ShieldAlert size={14} className="mb-1 inline text-gold" /> هذه اللوحة لإدارة المنصة فقط ولا تعرض بيانات تعريفية حساسة عن العملاء أو القضايا.
       </div>

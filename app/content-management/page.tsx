@@ -2,146 +2,168 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { Archive, Copy, Edit3, FileClock, FolderOpen, PlayCircle, RotateCcw, Trash2 } from "lucide-react";
-import { ButtonLink, DataTable, ModuleTabs, PageHeader, Panel, SectionTitle, StatusBadge } from "@/components/ui";
-import type { StoredReviewSnapshot } from "@/components/review-context-summary";
+import { Archive, FileClock, FolderOpen, History, RotateCcw } from "lucide-react";
+import { ButtonLink, ModuleTabs, PageHeader, Panel, SectionTitle, StatusBadge } from "@/components/ui";
+import {
+  loadContentRecords,
+  saveContentRecords,
+  setActiveContentSelection,
+  type StoredContentRecord
+} from "@/lib/content-record-store";
 
-type ContentRecord = {
-  id: string;
-  excerpt: string;
-  status: "مسودة" | "مكتمل" | "مؤرشف";
-  complianceScore?: number;
-  riskLevel?: string;
-  publishingReadinessScore?: number;
-  updatedAt: string;
-  contentType?: string;
-  channel?: string;
-};
-
-const SNAPSHOT_KEY = "lawyer-media:last-review-snapshot";
-
-function buildRecord(snapshot: StoredReviewSnapshot): ContentRecord {
-  return {
-    id: snapshot.context.reviewId,
-    excerpt: snapshot.context.shortExcerpt,
-    status: "مكتمل",
-    complianceScore: snapshot.context.complianceScore,
-    riskLevel: snapshot.context.riskLevel,
-    publishingReadinessScore: snapshot.context.publishingReadinessScore,
-    updatedAt: snapshot.context.reviewedAt ?? new Date().toISOString(),
-    contentType: snapshot.context.contentType,
-    channel: snapshot.context.channel
-  };
-}
-
-function formatDate(value: string) {
-  try {
-    return new Intl.DateTimeFormat("ar-SA", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
-  } catch {
-    return value;
-  }
+function formatDate(value?: string) {
+  if (!value) return "غير متاح";
+  return new Intl.DateTimeFormat("ar-SA", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
 }
 
 export default function ContentManagementPage() {
-  const [records, setRecords] = useState<ContentRecord[]>([]);
+  const [records, setRecords] = useState<StoredContentRecord[]>([]);
+  const [expanded, setExpanded] = useState<string>();
 
   useEffect(() => {
-    const raw = window.sessionStorage.getItem(SNAPSHOT_KEY);
-    if (!raw) return;
-    try {
-      setRecords([buildRecord(JSON.parse(raw) as StoredReviewSnapshot)]);
-    } catch {
-      setRecords([]);
-    }
+    setRecords(loadContentRecords());
   }, []);
 
   const counts = useMemo(() => ({
     all: records.length,
-    drafts: records.filter((item) => item.status === "مسودة").length,
-    completed: records.filter((item) => item.status === "مكتمل").length,
-    archived: records.filter((item) => item.status === "مؤرشف").length
+    approved: records.filter((item) => item.approvedVersion).length,
+    drafts: records.filter((item) => item.status !== "معتمد").length,
+    archived: records.filter((item) => item.archived).length
   }), [records]);
 
   function archiveRecord(id: string) {
-    setRecords((current) => current.map((item) => (item.id === id ? { ...item, status: "مؤرشف" } : item)));
+    const next = records.map((item) => item.id === id ? { ...item, archived: true } : item);
+    setRecords(next);
+    saveContentRecords(next);
   }
 
-  function deleteRecord(id: string) {
-    setRecords((current) => current.filter((item) => item.id !== id));
+  function openVersion(contentId: string, version: number) {
+    setActiveContentSelection(contentId, version);
   }
-
-  function duplicateRecord(id: string) {
-    const record = records.find((item) => item.id === id);
-    if (!record) return;
-    setRecords((current) => [
-      {
-        ...record,
-        id: `${record.id}-نسخة`,
-        status: "مسودة",
-        updatedAt: new Date().toISOString()
-      },
-      ...current
-    ]);
-  }
-
-  const rows = records.map((record) => [
-    <div key={`${record.id}-content`}>
-      <p className="font-normal text-ink">{record.excerpt || record.id}</p>
-      <p className="mt-1 text-xs leading-6 text-ink/55">{record.id}</p>
-    </div>,
-    <StatusBadge key={`${record.id}-status`} tone={record.status === "مكتمل" ? "good" : record.status === "مؤرشف" ? "neutral" : "gold"}>{record.status}</StatusBadge>,
-    typeof record.complianceScore === "number" ? `${record.complianceScore}%` : "غير متاح",
-    record.riskLevel ?? "غير متاح",
-    typeof record.publishingReadinessScore === "number" ? `${record.publishingReadinessScore}%` : "غير متاح",
-    formatDate(record.updatedAt),
-    record.contentType ?? "غير محدد",
-    record.channel ?? "غير محددة",
-    <div key={`${record.id}-actions`} className="flex flex-wrap gap-2">
-      <Link href="/content-review#results" className="rounded-md border border-line px-2.5 py-1.5 text-xs text-palm focus-ring"><FolderOpen size={14} className="inline" /> فتح</Link>
-      <Link href="/content-review#input" className="rounded-md border border-line px-2.5 py-1.5 text-xs text-palm focus-ring"><Edit3 size={14} className="inline" /> تعديل</Link>
-      <button type="button" onClick={() => deleteRecord(record.id)} className="rounded-md border border-line px-2.5 py-1.5 text-xs focus-ring"><Trash2 size={14} className="inline" /> حذف</button>
-      <button type="button" onClick={() => archiveRecord(record.id)} className="rounded-md border border-line px-2.5 py-1.5 text-xs focus-ring"><Archive size={14} className="inline" /> أرشفة</button>
-      <button type="button" onClick={() => duplicateRecord(record.id)} className="rounded-md border border-line px-2.5 py-1.5 text-xs focus-ring"><Copy size={14} className="inline" /> تكرار</button>
-      <Link href="/content-review#input" className="rounded-md border border-line px-2.5 py-1.5 text-xs text-palm focus-ring"><PlayCircle size={14} className="inline" /> متابعة</Link>
-      <Link href="/content-review#input" className="rounded-md border border-line px-2.5 py-1.5 text-xs text-palm focus-ring"><RotateCcw size={14} className="inline" /> إعادة المراجعة</Link>
-    </div>
-  ]);
 
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="السجل"
-        title="السجل"
-        description="مركز إدارة المحتوى الذي يجمع المواد التي تمت مراجعتها أو حفظها كمسودات أو أرشفتها، مع حالتها ودرجات الامتثال والمخاطر وجاهزية النشر والإجراءات التشغيلية."
-        action={<ButtonLink href="/content-review">مراجعة محتوى جديد</ButtonLink>}
+        eyebrow="سجل المحتوى الإعلامي والإعلاني"
+        title="سجل المحتوى الإعلامي والإعلاني"
+        description="السجل الدائم لكل محتوى وإصداراته وتحليلاته ومراجعه واعتماداته وتحركاته، مع إبقاء كل بيانات مرتبطة بمعرف المحتوى ورقم الإصدار الصحيح."
+        action={<ButtonLink href="/content-review">إعداد محتوى جديد</ButtonLink>}
       />
 
-      <ModuleTabs
-        items={[
-          { label: `الكل (${counts.all})`, href: "#all", active: true },
-          { label: `المسودات (${counts.drafts})`, href: "#drafts" },
-          { label: `المكتملة (${counts.completed})`, href: "#completed" },
-          { label: `المؤرشفة (${counts.archived})`, href: "#archived" }
-        ]}
-      />
+      <ModuleTabs items={[
+        { label: `الكل (${counts.all})`, href: "#all", active: true },
+        { label: `المسودات والحالية (${counts.drafts})`, href: "#all" },
+        { label: `المعتمدة (${counts.approved})`, href: "#all" },
+        { label: `المؤرشفة (${counts.archived})`, href: "#all" }
+      ]} />
 
-      <Panel id="all" className="overflow-hidden">
-        <SectionTitle
-          title="إدارة المحتوى"
-          subtitle="تعرض القائمة السجلات المتاحة في هذه الجلسة فقط في وضع العرض دون قاعدة بيانات، ولا تعرض نتائج أو درجات غير ناتجة عن مراجعة فعلية."
-        />
-        {records.length > 0 ? (
-          <DataTable
-            headers={["المحتوى", "الحالة", "الامتثال", "المخاطر", "جاهزية النشر", "آخر تحديث", "نوع المحتوى", "القناة", "الإجراءات"]}
-            rows={rows}
-          />
-        ) : (
+      <Panel id="all">
+        <SectionTitle title="المحتوى والإصدارات المحفوظة" subtitle="يمكن فتح أي إصدار مستقل والرجوع إلى بياناته دون الكتابة فوق إصدار معتمد سابق." />
+        {records.length === 0 ? (
           <div className="rounded-lg border border-dashed border-line bg-paper p-6 text-center">
             <FileClock className="mx-auto text-palm" size={34} />
-            <p className="mt-3 font-normal text-ink">لا توجد سجلات محتوى محفوظة في هذه الجلسة</p>
-            <p className="mx-auto mt-2 max-w-2xl text-sm leading-7 text-ink/65">
-              بعد تشغيل مراجعة فعلية من صفحة المراجعة ستظهر هنا المادة المختصرة، الحالة، درجة الامتثال، مستوى المخاطر، جاهزية النشر، وتاريخ آخر تحديث مع إجراءات الفتح والتعديل والأرشفة والتكرار وإعادة المراجعة.
-            </p>
+            <p className="mt-3 font-normal">لا توجد سجلات محفوظة بعد</p>
+            <p className="mt-2 text-sm leading-7 text-ink/65">يُنشأ السجل عند تحليل أول محتوى، ثم تُحفظ إصداراته واعتماداته ومراجعه وتحركاته تباعًا.</p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {records.map((record) => {
+              const current = record.versions.find((item) => item.version === record.currentVersion);
+              const approved = record.versions.find((item) => item.version === record.approvedVersion);
+              return (
+                <article key={record.id} className="rounded-lg border border-line bg-white p-4 shadow-sm">
+                  <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+                    <div className="min-w-0">
+                      <p className="text-xs text-palm">معرف المحتوى: {record.id}</p>
+                      <h2 className="mt-1 text-base font-normal leading-8">{record.title}</h2>
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        <StatusBadge tone={record.status === "معتمد" ? "good" : "neutral"}>{record.status}</StatusBadge>
+                        <StatusBadge tone={record.approvedVersion ? "good" : "neutral"}>الإصدار المعتمد: {record.approvedVersion ?? "لا يوجد"}</StatusBadge>
+                        <StatusBadge>{record.sharingStatus}</StatusBadge>
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {current ? (
+                        <Link onClick={() => openVersion(record.id, current.version)} href="/content-review" className="inline-flex items-center gap-2 rounded-md bg-palm px-3 py-2 text-sm text-white focus-ring">
+                          <FolderOpen size={15} /> فتح الإصدار الحالي
+                        </Link>
+                      ) : null}
+                      <button type="button" onClick={() => setExpanded(expanded === record.id ? undefined : record.id)} className="inline-flex items-center gap-2 rounded-md border border-line px-3 py-2 text-sm focus-ring">
+                        <History size={15} /> {expanded === record.id ? "إخفاء التفاصيل" : "كل التفاصيل"}
+                      </button>
+                      <button type="button" onClick={() => archiveRecord(record.id)} className="inline-flex items-center gap-2 rounded-md border border-line px-3 py-2 text-sm focus-ring">
+                        <Archive size={15} /> أرشفة
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-5 text-sm">
+                    <div className="rounded-md bg-paper p-3">الإصدارات: {record.versions.length}</div>
+                    <div className="rounded-md bg-paper p-3">الامتثال: {current?.analysis?.complianceScore ?? "—"}{current?.analysis ? "%" : ""}</div>
+                    <div className="rounded-md bg-paper p-3">المخاطر: {current?.analysis?.riskLevel ?? "—"}</div>
+                    <div className="rounded-md bg-paper p-3">المراجع: {current?.references.length ?? 0}</div>
+                    <div className="rounded-md bg-paper p-3">آخر تحديث: {formatDate(record.updatedAt)}</div>
+                  </div>
+
+                  {expanded === record.id ? (
+                    <div className="mt-5 space-y-5 border-t border-line pt-5">
+                      <div>
+                        <h3 className="mb-3 font-normal">الإصدارات المحفوظة</h3>
+                        <div className="space-y-3">
+                          {[...record.versions].sort((a, b) => b.version - a.version).map((version) => (
+                            <div key={version.id} className="rounded-lg border border-line bg-paper p-4">
+                              <div className="flex flex-wrap items-center justify-between gap-3">
+                                <div>
+                                  <p className="font-normal">الإصدار {version.version} {record.approvedVersion === version.version ? "— المعتمد" : ""}</p>
+                                  <p className="mt-1 text-xs text-ink/55">{formatDate(version.updatedAt)} — {version.contentTypeLabel} — {version.channel}</p>
+                                </div>
+                                <Link onClick={() => openVersion(record.id, version.version)} href="/content-review" className="inline-flex items-center gap-2 rounded-md border border-palm px-3 py-2 text-sm text-palm focus-ring">
+                                  <RotateCcw size={14} /> فتح
+                                </Link>
+                              </div>
+                              <p className="mt-3 whitespace-pre-wrap text-sm leading-7">{version.body}</p>
+                              <div className="mt-3 grid gap-2 text-xs sm:grid-cols-4">
+                                <div className="rounded bg-white p-2">الحالة: {version.status}</div>
+                                <div className="rounded bg-white p-2">الامتثال: {version.analysis?.complianceScore ?? "—"}</div>
+                                <div className="rounded bg-white p-2">المخاطر: {version.analysis?.riskLevel ?? "—"}</div>
+                                <div className="rounded bg-white p-2">فرص التحسين: {version.analysis?.languageQuality.issues.length ?? 0}</div>
+                              </div>
+                              {version.approvedAt ? <p className="mt-3 text-xs text-palm">اعتمده {version.approvedBy} في {formatDate(version.approvedAt)}</p> : null}
+                              <details className="mt-3">
+                                <summary className="cursor-pointer text-sm text-palm">التحليل والمراجع المهنية والرسمية ({version.references.length})</summary>
+                                <div className="mt-3 space-y-3">
+                                  <p className="text-sm leading-7">{version.analysis?.summary ?? "لا يوجد تحليل محفوظ."}</p>
+                                  {version.references.map((reference) => (
+                                    <div key={reference.id} className="rounded-md bg-white p-3 text-sm leading-7">
+                                      <p className="font-normal">{reference.referenceName} — {reference.articleOrRuleNumber}</p>
+                                      <p>{reference.relatedContentPhrase}</p>
+                                      <a href={reference.officialUrl} target="_blank" rel="noreferrer" className="text-palm underline">الوصول المباشر إلى المرجع الرسمي</a>
+                                    </div>
+                                  ))}
+                                </div>
+                              </details>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div>
+                        <h3 className="mb-3 font-normal">سجل الإجراءات والتغييرات</h3>
+                        <div className="space-y-2">
+                          {record.actions.map((action) => (
+                            <div key={action.id} className="rounded-md bg-paper p-3 text-sm leading-7">
+                              <p className="font-normal">{action.label}</p>
+                              <p className="text-xs text-ink/60">{action.actor} — {formatDate(action.at)} — {action.fromStatus ? `${action.fromStatus} ← ` : ""}{action.toStatus ?? ""}</p>
+                              {action.details ? <p className="mt-1 text-xs text-ink/70">{action.details}</p> : null}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  ) : null}
+                </article>
+              );
+            })}
           </div>
         )}
       </Panel>

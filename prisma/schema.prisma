@@ -13,7 +13,12 @@ model User {
   email           String          @unique
   passwordHash    String
   practiceArea    String?
+  gender          String?
+  experienceYears Int?
+  legalSpecialty  String?
   organization    String?
+  loginCount      Int             @default(0)
+  lastLoginAt     DateTime?
   isActive        Boolean         @default(true)
   roles           UserRole[]
   contents        Content[]
@@ -69,12 +74,76 @@ model Content {
   ownerId        String
   owner          User              @relation(fields: [ownerId], references: [id])
   drafts         ContentDraft[]
+  versions       ContentVersion[]
+  actions        ContentAction[]
   reviews        ContentReview[]
   scheduledPosts ScheduledPost[]
   campaignId     String?
   campaign       Campaign?         @relation(fields: [campaignId], references: [id])
   createdAt      DateTime          @default(now())
   updatedAt      DateTime          @updatedAt
+}
+
+model ContentVersion {
+  id                  String                  @id @default(cuid())
+  contentId           String
+  content             Content                 @relation(fields: [contentId], references: [id], onDelete: Cascade)
+  version             Int
+  body                String
+  status              String                  @default("DRAFT")
+  contentType         String
+  channel             String
+  audience            String?
+  purpose             String?
+  isCurrent           Boolean                 @default(true)
+  isApproved          Boolean                 @default(false)
+  approvedBy          String?
+  approvedAt          DateTime?
+  analysisSnapshot    String?
+  complianceSnapshot  String?
+  riskSnapshot        String?
+  opportunitiesSnapshot String?
+  reviews             ContentReview[]
+  references          ProfessionalOfficialReference[]
+  createdAt           DateTime                @default(now())
+  updatedAt           DateTime                @updatedAt
+
+  @@unique([contentId, version])
+  @@index([contentId, isCurrent])
+  @@index([contentId, isApproved])
+}
+
+model ProfessionalOfficialReference {
+  id                    String         @id @default(cuid())
+  contentVersionId      String
+  contentVersion        ContentVersion @relation(fields: [contentVersionId], references: [id], onDelete: Cascade)
+  referenceName         String
+  ruleOrRegulationName  String
+  articleOrRuleNumber   String
+  relatedText           String
+  relatedContentPhrase  String
+  relianceReason        String
+  contentEffect         String
+  practicalGuidance     String
+  officialUrl           String
+  createdAt             DateTime       @default(now())
+
+  @@index([contentVersionId])
+}
+
+model ContentAction {
+  id          String   @id @default(cuid())
+  contentId   String
+  content     Content  @relation(fields: [contentId], references: [id], onDelete: Cascade)
+  version     Int?
+  actorName   String
+  action      String
+  previousStatus String?
+  newStatus  String?
+  details     String?
+  createdAt   DateTime @default(now())
+
+  @@index([contentId, version])
 }
 
 model ContentDraft {
@@ -91,6 +160,8 @@ model ContentReview {
   id              String          @id @default(cuid())
   contentId       String
   content         Content         @relation(fields: [contentId], references: [id], onDelete: Cascade)
+  contentVersionId String?
+  contentVersion  ContentVersion? @relation(fields: [contentVersionId], references: [id], onDelete: SetNull)
   complianceScore Int
   languageQualityScore Int         @default(0)
   riskLevel       String
@@ -104,6 +175,27 @@ model ContentReview {
   summary         String
   findings        ReviewFinding[]
   createdAt       DateTime        @default(now())
+
+  @@index([contentId, contentVersionId])
+}
+
+model PlanningProposal {
+  id          String   @id @default(cuid())
+  contentId   String?
+  contentVersion Int?
+  title       String
+  objective   String
+  audience    String
+  channels    String
+  topic       String
+  occasion    String?
+  message     String
+  status      String   @default("PROPOSED")
+  createdBy   String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([contentId, contentVersion])
 }
 
 model ReviewFinding {

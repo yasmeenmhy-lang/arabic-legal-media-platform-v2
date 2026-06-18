@@ -152,7 +152,7 @@ export default async function DashboardPage() {
         </Panel>
 
         <Panel>
-          <SectionTitle title="خدمات رئيسية" subtitle="اختصارات عملية إلى المسارات المطلوبة دون إخفاء أي Capability." />
+          <SectionTitle title="خدمات رئيسية" subtitle="اختصارات عملية إلى المسارات المطلوبة." />
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {[
               ["المراجعة", "/content-review", FileCheck2],

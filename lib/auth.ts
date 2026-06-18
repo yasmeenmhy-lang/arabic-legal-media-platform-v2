@@ -1,6 +1,8 @@
 import bcrypt from "bcryptjs";
+import { cookies } from "next/headers";
 import type { RoleName } from "@/lib/types";
 import { can, demoSession } from "@/lib/rbac";
+import { verifyNafathSession } from "@/lib/nafath-auth";
 
 export type AppSession = {
   user: {
@@ -15,6 +17,16 @@ export async function verifyPassword(password: string, passwordHash: string) {
 }
 
 export async function getCurrentSession(): Promise<AppSession> {
+  const nafath = verifyNafathSession(cookies().get("nafath_session")?.value);
+  if (nafath?.id && nafath?.name && nafath?.role) {
+    return {
+      user: {
+        id: String(nafath.id),
+        name: String(nafath.name),
+        role: nafath.role as RoleName
+      }
+    };
+  }
   return demoSession;
 }
 

@@ -14,4 +14,10 @@ describe("RBAC", () => {
     expect(can("ADMIN", "admin:manage")).toBe(true);
     expect(can("ADMIN", "sector:view")).toBe(true);
   });
+
+  it("separates director analytics from administration", () => {
+    expect(can("DIRECTOR", "management-analytics:view")).toBe(true);
+    expect(can("DIRECTOR", "users:manage")).toBe(false);
+    expect(can("LAWYER", "management-analytics:view")).toBe(false);
+  });
 });

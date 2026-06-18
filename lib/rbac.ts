@@ -19,6 +19,12 @@ export const rolePermissions: Record<RoleName, string[]> = {
     "recommendations:view",
     "alerts:view"
   ],
+  DIRECTOR: [
+    "dashboard:view",
+    "analytics:view",
+    "management-analytics:view",
+    "reports:download"
+  ],
   ADMIN: ["*"]
 };
 
@@ -29,9 +35,14 @@ export const rbacRoles = [
     permissions: rolePermissions.LAWYER
   },
   {
-    name: "إدارة المنصة",
+    name: "الأدمن",
     description: "إدارة الإعدادات والمصادر والصلاحيات",
     permissions: rolePermissions.ADMIN
+  },
+  {
+    name: "مدير الإدارة العامة للمحاماة",
+    description: "الاطلاع على المؤشرات القيادية والتحليلية المجمعة",
+    permissions: rolePermissions.DIRECTOR
   }
 ];
 
@@ -49,7 +60,7 @@ export function assertPermission(role: RoleName, permission: string) {
 export const demoSession = {
   user: {
     id: "demo-lawyer",
-    name: "أحمد الحربي",
+    name: "أحمد عبدالعزيز",
     role: "LAWYER" as RoleName
   }
 };

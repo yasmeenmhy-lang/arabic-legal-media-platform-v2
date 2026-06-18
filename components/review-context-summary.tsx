@@ -333,19 +333,26 @@ export function ReviewReferencesSection() {
         <p className="mt-1 text-xs leading-6 text-ink/55">تعرض هذه الشاشة المراجع التي استندت إليها الملاحظات فقط.</p>
       </div>
       <div className="space-y-4">
-        {snapshot.references.length > 0 ? snapshot.references.map((reference) => (
-          <article key={`${reference.sourceDocument}-${reference.legalReference}`} className="rounded-lg border border-line bg-white p-4 shadow-sm">
-            <div className="grid gap-4 lg:grid-cols-2">
-              <FieldBlock label="المصدر">{reference.sourceDocument}</FieldBlock>
-              <FieldBlock label="المرجع النظامي">{reference.legalReference}</FieldBlock>
-              <FieldBlock label="عنوان المرجع">{reference.articleTitle}</FieldBlock>
-              <FieldBlock label="الرابط الرسمي">
-                <a href={reference.sourceUrl} target="_blank" rel="noreferrer" className="font-normal text-palm underline underline-offset-4">فتح المصدر الرسمي</a>
-              </FieldBlock>
-              <FieldBlock label="مقتطف النص">{reference.articleTextExcerpt}</FieldBlock>
-            </div>
-          </article>
-        )) : (
+        {snapshot.references.length > 0 ? snapshot.references.map((reference) => {
+          const finding = snapshot.findings.find((item) => item.sourceDocument === reference.sourceDocument && item.legalReference === reference.legalReference);
+          return (
+            <article key={`${reference.sourceDocument}-${reference.legalReference}`} className="rounded-lg border border-line bg-white p-4 shadow-sm">
+              <div className="grid gap-4 lg:grid-cols-2">
+                <FieldBlock label="اسم المرجع">{reference.sourceDocument}</FieldBlock>
+                <FieldBlock label="اسم القاعدة أو اللائحة">{reference.sourceDocument}</FieldBlock>
+                <FieldBlock label="رقم المادة أو القاعدة">{reference.legalReference}</FieldBlock>
+                <FieldBlock label="النص أو المضمون المرتبط بالمحتوى">{reference.articleTextExcerpt}</FieldBlock>
+                <FieldBlock label="العبارة المرتبطة من المحتوى">{finding?.evidence ?? snapshot.context.shortExcerpt}</FieldBlock>
+                <FieldBlock label="سبب الاستناد إلى المرجع">{finding?.legalExplanation ?? "ارتباط التحليل بالنص الرسمي ذي الصلة."}</FieldBlock>
+                <FieldBlock label="أثره على المحتوى">{finding ? `${finding.issue} — ${finding.potentialImpact}` : "توثيق نتيجة التحليل."}</FieldBlock>
+                <FieldBlock label="التوجيه التطبيقي">{finding?.suggestedSaferWording ?? "مراجعة الصياغة وفق المرجع الرسمي قبل النشر."}</FieldBlock>
+                <FieldBlock label="الرابط الرسمي المباشر">
+                  <a href={reference.sourceUrl} target="_blank" rel="noreferrer" className="inline-flex rounded-md bg-palm px-4 py-2.5 font-normal text-white focus-ring">الوصول المباشر إلى المرجع الرسمي</a>
+                </FieldBlock>
+              </div>
+            </article>
+          );
+        }) : (
           <p className="rounded-lg border border-line bg-paper p-4 text-sm leading-8 text-ink/70">لا توجد مراجع مرتبطة بملاحظات مرصودة في هذه المراجعة.</p>
         )}
       </div>

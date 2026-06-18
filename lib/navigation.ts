@@ -16,8 +16,8 @@ export const platformTitle = "منصة تمكين وإدارة المحتوى ا
 // see platform-owner administration unless they access the protected /admin URL.
 export const navItems = [
   { title: "لوحة التحكم", href: "/dashboard", icon: LayoutDashboard, group: "الرئيسية" },
-  { title: "المراجعة", href: "/content-review", icon: FileCheck2, group: "الرئيسية" },
-  { title: "السجل", href: "/content-management", icon: FileClock, group: "الرئيسية" },
+  { title: "إعداد وتحليل المحتوى الإعلامي والإعلاني", href: "/content-review", icon: FileCheck2, group: "الرئيسية" },
+  { title: "سجل المحتوى الإعلامي والإعلاني", href: "/content-management", icon: FileClock, group: "الرئيسية" },
   { title: "التخطيط والنشر", href: "/calendar", icon: CalendarRange, group: "الرئيسية" },
   { title: "التقارير", href: "/analytics", icon: BarChart3, group: "المتابعة" },
   { title: "التنبيهات", href: "/alerts", icon: Bell, group: "المتابعة" },

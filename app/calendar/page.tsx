@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { CalendarCheck, CalendarDays, Edit3, Link2, Megaphone, MessageCircle, Save, ShieldAlert, Trash2, X } from "lucide-react";
 import { DataTable, KpiGrid, ModuleTabs, PageHeader, Panel, SectionTitle, StatusBadge } from "@/components/ui";
@@ -32,10 +32,22 @@ const initialItems: CalendarItem[] = [
   { id: "cal-3", title: "فيديو قصير عن السرية", contentType: "script", channel: "YouTube", date: 21, priority: "مرتفع", reviewRef: "نتيجة مراجعة 1037" }
 ];
 
-const campaignProposals = [
-  ["التوعية بالعقود", "أفراد ورواد أعمال", "لينكدإن ومنصة إكس", <StatusBadge key="ready" tone="good">جاهز للمراجعة</StatusBadge>],
-  ["سرية معلومات العميل", "عملاء محتملون", "فيديو قصير", <StatusBadge key="risk" tone="neutral">يتطلب ملاحظات امتثال</StatusBadge>],
-  ["الإعلان المهني المنضبط", "منشآت قانونية", "منشورات متعددة", <StatusBadge key="draft" tone="neutral">مقترح تخطيطي</StatusBadge>]
+type PlanProposal = {
+  id: string;
+  title: string;
+  objective: string;
+  audience: string;
+  channels: string;
+  topic: string;
+  occasion: string;
+  message: string;
+  status: "مقترح" | "قيد التعديل" | "محفوظ";
+};
+
+const initialPlans: PlanProposal[] = [
+  { id: "plan-1", title: "التوعية بالعقود", objective: "رفع الوعي", audience: "أفراد ورواد أعمال", channels: "لينكدإن ومنصة إكس", topic: "وضوح الالتزامات التعاقدية", occasion: "خطة شهرية", message: "رسائل تثقيفية قصيرة مرتبطة بمحتوى تمت مراجعته", status: "مقترح" },
+  { id: "plan-2", title: "سرية معلومات العميل", objective: "التوعية المهنية", audience: "عملاء محتملون", channels: "فيديو قصير", topic: "السرية المهنية", occasion: "حملة توعوية", message: "شرح مبسط لحدود مشاركة المعلومات", status: "مقترح" },
+  { id: "plan-3", title: "الإعلان المهني المنضبط", objective: "تحسين الامتثال", audience: "منشآت قانونية", channels: "منشورات متعددة", topic: "ضوابط الإعلان", occasion: "مناسبة مهنية", message: "صياغات مهنية غير قطعية", status: "مقترح" }
 ];
 
 function sortByPriority(items: CalendarItem[]) {
@@ -57,6 +69,30 @@ export default function CalendarPage() {
   const [contentType, setContentType] = useState<ContentKind>("post");
   const [priority, setPriority] = useState<Priority>("متوسط");
   const [reviewRef, setReviewRef] = useState(reviewRefs[0]);
+  const [plans, setPlans] = useState<PlanProposal[]>(initialPlans);
+  const [selectedPlanId, setSelectedPlanId] = useState<string>();
+  const [editingPlan, setEditingPlan] = useState(false);
+
+  useEffect(() => {
+    const saved = window.localStorage.getItem("lawyer-media:planning-proposals");
+    if (saved) {
+      try { setPlans(JSON.parse(saved) as PlanProposal[]); } catch { setPlans(initialPlans); }
+    }
+  }, []);
+
+  const selectedPlan = plans.find((plan) => plan.id === selectedPlanId);
+
+  function updatePlan(field: keyof PlanProposal, value: string) {
+    if (!selectedPlanId) return;
+    setPlans((current) => current.map((plan) => plan.id === selectedPlanId ? { ...plan, [field]: value, status: "قيد التعديل" } : plan));
+  }
+
+  function savePlan() {
+    const next = plans.map((plan) => plan.id === selectedPlanId ? { ...plan, status: "محفوظ" as const } : plan);
+    setPlans(next);
+    window.localStorage.setItem("lawyer-media:planning-proposals", JSON.stringify(next));
+    setEditingPlan(false);
+  }
 
   const selectedItems = useMemo(() => sortByPriority(items.filter((item) => item.date === selectedDate)), [items, selectedDate]);
   const orderedItems = useMemo(() => sortByPriority(items), [items]);
@@ -268,8 +304,44 @@ export default function CalendarPage() {
       />
 
       <Panel id="campaigns" className="overflow-hidden">
-        <SectionTitle title="مقترحات الحملات" subtitle="تعرض كدعم تخطيطي، ولا تعني إطلاق الحملة أو تشغيلها آلياً." />
-        <DataTable headers={["الحملة", "الجمهور المقترح", "القنوات", "الحالة"]} rows={campaignProposals} />
+        <SectionTitle title="مقترح خطة" subtitle="مقترحات مبنية على الهدف والجمهور والمنصة والموضوع والمناسبة، قابلة للفتح والتعديل والحفظ وإعادة الفتح." />
+        <div className="grid gap-3 lg:grid-cols-3">
+          {plans.map((plan) => (
+            <button key={plan.id} type="button" onClick={() => { setSelectedPlanId(plan.id); setEditingPlan(false); }} className="rounded-lg border border-line bg-white p-4 text-right transition hover:border-palm focus-ring">
+              <p className="font-normal">{plan.title}</p>
+              <p className="mt-2 text-xs leading-6 text-ink/60">{plan.audience} — {plan.channels}</p>
+              <span className="mt-3 inline-block rounded bg-paper px-2 py-1 text-xs text-palm">{plan.status}</span>
+            </button>
+          ))}
+        </div>
+        {selectedPlan ? (
+          <div className="mt-5 rounded-lg border border-palm/30 bg-mint/40 p-4">
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+              <h3 className="font-normal">تفاصيل الخطة: {selectedPlan.title}</h3>
+              <div className="flex gap-2">
+                <button type="button" onClick={() => setEditingPlan(true)} className="rounded-md border border-line bg-white px-3 py-2 text-sm text-palm focus-ring">تعديل</button>
+                {editingPlan ? <button type="button" onClick={savePlan} className="rounded-md bg-palm px-3 py-2 text-sm text-white focus-ring">حفظ</button> : null}
+              </div>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              {([
+                ["title", "اسم الخطة"],
+                ["objective", "الهدف"],
+                ["audience", "الجمهور"],
+                ["channels", "القنوات"],
+                ["topic", "الموضوع"],
+                ["occasion", "المناسبة"],
+                ["message", "الرسالة المقترحة"]
+              ] as Array<[keyof PlanProposal, string]>).map(([field, label]) => (
+                <label key={field} className={`text-sm ${field === "message" ? "sm:col-span-2" : ""}`}>
+                  {label}
+                  <input disabled={!editingPlan} value={selectedPlan[field]} onChange={(event) => updatePlan(field, event.target.value)} className="mt-2 w-full rounded-md border border-line bg-white px-3 py-2.5 disabled:bg-paper focus-ring" />
+                </label>
+              ))}
+            </div>
+            <p className="mt-4 text-xs leading-6 text-ink/60">الحالة: {selectedPlan.status} — يرتبط المقترح بمسار التخطيط وسجل المحتوى والتقارير عند ربطه بنتيجة مراجعة.</p>
+          </div>
+        ) : null}
       </Panel>
 
       <div id="publishing" className="grid gap-5 xl:grid-cols-2">

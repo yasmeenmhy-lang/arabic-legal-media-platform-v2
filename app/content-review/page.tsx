@@ -1,11 +1,18 @@
 "use client";
 
-import { useMemo, useState, type ReactNode } from "react";
-import { Download, FileText, Link2, Share2 } from "lucide-react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { CheckCircle2, Download, FileText, Link2, Save, Share2 } from "lucide-react";
 import { BarList, DataTable, ModuleTabs, PageHeader, Panel, ScoreCard, SectionTitle, StatusBadge, WorkflowSteps } from "@/components/ui";
 import { saveLatestReviewSnapshot } from "@/components/review-context-summary";
 import { advisoryDisclaimer } from "@/lib/governance";
 import { contentKindOptions } from "@/lib/content-types";
+import {
+  approveContentVersion,
+  getActiveContentSelection,
+  loadContentRecords,
+  markContentShared,
+  upsertAnalyzedVersion
+} from "@/lib/content-record-store";
 import type { ContentKind, GovernedRewriteSuggestion, LanguageIssueCategory, LanguageIssueSeverity, ReviewResult, RiskLevel } from "@/lib/types";
 
 const contentTypes = contentKindOptions.filter((item) =>
@@ -28,7 +35,7 @@ const purposeOptions = [
   "تثقيف الجمهور حول موضوع قانوني",
   "الترويج لخدمة جديدة ضمن الأطر المهنية المسموحة",
   "تعزيز الحضور المهني والثقة",
-  "دعوة لاستشارة أو تواصل مهني هادئ",
+  "دعوة لاستشارة أو تواصل مهني",
   "أخرى"
 ];
 
@@ -264,19 +271,30 @@ function FindingCards({ review }: { review: ReviewResult }) {
 function ReferencesMobile({ review }: { review: ReviewResult }) {
   return (
     <div className="space-y-4">
-      {review.referencesPanel.length > 0 ? review.referencesPanel.map((reference) => (
-        <article key={`${reference.sourceDocument}-${reference.legalReference}`} className="w-full rounded-lg border border-line bg-white p-4">
-          <div className="space-y-4">
-            <ReadableBlock label="المصدر">{reference.sourceDocument}</ReadableBlock>
-            <ReadableBlock label="المرجع النظامي">{reference.legalReference}</ReadableBlock>
-            <ReadableBlock label="عنوان المرجع">{reference.articleTitle}</ReadableBlock>
-            <ReadableBlock label="مقتطف النص">{reference.articleTextExcerpt}</ReadableBlock>
-            <ReadableBlock label="الرابط الرسمي">
-              <a href={reference.sourceUrl} target="_blank" rel="noreferrer" className="font-normal text-palm underline underline-offset-4">فتح المصدر الرسمي</a>
-            </ReadableBlock>
-          </div>
-        </article>
-      )) : (
+      {review.referencesPanel.length > 0 ? review.referencesPanel.map((reference) => {
+        const finding = review.findings.find((item) =>
+          item.sourceDocument === reference.sourceDocument && item.legalReference === reference.legalReference
+        );
+        return (
+          <article key={`${reference.sourceDocument}-${reference.legalReference}`} className="w-full rounded-lg border border-line bg-white p-4">
+            <div className="space-y-4">
+              <ReadableBlock label="اسم المرجع">{reference.sourceDocument}</ReadableBlock>
+              <ReadableBlock label="اسم القاعدة أو اللائحة">{reference.sourceDocument}</ReadableBlock>
+              <ReadableBlock label="رقم المادة أو القاعدة">{reference.legalReference}</ReadableBlock>
+              <ReadableBlock label="النص أو المضمون المرتبط بالمحتوى">{reference.articleTextExcerpt}</ReadableBlock>
+              <ReadableBlock label="العبارة المرتبطة من المحتوى">{finding?.evidence ?? review.reviewContext.shortExcerpt}</ReadableBlock>
+              <ReadableBlock label="سبب الاستناد إلى المرجع">{finding?.legalExplanation ?? finding?.explanation ?? "ارتباط نتيجة التحليل بالمادة أو القاعدة الرسمية ذات الصلة."}</ReadableBlock>
+              <ReadableBlock label="أثره على المحتوى">{finding ? `${finding.issue} — الأثر المحتمل: ${finding.potentialImpact}` : "يدعم توثيق نتيجة التحليل دون إنشاء ملاحظة إضافية."}</ReadableBlock>
+              <ReadableBlock label="التوجيه التطبيقي">{finding?.suggestedSaferWording ?? finding?.advice ?? "الالتزام بصياغة مهنية واضحة ومراجعة النص قبل النشر."}</ReadableBlock>
+              <ReadableBlock label="الرابط الرسمي المباشر">
+                <a href={reference.sourceUrl} target="_blank" rel="noreferrer" className="inline-flex rounded-md bg-palm px-4 py-2.5 font-normal text-white no-underline focus-ring">
+                  الوصول المباشر إلى المرجع الرسمي
+                </a>
+              </ReadableBlock>
+            </div>
+          </article>
+        );
+      }) : (
         <article className="w-full rounded-lg border border-line bg-white p-4">
           <p className="text-sm leading-8 text-ink/75">{review.summary}</p>
         </article>
@@ -437,6 +455,29 @@ export default function ContentReviewPage() {
   const [review, setReview] = useState<ReviewResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [exportMessage, setExportMessage] = useState("");
+  const [contentId, setContentId] = useState<string>();
+  const [versionNumber, setVersionNumber] = useState<number>();
+  const [approved, setApproved] = useState(false);
+  const [approvalMessage, setApprovalMessage] = useState("");
+
+  useEffect(() => {
+    const selection = getActiveContentSelection();
+    if (!selection) return;
+    const record = loadContentRecords().find((item) => item.id === selection.contentId);
+    const version = record?.versions.find((item) => item.version === selection.version);
+    if (!record || !version) return;
+    setContentId(record.id);
+    setVersionNumber(version.version);
+    setText(version.body);
+    setKind(version.contentType);
+    setChannel(version.channel);
+    setAudienceChoice(audienceOptions.includes(version.audience) ? version.audience : "أخرى");
+    if (!audienceOptions.includes(version.audience)) setAudienceOther(version.audience);
+    setPurposeChoice(purposeOptions.includes(version.purpose) ? version.purpose : "أخرى");
+    if (!purposeOptions.includes(version.purpose)) setPurposeOther(version.purpose);
+    setReview(version.analysis ?? null);
+    setApproved(Boolean(version.approvedAt));
+  }, []);
 
   const audience = audienceChoice === "أخرى" ? audienceOther : audienceChoice;
   const purpose = purposeChoice === "أخرى" ? purposeOther : purposeChoice;
@@ -462,8 +503,38 @@ export default function ContentReviewPage() {
     });
     const payload = await response.json();
     setReview(payload.data);
-    if (payload.data?.reviewContext) saveLatestReviewSnapshot(payload.data);
+    if (payload.data?.reviewContext) {
+      saveLatestReviewSnapshot(payload.data);
+      const saved = upsertAnalyzedVersion({
+        contentId,
+        body: text,
+        contentType: kind,
+        contentTypeLabel: selectedKind,
+        channel,
+        audience,
+        purpose,
+        review: payload.data
+      });
+      setContentId(saved.record.id);
+      setVersionNumber(saved.version.version);
+      setApproved(false);
+      setApprovalMessage(`تم حفظ الإصدار ${saved.version.version} وربطه بنتائج التحليل والمراجع.`);
+    }
     setLoading(false);
+  }
+
+  function approveCurrentVersion() {
+    if (!contentId || !versionNumber || !review) return;
+    const result = approveContentVersion(contentId, versionNumber);
+    if (!result) return;
+    setApproved(true);
+    setApprovalMessage(`تم اعتماد الإصدار ${versionNumber} مع نتائج تحليله ومراجعه المهنية والرسمية بواسطة أحمد عبدالعزيز.`);
+  }
+
+  function prepareSharing() {
+    if (!approved || !contentId || !versionNumber) return;
+    markContentShared(contentId, versionNumber);
+    setExportMessage("تم تجهيز الإصدار المعتمد للمشاركة وتسجيل الإجراء في سجل المحتوى.");
   }
 
   async function copyReviewPackage() {
@@ -495,8 +566,8 @@ export default function ContentReviewPage() {
   return (
     <>
       <PageHeader
-        eyebrow="المراجعة"
-        title="المراجعة"
+        eyebrow="إعداد وتحليل المحتوى"
+        title="إعداد وتحليل المحتوى الإعلامي والإعلاني"
         description="تجربة موحدة تعرض جودة الصياغة، ملاحظات الامتثال، مؤشرات المخاطر، فرص التحسين، المراجع الرسمية، جاهزية النشر، ودعم التصدير في تقرير تنفيذي واحد."
       />
 
@@ -505,10 +576,12 @@ export default function ContentReviewPage() {
           { label: "إدخال المحتوى", href: "#input", active: !review },
           { label: "النتائج التنفيذية", href: "#results", active: Boolean(review) },
           { label: "الملاحظات", href: "#findings" },
+          { label: "الامتثال", href: "#compliance" },
           { label: "المخاطر", href: "#risk" },
           { label: "فرص التحسين", href: "#opportunities" },
-          { label: "المراجع", href: "#references" },
-          { label: "التصدير", href: "#export" }
+          { label: "المراجع المهنية والرسمية", href: "#references" },
+          { label: "المشاركة", href: "#sharing" },
+          { label: "التصدير", href: "#sharing" }
         ]}
       />
 
@@ -656,7 +729,7 @@ export default function ContentReviewPage() {
 
           <div className="mt-5 grid gap-5 xl:grid-cols-2">
             <Panel id="risk">
-              <SectionTitle title="مؤشرات المخاطر" subtitle="تصنيف المخاطر وسبب التصنيف بناء على الملاحظات المرتبطة بالمراجع المهنية والتنظيمية." />
+              <SectionTitle title="تحليل المخاطر" subtitle="نتائج المخاطر المرتبطة بالإصدار الحالي فقط، دون تداخل مع الامتثال أو فرص التحسين." />
               <div className="rounded-lg border border-line bg-paper p-4">
                 <StatusBadge tone={toneFromRisk(review.riskLevel)}>{review.riskLevel}</StatusBadge>
                 <p className="mt-3 text-sm leading-8 text-ink/75">درجة المخاطر: {review.riskScore}%</p>
@@ -665,7 +738,8 @@ export default function ContentReviewPage() {
               </div>
             </Panel>
 
-            <Panel>
+            <Panel id="compliance">
+              <SectionTitle title="تحليل الامتثال" subtitle="نتائج الامتثال المرتبطة بالإصدار الحالي وآخر تحليل، دون دمجها مع المخاطر أو فرص التحسين." />
               <SectionTitle title="امتثال قواعد السلوك المهني" subtitle="الإعلان، الادعاءات المضللة، ضمان النتائج، السرية، تعارض المصالح، وكرامة المهنة." />
               <p className="leading-8 text-ink/75">{review.professionalConductCompliance.summary}</p>
               <div className="mt-3">
@@ -688,7 +762,7 @@ export default function ContentReviewPage() {
 
           <div className="mt-5">
             <Panel id="references">
-              <SectionTitle title="المراجع ذات الصلة" subtitle="تعرض فقط المراجع الرسمية التي استندت إليها نتيجة المراجعة." />
+              <SectionTitle title="المراجع المهنية والرسمية" subtitle={`مرتبطة بالمحتوى ${contentId ?? review.reviewContext.reviewId} — الإصدار ${versionNumber ?? 1} — وآخر تحليل محفوظ.`} />
               <ReferencesMobile review={review} />
             </Panel>
           </div>
@@ -699,7 +773,7 @@ export default function ContentReviewPage() {
               <RecommendationCards items={planningSuggestions} />
             </Panel>
 
-            <Panel id="export">
+            <Panel id="sharing">
               <SectionTitle title="جاهزية التصدير والمشاركة" subtitle="حزمة قابلة للاستخدام بعد الاطلاع على نتيجة المراجعة." />
               <div className="rounded-lg border border-line bg-paper p-4">
                 <StatusBadge tone={review.exportAllowed ? "good" : toneFromRisk(review.riskLevel)}>
@@ -710,13 +784,31 @@ export default function ContentReviewPage() {
                 </p>
               </div>
               <div className="mt-4 flex flex-wrap gap-3">
-                <button type="button" onClick={copyReviewPackage} className="inline-flex items-center gap-2 rounded-md border border-line bg-white px-4 py-2.5 text-sm font-normal focus-ring"><Link2 size={16} />نسخ التقرير</button>
-                <button type="button" onClick={downloadReviewPackage} className="inline-flex items-center gap-2 rounded-md bg-palm px-4 py-2.5 text-sm font-normal text-white focus-ring"><Download size={16} />تنزيل الحزمة</button>
-                <button type="button" onClick={copyReviewPackage} className="inline-flex items-center gap-2 rounded-md border border-line bg-white px-4 py-2.5 text-sm font-normal focus-ring"><Share2 size={16} />تجهيز المشاركة</button>
+                <button type="button" disabled={!approved} onClick={copyReviewPackage} className="inline-flex items-center gap-2 rounded-md border border-line bg-white px-4 py-2.5 text-sm font-normal focus-ring disabled:cursor-not-allowed disabled:opacity-50"><Link2 size={16} />نسخ</button>
+                <button type="button" disabled={!approved} onClick={downloadReviewPackage} className="inline-flex items-center gap-2 rounded-md bg-palm px-4 py-2.5 text-sm font-normal text-white focus-ring disabled:cursor-not-allowed disabled:opacity-50"><Download size={16} />تنزيل</button>
+                <button type="button" disabled={!approved} onClick={prepareSharing} className="inline-flex items-center gap-2 rounded-md border border-line bg-white px-4 py-2.5 text-sm font-normal focus-ring disabled:cursor-not-allowed disabled:opacity-50"><Share2 size={16} />تجهيز المشاركة</button>
               </div>
+              {!approved ? <p className="mt-3 text-sm text-gold">يجب اعتماد المخرج قبل تفعيل خيارات المشاركة.</p> : null}
               {exportMessage ? <p className="mt-3 text-sm font-normal text-palm">{exportMessage}</p> : null}
             </Panel>
           </div>
+
+          <Panel id="approval" className="mt-5">
+            <SectionTitle title="اعتماد" subtitle="اعتماد الإصدار الحالي بعد مراجعة التحليل والصياغة المقترحة والمراجع المهنية والرسمية." />
+            <div className="flex flex-wrap items-center gap-3">
+              <button
+                type="button"
+                onClick={approveCurrentVersion}
+                disabled={approved || !review || !contentId || !versionNumber}
+                className="inline-flex items-center gap-2 rounded-md bg-palm px-5 py-2.5 text-sm font-normal text-white focus-ring disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <CheckCircle2 size={17} />
+                {approved ? "تم الاعتماد" : "اعتماد"}
+              </button>
+              <span className="inline-flex items-center gap-2 text-sm text-ink/65"><Save size={16} />يحفظ المحتوى والتحليل والمراجع معًا دون الكتابة فوق إصدار معتمد سابق.</span>
+            </div>
+            {approvalMessage ? <p className="mt-3 text-sm font-normal text-palm">{approvalMessage}</p> : null}
+          </Panel>
 
           <div className="mt-5 rounded-lg border border-line bg-white p-4 text-xs leading-6 text-ink/65">{advisoryDisclaimer}</div>
         </>

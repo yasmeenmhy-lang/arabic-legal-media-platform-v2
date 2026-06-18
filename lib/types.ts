@@ -1,4 +1,4 @@
-export type RoleName = "LAWYER" | "SUPERVISOR" | "ADMIN";
+export type RoleName = "LAWYER" | "SUPERVISOR" | "ADMIN" | "DIRECTOR";
 
 export type RiskLevel = "منخفض" | "متوسط" | "مرتفع";
 
@@ -271,6 +271,19 @@ export type ReviewResult = {
   workflow: ReviewWorkflowStep[];
   exportAllowed: boolean;
   advisoryDisclaimer: string;
+};
+
+export type ProfessionalOfficialReference = {
+  id: string;
+  referenceName: string;
+  ruleOrRegulationName: string;
+  articleOrRuleNumber: string;
+  relatedText: string;
+  relatedContentPhrase: string;
+  relianceReason: string;
+  contentEffect: string;
+  practicalGuidance: string;
+  officialUrl: string;
 };
 
 export type GovernedRewriteValidationStatus = "passed" | "failed";

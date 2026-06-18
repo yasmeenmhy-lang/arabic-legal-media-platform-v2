@@ -49,7 +49,7 @@ export default function AlertsPage() {
         </div>
         <p className="mt-4 flex items-center gap-2 text-xs leading-6 text-ink/55">
           <FileSearch size={14} className="text-palm" />
-          لا تعرض هذه الصفحة تنبيهات تجريبية أو افتراضية؛ تظهر التنبيهات عند توفر مراجعات أو تحديثات فعلية.
+          تظهر التنبيهات عند توفر مراجعات أو تحديثات فعلية.
         </p>
       </Panel>
     </div>
