@@ -45,7 +45,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 <ShieldCheck size={24} />
               </div>
               <div>
-                <p className="text-base font-normal text-palm">منصة المحامين</p>
+                <p className="text-base font-normal text-palm">إدارة المحتوى الإعلامي والإعلاني للمحامين</p>
                 <p className="mt-1 max-w-48 text-xs leading-6 text-ink/65">
                   تمكين الحضور الإعلامي والإعلاني وفق مراجعة مهنية استرشادية
                 </p>

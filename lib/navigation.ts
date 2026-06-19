@@ -9,7 +9,7 @@ import {
   Settings
 } from "lucide-react";
 
-export const platformTitle = "منصة تمكين وإدارة المحتوى الإعلامي والإعلاني للمحامين";
+export const platformTitle = "إدارة المحتوى الإعلامي والإعلاني للمحامين";
 
 // Lawyer-facing navigation only. The platform-owner /admin dashboard and any
 // user/role management are intentionally absent here; regular users must never

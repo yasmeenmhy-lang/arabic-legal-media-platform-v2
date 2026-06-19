@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import {
   AlertTriangle,
   ArrowRight,
+  Bot,
   CheckCircle2,
   Clipboard,
   Download,
@@ -17,10 +18,12 @@ import {
   Save,
   Share2,
   ShieldAlert,
+  SpellCheck,
   Sparkles
 } from "lucide-react";
 import { CircularGauge, PageHeader, Panel, ProgressBar, SectionTitle, StatusBadge } from "@/components/ui";
 import { socialBrandIcons, socialBrandStyles } from "@/components/social-icons";
+import { OfficialLogo, officialEntityFromUrl } from "@/components/official-logos";
 import { contentKindOptions } from "@/lib/content-types";
 import {
   approveContentVersion,
@@ -31,7 +34,7 @@ import {
   upsertAnalyzedVersion
 } from "@/lib/content-record-store";
 import { saveLatestReviewSnapshot } from "@/components/review-context-summary";
-import type { ContentKind, ReviewFinding, ReviewResult, RiskLevel } from "@/lib/types";
+import type { ContentKind, LanguageQualityIssue, ReviewFinding, ReviewResult, RiskLevel } from "@/lib/types";
 
 const contentTypes = contentKindOptions.filter((item) =>
   (["post", "advertisement", "campaign", "article", "script", "caption", "visual_content", "infographic", "publishing_plan"] as ContentKind[]).includes(item.value)
@@ -161,7 +164,7 @@ function FindingCard({ finding, index }: { finding: ReviewFinding; index: number
         </div>
         <div className="rounded-lg bg-paper p-4">
           <p className="text-xs text-ink/55">المرجع المتأثر</p>
-          <p className="mt-2 leading-7">{finding.sourceDocument} — {finding.legalReference}</p>
+          <div className="mt-2 flex items-center gap-3 leading-7"><OfficialLogo entity={officialEntityFromUrl(finding.sourceUrl)} /><span>{finding.sourceDocument} — {finding.legalReference}</span></div>
           <a href={finding.sourceUrl} target="_blank" rel="noopener noreferrer" className="mt-2 inline-flex items-center gap-2 text-sm text-palm underline">
             فتح المرجع الرسمي <ExternalLink size={14} aria-hidden="true" />
           </a>
@@ -221,6 +224,74 @@ function MetricExplanation({
       <div className="mt-4 grid gap-3 lg:grid-cols-2">
         <div className="rounded-md bg-paper p-3 text-sm leading-7"><b>الدليل:</b> {evidence}</div>
         <div className="rounded-md bg-mint/50 p-3 text-sm leading-7"><b>الإجراء الموصى به:</b> {action}</div>
+      </div>
+    </Panel>
+  );
+}
+
+function SpellingCheckerPanel({ issues }: { issues: LanguageQualityIssue[] }) {
+  const spellingIssues = issues.filter((issue) => issue.category === "spelling");
+  return (
+    <Panel id="smart-spelling-checker">
+      <SectionTitle
+        title="المدقق الإملائي الذكي"
+        subtitle="يعرض الكلمات أو العبارات ذات الأخطاء الإملائية الواضحة، ولا يعتبر النص صحيحًا عند وجود خطأ إملائي ظاهر."
+      />
+      {spellingIssues.length ? (
+        <div className="grid gap-3">
+          {spellingIssues.map((issue) => (
+            <article key={issue.id} className="rounded-lg border border-red-200 bg-red-50 p-4">
+              <div className="flex flex-wrap items-center gap-3">
+                <SpellCheck size={18} className="text-red-700" aria-hidden="true" />
+                <span className="rounded-md bg-white px-2.5 py-1 text-sm font-semibold text-red-700">{issue.excerpt}</span>
+                <span className="text-sm text-ink/65">←</span>
+                <span className="rounded-md bg-mint px-2.5 py-1 text-sm text-palm">{issue.suggestion}</span>
+              </div>
+              <p className="mt-3 text-sm leading-7 text-red-800">{issue.message}</p>
+            </article>
+          ))}
+        </div>
+      ) : (
+        <p className="rounded-lg bg-paper p-4 text-sm leading-7">لم يرصد المدقق الإملائي أخطاء واضحة في النص الحالي.</p>
+      )}
+    </Panel>
+  );
+}
+
+function SmartAssistantPanel({ review }: { review: ReviewResult }) {
+  const firstFinding = review.findings[0];
+  const firstLanguageIssue = review.languageQuality.issues[0];
+  const guidance = firstFinding
+    ? [
+        `ابدأ بمعالجة: ${firstFinding.title}.`,
+        `سبب الملاحظة: ${firstFinding.legalExplanation}`,
+        `العبارة المرتبطة داخل المحتوى: "${firstFinding.evidence}".`,
+        `المرجع: ${firstFinding.sourceDocument} — ${firstFinding.legalReference}.`,
+        `اقتراح التعديل: ${firstFinding.suggestedSaferWording}`
+      ]
+    : firstLanguageIssue
+      ? [
+          `ابدأ بتحسين اللغة: ${firstLanguageIssue.message}`,
+          `العبارة المرتبطة: "${firstLanguageIssue.excerpt}".`,
+          `التصحيح أو التحسين المقترح: ${firstLanguageIssue.suggestion}`,
+          "بعد التصحيح، أعد التحليل للتأكد من أثر التعديل على جاهزية النشر."
+        ]
+      : [
+          "لم تظهر ملاحظة مهنية أو إملائية واضحة في التحليل الحالي.",
+          "راجع السياق والجمهور والقناة قبل النشر، ثم اعتمد النسخة النهائية عند اكتمال المراجعة."
+        ];
+
+  return (
+    <Panel id="smart-assistant">
+      <SectionTitle
+        title="المساعد الذكي داخل النافذة"
+        subtitle="يساعدك على فهم الملاحظة وسببها والقاعدة المرتبطة بها وطريقة تعديل النص، دون أن يحل محل مسؤولية المستخدم في النشر."
+      />
+      <div className="rounded-xl border border-palm/20 bg-mint/40 p-4">
+        <div className="flex items-center gap-2 text-palm"><Bot size={20} aria-hidden="true" /><h3 className="font-semibold">توجيه عملي للمراجعة الحالية</h3></div>
+        <ul className="mt-3 list-disc space-y-2 pr-5 text-sm leading-7">
+          {guidance.map((item) => <li key={item}>{item}</li>)}
+        </ul>
       </div>
     </Panel>
   );
@@ -468,7 +539,7 @@ export default function ContentReviewPage() {
     <div className="content-review-window space-y-6">
       <PageHeader
         eyebrow="مساعد قرار النشر للمحامي"
-        title="نافذة إدارة المحتوى الإعلامي والإعلاني للمحامي"
+        title="إدارة المحتوى الإعلامي والإعلاني للمحامين"
         description="ابدأ بما يحتاج إلى قرار: الملاحظات، الأدلة، الأثر، والإجراء الموصى به. الدرجات مؤشرات مساندة وليست النتيجة الأساسية."
         action={<button type="button" onClick={() => router.back()} className="inline-flex items-center gap-2 rounded-md border border-line px-4 py-2.5 text-sm transition hover:bg-paper focus-ring"><ArrowRight size={16} />رجوع</button>}
       />
@@ -616,6 +687,8 @@ export default function ContentReviewPage() {
 
           {activeTab === "improvements" ? (
           <>
+          <SpellingCheckerPanel issues={review.languageQuality.issues} />
+          <SmartAssistantPanel review={review} />
           {(() => {
             const metric = businessScoreExplanation("language", review);
             return (
@@ -635,6 +708,7 @@ export default function ContentReviewPage() {
             {review.governedRewrites.length ? review.governedRewrites.map((rewrite) => (
               <div key={rewrite.id} className="rounded-xl border border-line p-5">
                 <p className="leading-8">{rewrite.suggestedText}</p>
+                <p className="mt-3 rounded-lg bg-paper p-3 text-xs leading-6 text-ink/65">النص المقترح لغرض التعليم والمساعدة فقط، وتظل مسؤولية النشر والمشاركة والاعتماد على المستخدم.</p>
                 <div className="mt-4 grid gap-3 md:grid-cols-2">
                   <div className="rounded-lg bg-paper p-4"><p className="text-xs text-ink/55">قبل التوصية</p><p className="mt-2">الامتثال {rewrite.originalComplianceScore}% — المخاطر {rewrite.originalRiskLevel}</p></div>
                   <div className="rounded-lg bg-mint p-4"><p className="text-xs text-palm">الأثر المتوقع بعد التطبيق</p><p className="mt-2">الامتثال المتوقع {rewrite.proposedComplianceScore}% — المخاطر المتوقعة {rewrite.proposedRiskLevel}</p></div>
@@ -653,7 +727,7 @@ export default function ContentReviewPage() {
                 <div className="grid gap-3">
                   {sortedFindings.map((finding) => (
                     <article key={`${finding.sourceUrl}-${finding.legalReference}`} className="rounded-lg border border-line bg-paper p-4">
-                      <h3 className="font-semibold">{finding.sourceDocument}</h3>
+                      <div className="flex items-center gap-3"><OfficialLogo entity={officialEntityFromUrl(finding.sourceUrl)} /><h3 className="font-semibold">{finding.sourceDocument}</h3></div>
                       <p className="mt-2 text-sm leading-7">{finding.legalReference}</p>
                       <p className="mt-2 text-sm leading-7 text-ink/65">{finding.legalExplanation}</p>
                       <a href={finding.sourceUrl} target="_blank" rel="noopener noreferrer" className="mt-3 inline-flex items-center gap-2 text-sm text-palm underline">

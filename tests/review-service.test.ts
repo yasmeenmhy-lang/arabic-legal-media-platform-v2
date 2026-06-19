@@ -233,4 +233,41 @@ describe("reviewContent", () => {
     expect(data.findings.create[0].traceabilityId).toBe(result.findings[0].traceabilityId);
     expect(data.findings.create[0].scoreImpact).toBe(result.findings[0].scoreImpact);
   });
+
+  it.each([
+    "أفضل محامي بالسعودية",
+    "أنا أفضل مكتب محامي في السعودية",
+    "نضمن لك كسب القضية بنسبة 100%",
+    "نسبة نجاح 100%",
+    "نتائج مضمونة",
+    "رقم واحد",
+    "أقوى محامي",
+    "لا نخسر القضايا"
+  ])("flags prohibited professional advertising phrase: %s", (text) => {
+    const result = reviewContent(text, "advertisement", {
+      contentType: "إعلان مهني",
+      channel: "LinkedIn",
+      audience: "عملاء محتملون",
+      purpose: "تعريف بالخدمات"
+    });
+
+    expect(result.findings.length).toBeGreaterThan(0);
+    expect(result.complianceScore).toBeLessThan(100);
+    expect(result.publicationDecision.outcome).not.toBe("RECOMMENDED");
+    expect(result.findings[0].evidence).toContain(result.findings[0].matchedPattern);
+    expect(["قواعد السلوك المهني للمحامين", "اللائحة التنفيذية لنظام المحاماة في المملكة العربية السعودية"]).toContain(result.findings[0].sourceDocument);
+    expect(result.findings[0].legalReference).toBeTruthy();
+    expect(result.findings[0].sourceUrl).toMatch(/^https:\/\/laws\.moj\.gov\.sa/);
+    expect(result.findings[0].legalExplanation).toContain(result.findings[0].evidence);
+    expect(result.governedRewrites.length).toBeGreaterThan(0);
+  });
+
+  it("does not pass language quality when obvious spelling mistakes exist", () => {
+    const result = reviewContent("هذا نص عن القضيه والاجراءات في السعوديه", "post");
+
+    expect(result.languageQuality.passed).toBe(false);
+    expect(result.languageQuality.issues.some((issue) => issue.category === "spelling" && issue.excerpt === "القضيه")).toBe(true);
+    expect(result.languageQuality.issues.some((issue) => issue.category === "spelling" && issue.suggestion.includes("القضية"))).toBe(true);
+    expect(result.publicationDecision.outcome).not.toBe("RECOMMENDED");
+  });
 });
