@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Clipboard, Download, Edit3, FileDown, Share2 } from "lucide-react";
 import { PageHeader, Panel, SectionTitle, StatusBadge } from "@/components/ui";
 import { socialBrandIcons, socialBrandStyles } from "@/components/social-icons";
-import { loadContentRecords, setActiveContentSelection, type StoredContentRecord } from "@/lib/content-record-store";
+import { getActiveContentSelection, loadContentRecords, setActiveContentSelection, type StoredContentRecord } from "@/lib/content-record-store";
 
 const platforms: Array<{
   key: "x" | "linkedin" | "instagram" | "tiktok" | "snapchat" | "youtube_shorts";
@@ -37,8 +37,16 @@ export default function SocialMediaPage() {
 
   useEffect(() => {
     const loaded = loadContentRecords();
+    const activeSelection = getActiveContentSelection();
+    const activeApprovedRecord = activeSelection
+      ? loaded.find((item) =>
+          item.id === activeSelection.contentId &&
+          item.approvedVersion === activeSelection.version &&
+          item.versions.some((version) => version.version === activeSelection.version && Boolean(version.approvedAt))
+        )
+      : undefined;
     setRecords(loaded);
-    setSelectedId(loaded.find((item) => item.approvedVersion)?.id ?? "");
+    setSelectedId(activeApprovedRecord?.id ?? loaded.find((item) => item.approvedVersion)?.id ?? "");
   }, []);
 
   const approvedItems = useMemo(() => records.flatMap((record) => {

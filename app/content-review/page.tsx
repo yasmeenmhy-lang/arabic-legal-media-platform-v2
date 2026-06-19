@@ -8,13 +8,10 @@ import {
   ArrowRight,
   Bot,
   CheckCircle2,
-  Clipboard,
-  Download,
   Edit3,
   ExternalLink,
   FileDown,
   FileText,
-  Printer,
   Save,
   Share2,
   ShieldAlert,
@@ -143,7 +140,7 @@ function FindingCard({ finding, index }: { finding: ReviewFinding; index: number
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <p className="text-xs text-ink/50">الأولوية {index + 1}</p>
-          <h3 className="mt-1 text-lg font-semibold leading-8">{finding.title}</h3>
+          <h3 className="mt-1 text-base font-semibold leading-8">{finding.title}</h3>
         </div>
         <StatusBadge tone={severity === "critical" || severity === "high" ? "gold" : severity === "medium" ? "neutral" : "good"}>
           {severityLabel[severity]}
@@ -214,7 +211,7 @@ function MetricExplanation({
         <div>
           <p className="text-xs text-ink/55">مؤشر مساند — لا يحل محل التفسير</p>
           <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
-            <h3 className="text-lg font-semibold">{label}</h3>
+            <h3 className="text-base font-semibold">{label}</h3>
             <StatusBadge tone={tone}>{displayValue}</StatusBadge>
           </div>
           <p className="mt-3 leading-7">{explanation}</p>
@@ -531,8 +528,17 @@ export default function ContentReviewPage() {
 
   function prepareSharing() {
     if (!approved || !contentId || !versionNumber) return;
-    markContentShared(contentId, versionNumber);
+    const shared = markContentShared(contentId, versionNumber);
+    if (!shared) return;
     setMessage("تم تجهيز النسخة المعتمدة للمشاركة وتسجيل الإجراء.");
+    router.push("/social-media");
+  }
+
+  function navigateToReviewSection(tab: ReviewTab) {
+    setActiveTab(tab);
+    window.requestAnimationFrame(() => {
+      document.getElementById(tab)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
   }
 
   return (
@@ -568,7 +574,7 @@ export default function ContentReviewPage() {
             <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
               <div>
                 <p className="text-xs text-palm">2. قرار النشر</p>
-                <h2 className="mt-2 text-2xl font-bold">{review.publicationDecision.label}</h2>
+                <h2 className="mt-2 text-lg font-semibold">{review.publicationDecision.label}</h2>
                 <p className="mt-3 max-w-4xl leading-8 text-ink/75">{review.publicationDecision.reason}</p>
               </div>
               <div className="flex flex-wrap gap-2">
@@ -587,7 +593,7 @@ export default function ContentReviewPage() {
               <button
                 key={tab.key}
                 type="button"
-                onClick={() => setActiveTab(tab.key)}
+                onClick={() => navigateToReviewSection(tab.key)}
                 aria-current={activeTab === tab.key ? "page" : undefined}
                 className={`shrink-0 rounded-md px-4 py-2 text-xs transition focus-ring sm:text-sm ${activeTab === tab.key ? "bg-palm text-white" : "text-ink/70 hover:bg-paper hover:text-ink"}`}
               >
@@ -645,7 +651,6 @@ export default function ContentReviewPage() {
             </div>
           </section>
 
-          {activeTab === "findings" ? (
           <>
           {sortedFindings.some((item) => item.businessSeverity === "critical") ? (
             <div className="rounded-xl border-2 border-red-300 bg-red-50 p-5">
@@ -654,39 +659,50 @@ export default function ContentReviewPage() {
             </div>
           ) : null}
 
-          <section id="findings" className="space-y-4">
+          <section id="findings" className="space-y-4 scroll-mt-24">
             <SectionTitle title="3. الملاحظات حسب الأولوية" subtitle="الملاحظات الحرجة أولاً، ثم العالية والمتوسطة والمنخفضة. لا يعتمد العرض على ترتيب الاكتشاف." />
             {sortedFindings.length ? sortedFindings.map((finding, index) => <FindingCard key={`${finding.title}-${finding.evidence}`} finding={finding} index={index} />) : (
               <Panel><div className="flex items-start gap-3"><CheckCircle2 className="mt-1 text-palm" /><div><h3 className="font-semibold">لم ترصد مخالفة مهنية مرتبطة بالمراجع المسجلة</h3><p className="mt-2 leading-7 text-ink/70">راجع متطلبات الاعتماد وجودة اللغة قبل تجهيز النشر.</p></div></div></Panel>
             )}
           </section>
           </>
-          ) : null}
 
-          {activeTab === "compliance" || activeTab === "risk" ? (
-          <div className="grid gap-5">
-            {([activeTab] as const).map((kindName) => {
-              const metric = businessScoreExplanation(kindName, review);
-              const value = kindName === "compliance" ? review.complianceScore : review.riskScore;
+          <section id="compliance" className="scroll-mt-24">
+            {(() => {
+              const metric = businessScoreExplanation("compliance", review);
               return (
                 <MetricExplanation
-                  key={kindName}
                   label={metric.label}
-                  value={value}
-                  displayValue={kindName === "risk" ? `${metric.value} — ${review.riskScore}%` : metric.value}
+                  value={review.complianceScore}
+                  displayValue={metric.value}
                   explanation={metric.explanation}
                   evidence={metric.evidence}
                   action={metric.action}
-                  tone={kindName === "risk" ? riskKpiTone(review.riskLevel) : complianceKpiTone(value)}
-                  inverse={kindName === "risk"}
+                  tone={complianceKpiTone(review.complianceScore)}
                 />
               );
-            })}
-          </div>
-          ) : null}
+            })()}
+          </section>
 
-          {activeTab === "improvements" ? (
-          <>
+          <section id="risk" className="scroll-mt-24">
+            {(() => {
+              const metric = businessScoreExplanation("risk", review);
+              return (
+                <MetricExplanation
+                  label={metric.label}
+                  value={review.riskScore}
+                  displayValue={`${metric.value} — ${review.riskScore}%`}
+                  explanation={metric.explanation}
+                  evidence={metric.evidence}
+                  action={metric.action}
+                  tone={riskKpiTone(review.riskLevel)}
+                  inverse
+                />
+              );
+            })()}
+          </section>
+
+          <section id="improvements" className="space-y-5 scroll-mt-24">
           <SpellingCheckerPanel issues={review.languageQuality.issues} />
           <SmartAssistantPanel review={review} />
           {(() => {
@@ -717,11 +733,9 @@ export default function ContentReviewPage() {
               </div>
             )) : <p className="rounded-lg bg-paper p-4 leading-7">لا توجد صياغة بديلة مطلوبة بعد التقييم الحالي.</p>}
           </Panel>
-          </>
-          ) : null}
+          </section>
 
-          {activeTab === "references" ? (
-            <Panel id="references">
+            <Panel id="references" className="scroll-mt-24">
               <SectionTitle title="المراجع المهنية والرسمية" subtitle="المصادر الرسمية المرتبطة مباشرة بالملاحظات، مع بيان القاعدة المتأثرة." />
               {sortedFindings.length ? (
                 <div className="grid gap-3">
@@ -738,9 +752,7 @@ export default function ContentReviewPage() {
                 </div>
               ) : <p className="rounded-lg bg-paper p-4 leading-7">لم تُرصد ملاحظة تستدعي إظهار مرجع متأثر في هذه المراجعة.</p>}
             </Panel>
-          ) : null}
 
-          {activeTab === "sharing" ? (
           <>
           <Panel id="channels">
             <SectionTitle title="5. القنوات المقترحة" subtitle="كل توصية مبنية على نوع المحتوى والجمهور والهدف ونتائج المراجعة." />
@@ -749,7 +761,7 @@ export default function ContentReviewPage() {
                 const Icon = socialBrandIcons[item.key];
                 return (
                   <article key={item.key} className="rounded-xl border border-line bg-white p-5">
-                    <div className="flex items-center justify-between gap-3"><div className="flex items-center gap-3">{Icon ? <Icon size={28} className={socialBrandStyles[item.key]?.icon} /> : null}<h3 className="text-lg font-semibold">{item.channel}</h3></div><StatusBadge tone={item.suitability === "عالية" ? "good" : "neutral"}>الملاءمة {item.suitability}</StatusBadge></div>
+                    <div className="flex items-center justify-between gap-3"><div className="flex items-center gap-3">{Icon ? <Icon size={28} className={socialBrandStyles[item.key]?.icon} /> : null}<h3 className="text-base font-semibold">{item.channel}</h3></div><StatusBadge tone={item.suitability === "عالية" ? "good" : "neutral"}>الملاءمة {item.suitability}</StatusBadge></div>
                     <p className="mt-4 leading-7">{item.reason}</p>
                     <dl className="mt-4 space-y-3 text-sm leading-7">
                       <div><dt className="text-ink/55">الجمهور</dt><dd>{item.targetAudience}</dd></div>
@@ -784,22 +796,15 @@ export default function ContentReviewPage() {
             {!approved ? <p className="mt-3 text-sm text-ink/65">عالج الحواجز الظاهرة أولاً. لن يؤدي الاعتماد إلى إخفاء ملاحظة حرجة أو تجاوزها.</p> : null}
           </Panel>
 
-          <Panel id="sharing">
-            <SectionTitle title="8. المشاركة والتصدير" subtitle="وحدة واحدة تحفظ النسخ والتنزيل والتقارير وتجهيز المشاركة دون ادعاء نشر تلقائي." />
+          <Panel id="sharing" className="scroll-mt-24">
+            <SectionTitle title="8. المشاركة والتصدير" subtitle="وحدة واحدة تحفظ النسخ والتنزيل والتقارير والمشاركة دون ادعاء نشر تلقائي." />
             <div className="flex flex-wrap gap-3">
-              <button type="button" onClick={copyReport} disabled={!approved} className="inline-flex items-center gap-2 rounded-md border border-line px-4 py-2.5 disabled:opacity-40"><Clipboard size={16} />نسخ التقرير</button>
-              <button type="button" onClick={downloadAnalysis} disabled={!approved} className="inline-flex items-center gap-2 rounded-md border border-line px-4 py-2.5 disabled:opacity-40"><Download size={16} />حزمة التحليل</button>
               <button type="button" onClick={downloadWord} disabled={!approved} className="inline-flex items-center gap-2 rounded-md border border-line px-4 py-2.5 disabled:opacity-40"><FileDown size={16} />تقرير Word</button>
-              <button type="button" onClick={() => window.print()} disabled={!approved} className="inline-flex items-center gap-2 rounded-md border border-line px-4 py-2.5 disabled:opacity-40"><Printer size={16} />طباعة / حفظ PDF</button>
-              <button type="button" onClick={prepareSharing} disabled={!approved} className="inline-flex items-center gap-2 rounded-md bg-palm px-4 py-2.5 text-white disabled:opacity-40"><Share2 size={16} />تجهيز المشاركة</button>
-              <Link href="/calendar" className="inline-flex items-center gap-2 rounded-md border border-line px-4 py-2.5"><FileText size={16} />فتح الخطة</Link>
-              <Link href="/content-management" className="inline-flex items-center gap-2 rounded-md border border-line px-4 py-2.5"><FileText size={16} />فتح السجل</Link>
-              {approved ? <Link href="/social-media" className="inline-flex items-center gap-2 rounded-md bg-palm px-4 py-2.5 text-white"><Share2 size={16} />فتح المشاركة والإرسال</Link> : null}
+              <button type="button" onClick={prepareSharing} disabled={!approved} className="inline-flex items-center gap-2 rounded-md bg-palm px-4 py-2.5 text-white disabled:opacity-40"><Share2 size={16} />المشاركة</button>
             </div>
             {!approved ? <div className="mt-4 flex items-center gap-2 rounded-lg bg-gold/10 p-4 text-sm"><AlertTriangle size={17} className="text-gold" />يجب اعتماد المخرج قبل إتاحة المشاركة والتصدير.</div> : null}
           </Panel>
           </>
-          ) : null}
 
           <p className="rounded-lg border border-line bg-white p-4 text-xs leading-7 text-ink/60">
             هذا المقترح استرشادي، تم إنشاؤه بناءً على البيانات المدخلة ونتائج المراجعة والمراجع المهنية المسجلة في المنصة. يظل قرار التعديل أو الاعتماد أو النشر مسؤولية المستخدم.

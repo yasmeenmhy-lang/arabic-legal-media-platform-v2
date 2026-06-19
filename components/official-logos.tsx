@@ -3,7 +3,7 @@ import { clsx } from "clsx";
 type OfficialEntityKey = "moj" | "najiz" | "sba" | "media" | "gmedia";
 
 const entityStyles: Record<OfficialEntityKey, { label: string; short: string; color: string; bg: string; src: string }> = {
-  moj: { label: "وزارة العدل", short: "MOJ", color: "text-emerald-800", bg: "bg-emerald-50", src: "https://www.moj.gov.sa/favicon.ico" },
+  moj: { label: "وزارة العدل", short: "MOJ", color: "text-emerald-800", bg: "bg-emerald-50", src: "https://laws.moj.gov.sa/logo.png" },
   najiz: { label: "ناجز", short: "ناجز", color: "text-teal-800", bg: "bg-teal-50", src: "https://najiz.sa/favicon.ico" },
   sba: { label: "الهيئة السعودية للمحامين", short: "SBA", color: "text-slate-800", bg: "bg-slate-100", src: "https://sba.gov.sa/favicon.ico" },
   media: { label: "وزارة الإعلام", short: "MEDIA", color: "text-sky-800", bg: "bg-sky-50", src: "https://media.gov.sa/favicon.ico" },
