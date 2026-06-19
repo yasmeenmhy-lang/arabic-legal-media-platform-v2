@@ -5,6 +5,8 @@ import { getAdminInsights } from "@/lib/services/admin-service";
 import { formatDualDateTime } from "@/lib/dates";
 import { AdminLoginForm } from "./login-form";
 import { AdminLogoutButton } from "./logout-button";
+import { ScoringProfileAdmin } from "@/components/scoring-profile-admin";
+import { getScoringProfiles } from "@/lib/scoring-profiles";
 
 export const dynamic = "force-dynamic";
 
@@ -92,6 +94,8 @@ export default async function AdminPage() {
       <div className="rounded-lg border border-line bg-white p-4 text-xs leading-6 text-ink/65">
         <ShieldAlert size={14} className="mb-1 inline text-gold" /> هذه اللوحة لإدارة المنصة فقط ولا تعرض بيانات تعريفية حساسة عن العملاء أو القضايا.
       </div>
+
+      <ScoringProfileAdmin initialProfiles={getScoringProfiles()} />
     </div>
   );
 }

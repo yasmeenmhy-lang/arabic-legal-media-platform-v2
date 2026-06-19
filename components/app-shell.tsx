@@ -92,7 +92,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </nav>
       </aside>
 
-      <div className="w-full max-w-full overflow-x-hidden">
+      <div className={clsx("w-full max-w-full overflow-x-hidden transition-[padding] duration-200", navOpen && "lg:pr-80")}>
         <header className="sticky top-0 z-40 border-b border-line bg-white/95 backdrop-blur">
           <div className="flex min-h-16 max-w-full items-center justify-between gap-3 px-3 sm:gap-4 sm:px-6">
             <div className="flex min-w-0 items-center gap-3">

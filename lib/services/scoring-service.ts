@@ -1,4 +1,5 @@
 import type {
+  BusinessSeverity,
   ComplianceScoreExplanation,
   FindingCategory,
   FindingDomain,
@@ -10,58 +11,23 @@ import type {
   RiskLevel,
   RiskScoreExplanation
 } from "@/lib/types";
+import type { ScoringProfile } from "@/lib/scoring-profiles";
+import { resolveScoringProfile } from "@/lib/scoring-profiles";
 
-export const SCORING_MODEL_VERSION = "governed-scoring-v1";
-
-const severityComplianceWeight: Record<RiskLevel, number> = {
-  منخفض: 6,
-  متوسط: 12,
-  مرتفع: 20
-};
-
-const severityRiskWeight: Record<RiskLevel, number> = {
-  منخفض: 6,
-  متوسط: 14,
-  مرتفع: 24
-};
-
-const categoryWeights: Record<FindingCategory, number> = {
-  "ضوابط الإعلان": 6,
-  "الوعود بالنتائج": 10,
-  "السرية والخصوصية": 10,
-  "استقطاب العملاء": 7,
-  "الصفة المهنية": 9,
-  "الخبرة المهنية": 5,
-  "تعارض المصالح": 10,
-  "كرامة المهنة": 5,
-  "التواصل العام": 4
-};
-
-const impactWeights: Record<RiskLevel, number> = {
-  منخفض: 2,
-  متوسط: 5,
-  مرتفع: 9
-};
-
-const domainWeights: Record<FindingDomain, number> = {
-  نظامي: 8,
-  مهني: 6,
-  إعلاني: 7,
-  لغوي: 2,
-  إجرائي: 4
-};
-
-const reviewStatusScores: Record<ReviewReadinessStatus, number> = {
-  DRAFT: 45,
-  REVIEW_REQUIRED: 65,
-  NEEDS_CORRECTION: 20,
-  READY_FOR_PUBLISHING: 100,
-  EXPORTED: 100,
-  SHARED: 100
-};
+export const SCORING_MODEL_VERSION = "decision-support-v2";
 
 function boundedScore(value: number) {
   return Math.max(0, Math.min(100, Math.round(value)));
+}
+
+export function businessSeverityForFinding(finding: Pick<ReviewFinding, "legalKnowledgeEntryId" | "severity" | "category">): BusinessSeverity {
+  if (
+    finding.legalKnowledgeEntryId.includes("no-guaranteed-outcomes") ||
+    finding.legalKnowledgeEntryId.includes("confidentiality")
+  ) return "critical";
+  if (finding.severity === "حرج" || finding.severity === "مرتفع") return "high";
+  if (finding.severity === "متوسط") return "medium";
+  return "low";
 }
 
 export function classifyLegalKnowledgeEntry(entry: LegalKnowledgeEntry): {
@@ -69,8 +35,8 @@ export function classifyLegalKnowledgeEntry(entry: LegalKnowledgeEntry): {
   domain: FindingDomain;
   potentialImpact: RiskLevel;
 } {
-  if (entry.id.includes("no-guaranteed-outcomes")) return { category: "الوعود بالنتائج", domain: "نظامي", potentialImpact: "مرتفع" };
-  if (entry.id.includes("confidentiality")) return { category: "السرية والخصوصية", domain: "نظامي", potentialImpact: "مرتفع" };
+  if (entry.id.includes("no-guaranteed-outcomes")) return { category: "الوعود بالنتائج", domain: "نظامي", potentialImpact: "حرج" };
+  if (entry.id.includes("confidentiality")) return { category: "السرية والخصوصية", domain: "نظامي", potentialImpact: "حرج" };
   if (entry.id.includes("conflict")) return { category: "تعارض المصالح", domain: "مهني", potentialImpact: "مرتفع" };
   if (entry.id.includes("license") || entry.id.includes("prohibited-wording")) return { category: "الصفة المهنية", domain: "نظامي", potentialImpact: "مرتفع" };
   if (entry.id.includes("solicitation")) return { category: "استقطاب العملاء", domain: "إعلاني", potentialImpact: entry.severity };
@@ -80,64 +46,91 @@ export function classifyLegalKnowledgeEntry(entry: LegalKnowledgeEntry): {
   return { category: "التواصل العام", domain: "إجرائي", potentialImpact: entry.severity };
 }
 
-export function calculateFindingWeight(
-  severity: RiskLevel,
-  category: FindingCategory,
-  potentialImpact: RiskLevel
-) {
-  return Math.min(40, severityComplianceWeight[severity] + categoryWeights[category] + impactWeights[potentialImpact]);
+export function arabicSeverity(severity: BusinessSeverity): RiskLevel {
+  return severity === "critical" ? "حرج" : severity === "high" ? "مرتفع" : severity === "medium" ? "متوسط" : "منخفض";
 }
 
-export function calculateComplianceScore(findings: ReviewFinding[]): ComplianceScoreExplanation {
-  const contributions = findings.map((finding) => ({
-    traceabilityId: finding.traceabilityId,
-    label: finding.title,
-    value: finding.scoreImpact,
-    explanation: `خصم ${finding.scoreImpact} نقطة بسبب ملاحظة ${finding.category} بدرجة ${finding.severity} وأثر محتمل ${finding.potentialImpact}.`
-  }));
-  const totalDeduction = contributions.reduce((sum, contribution) => sum + contribution.value, 0);
+export function riskDimensionsForFinding(finding: Pick<ReviewFinding, "legalKnowledgeEntryId" | "category">) {
+  const dimensions: NonNullable<ReviewFinding["riskDimensions"]> = ["reputational"];
+  if (
+    finding.legalKnowledgeEntryId.includes("no-guaranteed-outcomes") ||
+    finding.legalKnowledgeEntryId.includes("license") ||
+    finding.legalKnowledgeEntryId.includes("conflict")
+  ) dimensions.push("legal");
+  if (finding.legalKnowledgeEntryId.includes("confidentiality")) dimensions.push("confidentiality", "legal");
+  if (
+    finding.legalKnowledgeEntryId.includes("advertising") ||
+    finding.legalKnowledgeEntryId.includes("solicitation") ||
+    finding.legalKnowledgeEntryId.includes("no-guaranteed-outcomes")
+  ) dimensions.push("misleadingCommunication");
+  return [...new Set(dimensions)];
+}
 
+export function calculateFindingWeight(
+  severity: RiskLevel,
+  _category: ReviewFinding["category"],
+  _potentialImpact: RiskLevel,
+  profile?: ScoringProfile
+) {
+  const selected = profile ?? resolveScoringProfile("post");
+  const businessSeverity: BusinessSeverity =
+    severity === "حرج" ? "critical" : severity === "مرتفع" ? "high" : severity === "متوسط" ? "medium" : "low";
+  return selected.complianceDeductions[businessSeverity];
+}
+
+export function calculateComplianceScore(findings: ReviewFinding[], profile?: ScoringProfile): ComplianceScoreExplanation {
+  const selected = profile ?? resolveScoringProfile("post");
+  const unresolved = findings.filter((finding) => !finding.resolved);
+  const contributions = unresolved.map((finding) => {
+    const severity = finding.businessSeverity ?? businessSeverityForFinding(finding);
+    const value = selected.complianceDeductions[severity];
+    return {
+      traceabilityId: finding.traceabilityId,
+      label: finding.title,
+      value,
+      explanation: `أثرت الملاحظة على الامتثال بسبب شدتها وارتباطها بمرجع مهني أو رسمي واجب المراعاة.`
+    };
+  });
+  const totalDeduction = contributions.reduce((sum, contribution) => sum + contribution.value, 0);
   return {
-    modelVersion: SCORING_MODEL_VERSION,
+    modelVersion: `${selected.id}-v${selected.version}`,
     baseScore: 100,
     totalDeduction,
-    finalScore: findings.length === 0 ? 100 : Math.max(0, 100 - totalDeduction),
+    finalScore: Math.max(0, 100 - totalDeduction),
     calculatedFromFindingsOnly: true,
     contributions
   };
 }
 
-export function calculateRiskScore(findings: ReviewFinding[]): RiskScoreExplanation {
-  const severityContribution = findings.reduce((sum, finding) => sum + severityRiskWeight[finding.severity], 0);
-  const categoryContribution = findings.reduce((sum, finding) => sum + categoryWeights[finding.category], 0);
-  const impactContribution = findings.reduce((sum, finding) => sum + impactWeights[finding.potentialImpact], 0);
-  const domains = new Set(findings.map((finding) => finding.domain));
-  const domainContribution = Array.from(domains).reduce((sum, domain) => sum + domainWeights[domain], 0);
-  const countContribution = findings.length > 1 ? Math.min(15, (findings.length - 1) * 4) : 0;
-  const score = findings.length === 0
-    ? 0
-    : boundedScore(severityContribution + categoryContribution + impactContribution + domainContribution + countContribution);
-  const level: RiskLevel = score >= 50 ? "مرتفع" : score >= 25 ? "متوسط" : "منخفض";
-
-  return {
-    modelVersion: SCORING_MODEL_VERSION,
-    score,
-    level,
-    findingCount: findings.length,
-    severityContribution,
-    categoryContribution,
-    impactContribution,
-    domainContribution,
-    countContribution,
-    contributions: findings.map((finding) => ({
+export function calculateRiskScore(findings: ReviewFinding[], profile?: ScoringProfile): RiskScoreExplanation {
+  const selected = profile ?? resolveScoringProfile("post");
+  const unresolved = findings.filter((finding) => !finding.resolved);
+  const contributions = unresolved.map((finding) => {
+    const severity = finding.businessSeverity ?? businessSeverityForFinding(finding);
+    return {
       traceabilityId: finding.traceabilityId,
       label: finding.title,
-      value:
-        severityRiskWeight[finding.severity] +
-        categoryWeights[finding.category] +
-        impactWeights[finding.potentialImpact],
-      explanation: `${finding.category}: شدة ${finding.severity}، مجال ${finding.domain}، وأثر محتمل ${finding.potentialImpact}.`
-    }))
+      value: selected.riskPoints[severity],
+      explanation: `يسهم هذا العامل في المخاطر بسبب ${finding.riskDimensions?.length ? "أثره القانوني أو المهني أو الاتصالي" : "أثره المحتمل عند النشر"}.`
+    };
+  });
+  const score = boundedScore(contributions.reduce((sum, contribution) => sum + contribution.value, 0));
+  const level: RiskLevel =
+    score > selected.thresholds.risk.high ? "حرج" :
+      score > selected.thresholds.risk.medium ? "مرتفع" :
+        score > selected.thresholds.risk.low ? "متوسط" : "منخفض";
+
+  return {
+    modelVersion: `${selected.id}-v${selected.version}`,
+    score,
+    level,
+    findingCount: unresolved.length,
+    severityContribution: score,
+    categoryContribution: 0,
+    impactContribution: 0,
+    domainContribution: 0,
+    countContribution: 0,
+    contributions
   };
 }
 
@@ -157,9 +150,8 @@ export function deriveReviewStatus({
   riskLevel: RiskLevel;
   requestedStatus?: ReviewReadinessStatus;
 }): ReviewReadinessStatus {
-  if (requestedStatus && ["EXPORTED", "SHARED"].includes(requestedStatus)) return requestedStatus;
-  if (riskLevel === "مرتفع" || complianceScore < 82 || languageScore < 82) return "NEEDS_CORRECTION";
-  if (riskLevel === "منخفض" && complianceScore >= 95 && languageScore >= 95) return "READY_FOR_PUBLISHING";
+  if (requestedStatus && ["EXPORTED", "SHARED", "READY_FOR_PUBLISHING"].includes(requestedStatus)) return requestedStatus;
+  if (riskLevel === "حرج" || riskLevel === "مرتفع" || complianceScore < 70 || languageScore < 82) return "NEEDS_CORRECTION";
   return "REVIEW_REQUIRED";
 }
 
@@ -168,62 +160,58 @@ export function calculatePublishingReadiness({
   riskScore,
   languageScore,
   context,
-  reviewStatus
+  reviewStatus,
+  profile
 }: {
   complianceScore: number;
   riskScore: number;
   languageScore: number;
   context: ReviewContext;
   reviewStatus: ReviewReadinessStatus;
+  profile?: ScoringProfile;
 }): PublishingReadinessExplanation {
-  const metadataCompletenessScore = calculateMetadataCompleteness(context);
+  const selected = profile ?? resolveScoringProfile("post", context.channel);
+  const approvalScore = ["READY_FOR_PUBLISHING", "EXPORTED", "SHARED"].includes(reviewStatus) ? 100 : 0;
+  const weights = selected.readinessWeights;
   const factors: PublishingReadinessExplanation["factors"] = [
     {
       key: "compliance",
-      label: "مستوى الامتثال",
+      label: "نتيجة الامتثال",
       sourceScore: complianceScore,
-      weight: 40,
-      weightedScore: complianceScore * 0.4,
-      explanation: "يمثل أثر الملاحظات المهنية والتنظيمية المرتبطة بالمراجع المسجلة."
+      weight: weights.compliance,
+      weightedScore: complianceScore * (weights.compliance / 100),
+      explanation: "يعكس الملاحظات المهنية والتنظيمية غير المعالجة."
     },
     {
       key: "risk",
-      label: "مؤشر السلامة من المخاطر",
+      label: "السلامة من المخاطر",
       sourceScore: 100 - riskScore,
-      weight: 25,
-      weightedScore: (100 - riskScore) * 0.25,
-      explanation: "يعكس عكس درجة المخاطر المحسوبة من الشدة والعدد والنوع والأثر والمجال."
+      weight: weights.risk,
+      weightedScore: (100 - riskScore) * (weights.risk / 100),
+      explanation: "يعكس مستوى المخاطر القانونية والمهنية والاتصالية عند النشر."
     },
     {
       key: "language",
-      label: "جودة اللغة والصياغة",
+      label: "جودة اللغة",
       sourceScore: languageScore,
-      weight: 20,
-      weightedScore: languageScore * 0.2,
-      explanation: "مبني على الإملاء والنحو والترقيم والأسلوب والمقروئية واتساق المصطلحات."
+      weight: weights.language,
+      weightedScore: languageScore * (weights.language / 100),
+      explanation: "يعكس وضوح الصياغة وسلامتها وملاءمتها المهنية."
     },
     {
-      key: "metadata",
-      label: "اكتمال بيانات المراجعة",
-      sourceScore: metadataCompletenessScore,
-      weight: 10,
-      weightedScore: metadataCompletenessScore * 0.1,
-      explanation: "يقيس اكتمال نوع المحتوى والقناة والجمهور والغرض."
-    },
-    {
-      key: "review_status",
-      label: "حالة مسار المراجعة",
-      sourceScore: reviewStatusScores[reviewStatus],
-      weight: 5,
-      weightedScore: reviewStatusScores[reviewStatus] * 0.05,
-      explanation: "يعكس حالة المحتوى في مسار المراجعة وجاهزية النشر."
+      key: "approval",
+      label: "اعتماد الإصدار",
+      sourceScore: approvalScore,
+      weight: weights.approval,
+      weightedScore: approvalScore * (weights.approval / 100),
+      explanation: "لا تكتمل الجاهزية قبل اعتماد الإصدار نفسه."
     }
   ];
 
   return {
-    modelVersion: SCORING_MODEL_VERSION,
+    modelVersion: `${selected.id}-v${selected.version}`,
     finalScore: boundedScore(factors.reduce((sum, factor) => sum + factor.weightedScore, 0)),
-    metadataCompletenessScore,
+    metadataCompletenessScore: calculateMetadataCompleteness(context),
     reviewStatus,
     factors
   };

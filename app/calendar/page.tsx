@@ -1,373 +1,159 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import Link from "next/link";
-import { CalendarCheck, CalendarDays, Edit3, Link2, Megaphone, MessageCircle, Save, ShieldAlert, Trash2, X } from "lucide-react";
-import { DataTable, KpiGrid, ModuleTabs, PageHeader, Panel, SectionTitle, StatusBadge } from "@/components/ui";
-import { contentKindOptions } from "@/lib/content-types";
-import { formatDualDate } from "@/lib/dates";
-import type { ContentKind, RiskLevel } from "@/lib/types";
+import { CalendarDays, CheckCircle2, ChevronLeft, Clock3, Save, Target, Users } from "lucide-react";
+import { PageHeader, Panel, SectionTitle, StatusBadge } from "@/components/ui";
+import { socialBrandIcons } from "@/components/social-icons";
+import { loadContentRecords, type StoredContentRecord } from "@/lib/content-record-store";
 
-type Priority = RiskLevel;
+type StageStatus = "مكتمل" | "قيد التنفيذ" | "قادم" | "محجوب";
+type PlanningStage = { key: string; label: string; milestone: string; status: StageStatus; owner: string };
 
-type CalendarItem = {
-  id: string;
-  title: string;
-  contentType: ContentKind;
-  channel: string;
-  date: number;
-  priority: Priority;
-  reviewRef: string;
-};
-
-const channels = ["X", "LinkedIn", "Instagram", "TikTok", "Snapchat", "YouTube", "الموقع الإلكتروني"];
-const reviewRefs = ["نتيجة مراجعة 1042", "نتيجة مراجعة 1037", "نتيجة مراجعة 1029", "بانتظار الربط"];
-const priorities: Priority[] = ["مرتفع", "متوسط", "منخفض"];
-const priorityRank: Record<Priority, number> = { مرتفع: 0, متوسط: 1, منخفض: 2 };
-const weekdayLabels = ["الأحد", "الإثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"];
-
-const initialItems: CalendarItem[] = [
-  { id: "cal-1", title: "منشور توعوي عن العقود", contentType: "post", channel: "X", date: 7, priority: "متوسط", reviewRef: "نتيجة مراجعة 1042" },
-  { id: "cal-2", title: "حملة الإعلان المهني", contentType: "campaign", channel: "LinkedIn", date: 14, priority: "مرتفع", reviewRef: "بانتظار الربط" },
-  { id: "cal-3", title: "فيديو قصير عن السرية", contentType: "script", channel: "YouTube", date: 21, priority: "مرتفع", reviewRef: "نتيجة مراجعة 1037" }
+const defaultStages: PlanningStage[] = [
+  { key: "idea", label: "فكرة المحتوى", milestone: "تحديد الموضوع والهدف والجمهور", status: "مكتمل", owner: "المحامي" },
+  { key: "review", label: "المراجعة والامتثال", milestone: "تحليل الأدلة والمراجع والمخاطر", status: "قيد التنفيذ", owner: "المحامي والمنصة" },
+  { key: "rewrite", label: "الصياغة الآمنة", milestone: "تطبيق التصحيحات وإعادة التقييم", status: "قادم", owner: "المحامي" },
+  { key: "approval", label: "الاعتماد", milestone: "اعتماد النسخة النهائية نفسها", status: "محجوب", owner: "المحامي" },
+  { key: "campaign", label: "إعداد الحملة", milestone: "تحديد الرسالة والقنوات والمخرجات", status: "محجوب", owner: "المحامي" },
+  { key: "schedule", label: "الجدولة", milestone: "اختيار الموعد المناسب", status: "محجوب", owner: "المحامي" },
+  { key: "preparation", label: "تجهيز النشر", milestone: "إنشاء الحزمة الخاصة بكل قناة", status: "محجوب", owner: "المحامي" },
+  { key: "monitoring", label: "المتابعة", milestone: "متابعة الأداء والملاحظات", status: "محجوب", owner: "المحامي" },
+  { key: "improvement", label: "التحسين", milestone: "تحديث الرسالة بناءً على النتائج", status: "محجوب", owner: "المحامي" }
 ];
 
-type PlanProposal = {
-  id: string;
-  title: string;
-  objective: string;
-  audience: string;
-  channels: string;
-  topic: string;
-  occasion: string;
-  message: string;
-  status: "مقترح" | "قيد التعديل" | "محفوظ";
-};
-
-const initialPlans: PlanProposal[] = [
-  { id: "plan-1", title: "التوعية بالعقود", objective: "رفع الوعي", audience: "أفراد ورواد أعمال", channels: "لينكدإن ومنصة إكس", topic: "وضوح الالتزامات التعاقدية", occasion: "خطة شهرية", message: "رسائل تثقيفية قصيرة مرتبطة بمحتوى تمت مراجعته", status: "مقترح" },
-  { id: "plan-2", title: "سرية معلومات العميل", objective: "التوعية المهنية", audience: "عملاء محتملون", channels: "فيديو قصير", topic: "السرية المهنية", occasion: "حملة توعوية", message: "شرح مبسط لحدود مشاركة المعلومات", status: "مقترح" },
-  { id: "plan-3", title: "الإعلان المهني المنضبط", objective: "تحسين الامتثال", audience: "منشآت قانونية", channels: "منشورات متعددة", topic: "ضوابط الإعلان", occasion: "مناسبة مهنية", message: "صياغات مهنية غير قطعية", status: "مقترح" }
-];
-
-function sortByPriority(items: CalendarItem[]) {
-  return [...items].sort((a, b) => priorityRank[a.priority] - priorityRank[b.priority]);
-}
+const statusTone = (status: StageStatus) =>
+  status === "مكتمل" ? "good" as const : status === "قيد التنفيذ" ? "neutral" as const : "gold" as const;
 
 export default function CalendarPage() {
-  const today = useMemo(() => new Date(), []);
-  const year = today.getFullYear();
-  const month = today.getMonth();
-  const daysInMonth = useMemo(() => new Date(year, month + 1, 0).getDate(), [year, month]);
-  const leadingBlanks = useMemo(() => new Date(year, month, 1).getDay(), [year, month]);
-
-  const [items, setItems] = useState(initialItems);
-  const [selectedDate, setSelectedDate] = useState(Math.min(today.getDate(), daysInMonth));
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [title, setTitle] = useState("محتوى توعوي مرتبط بنتيجة مراجعة");
-  const [channel, setChannel] = useState<string>("LinkedIn");
-  const [contentType, setContentType] = useState<ContentKind>("post");
-  const [priority, setPriority] = useState<Priority>("متوسط");
-  const [reviewRef, setReviewRef] = useState(reviewRefs[0]);
-  const [plans, setPlans] = useState<PlanProposal[]>(initialPlans);
-  const [selectedPlanId, setSelectedPlanId] = useState<string>();
-  const [editingPlan, setEditingPlan] = useState(false);
+  const [records, setRecords] = useState<StoredContentRecord[]>([]);
+  const [selectedId, setSelectedId] = useState("");
+  const [stages, setStages] = useState(defaultStages);
+  const [targetDate, setTargetDate] = useState("");
+  const [message, setMessage] = useState("");
 
   useEffect(() => {
-    const saved = window.localStorage.getItem("lawyer-media:planning-proposals");
+    const loaded = loadContentRecords();
+    setRecords(loaded);
+    setSelectedId(loaded[0]?.id ?? "");
+    const saved = window.localStorage.getItem("lawyer-media:decision-workflow");
     if (saved) {
-      try { setPlans(JSON.parse(saved) as PlanProposal[]); } catch { setPlans(initialPlans); }
+      try { setStages(JSON.parse(saved) as PlanningStage[]); } catch { setStages(defaultStages); }
     }
   }, []);
 
-  const selectedPlan = plans.find((plan) => plan.id === selectedPlanId);
+  const selected = records.find((record) => record.id === selectedId) ?? records[0];
+  const version = selected?.versions.find((item) => item.version === selected.currentVersion);
+  const review = version?.analysis;
+  const recommendations = review?.channelRecommendations ?? [];
+  const completed = stages.filter((stage) => stage.status === "مكتمل").length;
 
-  function updatePlan(field: keyof PlanProposal, value: string) {
-    if (!selectedPlanId) return;
-    setPlans((current) => current.map((plan) => plan.id === selectedPlanId ? { ...plan, [field]: value, status: "قيد التعديل" } : plan));
+  const decisionSummary = useMemo(() => {
+    if (!review) return "ابدأ بمراجعة محتوى فعلي لربط الخطة بقرار نشر وأدلة.";
+    return review.publicationDecision.reason;
+  }, [review]);
+
+  function advanceStage(index: number) {
+    const current = stages[index];
+    if (!current || current.status === "محجوب") return;
+    const next = stages.map((stage, stageIndex) => {
+      if (stageIndex === index) return { ...stage, status: "مكتمل" as const };
+      if (stageIndex === index + 1) return { ...stage, status: "قيد التنفيذ" as const };
+      return stage;
+    });
+    setStages(next);
+    window.localStorage.setItem("lawyer-media:decision-workflow", JSON.stringify(next));
+    setMessage(`اكتملت مرحلة «${current.label}» وانتقل المسار إلى المرحلة التالية.`);
   }
 
-  function savePlan() {
-    const next = plans.map((plan) => plan.id === selectedPlanId ? { ...plan, status: "محفوظ" as const } : plan);
-    setPlans(next);
-    window.localStorage.setItem("lawyer-media:planning-proposals", JSON.stringify(next));
-    setEditingPlan(false);
-  }
-
-  const selectedItems = useMemo(() => sortByPriority(items.filter((item) => item.date === selectedDate)), [items, selectedDate]);
-  const orderedItems = useMemo(() => sortByPriority(items), [items]);
-
-  function resetForm() {
-    setEditingId(null);
-    setTitle("محتوى توعوي مرتبط بنتيجة مراجعة");
-    setChannel("LinkedIn");
-    setContentType("post");
-    setPriority("متوسط");
-    setReviewRef(reviewRefs[0]);
-  }
-
-  function saveItem() {
-    if (editingId) {
-      setItems((current) => current.map((item) => (item.id === editingId ? { ...item, title, channel, contentType, priority, reviewRef } : item)));
-      resetForm();
-      return;
-    }
-
-    setItems((current) => [...current, { id: `cal-${current.length + 1}-${selectedDate}`, title, channel, contentType, priority, reviewRef, date: selectedDate }]);
-    resetForm();
-  }
-
-  function editItem(item: CalendarItem) {
-    setEditingId(item.id);
-    setSelectedDate(item.date);
-    setTitle(item.title);
-    setChannel(item.channel);
-    setContentType(item.contentType);
-    setPriority(item.priority);
-    setReviewRef(item.reviewRef);
-  }
-
-  function deleteItem(id: string) {
-    setItems((current) => current.filter((item) => item.id !== id));
-    if (editingId === id) resetForm();
+  function saveSchedule() {
+    if (!targetDate) return;
+    window.localStorage.setItem("lawyer-media:target-publication-date", targetDate);
+    setMessage("تم حفظ الموعد المستهدف ضمن الخطة الاسترشادية.");
   }
 
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="التخطيط والنشر"
-        title="التخطيط والنشر"
-        description="تقويم موحد لتنظيم المواد الإعلامية والإعلانية: عرض شهري، ترتيب الأولوية، إدارة العناصر، وربط كل عنصر بنتيجة مراجعة قبل النشر، إلى جانب مقترحات الحملات التي تغذي هذا التقويم."
+        eyebrow="التخطيط الاسترشادي"
+        title="مسار التخطيط والنشر"
+        description="خطة مرئية تربط المحتوى بالمراجعة والاعتماد والقنوات والجدولة. المقترحات استرشادية ولا تضمن نتائج أو وصولاً محدداً."
       />
 
-      <ModuleTabs
-        items={[
-          { label: "التقويم", href: "#calendar", active: true },
-          { label: "الحملات", href: "#campaigns" },
-          { label: "جدولة النشر", href: "#publishing" },
-          { label: "المحتوى المخطط", href: "#planned-content" },
-          { label: "تخطيط القنوات", href: "#channels" }
-        ]}
-      />
+      <Panel>
+        <SectionTitle title="المحتوى المرتبط بالخطة" subtitle="اختيار المحتوى يحدّث قرار النشر والجمهور والقنوات المقترحة تلقائياً." />
+        {records.length ? (
+          <select value={selected?.id} onChange={(event) => setSelectedId(event.target.value)} className="w-full rounded-md border border-line bg-white px-3 py-3">
+            {records.map((record) => <option key={record.id} value={record.id}>{record.title}</option>)}
+          </select>
+        ) : <p className="rounded-lg bg-paper p-4">لا يوجد محتوى محفوظ. ابدأ من مراجعة المحتوى.</p>}
+      </Panel>
 
-      <div className="grid gap-5 xl:grid-cols-[1.1fr_0.9fr]">
-        <Panel id="calendar" className="overflow-hidden">
-          <SectionTitle
-            title="عرض الشهر"
-            subtitle={`${formatDualDate(new Date(year, month, Math.min(selectedDate, daysInMonth)))} — اختر يوماً لعرض عناصره أو إضافة عنصر جديد.`}
-          />
-          <div className="mb-2 flex items-center gap-2 text-sm font-normal text-palm">
-            <CalendarDays size={18} />
-            الشهر الحالي
+      <div className="grid gap-5 xl:grid-cols-[1.2fr_0.8fr]">
+        <Panel>
+          <SectionTitle title="الهدف والقرار" subtitle="هذه المعلومات تشرح القرار الذي تساعد الخطة على تنفيذه." />
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="rounded-lg bg-paper p-4"><div className="flex items-center gap-2 text-palm"><Target size={18} /><p className="text-sm">الهدف</p></div><p className="mt-2 leading-7">{version?.purpose ?? "غير محدد"}</p></div>
+            <div className="rounded-lg bg-paper p-4"><div className="flex items-center gap-2 text-palm"><Users size={18} /><p className="text-sm">الجمهور</p></div><p className="mt-2 leading-7">{version?.audience ?? "غير محدد"}</p></div>
           </div>
-          <div className="grid grid-cols-7 gap-1.5 text-center text-[11px] text-ink/55">
-            {weekdayLabels.map((label) => (
-              <span key={label} className="py-1 font-normal">{label}</span>
-            ))}
+          <div className="mt-4 rounded-lg border border-line p-4">
+            <div className="flex flex-wrap items-center justify-between gap-3"><p className="font-semibold">قرار النشر الحالي</p>{review ? <StatusBadge tone={review.publicationDecision.recommended ? "good" : "gold"}>{review.publicationDecision.label}</StatusBadge> : null}</div>
+            <p className="mt-3 leading-8 text-ink/75">{decisionSummary}</p>
           </div>
-          <div className="grid grid-cols-7 gap-1.5 text-xs">
-            {Array.from({ length: leadingBlanks }, (_, index) => <span key={`blank-${index}`} />)}
-            {Array.from({ length: daysInMonth }, (_, index) => {
-              const day = index + 1;
-              const dayItems = sortByPriority(items.filter((item) => item.date === day));
+        </Panel>
+
+        <Panel>
+          <SectionTitle title="الجدول الزمني" subtitle="موعد مستهدف يساعد على ترتيب العمل ولا يمثل نشراً تلقائياً." />
+          <label className="text-sm">تاريخ النشر المستهدف<input type="date" value={targetDate} onChange={(event) => setTargetDate(event.target.value)} className="mt-2 w-full rounded-md border border-line px-3 py-2.5" /></label>
+          <button type="button" onClick={saveSchedule} disabled={!targetDate} className="mt-4 inline-flex items-center gap-2 rounded-md bg-palm px-4 py-2.5 text-white disabled:opacity-40"><Save size={16} />حفظ الموعد</button>
+          <div className="mt-4 rounded-lg bg-paper p-4"><p className="text-xs text-ink/55">تقدم الخطة</p><p className="mt-2 text-2xl font-semibold">{completed} من {stages.length} مراحل</p><p className="mt-2 text-sm leading-7 text-ink/65">يوضح المؤشر عدد المراحل المكتملة وما يلزم تنفيذه تالياً.</p></div>
+        </Panel>
+      </div>
+
+      <Panel id="workflow">
+        <SectionTitle title="المراحل والمعالم" subtitle="كل مرحلة تعرض حالتها، المسؤول عنها، المخرج المتوقع، والإجراء التالي." />
+        <div className="space-y-3">
+          {stages.map((stage, index) => (
+            <div key={stage.key} className={`grid gap-4 rounded-xl border p-4 md:grid-cols-[auto_1fr_1fr_auto] md:items-center ${stage.status === "قيد التنفيذ" ? "border-palm bg-mint/50" : "border-line bg-white"}`}>
+              <span className="grid h-10 w-10 place-items-center rounded-full bg-palm text-white">{index + 1}</span>
+              <div><p className="font-semibold">{stage.label}</p><p className="mt-1 text-sm leading-6 text-ink/60">المسؤول: {stage.owner}</p></div>
+              <div><p className="text-xs text-ink/50">المعلم المتوقع</p><p className="mt-1 text-sm leading-7">{stage.milestone}</p></div>
+              <div className="flex items-center gap-2">
+                <StatusBadge tone={statusTone(stage.status)}>{stage.status}</StatusBadge>
+                {stage.status === "قيد التنفيذ" ? <button type="button" onClick={() => advanceStage(index)} className="inline-flex items-center gap-1 rounded-md bg-palm px-3 py-2 text-xs text-white"><CheckCircle2 size={14} />إكمال</button> : null}
+              </div>
+            </div>
+          ))}
+        </div>
+      </Panel>
+
+      <Panel id="channels">
+        <SectionTitle title="القنوات المقترحة ومبرراتها" subtitle="لا تظهر قنوات فارغة أو أرقام بلا معنى؛ تظهر فقط التوصيات المدعومة ببيانات المحتوى." />
+        {recommendations.length ? (
+          <div className="grid gap-4 lg:grid-cols-3">
+            {recommendations.map((item) => {
+              const Icon = socialBrandIcons[item.key];
               return (
-                <button
-                  key={day}
-                  type="button"
-                  onClick={() => setSelectedDate(day)}
-                  className={`min-h-20 overflow-hidden rounded-lg border p-1.5 text-right transition focus-ring ${selectedDate === day ? "border-palm bg-mint" : "border-line bg-white hover:border-palm"}`}
-                >
-                  <span className="font-normal">{day}</span>
-                  {dayItems.slice(0, 2).map((item) => (
-                    <span key={item.id} className="mt-1 block whitespace-normal break-words rounded-md bg-white px-1.5 py-0.5 leading-5 text-palm shadow-sm">{item.title}</span>
-                  ))}
-                  {dayItems.length > 2 ? <span className="mt-1 block text-[10px] text-ink/50">+{dayItems.length - 2}</span> : null}
-                </button>
+                <article key={item.key} className="rounded-xl border border-line p-5">
+                  <div className="flex items-center gap-3">{Icon ? <Icon size={28} /> : null}<h3 className="text-lg font-semibold">{item.channel}</h3></div>
+                  <p className="mt-4 leading-7">{item.reason}</p>
+                  <div className="mt-4 space-y-3 text-sm leading-7">
+                    <p><b>الجمهور:</b> {item.targetAudience}</p>
+                    <p><b>الصيغة:</b> {item.format}</p>
+                    <p><b>الفائدة المتوقعة:</b> {item.expectedBenefit}</p>
+                    <p><b>المخاطر أو القيود:</b> {item.risks}</p>
+                    <p><b>التوقيت:</b> {item.timing}</p>
+                  </div>
+                </article>
               );
             })}
           </div>
-        </Panel>
-
-        <Panel className="overflow-hidden">
-          <SectionTitle title={editingId ? "تعديل عنصر" : "إضافة عنصر"} subtitle="كل عنصر يُربط بنتيجة مراجعة وأولوية تساعد على ترتيب التنفيذ." />
-          <div className="grid gap-3 sm:grid-cols-2">
-            <label className="text-sm font-normal">
-              اليوم المختار
-              <input className="mt-2 w-full rounded-md border border-line px-3 py-2.5 focus-ring" value={`${selectedDate} (${formatDualDate(new Date(year, month, selectedDate))})`} readOnly />
-            </label>
-            <label className="text-sm font-normal">
-              نوع المحتوى
-              <select className="mt-2 w-full rounded-md border border-line bg-white px-3 py-2.5 focus-ring" value={contentType} onChange={(event) => setContentType(event.target.value as ContentKind)}>
-                {contentKindOptions.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
-              </select>
-            </label>
-            <label className="text-sm font-normal">
-              القناة
-              <select className="mt-2 w-full rounded-md border border-line bg-white px-3 py-2.5 focus-ring" value={channel} onChange={(event) => setChannel(event.target.value)}>
-                {channels.map((item) => <option key={item}>{item}</option>)}
-              </select>
-            </label>
-            <label className="text-sm font-normal">
-              الأولوية
-              <select className="mt-2 w-full rounded-md border border-line bg-white px-3 py-2.5 focus-ring" value={priority} onChange={(event) => setPriority(event.target.value as Priority)}>
-                {priorities.map((item) => <option key={item}>{item}</option>)}
-              </select>
-            </label>
-            <label className="text-sm font-normal sm:col-span-2">
-              نتيجة المراجعة المرتبطة
-              <select className="mt-2 w-full rounded-md border border-line bg-white px-3 py-2.5 focus-ring" value={reviewRef} onChange={(event) => setReviewRef(event.target.value)}>
-                {reviewRefs.map((item) => <option key={item}>{item}</option>)}
-              </select>
-            </label>
-            <label className="text-sm font-normal sm:col-span-2">
-              عنوان العنصر
-              <input className="mt-2 w-full rounded-md border border-line px-3 py-2.5 focus-ring" value={title} onChange={(event) => setTitle(event.target.value)} />
-            </label>
-          </div>
-          <div className="mt-4 flex flex-wrap gap-3">
-            <button type="button" onClick={saveItem} className="inline-flex items-center gap-2 rounded-md bg-palm px-4 py-2.5 text-sm font-normal text-white focus-ring">
-              <Save size={16} />
-              {editingId ? "حفظ التعديل" : "حفظ العنصر"}
-            </button>
-            {editingId ? (
-              <button type="button" onClick={resetForm} className="inline-flex items-center gap-2 rounded-md border border-line bg-white px-4 py-2.5 text-sm font-normal focus-ring">
-                <X size={16} />
-                إلغاء
-              </button>
-            ) : null}
-            <Link href="/content-review" className="inline-flex items-center gap-2 rounded-md border border-line bg-white px-4 py-2.5 text-sm font-normal text-palm focus-ring">
-              <Link2 size={16} />
-              ربط بمراجعة محتوى
-            </Link>
-          </div>
-
-          <div className="mt-5">
-            <SectionTitle title="عناصر اليوم المختار" subtitle="مرتبة حسب الأولوية: مرتفع، متوسط، منخفض." />
-            {selectedItems.length > 0 ? (
-              <div className="space-y-2">
-                {selectedItems.map((item) => (
-                  <div key={item.id} className="flex flex-col gap-3 rounded-lg border border-line p-3 sm:flex-row sm:items-center sm:justify-between">
-                    <div>
-                      <p className="font-normal">{item.title}</p>
-                      <p className="text-xs leading-6 text-ink/60">{contentKindOptions.find((option) => option.value === item.contentType)?.label} - {item.channel} - {item.reviewRef}</p>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <StatusBadge tone={item.priority === "مرتفع" ? "gold" : item.priority === "متوسط" ? "neutral" : "good"}>{item.priority}</StatusBadge>
-                      <button type="button" onClick={() => editItem(item)} className="rounded-md border border-line p-2 text-palm focus-ring" title="تعديل">
-                        <Edit3 size={15} />
-                      </button>
-                      <button type="button" onClick={() => deleteItem(item.id)} className="rounded-md border border-line p-2 text-ink/60 focus-ring" title="حذف">
-                        <Trash2 size={15} />
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-sm leading-7 text-ink/65">لا توجد عناصر مرتبطة بهذا اليوم. يمكن إضافة عنصر جديد أو ربطه بمراجعة محتوى.</p>
-            )}
-          </div>
-        </Panel>
-      </div>
-
-      <Panel id="planned-content" className="overflow-hidden">
-        <SectionTitle title="جدول العناصر المخططة" subtitle="قائمة تشغيلية مرتبة حسب الأولوية، مع تاريخ هجري وميلادي وحالة الربط بالمراجعة." />
-        <DataTable
-          headers={["الموضوع", "الصيغة", "القناة", "الأولوية", "التاريخ", "نتيجة المراجعة", "الإجراء"]}
-          rows={orderedItems.map((item) => [
-            item.title,
-            contentKindOptions.find((option) => option.value === item.contentType)?.label ?? item.contentType,
-            item.channel,
-            <StatusBadge key={`${item.id}-priority`} tone={item.priority === "مرتفع" ? "gold" : item.priority === "متوسط" ? "neutral" : "good"}>{item.priority}</StatusBadge>,
-            formatDualDate(new Date(year, month, item.date)),
-            <StatusBadge key={`${item.id}-status`} tone={item.reviewRef === "بانتظار الربط" ? "neutral" : "good"}>{item.reviewRef === "بانتظار الربط" ? "يتطلب ربط مراجعة" : "مرتبط بنتيجة مراجعة"}</StatusBadge>,
-            <button key={`${item.id}-edit`} type="button" onClick={() => editItem(item)} className="font-normal text-palm underline underline-offset-4">
-              تعديل
-            </button>
-          ])}
-        />
+        ) : <p className="rounded-lg bg-paper p-4 leading-7">لا توجد توصية قناة قبل توفر تحليل فعلي وسياق مكتمل للمحتوى.</p>}
       </Panel>
 
-      <PageHeader
-        eyebrow="الحملات"
-        title="الحملات الإعلامية والإعلانية"
-        description="تنظيم مقترحات الحملات والرسائل والجمهور والقنوات، مع إبقاء الامتثال والمخاطر وجاهزية النشر ضمن مسار المراجعة. ترتبط الحملات الجاهزة بعناصر في التقويم أعلاه."
-      />
-
-      <KpiGrid
-        items={[
-          { label: "حملات مقترحة", value: "6", hint: "مرتبطة بموضوعات مهنية", tone: "neutral", icon: <Megaphone size={20} /> },
-          { label: "رسائل مقترحة", value: "18", hint: "تحتاج مراجعة قبل الاستخدام", tone: "gold", icon: <MessageCircle size={20} /> },
-          { label: "ملاحظات مخاطر", value: "4", hint: "مرتبطة بالمحتوى الإعلاني", tone: "neutral", icon: <ShieldAlert size={20} /> },
-          { label: "مرتبطة بالتقويم", value: "9", hint: "مواد مجدولة أو مقترحة", tone: "good", icon: <CalendarCheck size={20} /> }
-        ]}
-      />
-
-      <Panel id="campaigns" className="overflow-hidden">
-        <SectionTitle title="مقترح خطة" subtitle="مقترحات مبنية على الهدف والجمهور والمنصة والموضوع والمناسبة، قابلة للفتح والتعديل والحفظ وإعادة الفتح." />
-        <div className="grid gap-3 lg:grid-cols-3">
-          {plans.map((plan) => (
-            <button key={plan.id} type="button" onClick={() => { setSelectedPlanId(plan.id); setEditingPlan(false); }} className="rounded-lg border border-line bg-white p-4 text-right transition hover:border-palm focus-ring">
-              <p className="font-normal">{plan.title}</p>
-              <p className="mt-2 text-xs leading-6 text-ink/60">{plan.audience} — {plan.channels}</p>
-              <span className="mt-3 inline-block rounded bg-paper px-2 py-1 text-xs text-palm">{plan.status}</span>
-            </button>
-          ))}
-        </div>
-        {selectedPlan ? (
-          <div className="mt-5 rounded-lg border border-palm/30 bg-mint/40 p-4">
-            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-              <h3 className="font-normal">تفاصيل الخطة: {selectedPlan.title}</h3>
-              <div className="flex gap-2">
-                <button type="button" onClick={() => setEditingPlan(true)} className="rounded-md border border-line bg-white px-3 py-2 text-sm text-palm focus-ring">تعديل</button>
-                {editingPlan ? <button type="button" onClick={savePlan} className="rounded-md bg-palm px-3 py-2 text-sm text-white focus-ring">حفظ</button> : null}
-              </div>
-            </div>
-            <div className="grid gap-3 sm:grid-cols-2">
-              {([
-                ["title", "اسم الخطة"],
-                ["objective", "الهدف"],
-                ["audience", "الجمهور"],
-                ["channels", "القنوات"],
-                ["topic", "الموضوع"],
-                ["occasion", "المناسبة"],
-                ["message", "الرسالة المقترحة"]
-              ] as Array<[keyof PlanProposal, string]>).map(([field, label]) => (
-                <label key={field} className={`text-sm ${field === "message" ? "sm:col-span-2" : ""}`}>
-                  {label}
-                  <input disabled={!editingPlan} value={selectedPlan[field]} onChange={(event) => updatePlan(field, event.target.value)} className="mt-2 w-full rounded-md border border-line bg-white px-3 py-2.5 disabled:bg-paper focus-ring" />
-                </label>
-              ))}
-            </div>
-            <p className="mt-4 text-xs leading-6 text-ink/60">الحالة: {selectedPlan.status} — يرتبط المقترح بمسار التخطيط وسجل المحتوى والتقارير عند ربطه بنتيجة مراجعة.</p>
-          </div>
-        ) : null}
-      </Panel>
-
-      <div id="publishing" className="grid gap-5 xl:grid-cols-2">
-        <Panel>
-          <SectionTitle title="جدولة النشر" subtitle="تظهر عناصر الجدولة من التقويم والعناصر المرتبطة بنتائج مراجعة." />
-          <DataTable
-            headers={["العنصر", "القناة", "التاريخ", "حالة الربط"]}
-            rows={orderedItems.map((item) => [
-              item.title,
-              item.channel,
-              formatDualDate(new Date(year, month, item.date)),
-              item.reviewRef
-            ])}
-          />
-        </Panel>
-        <Panel id="channels">
-          <SectionTitle title="تخطيط القنوات" subtitle="توزيع مختصر للقنوات المستخدمة في العناصر المخططة." />
-          <DataTable
-            headers={["القناة", "عدد العناصر"]}
-            rows={channels.map((channelName) => [
-              channelName,
-              orderedItems.filter((item) => item.channel === channelName).length.toLocaleString("ar-SA")
-            ])}
-          />
-        </Panel>
+      <div className="rounded-lg border border-line bg-white p-4 text-xs leading-7 text-ink/60">
+        هذا المقترح استرشادي، تم إنشاؤه بناءً على البيانات المدخلة ونتائج المراجعة والمراجع المهنية المسجلة في المنصة. يظل قرار التعديل أو الاعتماد أو النشر مسؤولية المستخدم.
       </div>
+      {message ? <div className="flex items-center gap-2 rounded-lg bg-mint p-4 text-sm text-palm"><Clock3 size={17} />{message}<ChevronLeft size={15} /></div> : null}
     </div>
   );
 }

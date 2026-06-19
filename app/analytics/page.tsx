@@ -42,7 +42,7 @@ export default function AnalyticsPage() {
       />
 
       <KpiGrid items={[
-        { label: "المحتويات", value: `${records.length}`, hint: "معرفات محتوى مستقلة", tone: "neutral", icon: <BarChart3 size={20} /> },
+        { label: "المحتويات", value: `${records.length}`, hint: "مواد مستقلة محفوظة في السجل لاتخاذ قرار المتابعة", tone: "neutral", icon: <BarChart3 size={20} /> },
         { label: "الإصدارات المحللة", value: `${analyzed.length}`, hint: "مرتبطة بنتائج تحليل فعلية", tone: "neutral", icon: <FileCheck2 size={20} /> },
         { label: "الإصدارات المعتمدة", value: `${approved.length}`, hint: "محفوظة مع التحليل والمراجع", tone: "good", icon: <FileCheck2 size={20} /> },
         { label: "مرتفعة المخاطر", value: `${highRisk}`, hint: "من الإصدارات المحللة", tone: highRisk ? "gold" : "good", icon: <ShieldAlert size={20} /> }
@@ -75,7 +75,7 @@ export default function AnalyticsPage() {
                 const current = record.versions.find((item) => item.version === record.currentVersion);
                 return (
                   <div key={record.id} className="grid gap-3 rounded-lg border border-line p-4 text-sm md:grid-cols-6">
-                    <div className="md:col-span-2"><p className="font-normal">{record.title}</p><p className="text-xs text-ink/55">{record.id}</p></div>
+                    <div className="md:col-span-2"><p className="font-normal">{record.title}</p><p className="text-xs text-ink/55">المادة الحالية في سجل المحتوى</p></div>
                     <div>الإصدار {record.currentVersion}</div>
                     <div>الامتثال {current?.analysis?.complianceScore ?? "—"}</div>
                     <div>المخاطر {current?.analysis?.riskLevel ?? "—"}</div>

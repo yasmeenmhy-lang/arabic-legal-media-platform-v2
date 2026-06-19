@@ -13,9 +13,9 @@ describe("versioned content records", () => {
   beforeEach(() => window.localStorage.clear());
 
   it("preserves an approved version and creates a new current version after editing", () => {
-    const firstReview = reviewContent("نضمن لك الفوز بالقضية", "advertisement", { contentType: "إعلان", channel: "X" });
+    const firstReview = reviewContent("يقدم المكتب محتوى توعوياً عاماً وفق الأنظمة والتعليمات ذات العلاقة.", "advertisement", { contentType: "إعلان", channel: "X" });
     const first = upsertAnalyzedVersion({
-      body: "نضمن لك الفوز بالقضية",
+      body: "يقدم المكتب محتوى توعوياً عاماً وفق الأنظمة والتعليمات ذات العلاقة.",
       contentType: "advertisement",
       contentTypeLabel: "إعلان",
       channel: "X",
@@ -42,6 +42,21 @@ describe("versioned content records", () => {
     expect(record.approvedVersion).toBe(1);
     expect(record.versions.find((version) => version.version === 1)?.approvedAt).toBeTruthy();
     expect(record.versions.find((version) => version.version === 2)?.approvedAt).toBeUndefined();
+  });
+
+  it("prevents approval of a version with unresolved critical findings", () => {
+    const review = reviewContent("نضمن لك الفوز بالقضية", "advertisement", { contentType: "إعلان", channel: "X" });
+    const saved = upsertAnalyzedVersion({
+      body: "نضمن لك الفوز بالقضية",
+      contentType: "advertisement",
+      contentTypeLabel: "إعلان",
+      channel: "X",
+      audience: "الجمهور العام",
+      purpose: "الترويج",
+      review
+    });
+
+    expect(approveContentVersion(saved.record.id, saved.version.version)).toBeNull();
   });
 
   it("blocks sharing until the exact version is approved", () => {

@@ -399,3 +399,53 @@ model AIRequestLog {
   provider  String
   createdAt DateTime @default(now())
 }
+
+model ScoringProfile {
+  id          String                  @id @default(cuid())
+  profileKey  String
+  name        String
+  isDefault   Boolean                 @default(false)
+  versions    ScoringProfileVersion[]
+  createdAt   DateTime                @default(now())
+  updatedAt   DateTime                @updatedAt
+
+  @@unique([profileKey])
+}
+
+model ScoringProfileVersion {
+  id                    String         @id @default(cuid())
+  scoringProfileId      String
+  scoringProfile        ScoringProfile @relation(fields: [scoringProfileId], references: [id], onDelete: Cascade)
+  version               Int
+  status                String         @default("DRAFT")
+  applicability         String
+  complianceDeductions  String
+  riskPoints            String
+  readinessWeights      String
+  thresholds            String
+  priority              Int            @default(0)
+  changeReason          String
+  createdBy             String
+  activatedBy           String?
+  activatedAt           DateTime?
+  retiredAt             DateTime?
+  createdAt             DateTime       @default(now())
+  audits                ScoringProfileAudit[]
+
+  @@unique([scoringProfileId, version])
+  @@index([status, priority])
+}
+
+model ScoringProfileAudit {
+  id                      String                @id @default(cuid())
+  scoringProfileVersionId String
+  scoringProfileVersion   ScoringProfileVersion @relation(fields: [scoringProfileVersionId], references: [id], onDelete: Cascade)
+  actor                   String
+  action                  String
+  reason                  String
+  previousValue           String?
+  newValue                String?
+  createdAt               DateTime              @default(now())
+
+  @@index([scoringProfileVersionId, createdAt])
+}

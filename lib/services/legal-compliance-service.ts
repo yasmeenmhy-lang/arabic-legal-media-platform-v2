@@ -1,11 +1,16 @@
 import type { LegalReviewSection, ReviewContext, ReviewFinding, RiskLevel } from "@/lib/types";
 import { legalKnowledgeEntries, legalSourceDocuments } from "@/lib/legal-knowledge-base";
 import {
+  arabicSeverity,
+  businessSeverityForFinding,
   calculateComplianceScore,
   calculateFindingWeight,
   calculateRiskScore,
-  classifyLegalKnowledgeEntry
+  classifyLegalKnowledgeEntry,
+  riskDimensionsForFinding
 } from "@/lib/services/scoring-service";
+import type { ScoringProfile } from "@/lib/scoring-profiles";
+import { resolveScoringProfile } from "@/lib/scoring-profiles";
 
 const PROFESSIONAL_CONDUCT_SOURCE_ID = "rules-professional-conduct-lawyers";
 const EXECUTIVE_REGULATION_SOURCE_ID = "advocacy-law-executive-regulations";
@@ -141,14 +146,17 @@ function createTraceabilityId(entryId: string, evidence: string) {
   return `FND-${hash.toString(16).toUpperCase().padStart(8, "0")}`;
 }
 
-function buildFinding(entry: (typeof legalKnowledgeEntries)[number], evidence: { matchedPattern: string; phrase: string }, context?: ReviewContext): ReviewFinding {
+function buildFinding(
+  entry: (typeof legalKnowledgeEntries)[number],
+  evidence: { matchedPattern: string; phrase: string },
+  context: ReviewContext | undefined,
+  profile: ScoringProfile
+): ReviewFinding {
   if (!entry.legalReference) {
     throw new Error(`Legal knowledge entry ${entry.id} is missing a legal reference.`);
   }
   const classification = classifyLegalKnowledgeEntry(entry);
-  const weight = calculateFindingWeight(entry.severity, classification.category, classification.potentialImpact);
-
-  return {
+  const baseFinding = {
     traceabilityId: createTraceabilityId(entry.id, evidence.phrase),
     legalKnowledgeEntryId: entry.id,
     sourceDocumentId: entry.sourceDocumentId,
@@ -156,8 +164,8 @@ function buildFinding(entry: (typeof legalKnowledgeEntries)[number], evidence: {
     category: classification.category,
     domain: classification.domain,
     potentialImpact: classification.potentialImpact,
-    weight,
-    scoreImpact: weight,
+    weight: 0,
+    scoreImpact: 0,
     issue: entry.riskCategories.join("، "),
     severity: entry.severity,
     evidence: evidence.phrase,
@@ -175,6 +183,19 @@ function buildFinding(entry: (typeof legalKnowledgeEntries)[number], evidence: {
     reviewOutcome: "رصدت ملاحظة",
     confidenceLevel: confidenceFromEvidence(evidence.matchedPattern, entry),
     sourceUrl: entry.sourceUrl
+  } satisfies ReviewFinding;
+  const businessSeverity = businessSeverityForFinding(baseFinding);
+  const severity = arabicSeverity(businessSeverity);
+  const weight = calculateFindingWeight(severity, classification.category, classification.potentialImpact, profile);
+  return {
+    ...baseFinding,
+    severity,
+    potentialImpact: businessSeverity === "critical" ? "حرج" : classification.potentialImpact,
+    businessSeverity,
+    riskDimensions: riskDimensionsForFinding(baseFinding),
+    resolved: false,
+    weight,
+    scoreImpact: weight
   };
 }
 
@@ -277,17 +298,21 @@ function buildRiskAssessment(findings: ReviewFinding[], riskScoreExplanation: Re
   };
 }
 
-export function runLegalComplianceReview(text: string, context?: ReviewContext) {
+export function runLegalComplianceReview(text: string, context?: ReviewContext, selectedProfile?: ScoringProfile) {
+  const profile = selectedProfile ?? resolveScoringProfile((context?.contentType === "إعلان" || context?.contentType === "إعلان مهني") ? "advertisement" : "post", context?.channel);
   const findings: ReviewFinding[] = legalKnowledgeEntries.flatMap((entry) => {
     if (!isTraceableRegisteredRule(entry)) return [];
     const evidence = findEvidence(text, [...entry.prohibitedPatterns, ...(entry.contextualPatterns ?? [])]);
     if (!evidence) return [];
     if (!contextSupportsRule(entry, evidence)) return [];
-    return [buildFinding(entry, evidence, context)];
-  }).filter(isAuditableFinding);
+    return [buildFinding(entry, evidence, context, profile)];
+  }).filter(isAuditableFinding).sort((a, b) => {
+    const order = { critical: 0, high: 1, medium: 2, low: 3 };
+    return order[a.businessSeverity ?? "low"] - order[b.businessSeverity ?? "low"];
+  });
 
-  const complianceScoreExplanation = calculateComplianceScore(findings);
-  const riskScoreExplanation = calculateRiskScore(findings);
+  const complianceScoreExplanation = calculateComplianceScore(findings, profile);
+  const riskScoreExplanation = calculateRiskScore(findings, profile);
   const complianceScore = complianceScoreExplanation.finalScore;
   const riskLevel = riskScoreExplanation.level;
   const professionalConductCompliance = buildSection("امتثال قواعد السلوك المهني", PROFESSIONAL_CONDUCT_SOURCE_ID, findings);

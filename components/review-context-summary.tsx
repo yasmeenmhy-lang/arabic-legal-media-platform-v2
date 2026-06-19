@@ -191,7 +191,6 @@ export function ReviewContextSummary({ focus }: { focus: "findings" | "opportuni
       <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
         <div className="min-w-0">
           <p className="text-xs font-normal leading-6 text-palm">سياق {focusLabels[focus]}</p>
-          <p className="mt-1 text-sm font-normal leading-7 text-ink">{context.reviewId}</p>
           <p className="mt-1 text-sm leading-7 text-ink/70">{context.shortExcerpt}</p>
         </div>
         <div className="grid gap-2 text-xs sm:grid-cols-2 lg:grid-cols-5 xl:min-w-[720px]">
@@ -247,8 +246,6 @@ export function ReviewFindingsSection() {
             <div className="grid gap-4 lg:grid-cols-2">
               <FieldBlock label="الفئة والمجال">{finding.category} - {finding.domain}</FieldBlock>
               <FieldBlock label="الشدة والأثر المحتمل">{finding.severity} - {finding.potentialImpact}</FieldBlock>
-              <FieldBlock label="الوزن وأثر الدرجة">{finding.weight} نقطة - خصم {finding.scoreImpact} نقطة</FieldBlock>
-              <FieldBlock label="معرف التتبع">{finding.traceabilityId}</FieldBlock>
               <FieldBlock label="العبارة محل المراجعة">{finding.evidence}</FieldBlock>
               <FieldBlock label="المصدر الرسمي">
                 <a href={finding.sourceUrl} target="_blank" rel="noreferrer" className="font-normal text-palm underline underline-offset-4">{finding.sourceDocument}</a>

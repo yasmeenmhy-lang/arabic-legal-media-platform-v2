@@ -10,6 +10,14 @@ import {
   deriveReviewStatus,
   SCORING_MODEL_VERSION
 } from "@/lib/services/scoring-service";
+import { resolveScoringProfile } from "@/lib/scoring-profiles";
+import {
+  buildChannelRecommendations,
+  buildConfidence,
+  buildDecisionWorkflow,
+  buildPublicationDecision,
+  buildReadinessDecision
+} from "@/lib/services/decision-support-service";
 
 const noRegisteredViolationMessage = "لم يتم رصد ملاحظة مرتبطة بالمراجع المهنية والتنظيمية المسجلة.";
 
@@ -32,6 +40,7 @@ function buildWorkflow(languageQualityPassed: boolean, compliancePassed: boolean
 }
 
 export function reviewContent(text: string, kind: ContentKind = "post", context: ReviewContext = {}): ReviewResult {
+  const profile = resolveScoringProfile(kind, context.channel);
   const languageQuality = reviewLanguageQuality({
     text,
     kind,
@@ -41,7 +50,7 @@ export function reviewContent(text: string, kind: ContentKind = "post", context:
     }
   });
 
-  const compliance = runLegalComplianceReview(text, context);
+  const compliance = runLegalComplianceReview(text, context, profile);
   const reviewStatus = deriveReviewStatus({
     languageScore: languageQuality.score,
     complianceScore: compliance.complianceScore,
@@ -53,7 +62,8 @@ export function reviewContent(text: string, kind: ContentKind = "post", context:
     riskScore: compliance.riskScore,
     languageScore: languageQuality.score,
     context,
-    reviewStatus
+    reviewStatus,
+    profile
   });
   const publishingReadinessScore = publishingReadinessExplanation.finalScore;
   const readiness = runPublishingReadinessReview({
@@ -76,6 +86,23 @@ export function reviewContent(text: string, kind: ContentKind = "post", context:
   });
   const reviewContext = createReviewedContentContext(text, context);
   const calculatedAt = new Date().toISOString();
+  const approved = ["READY_FOR_PUBLISHING", "EXPORTED", "SHARED"].includes(reviewStatus);
+  const confidence = buildConfidence(compliance.findings, context);
+  const readinessDecision = buildReadinessDecision({
+    complianceScore: compliance.complianceScore,
+    riskLevel: compliance.riskLevel,
+    languagePassed: languageQuality.passed,
+    approved,
+    findings: compliance.findings
+  });
+  const publicationDecision = buildPublicationDecision({
+    confidence,
+    readiness: readinessDecision,
+    findings: compliance.findings,
+    riskLevel: compliance.riskLevel
+  });
+  const channelRecommendations = buildChannelRecommendations(kind, context, compliance.findings, readinessDecision);
+  const decisionWorkflow = buildDecisionWorkflow(publicationDecision, governedRewrites.length > 0, approved);
 
   return {
     reviewContext,
@@ -108,7 +135,12 @@ export function reviewContent(text: string, kind: ContentKind = "post", context:
     },
     workflow: buildWorkflow(languageQuality.passed, compliance.passed, readyForPublishing),
     exportAllowed: readyForPublishing,
-    advisoryDisclaimer
+    advisoryDisclaimer,
+    publicationDecision,
+    confidence,
+    readinessDecision,
+    channelRecommendations,
+    decisionWorkflow
   };
 }
 

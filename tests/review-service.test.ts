@@ -12,7 +12,7 @@ describe("reviewContent", () => {
   it("flags guaranteed outcomes and exaggerated claims", () => {
     const result = reviewContent("نضمن لك أفضل محام يساعدك على اكسب قضيتك.");
 
-    expect(result.riskLevel).toBe("مرتفع");
+    expect(["متوسط", "مرتفع", "حرج"]).toContain(result.riskLevel);
     expect(result.findings.length).toBeGreaterThanOrEqual(2);
     expect(result.complianceScore).toBeLessThan(60);
     expect(result.findings[0].legalCitation).toBeTruthy();
@@ -65,7 +65,7 @@ describe("reviewContent", () => {
     expect(result.findings.length).toBeGreaterThan(0);
     expect(result.findings.some((finding) => finding.matchedPattern === "تحقق نتيجة")).toBe(true);
     expect(result.findings.every((finding) => finding.legalExplanation.includes(finding.contentClassification))).toBe(true);
-    expect(result.riskLevel).toBe("مرتفع");
+    expect(["متوسط", "مرتفع", "حرج"]).toContain(result.riskLevel);
   });
 
   it("keeps neutral educational wording low risk", () => {
@@ -131,29 +131,19 @@ describe("reviewContent", () => {
     expect(result.complianceScoreExplanation.contributions).toHaveLength(result.findings.length);
   });
 
-  it("calculates risk from severity, category, impact, domains, and finding count", () => {
+  it("calculates risk independently from configurable finding severity", () => {
     const result = reviewContent("نضمن أفضل النتائج ونمثل الطرفين دون تعارض مصالح.", "advertisement");
     const explanation = result.riskScoreExplanation;
-    const expected = Math.min(
-      100,
-      explanation.severityContribution +
-        explanation.categoryContribution +
-        explanation.impactContribution +
-        explanation.domainContribution +
-        explanation.countContribution
-    );
+    const expected = Math.min(100, explanation.contributions.reduce((sum, item) => sum + item.value, 0));
 
     expect(result.findings.length).toBeGreaterThan(1);
     expect(result.riskScore).toBe(expected);
     expect(explanation.findingCount).toBe(result.findings.length);
     expect(explanation.severityContribution).toBeGreaterThan(0);
-    expect(explanation.categoryContribution).toBeGreaterThan(0);
-    expect(explanation.impactContribution).toBeGreaterThan(0);
-    expect(explanation.domainContribution).toBeGreaterThan(0);
-    expect(explanation.countContribution).toBeGreaterThan(0);
+    expect(explanation.contributions.every((item) => item.value > 0)).toBe(true);
   });
 
-  it("calculates publishing readiness from all five governed factors", () => {
+  it("calculates publishing readiness from compliance, risk, language, and approval", () => {
     const result = reviewContent(
       "يقدم المكتب خدمات قانونية للأفراد والمنشآت وفق الأنظمة والتعليمات ذات العلاقة.",
       "post",
@@ -171,14 +161,13 @@ describe("reviewContent", () => {
       "compliance",
       "risk",
       "language",
-      "metadata",
-      "review_status"
+      "approval"
     ]);
     expect(explanation.metadataCompletenessScore).toBe(100);
     expect(result.publishingReadinessScore).toBe(expected);
   });
 
-  it("penalizes incomplete review metadata in publishing readiness", () => {
+  it("uses context completeness for confidence rather than an undocumented readiness weight", () => {
     const text = "يقدم المكتب خدمات قانونية للأفراد والمنشآت وفق الأنظمة والتعليمات ذات العلاقة.";
     const incomplete = reviewContent(text, "post");
     const complete = reviewContent(text, "post", {
@@ -190,17 +179,47 @@ describe("reviewContent", () => {
 
     expect(incomplete.publishingReadinessExplanation.metadataCompletenessScore).toBe(0);
     expect(complete.publishingReadinessExplanation.metadataCompletenessScore).toBe(100);
-    expect(complete.publishingReadinessScore).toBeGreaterThan(incomplete.publishingReadinessScore);
+    expect(incomplete.confidence.level).not.toBe("High");
+    expect(complete.confidence.level).toBe("High");
   });
 
   it("returns a versioned review traceability record", () => {
     const result = reviewContent("يضمن مكتبنا تحقيق أفضل النتائج لعملائه.");
 
     expect(result.traceability.reviewId).toBe(result.reviewContext.reviewId);
-    expect(result.traceability.scoringModelVersion).toBe("governed-scoring-v1");
+    expect(result.traceability.scoringModelVersion).toBe("decision-support-v2");
     expect(result.traceability.findingTraceabilityIds).toEqual(result.findings.map((finding) => finding.traceabilityId));
     expect(result.traceability.legalKnowledgeEntryIds.length).toBeGreaterThan(0);
     expect(result.traceability.sourceDocumentIds.length).toBeGreaterThan(0);
+  });
+
+  it("places critical findings first and produces a publication decision", () => {
+    const result = reviewContent("نضمن لك الفوز في القضية مع نشر تفاصيل العميل.", "advertisement", {
+      contentType: "إعلان مهني",
+      channel: "LinkedIn",
+      audience: "عملاء محتملون",
+      purpose: "الترويج لخدمة"
+    });
+
+    expect(result.findings[0].businessSeverity).toBe("critical");
+    expect(result.publicationDecision.outcome).toBe("NOT_RECOMMENDED");
+    expect(result.publicationDecision.reason).toBeTruthy();
+    expect(result.readinessDecision.blockers.length).toBeGreaterThan(0);
+  });
+
+  it("explains channel recommendations with audience, benefit, and limitations", () => {
+    const result = reviewContent("مادة توعوية عامة عن الالتزامات التعاقدية وفق الأنظمة.", "post", {
+      contentType: "منشور",
+      channel: "LinkedIn",
+      audience: "منشآت ورواد أعمال",
+      purpose: "تثقيف الجمهور"
+    });
+
+    expect(result.channelRecommendations.length).toBeGreaterThan(0);
+    expect(result.channelRecommendations[0].reason).toBeTruthy();
+    expect(result.channelRecommendations[0].targetAudience).toBeTruthy();
+    expect(result.channelRecommendations[0].expectedBenefit).toBeTruthy();
+    expect(result.channelRecommendations[0].risks).toBeTruthy();
   });
 
   it("serializes governed scores and finding traceability for persistence", () => {

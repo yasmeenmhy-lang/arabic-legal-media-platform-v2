@@ -1,6 +1,62 @@
 export type RoleName = "LAWYER" | "SUPERVISOR" | "ADMIN" | "DIRECTOR";
 
-export type RiskLevel = "منخفض" | "متوسط" | "مرتفع";
+export type RiskLevel = "منخفض" | "متوسط" | "مرتفع" | "حرج";
+
+export type BusinessSeverity = "critical" | "high" | "medium" | "low";
+
+export type PublicationDecisionOutcome =
+  | "RECOMMENDED"
+  | "RECOMMENDED_AFTER_FINDINGS"
+  | "LEGAL_REVIEW_REQUIRED"
+  | "NOT_RECOMMENDED";
+
+export type PublicationDecision = {
+  outcome: PublicationDecisionOutcome;
+  label: string;
+  reason: string;
+  blockers: string[];
+  actions: string[];
+  recommended: boolean;
+};
+
+export type AssessmentConfidence = {
+  level: "High" | "Medium" | "Low";
+  label: "عالية" | "متوسطة" | "منخفضة";
+  reason: string;
+  evidenceQuality: string;
+};
+
+export type ChannelRecommendation = {
+  key: SocialPlatformKey;
+  channel: string;
+  suitability: "عالية" | "متوسطة";
+  reason: string;
+  targetAudience: string;
+  format: string;
+  objective: string;
+  expectedBenefit: string;
+  risks: string;
+  readiness: string;
+  contentDirection: string;
+  hashtags: string[];
+  timing: string;
+  recommended: boolean;
+};
+
+export type DecisionWorkflowStage = {
+  key: string;
+  label: string;
+  status: "مكتمل" | "الحالي" | "محجوب" | "قادم";
+  reason: string;
+  action: string;
+};
+
+export type ReadinessDecision = {
+  level: "جاهز للنشر" | "جاهز بعد تعديلات محدودة" | "يحتاج إلى معالجة" | "غير جاهز";
+  reasons: string[];
+  blockers: string[];
+  actions: string[];
+};
 
 export type ContentKind =
   | "post"
@@ -138,6 +194,9 @@ export type ReviewFinding = {
   scoreImpact: number;
   issue: string;
   severity: RiskLevel;
+  businessSeverity?: BusinessSeverity;
+  resolved?: boolean;
+  riskDimensions?: Array<"legal" | "reputational" | "confidentiality" | "misleadingCommunication">;
   evidence: string;
   matchedPattern: string;
   contentClassification: "معلومة قانونية" | "وصف مهني" | "ادعاء تسويقي" | "وعد بنتيجة" | "إعلان مضلل محتمل";
@@ -203,7 +262,7 @@ export type PublishingReadinessExplanation = {
   metadataCompletenessScore: number;
   reviewStatus: ReviewReadinessStatus;
   factors: Array<{
-    key: "compliance" | "risk" | "language" | "metadata" | "review_status";
+    key: "compliance" | "risk" | "language" | "approval";
     label: string;
     sourceScore: number;
     weight: number;
@@ -271,6 +330,11 @@ export type ReviewResult = {
   workflow: ReviewWorkflowStep[];
   exportAllowed: boolean;
   advisoryDisclaimer: string;
+  publicationDecision: PublicationDecision;
+  confidence: AssessmentConfidence;
+  readinessDecision: ReadinessDecision;
+  channelRecommendations: ChannelRecommendation[];
+  decisionWorkflow: DecisionWorkflowStage[];
 };
 
 export type ProfessionalOfficialReference = {

@@ -74,7 +74,7 @@ export default function ContentManagementPage() {
                 <article key={record.id} className="rounded-lg border border-line bg-white p-4 shadow-sm">
                   <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
                     <div className="min-w-0">
-                      <p className="text-xs text-palm">معرف المحتوى: {record.id}</p>
+                      <p className="text-xs text-palm">سجل محتوى محفوظ</p>
                       <h2 className="mt-1 text-base font-normal leading-8">{record.title}</h2>
                       <div className="mt-3 flex flex-wrap gap-2">
                         <StatusBadge tone={record.status === "معتمد" ? "good" : "neutral"}>{record.status}</StatusBadge>

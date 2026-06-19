@@ -1,87 +1,135 @@
-import { ButtonLink, DataTable, KpiGrid, PageHeader, Panel, SectionTitle, StatusBadge } from "@/components/ui";
-import { buildExportPackage, buildShareUrl, getSocialMediaCenter } from "@/lib/services/social-media-service";
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import { Clipboard, Download, Edit3, FileDown, Share2 } from "lucide-react";
+import { PageHeader, Panel, SectionTitle, StatusBadge } from "@/components/ui";
 import { socialBrandIcons } from "@/components/social-icons";
-import { Copy, Download, FileText, PackageCheck, ShieldCheck, Smartphone } from "lucide-react";
+import { loadContentRecords, setActiveContentSelection, type StoredContentRecord } from "@/lib/content-record-store";
+
+const platforms: Array<{
+  key: "x" | "linkedin" | "instagram" | "tiktok" | "snapchat" | "youtube_shorts";
+  label: string;
+  share?: (text: string) => string;
+}> = [
+  { key: "x", label: "X", share: (text: string) => `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}` },
+  { key: "linkedin", label: "LinkedIn", share: (_text: string) => "https://www.linkedin.com/feed/?shareActive=true" },
+  { key: "instagram", label: "Instagram" },
+  { key: "tiktok", label: "TikTok" },
+  { key: "snapchat", label: "Snapchat" },
+  { key: "youtube_shorts", label: "YouTube Shorts" }
+];
+
+function download(name: string, body: string) {
+  const blob = new Blob([body], { type: "application/json;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = name;
+  link.click();
+  URL.revokeObjectURL(url);
+}
 
 export default function SocialMediaPage() {
-  const center = getSocialMediaCenter();
-  const primaryContent = center.content[0];
-  const firstPackage = buildExportPackage(primaryContent?.id ?? "");
+  const [records, setRecords] = useState<StoredContentRecord[]>([]);
+  const [selectedId, setSelectedId] = useState("");
+  const [message, setMessage] = useState("");
 
-  const platformRows = center.platforms.map((platform) => {
-    const Icon = socialBrandIcons[platform.key];
-    const shareUrl = primaryContent ? buildShareUrl(platform.key, primaryContent) : null;
+  useEffect(() => {
+    const loaded = loadContentRecords();
+    setRecords(loaded);
+    setSelectedId(loaded.find((item) => item.approvedVersion)?.id ?? "");
+  }, []);
 
-    return [
-      <span key={`${platform.key}-label`} className="flex items-center gap-2 font-normal">
-        {Icon ? <Icon size={18} className="text-ink/70" /> : null}
-        {platform.label}
-      </span>,
-      platform.characterLimit ? platform.characterLimit.toLocaleString("ar-SA") : "حسب المنصة",
-      platform.supportsWebShare ? (
-        <StatusBadge key={`${platform.key}-web`} tone="good">يدعم المشاركة</StatusBadge>
-      ) : (
-        <StatusBadge key={`${platform.key}-manual`} tone="neutral">تعليمات يدوية</StatusBadge>
-      ),
-      shareUrl ? (
-        <a key={`${platform.key}-share`} href={shareUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 break-words font-normal text-palm underline underline-offset-4">
-          فتح رابط المشاركة
-        </a>
-      ) : (
-        <StatusBadge key={`${platform.key}-fallback`} tone="gold">إرشادات بديلة</StatusBadge>
-      )
-    ];
-  });
+  const approvedItems = useMemo(() => records.flatMap((record) => {
+    const version = record.versions.find((item) => item.version === record.approvedVersion);
+    return version ? [{ record, version }] : [];
+  }), [records]);
+  const selected = approvedItems.find((item) => item.record.id === selectedId) ?? approvedItems[0];
+  const body = selected?.version.body ?? "";
 
-  const packageRows = center.content.map((content) => [
-    content.title,
-    content.readyForPublishing ? (
-      <StatusBadge key={`${content.id}-ready`} tone="good">مناسب للتصدير وفق نتائج المراجعة</StatusBadge>
-    ) : (
-      <StatusBadge key={`${content.id}-needs`} tone="neutral">يتطلب معالجة الملاحظات</StatusBadge>
-    ),
-    content.complianceMetadata?.complianceScore ?? "غير متاح",
-    content.complianceMetadata?.riskLevel ?? "غير متاح"
-  ]);
+  async function copy() {
+    await navigator.clipboard.writeText(body);
+    setMessage("تم نسخ النص المعتمد.");
+  }
+
+  function downloadPackage() {
+    if (!selected) return;
+    download("حزمة-النشر-المعتمدة.json", JSON.stringify({
+      title: selected.record.title,
+      body,
+      approval: "معتمد",
+      publicationDecision: selected.version.analysis?.publicationDecision,
+      channels: selected.version.analysis?.channelRecommendations,
+      references: selected.version.references
+    }, null, 2));
+    setMessage("تم تنزيل الحزمة المعتمدة.");
+  }
+
+  function edit() {
+    if (!selected) return;
+    setActiveContentSelection(selected.record.id, selected.version.version);
+  }
 
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="المشاركة الاجتماعية والتصدير"
-        title="مركز المشاركة الاجتماعية والتصدير"
-        description="تجهيز المحتوى المناسب للمشاركة والتصدير بعد مراجعة النتائج، مع النسخ وحزم التصدير وروابط المشاركة الرسمية أو الإرشادات البديلة حسب كل منصة، وبيانات الامتثال والمخاطر والمراجع المهنية ذات الصلة."
-        action={<ButtonLink href="/content-review">مراجعة مادة قبل التصدير</ButtonLink>}
+        eyebrow="المشاركة والتصدير"
+        title="تجهيز مخرجات النشر المعتمدة"
+        description="اختر نسخة معتمدة، ثم انسخها أو عدّلها أو نزّل حزمها أو افتح قناة المشاركة. لا تنشر المنصة تلقائياً نيابة عن المستخدم."
       />
 
-      <KpiGrid
-        items={[
-          { label: "منصات مدعومة", value: `${center.platforms.length}`, hint: "X، LinkedIn، Instagram، TikTok، Snapchat، YouTube", tone: "good", icon: <Smartphone size={20} /> },
-          { label: "حزم متاحة", value: `${center.content.length}`, hint: "مرتبطة بمحتوى مناسب للتصدير", tone: "gold", icon: <PackageCheck size={20} /> },
-          { label: "بيانات امتثال", value: "بعد المراجعة", hint: "لا تُعرض دون نتيجة تحليل فعلية", tone: "neutral", icon: <ShieldCheck size={20} /> },
-          { label: "صيغة الحزمة", value: "ملف بيانات", hint: firstPackage?.fileName ?? "تُجهز بعد مراجعة المحتوى", tone: "neutral", icon: <FileText size={20} /> }
-        ]}
-      />
+      {approvedItems.length ? (
+        <>
+          <Panel>
+            <SectionTitle title="المحتوى المعتمد" subtitle="تعرض القائمة النسخ التي اجتازت المراجعة واعتمدها المستخدم فقط." />
+            <select value={selected?.record.id} onChange={(event) => setSelectedId(event.target.value)} className="w-full rounded-md border border-line bg-white px-3 py-3">
+              {approvedItems.map(({ record, version }) => <option key={record.id} value={record.id}>{record.title} — الإصدار {version.version}</option>)}
+            </select>
+            <div className="mt-4 rounded-lg bg-paper p-4 leading-8">{body}</div>
+            <div className="mt-4 flex flex-wrap gap-3">
+              <button type="button" onClick={copy} className="inline-flex items-center gap-2 rounded-md border border-line px-4 py-2.5"><Clipboard size={16} />نسخ</button>
+              <button type="button" onClick={downloadPackage} className="inline-flex items-center gap-2 rounded-md border border-line px-4 py-2.5"><Download size={16} />تنزيل الحزمة</button>
+              <Link onClick={edit} href="/content-review#input" className="inline-flex items-center gap-2 rounded-md border border-line px-4 py-2.5"><Edit3 size={16} />تحرير نسخة جديدة</Link>
+              <button type="button" onClick={() => window.print()} className="inline-flex items-center gap-2 rounded-md bg-palm px-4 py-2.5 text-white"><FileDown size={16} />طباعة / حفظ PDF</button>
+            </div>
+            {message ? <p className="mt-3 text-sm text-palm">{message}</p> : null}
+          </Panel>
 
-      <Panel className="overflow-hidden">
-        <SectionTitle title="المنصات الاجتماعية" subtitle="يعرض المركز خصائص المشاركة والتصدير لكل منصة دون نشر مباشر نيابة عن المستخدم." />
-        <DataTable headers={["المنصة", "حد الأحرف", "المشاركة", "الرابط أو البديل"]} rows={platformRows} />
-      </Panel>
-
-      <Panel className="overflow-hidden">
-        <SectionTitle title="حزم التصدير" subtitle="كل حزمة تتضمن نتيجة المراجعة ومؤشرات المخاطر وبيانات الاستناد المهني." />
-        {packageRows.length > 0 ? (
-          <DataTable headers={["المحتوى", "جاهزية التصدير", "مستوى الامتثال", "مستوى المخاطر"]} rows={packageRows} />
-        ) : (
-          <div className="rounded-lg border border-dashed border-line bg-paper p-5 text-sm leading-7 text-ink/65">
-            لا توجد حزم تصدير معروضة. تُنشأ الحزمة من نتيجة مراجعة محتوى فعلية فقط، وتتضمن عندها الملاحظات والدرجات والمراجع التي فعّلها النص المدخل.
+          <Panel>
+            <SectionTitle title="تجهيز القنوات" subtitle="كل إجراء يعمل: القنوات ذات رابط مشاركة تفتح مباشرة، والبقية تنسخ النص مع إرشاد واضح للإكمال اليدوي." />
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+              {platforms.map((platform) => {
+                const Icon = socialBrandIcons[platform.key];
+                const recommendation = selected?.version.analysis?.channelRecommendations.find((item) => item.key === platform.key);
+                return (
+                  <article key={platform.key} className="rounded-xl border border-line bg-white p-5">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-3">{Icon ? <Icon size={28} /> : null}<h3 className="font-semibold">{platform.label}</h3></div>
+                      <StatusBadge tone={recommendation ? "good" : "neutral"}>{recommendation ? "موصى بها" : "إعداد يدوي"}</StatusBadge>
+                    </div>
+                    <p className="mt-4 text-sm leading-7">{recommendation?.reason ?? "يمكن إعداد نسخة لهذه القناة بعد تكييف الصيغة بصرياً ومراجعتها."}</p>
+                    <p className="mt-3 text-xs leading-6 text-ink/60">{recommendation?.risks ?? "راجع طول النص والخصوصية وسياسات المنصة قبل النشر."}</p>
+                    {platform.share ? (
+                      <a href={platform.share(body)} target="_blank" rel="noreferrer" className="mt-4 inline-flex items-center gap-2 rounded-md bg-palm px-4 py-2.5 text-sm text-white"><Share2 size={15} />فتح المشاركة</a>
+                    ) : (
+                      <button type="button" onClick={async () => { await navigator.clipboard.writeText(body); setMessage(`تم نسخ النص. افتح ${platform.label} وأكمل التجهيز يدوياً.`); }} className="mt-4 inline-flex items-center gap-2 rounded-md border border-line px-4 py-2.5 text-sm"><Clipboard size={15} />نسخ للتجهيز</button>
+                    )}
+                  </article>
+                );
+              })}
+            </div>
+          </Panel>
+        </>
+      ) : (
+        <Panel>
+          <div className="rounded-lg border border-dashed border-line bg-paper p-6 text-center">
+            <p className="font-semibold">لا توجد نسخة معتمدة متاحة للمشاركة</p>
+            <p className="mt-2 leading-7 text-ink/65">راجع المحتوى، عالج الملاحظات، ثم اعتمد النسخة النهائية لتفعيل جميع إجراءات المشاركة والتصدير.</p>
+            <Link href="/content-review" className="mt-4 inline-flex rounded-md bg-palm px-4 py-2.5 text-white">فتح مراجعة المحتوى</Link>
           </div>
-        )}
-        <p className="mt-3 flex items-center gap-2 text-xs leading-6 text-ink/55">
-          <Copy size={14} className="text-palm" />
-          <Download size={14} className="text-palm" />
-          النسخ للحافظة وتنزيل الحزمة متاحان من تجربة مراجعة المحتوى بعد إتمام التحليل.
-        </p>
-      </Panel>
+        </Panel>
+      )}
     </div>
   );
 }

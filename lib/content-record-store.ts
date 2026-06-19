@@ -187,7 +187,13 @@ export function upsertAnalyzedVersion(input: {
   version.purpose = input.purpose;
   version.analysis = input.review;
   version.references = referencesFromReview(input.review);
-  version.status = input.review.governedRewrites.length > 0 || input.review.exportAllowed ? "جاهز للاعتماد" : "يحتاج إلى تعديل";
+  const onlyApprovalRemains =
+    input.review.readinessDecision.blockers.length > 0 &&
+    input.review.readinessDecision.blockers.every((blocker) => blocker.includes("اعتماد"));
+  version.status =
+    (input.review.findings.length === 0 && input.review.languageQuality.passed && onlyApprovalRemains) || input.review.exportAllowed
+      ? "جاهز للاعتماد"
+      : "يحتاج إلى تعديل";
   version.updatedAt = timestamp;
   record.status = version.status;
   record.title = input.body.trim().slice(0, 72) || record.title;
@@ -210,7 +216,13 @@ export function approveContentVersion(contentId: string, versionNumber: number) 
   const records = loadContentRecords();
   const record = records.find((item) => item.id === contentId);
   const version = record?.versions.find((item) => item.version === versionNumber);
-  if (!record || !version?.analysis) return null;
+  if (
+    !record ||
+    !version?.analysis ||
+    version.analysis.findings.some((finding) => !finding.resolved) ||
+    !version.analysis.languageQuality.passed ||
+    ["حرج", "مرتفع"].includes(version.analysis.riskLevel)
+  ) return null;
   const timestamp = now();
   version.status = "معتمد";
   version.approvedAt = timestamp;
