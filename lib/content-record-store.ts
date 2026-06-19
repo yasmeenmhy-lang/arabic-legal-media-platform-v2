@@ -172,6 +172,74 @@ export function referencesFromReview(review: ReviewResult): ProfessionalOfficial
   }));
 }
 
+export function saveContentDraft(input: {
+  contentId: string;
+  body: string;
+  contentType: ContentKind;
+  contentTypeLabel: string;
+  channel: string;
+  audience: string;
+  purpose: string;
+}) {
+  const records = loadContentRecords();
+  const record = records.find((item) => item.id === input.contentId);
+  const current = record?.versions.find((item) => item.version === record.currentVersion);
+  if (!record || !current) return null;
+
+  const timestamp = now();
+  const previousStatus = current.status;
+  let version = current;
+  if (current.approvedAt) {
+    const nextVersion = Math.max(...record.versions.map((item) => item.version)) + 1;
+    version = {
+      id: `${record.id}-v${nextVersion}`,
+      contentId: record.id,
+      version: nextVersion,
+      body: input.body,
+      contentType: input.contentType,
+      contentTypeLabel: input.contentTypeLabel,
+      channel: input.channel,
+      audience: input.audience,
+      purpose: input.purpose,
+      status: "مسودة",
+      createdAt: timestamp,
+      updatedAt: timestamp,
+      references: []
+    };
+    record.versions.push(version);
+    record.currentVersion = nextVersion;
+  } else {
+    version.body = input.body;
+    version.contentType = input.contentType;
+    version.contentTypeLabel = input.contentTypeLabel;
+    version.channel = input.channel;
+    version.audience = input.audience;
+    version.purpose = input.purpose;
+    version.status = "مسودة";
+    version.analysis = undefined;
+    version.references = [];
+    version.updatedAt = timestamp;
+  }
+
+  record.title = input.body.trim().slice(0, 72) || record.title;
+  record.status = "مسودة";
+  if (!record.approvedVersion) record.sharingStatus = "غير متاح";
+  record.updatedAt = timestamp;
+  record.actions.unshift({
+    id: makeId("action"),
+    action: current.approvedAt ? "EDITED" : "SAVED",
+    label: current.approvedAt ? "إنشاء إصدار جديد من محتوى معتمد" : "حفظ تعديلات المسودة",
+    actor: DEMO_USER_NAME,
+    at: timestamp,
+    fromStatus: previousStatus,
+    toStatus: "مسودة",
+    details: `الإصدار ${version.version} — يلزم إعادة التحليل قبل الاعتماد`
+  });
+  saveContentRecords(records);
+  setActiveContentSelection(record.id, version.version);
+  return { record, version };
+}
+
 export function upsertAnalyzedVersion(input: {
   contentId?: string;
   body: string;
@@ -309,6 +377,7 @@ export function approveContentVersion(contentId: string, versionNumber: number) 
     details: `الإصدار ${versionNumber} — ${version.references.length} مرجعًا مهنيًا ورسميًا`
   });
   saveContentRecords(records);
+  setActiveContentSelection(record.id, versionNumber);
   return { record, version };
 }
 
@@ -331,5 +400,6 @@ export function markContentShared(contentId: string, versionNumber: number) {
     details: `الإصدار ${versionNumber}`
   });
   saveContentRecords(records);
+  setActiveContentSelection(record.id, versionNumber);
   return true;
 }

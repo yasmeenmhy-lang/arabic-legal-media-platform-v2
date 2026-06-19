@@ -2,8 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { Archive, FileClock, FolderOpen, History, RotateCcw } from "lucide-react";
-import { ButtonLink, ModuleTabs, PageHeader, Panel, SectionTitle, StatusBadge } from "@/components/ui";
+import { Archive, ExternalLink, FileClock, FolderOpen, History, RotateCcw } from "lucide-react";
+import { ButtonLink, PageHeader, Panel, SectionTitle, StatusBadge } from "@/components/ui";
 import {
   loadContentRecords,
   saveContentRecords,
@@ -19,6 +19,7 @@ function formatDate(value?: string) {
 export default function ContentManagementPage() {
   const [records, setRecords] = useState<StoredContentRecord[]>([]);
   const [expanded, setExpanded] = useState<string>();
+  const [filter, setFilter] = useState<"all" | "drafts" | "approved" | "archived">("all");
 
   useEffect(() => {
     setRecords(loadContentRecords());
@@ -30,6 +31,12 @@ export default function ContentManagementPage() {
     drafts: records.filter((item) => item.status !== "معتمد").length,
     archived: records.filter((item) => item.archived).length
   }), [records]);
+  const filteredRecords = useMemo(() => records.filter((record) => {
+    if (filter === "approved") return Boolean(record.approvedVersion) && !record.archived;
+    if (filter === "drafts") return record.status !== "معتمد" && !record.archived;
+    if (filter === "archived") return Boolean(record.archived);
+    return true;
+  }), [filter, records]);
 
   function archiveRecord(id: string) {
     const next = records.map((item) => item.id === id ? { ...item, archived: true } : item);
@@ -46,20 +53,26 @@ export default function ContentManagementPage() {
       <PageHeader
         eyebrow="سجل المحتوى الإعلامي والإعلاني"
         title="سجل المحتوى الإعلامي والإعلاني"
-        description="السجل الدائم لكل محتوى وإصداراته وتحليلاته ومراجعه واعتماداته وتحركاته، مع إبقاء كل بيانات مرتبطة بمعرف المحتوى ورقم الإصدار الصحيح."
+        description="السجل الدائم لكل محتوى وإصداراته وتحليلاته ومراجعه واعتماداته وتحركاته، مع إبقاء المعلومات المهنية مرتبطة بالنسخة الصحيحة."
         action={<ButtonLink href="/content-review">إعداد محتوى جديد</ButtonLink>}
       />
 
-      <ModuleTabs items={[
-        { label: `الكل (${counts.all})`, href: "#all", active: true },
-        { label: `المسودات والحالية (${counts.drafts})`, href: "#all" },
-        { label: `المعتمدة (${counts.approved})`, href: "#all" },
-        { label: `المؤرشفة (${counts.archived})`, href: "#all" }
-      ]} />
+      <nav aria-label="تصفية سجل المحتوى" className="flex w-full gap-2 overflow-x-auto rounded-lg border border-line bg-white p-2 shadow-sm">
+        {([
+          ["all", `الكل (${counts.all})`],
+          ["drafts", `المسودات والحالية (${counts.drafts})`],
+          ["approved", `المعتمدة (${counts.approved})`],
+          ["archived", `المؤرشفة (${counts.archived})`]
+        ] as const).map(([key, label]) => (
+          <button key={key} type="button" onClick={() => setFilter(key)} aria-pressed={filter === key} className={`shrink-0 rounded-md px-4 py-2.5 text-sm transition focus-ring ${filter === key ? "bg-mint text-palm" : "text-ink/70 hover:bg-paper hover:text-ink"}`}>
+            {label}
+          </button>
+        ))}
+      </nav>
 
       <Panel id="all">
         <SectionTitle title="المحتوى والإصدارات المحفوظة" subtitle="يمكن فتح أي إصدار مستقل والرجوع إلى بياناته دون الكتابة فوق إصدار معتمد سابق." />
-        {records.length === 0 ? (
+        {filteredRecords.length === 0 ? (
           <div className="rounded-lg border border-dashed border-line bg-paper p-6 text-center">
             <FileClock className="mx-auto text-palm" size={34} />
             <p className="mt-3 font-normal">لا توجد سجلات محفوظة بعد</p>
@@ -67,7 +80,7 @@ export default function ContentManagementPage() {
           </div>
         ) : (
           <div className="space-y-4">
-            {records.map((record) => {
+            {filteredRecords.map((record) => {
               const current = record.versions.find((item) => item.version === record.currentVersion);
               const approved = record.versions.find((item) => item.version === record.approvedVersion);
               return (
@@ -137,7 +150,7 @@ export default function ContentManagementPage() {
                                     <div key={reference.id} className="rounded-md bg-white p-3 text-sm leading-7">
                                       <p className="font-normal">{reference.referenceName} — {reference.articleOrRuleNumber}</p>
                                       <p>{reference.relatedContentPhrase}</p>
-                                      <a href={reference.officialUrl} target="_blank" rel="noreferrer" className="text-palm underline">الوصول المباشر إلى المرجع الرسمي</a>
+                                      <a href={reference.officialUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-palm underline">الوصول المباشر إلى المرجع الرسمي <ExternalLink size={14} aria-hidden="true" /></a>
                                     </div>
                                   ))}
                                 </div>

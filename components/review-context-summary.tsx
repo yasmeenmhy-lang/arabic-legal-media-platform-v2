@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { ExternalLink } from "lucide-react";
 import { Panel, StatusBadge } from "@/components/ui";
 import type { ReviewFinding, ReviewResult } from "@/lib/types";
 
@@ -203,7 +204,7 @@ export function ReviewContextSummary({ focus }: { focus: "findings" | "opportuni
       </div>
       <div className="mt-4 flex flex-wrap gap-2 text-xs">
         <StatusBadge tone={context.riskLevel === "مرتفع" ? "gold" : context.riskLevel === "متوسط" ? "neutral" : "good"}>{focusLabels[focus]}</StatusBadge>
-        <Link href="/content-review#review-results" className="rounded-md border border-line bg-paper px-3 py-2 text-ink/70 transition hover:border-palm hover:text-palm focus-ring">
+        <Link href="/content-review#decision" className="rounded-md border border-line bg-paper px-3 py-2 text-ink/70 transition hover:border-palm hover:text-palm focus-ring">
           العودة إلى المراجعة
         </Link>
         <Link href="/legal-compliance" className="rounded-md border border-line bg-paper px-3 py-2 text-ink/70 transition hover:border-palm hover:text-palm focus-ring">
@@ -248,7 +249,7 @@ export function ReviewFindingsSection() {
               <FieldBlock label="الشدة والأثر المحتمل">{finding.severity} - {finding.potentialImpact}</FieldBlock>
               <FieldBlock label="العبارة محل المراجعة">{finding.evidence}</FieldBlock>
               <FieldBlock label="المصدر الرسمي">
-                <a href={finding.sourceUrl} target="_blank" rel="noreferrer" className="font-normal text-palm underline underline-offset-4">{finding.sourceDocument}</a>
+                <a href={finding.sourceUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 font-normal text-palm underline underline-offset-4">{finding.sourceDocument}<ExternalLink size={14} aria-hidden="true" /></a>
               </FieldBlock>
               <FieldBlock label="مقتطف المرجع النظامي">{finding.articleTextExcerpt}</FieldBlock>
               <FieldBlock label="الشرح القانوني">{finding.legalExplanation}</FieldBlock>
@@ -344,7 +345,7 @@ export function ReviewReferencesSection() {
                 <FieldBlock label="أثره على المحتوى">{finding ? `${finding.issue} — ${finding.potentialImpact}` : "توثيق نتيجة التحليل."}</FieldBlock>
                 <FieldBlock label="التوجيه التطبيقي">{finding?.suggestedSaferWording ?? "مراجعة الصياغة وفق المرجع الرسمي قبل النشر."}</FieldBlock>
                 <FieldBlock label="الرابط الرسمي المباشر">
-                  <a href={reference.sourceUrl} target="_blank" rel="noreferrer" className="inline-flex rounded-md bg-palm px-4 py-2.5 font-normal text-white focus-ring">الوصول المباشر إلى المرجع الرسمي</a>
+                  <a href={reference.sourceUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 rounded-md bg-palm px-4 py-2.5 font-normal text-white focus-ring">الوصول المباشر إلى المرجع الرسمي<ExternalLink size={14} aria-hidden="true" /></a>
                 </FieldBlock>
               </div>
             </article>

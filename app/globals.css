@@ -3,25 +3,9 @@
 @tailwind utilities;
 
 /*
- * "Najiz Muhameen" is the platform's primary Arabic typeface. Drop the licensed
- * woff2 files into /public/fonts (najiz-muhameen-regular.woff2 / -bold.woff2) to
- * activate it; until then the stack below falls back to IBM Plex Sans Arabic.
+ * Use the project's existing Arabic system-font stack. The licensed Najiz
+ * files are not bundled, so no unavailable font URL is requested at runtime.
  */
-@font-face {
-  font-family: "Najiz Muhameen";
-  src: url("/fonts/najiz-muhameen-regular.woff2") format("woff2");
-  font-weight: 400;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: "Najiz Muhameen";
-  src: url("/fonts/najiz-muhameen-bold.woff2") format("woff2");
-  font-weight: 700;
-  font-style: normal;
-  font-display: swap;
-}
 
 :root {
   color-scheme: light;
@@ -87,6 +71,31 @@ input,
 select,
 textarea {
   font: inherit;
+}
+
+.content-review-window {
+  font-family: "IBM Plex Sans Arabic", "Noto Sans Arabic", "Segoe UI", Tahoma, Arial, sans-serif;
+  font-size: 15px;
+  line-height: 1.7;
+}
+
+.content-review-window h1,
+.content-review-window h2,
+.content-review-window h3 {
+  letter-spacing: 0;
+}
+
+.content-review-window > div:first-child h2 {
+  font-size: 1.125rem;
+  font-weight: 600;
+  line-height: 2rem;
+}
+
+@media (min-width: 640px) {
+  .content-review-window > div:first-child h2 {
+    font-size: 1.25rem;
+    line-height: 2.25rem;
+  }
 }
 
 .focus-ring {

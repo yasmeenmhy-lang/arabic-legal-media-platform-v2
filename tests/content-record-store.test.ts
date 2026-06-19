@@ -6,6 +6,7 @@ import {
   CONTENT_RECORDS_KEY,
   loadContentRecords,
   markContentShared,
+  saveContentDraft,
   upsertAnalyzedVersion
 } from "@/lib/content-record-store";
 import { reviewContent } from "@/lib/services/review-service";
@@ -113,5 +114,34 @@ describe("versioned content records", () => {
     expect(markContentShared(saved.record.id, saved.version.version)).toBe(false);
     approveContentVersion(saved.record.id, saved.version.version);
     expect(markContentShared(saved.record.id, saved.version.version)).toBe(true);
+  });
+
+  it("persists edited draft fields and invalidates the previous analysis until reanalysis", () => {
+    const review = reviewContent("محتوى مهني توعوي واضح", "post", { contentType: "منشور", channel: "LinkedIn" });
+    const saved = upsertAnalyzedVersion({
+      body: "محتوى مهني توعوي واضح",
+      contentType: "post",
+      contentTypeLabel: "منشور",
+      channel: "LinkedIn",
+      audience: "الجمهور العام",
+      purpose: "التثقيف",
+      review
+    });
+
+    const edited = saveContentDraft({
+      contentId: saved.record.id,
+      body: "محتوى مهني توعوي واضح بعد التعديل",
+      contentType: "post",
+      contentTypeLabel: "منشور",
+      channel: "X",
+      audience: "منشآت ورواد أعمال",
+      purpose: "رفع الوعي"
+    });
+
+    expect(edited?.version.body).toContain("بعد التعديل");
+    expect(edited?.version.channel).toBe("X");
+    expect(edited?.version.analysis).toBeUndefined();
+    expect(edited?.version.references).toEqual([]);
+    expect(loadContentRecords()[0].actions[0].action).toBe("SAVED");
   });
 });

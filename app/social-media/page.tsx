@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Clipboard, Download, Edit3, FileDown, Share2 } from "lucide-react";
 import { PageHeader, Panel, SectionTitle, StatusBadge } from "@/components/ui";
-import { socialBrandIcons } from "@/components/social-icons";
+import { socialBrandIcons, socialBrandStyles } from "@/components/social-icons";
 import { loadContentRecords, setActiveContentSelection, type StoredContentRecord } from "@/lib/content-record-store";
 
 const platforms: Array<{
@@ -105,13 +105,13 @@ export default function SocialMediaPage() {
                 return (
                   <article key={platform.key} className="rounded-xl border border-line bg-white p-5">
                     <div className="flex items-center justify-between gap-3">
-                      <div className="flex items-center gap-3">{Icon ? <Icon size={28} /> : null}<h3 className="font-semibold">{platform.label}</h3></div>
+                      <div className={`flex items-center gap-3 rounded-lg px-3 py-2 ${socialBrandStyles[platform.key]?.surface ?? "bg-paper"}`}>{Icon ? <Icon size={28} className={socialBrandStyles[platform.key]?.icon} /> : null}<h3 className="font-semibold">{platform.label}</h3></div>
                       <StatusBadge tone={recommendation ? "good" : "neutral"}>{recommendation ? "موصى بها" : "إعداد يدوي"}</StatusBadge>
                     </div>
                     <p className="mt-4 text-sm leading-7">{recommendation?.reason ?? "يمكن إعداد نسخة لهذه القناة بعد تكييف الصيغة بصرياً ومراجعتها."}</p>
                     <p className="mt-3 text-xs leading-6 text-ink/60">{recommendation?.risks ?? "راجع طول النص والخصوصية وسياسات المنصة قبل النشر."}</p>
                     {platform.share ? (
-                      <a href={platform.share(body)} target="_blank" rel="noreferrer" className="mt-4 inline-flex items-center gap-2 rounded-md bg-palm px-4 py-2.5 text-sm text-white"><Share2 size={15} />فتح المشاركة</a>
+                      <a href={platform.share(body)} target="_blank" rel="noopener noreferrer" className="mt-4 inline-flex items-center gap-2 rounded-md bg-palm px-4 py-2.5 text-sm text-white"><Share2 size={15} />فتح المشاركة</a>
                     ) : (
                       <button type="button" onClick={async () => { await navigator.clipboard.writeText(body); setMessage(`تم نسخ النص. افتح ${platform.label} وأكمل التجهيز يدوياً.`); }} className="mt-4 inline-flex items-center gap-2 rounded-md border border-line px-4 py-2.5 text-sm"><Clipboard size={15} />نسخ للتجهيز</button>
                     )}

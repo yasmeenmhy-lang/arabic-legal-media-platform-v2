@@ -1,12 +1,16 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   AlertTriangle,
+  ArrowRight,
   CheckCircle2,
   Clipboard,
   Download,
   Edit3,
+  ExternalLink,
   FileDown,
   FileText,
   Printer,
@@ -15,14 +19,15 @@ import {
   ShieldAlert,
   Sparkles
 } from "lucide-react";
-import { PageHeader, Panel, SectionTitle, StatusBadge } from "@/components/ui";
-import { socialBrandIcons } from "@/components/social-icons";
+import { CircularGauge, PageHeader, Panel, ProgressBar, SectionTitle, StatusBadge } from "@/components/ui";
+import { socialBrandIcons, socialBrandStyles } from "@/components/social-icons";
 import { contentKindOptions } from "@/lib/content-types";
 import {
   approveContentVersion,
   getActiveContentSelection,
   loadContentRecords,
   markContentShared,
+  saveContentDraft,
   upsertAnalyzedVersion
 } from "@/lib/content-record-store";
 import { saveLatestReviewSnapshot } from "@/components/review-context-summary";
@@ -37,6 +42,15 @@ const purposes = ["تثقيف الجمهور حول موضوع قانوني", "�
 
 const severityLabel = { critical: "حرجة", high: "عالية", medium: "متوسطة", low: "منخفضة" } as const;
 const severityOrder = { critical: 0, high: 1, medium: 2, low: 3 } as const;
+const reviewTabs = [
+  { key: "findings", label: "الملاحظات" },
+  { key: "compliance", label: "الامتثال" },
+  { key: "risk", label: "المخاطر" },
+  { key: "improvements", label: "فرص التحسين" },
+  { key: "references", label: "المراجع المهنية والرسمية" },
+  { key: "sharing", label: "المشاركة" }
+] as const;
+type ReviewTab = (typeof reviewTabs)[number]["key"];
 
 function riskTone(risk: RiskLevel) {
   if (risk === "حرج" || risk === "مرتفع") return "gold" as const;
@@ -50,6 +64,31 @@ function decisionTone(review: ReviewResult) {
     : review.publicationDecision.outcome === "RECOMMENDED_AFTER_FINDINGS"
       ? "neutral" as const
       : "gold" as const;
+}
+
+function complianceKpiTone(value: number) {
+  if (value >= 80) return "good" as const;
+  if (value >= 60) return "gold" as const;
+  return "danger" as const;
+}
+
+function languageKpiTone(value: number) {
+  if (value >= 80) return "good" as const;
+  if (value >= 60) return "neutral" as const;
+  return "gold" as const;
+}
+
+function riskKpiTone(risk: RiskLevel) {
+  if (risk === "حرج" || risk === "مرتفع") return "danger" as const;
+  if (risk === "متوسط") return "gold" as const;
+  return "good" as const;
+}
+
+function readinessKpiTone(review: ReviewResult) {
+  if (review.publicationDecision.outcome === "RECOMMENDED") return "good" as const;
+  if (review.publicationDecision.outcome === "NOT_RECOMMENDED") return "danger" as const;
+  if (review.publishingReadinessScore < 60) return "danger" as const;
+  return "gold" as const;
 }
 
 function businessScoreExplanation(kind: "compliance" | "risk" | "language", review: ReviewResult) {
@@ -123,8 +162,8 @@ function FindingCard({ finding, index }: { finding: ReviewFinding; index: number
         <div className="rounded-lg bg-paper p-4">
           <p className="text-xs text-ink/55">المرجع المتأثر</p>
           <p className="mt-2 leading-7">{finding.sourceDocument} — {finding.legalReference}</p>
-          <a href={finding.sourceUrl} target="_blank" rel="noreferrer" className="mt-2 inline-flex text-sm text-palm underline">
-            فتح المرجع الرسمي
+          <a href={finding.sourceUrl} target="_blank" rel="noopener noreferrer" className="mt-2 inline-flex items-center gap-2 text-sm text-palm underline">
+            فتح المرجع الرسمي <ExternalLink size={14} aria-hidden="true" />
           </a>
         </div>
         <div className="rounded-lg bg-paper p-4">
@@ -145,7 +184,50 @@ function FindingCard({ finding, index }: { finding: ReviewFinding; index: number
   );
 }
 
+function MetricExplanation({
+  label,
+  value,
+  displayValue,
+  explanation,
+  evidence,
+  action,
+  tone = "neutral",
+  inverse = false
+}: {
+  label: string;
+  value: number;
+  displayValue: string;
+  explanation: string;
+  evidence: string;
+  action: string;
+  tone?: "neutral" | "good" | "gold" | "danger";
+  inverse?: boolean;
+}) {
+  const visualValue = value;
+  return (
+    <Panel className="h-full">
+      <div className="grid gap-5 sm:grid-cols-[132px_1fr] sm:items-center">
+        <CircularGauge value={visualValue} label={inverse ? "كلما ارتفع المؤشر ارتفع الخطر" : "مؤشر مساند للقرار"} tone={tone} />
+        <div>
+          <p className="text-xs text-ink/55">مؤشر مساند — لا يحل محل التفسير</p>
+          <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
+            <h3 className="text-lg font-semibold">{label}</h3>
+            <StatusBadge tone={tone}>{displayValue}</StatusBadge>
+          </div>
+          <p className="mt-3 leading-7">{explanation}</p>
+          <div className="mt-3"><ProgressBar value={visualValue} tone={tone} /></div>
+        </div>
+      </div>
+      <div className="mt-4 grid gap-3 lg:grid-cols-2">
+        <div className="rounded-md bg-paper p-3 text-sm leading-7"><b>الدليل:</b> {evidence}</div>
+        <div className="rounded-md bg-mint/50 p-3 text-sm leading-7"><b>الإجراء الموصى به:</b> {action}</div>
+      </div>
+    </Panel>
+  );
+}
+
 export default function ContentReviewPage() {
+  const router = useRouter();
   const [text, setText] = useState("");
   const [kind, setKind] = useState<ContentKind>("advertisement");
   const [channel, setChannel] = useState("LinkedIn");
@@ -157,6 +239,16 @@ export default function ContentReviewPage() {
   const [contentId, setContentId] = useState<string>();
   const [versionNumber, setVersionNumber] = useState<number>();
   const [approved, setApproved] = useState(false);
+  const [approving, setApproving] = useState(false);
+  const [activeTab, setActiveTab] = useState<ReviewTab>("findings");
+  const [isEditing, setIsEditing] = useState(false);
+  const [editSnapshot, setEditSnapshot] = useState<{
+    text: string;
+    kind: ContentKind;
+    channel: string;
+    audience: string;
+    purpose: string;
+  } | null>(null);
 
   useEffect(() => {
     const selection = getActiveContentSelection();
@@ -214,6 +306,8 @@ export default function ContentReviewPage() {
       setContentId(saved.record.id);
       setVersionNumber(saved.version.version);
       setApproved(false);
+      setIsEditing(false);
+      setEditSnapshot(null);
       setMessage("اكتمل التحليل. ابدأ بقرار النشر ثم عالج الملاحظات حسب الأولوية.");
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "تعذر إكمال المراجعة.");
@@ -254,16 +348,73 @@ export default function ContentReviewPage() {
     }
   }
 
+  function beginEditing() {
+    setEditSnapshot({ text, kind, channel, audience, purpose });
+    setIsEditing(true);
+    setMessage("يمكنك الآن تعديل المحتوى والسياق. احفظ المسودة أو أعد التحليل مباشرة.");
+    document.getElementById("input")?.scrollIntoView({ behavior: "smooth" });
+  }
+
+  function cancelEditing() {
+    if (editSnapshot) {
+      setText(editSnapshot.text);
+      setKind(editSnapshot.kind);
+      setChannel(editSnapshot.channel);
+      setAudience(editSnapshot.audience);
+      setPurpose(editSnapshot.purpose);
+    }
+    setEditSnapshot(null);
+    setIsEditing(false);
+    setMessage("تم إلغاء التعديلات غير المحفوظة.");
+  }
+
+  function saveEdits() {
+    if (!contentId || text.trim().length < 5) {
+      setMessage("تعذر الحفظ: يجب أن يحتوي النص على خمسة أحرف على الأقل.");
+      return;
+    }
+    const saved = saveContentDraft({
+      contentId,
+      body: text,
+      contentType: kind,
+      contentTypeLabel,
+      channel,
+      audience,
+      purpose
+    });
+    if (!saved) {
+      setMessage("تعذر حفظ التعديلات لأن سجل المحتوى غير متاح.");
+      return;
+    }
+    setVersionNumber(saved.version.version);
+    setReview(null);
+    setApproved(false);
+    setEditSnapshot(null);
+    setIsEditing(false);
+    setMessage("تم حفظ التعديلات كمسودة. أعد التحليل لعرض قرار النشر المحدث.");
+  }
+
   async function approveCurrentVersion() {
-    if (!contentId || !versionNumber || !review) return;
-    const saved = approveContentVersion(contentId, versionNumber);
-    if (!saved) return;
-    const approvedReview = await requestReview("READY_FOR_PUBLISHING");
-    saved.version.analysis = approvedReview;
-    setReview(approvedReview);
-    saveLatestReviewSnapshot(approvedReview);
-    setApproved(true);
-    setMessage("تم اعتماد الإصدار النهائي. أصبحت خيارات المشاركة والتصدير متاحة.");
+    if (!contentId || !versionNumber || !review || approving) return;
+    setApproving(true);
+    setMessage("");
+    try {
+      const saved = approveContentVersion(contentId, versionNumber);
+      if (!saved) {
+        setMessage("تعذر الاعتماد: عالج الملاحظات والحواجز الظاهرة أولاً.");
+        return;
+      }
+      const approvedReview = await requestReview("READY_FOR_PUBLISHING");
+      saved.version.analysis = approvedReview;
+      setReview(approvedReview);
+      saveLatestReviewSnapshot(approvedReview);
+      setApproved(true);
+      setMessage("تم اعتماد الإصدار النهائي. أصبحت خيارات المشاركة والتصدير متاحة.");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "تعذر إكمال الاعتماد.");
+    } finally {
+      setApproving(false);
+    }
   }
 
   const report = review ? {
@@ -314,25 +465,28 @@ export default function ContentReviewPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="content-review-window space-y-6">
       <PageHeader
         eyebrow="مساعد قرار النشر للمحامي"
-        title="مراجعة المحتوى واتخاذ قرار النشر"
+        title="نافذة إدارة المحتوى الإعلامي والإعلاني للمحامي"
         description="ابدأ بما يحتاج إلى قرار: الملاحظات، الأدلة، الأثر، والإجراء الموصى به. الدرجات مؤشرات مساندة وليست النتيجة الأساسية."
+        action={<button type="button" onClick={() => router.back()} className="inline-flex items-center gap-2 rounded-md border border-line px-4 py-2.5 text-sm transition hover:bg-paper focus-ring"><ArrowRight size={16} />رجوع</button>}
       />
 
       <Panel id="input">
         <SectionTitle title="1. إدخال المحتوى والسياق" subtitle="كلما اكتمل السياق ارتفعت موثوقية التوصية." />
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-          <label className="text-sm">نوع المحتوى<select value={kind} onChange={(event) => setKind(event.target.value as ContentKind)} className="mt-2 w-full rounded-md border border-line bg-white px-3 py-2.5">{contentTypes.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></label>
-          <label className="text-sm">القناة<select value={channel} onChange={(event) => setChannel(event.target.value)} className="mt-2 w-full rounded-md border border-line bg-white px-3 py-2.5">{channels.map((item) => <option key={item}>{item}</option>)}</select></label>
-          <label className="text-sm">الجمهور<select value={audience} onChange={(event) => setAudience(event.target.value)} className="mt-2 w-full rounded-md border border-line bg-white px-3 py-2.5">{audiences.map((item) => <option key={item}>{item}</option>)}</select></label>
-          <label className="text-sm">الهدف<select value={purpose} onChange={(event) => setPurpose(event.target.value)} className="mt-2 w-full rounded-md border border-line bg-white px-3 py-2.5">{purposes.map((item) => <option key={item}>{item}</option>)}</select></label>
+          <label className="text-sm">نوع المحتوى<select value={kind} disabled={Boolean(review) && !isEditing} onChange={(event) => setKind(event.target.value as ContentKind)} className="mt-2 w-full rounded-md border border-line bg-white px-3 py-2.5 disabled:bg-paper disabled:text-ink/60">{contentTypes.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></label>
+          <label className="text-sm">القناة<select value={channel} disabled={Boolean(review) && !isEditing} onChange={(event) => setChannel(event.target.value)} className="mt-2 w-full rounded-md border border-line bg-white px-3 py-2.5 disabled:bg-paper disabled:text-ink/60">{channels.map((item) => <option key={item}>{item}</option>)}</select></label>
+          <label className="text-sm">الجمهور<select value={audience} disabled={Boolean(review) && !isEditing} onChange={(event) => setAudience(event.target.value)} className="mt-2 w-full rounded-md border border-line bg-white px-3 py-2.5 disabled:bg-paper disabled:text-ink/60">{audiences.map((item) => <option key={item}>{item}</option>)}</select></label>
+          <label className="text-sm">الهدف<select value={purpose} disabled={Boolean(review) && !isEditing} onChange={(event) => setPurpose(event.target.value)} className="mt-2 w-full rounded-md border border-line bg-white px-3 py-2.5 disabled:bg-paper disabled:text-ink/60">{purposes.map((item) => <option key={item}>{item}</option>)}</select></label>
         </div>
-        <label className="mt-4 block text-sm">النص محل المراجعة<textarea value={text} onChange={(event) => setText(event.target.value)} className="mt-2 min-h-44 w-full rounded-lg border border-line p-4 leading-8" /></label>
+        <label className="mt-4 block text-sm">النص محل المراجعة<textarea value={text} disabled={Boolean(review) && !isEditing} onChange={(event) => setText(event.target.value)} className="mt-2 min-h-44 w-full rounded-lg border border-line p-4 leading-8 disabled:bg-paper disabled:text-ink/65" /></label>
         <div className="mt-4 flex flex-wrap gap-3">
-          <button type="button" onClick={runReview} disabled={loading || text.trim().length < 5} className="inline-flex items-center gap-2 rounded-md bg-palm px-5 py-2.5 text-white disabled:opacity-50"><FileText size={17} />{loading ? "جار التحليل..." : "تحليل المحتوى"}</button>
-          {review ? <button type="button" onClick={() => document.getElementById("input")?.scrollIntoView({ behavior: "smooth" })} className="inline-flex items-center gap-2 rounded-md border border-line px-4 py-2.5"><Edit3 size={16} />تعديل المدخلات</button> : null}
+          {!review || isEditing ? <button type="button" onClick={runReview} disabled={loading || text.trim().length < 5} className="inline-flex items-center gap-2 rounded-md bg-palm px-5 py-2.5 text-white disabled:opacity-50"><FileText size={17} />{loading ? "جار التحليل..." : contentId ? "إعادة التحليل" : "تحليل المحتوى"}</button> : null}
+          {review && !isEditing ? <button type="button" onClick={beginEditing} className="inline-flex items-center gap-2 rounded-md border border-line px-4 py-2.5"><Edit3 size={16} />تعديل</button> : null}
+          {isEditing && contentId ? <button type="button" onClick={saveEdits} disabled={loading || text.trim().length < 5} className="inline-flex items-center gap-2 rounded-md border border-palm px-4 py-2.5 text-palm disabled:opacity-50"><Save size={16} />حفظ التعديلات</button> : null}
+          {isEditing ? <button type="button" onClick={cancelEditing} disabled={loading} className="inline-flex items-center gap-2 rounded-md border border-line px-4 py-2.5 disabled:opacity-50"><AlertTriangle size={16} />إلغاء</button> : null}
         </div>
         {message ? <p className="mt-3 text-sm text-palm">{message}</p> : null}
       </Panel>
@@ -357,6 +511,71 @@ export default function ContentReviewPage() {
             </div>
           </Panel>
 
+          <nav aria-label="أقسام نتيجة مراجعة المحتوى" className="sticky top-2 z-10 flex gap-2 overflow-x-auto rounded-lg border border-line bg-white/95 p-2 shadow-sm backdrop-blur">
+            {reviewTabs.map((tab) => (
+              <button
+                key={tab.key}
+                type="button"
+                onClick={() => setActiveTab(tab.key)}
+                aria-current={activeTab === tab.key ? "page" : undefined}
+                className={`shrink-0 rounded-md px-4 py-2 text-xs transition focus-ring sm:text-sm ${activeTab === tab.key ? "bg-palm text-white" : "text-ink/70 hover:bg-paper hover:text-ink"}`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </nav>
+
+          <section aria-labelledby="supporting-indicators-title" className="space-y-4">
+            <SectionTitle
+              title="المؤشرات المساندة للقرار"
+              subtitle="توضح الرسوم مستوى كل جانب، بينما تبقى الملاحظات والأدلة والأثر والإجراء الموصى به هي أساس القرار."
+            />
+            <div className="grid gap-4 xl:grid-cols-2">
+              {(["compliance", "language"] as const).map((kindName) => {
+                const metric = businessScoreExplanation(kindName, review);
+                const value = kindName === "compliance" ? review.complianceScore : review.languageQuality.score;
+                return (
+                  <MetricExplanation
+                    key={kindName}
+                    label={kindName === "language" ? "جودة المحتوى" : metric.label}
+                    value={value}
+                    displayValue={metric.value}
+                    explanation={metric.explanation}
+                    evidence={metric.evidence}
+                    action={metric.action}
+                    tone={kindName === "language" ? languageKpiTone(value) : complianceKpiTone(value)}
+                  />
+                );
+              })}
+              {(() => {
+                const metric = businessScoreExplanation("risk", review);
+                return (
+                  <MetricExplanation
+                    label={metric.label}
+                    value={review.riskScore}
+                    displayValue={`${metric.value} — ${review.riskScore}%`}
+                    explanation={metric.explanation}
+                    evidence={metric.evidence}
+                    action={metric.action}
+                    tone={riskKpiTone(review.riskLevel)}
+                    inverse
+                  />
+                );
+              })()}
+              <MetricExplanation
+                label="جاهزية النشر"
+                value={review.publishingReadinessScore}
+                displayValue={`${review.readinessDecision.level} — ${review.publishingReadinessScore}%`}
+                explanation={review.readinessDecision.reasons.join(" ")}
+                evidence={review.readinessDecision.blockers.join("، ") || "لا توجد حواجز مانعة متبقية وفق نتائج المراجعة الحالية."}
+                action={review.readinessDecision.actions.join("، ") || "راجع النسخة النهائية واعتمدها قبل تجهيز المشاركة."}
+                tone={readinessKpiTone(review)}
+              />
+            </div>
+          </section>
+
+          {activeTab === "findings" ? (
+          <>
           {sortedFindings.some((item) => item.businessSeverity === "critical") ? (
             <div className="rounded-xl border-2 border-red-300 bg-red-50 p-5">
               <div className="flex items-center gap-2 text-red-800"><ShieldAlert size={22} /><h2 className="text-lg font-bold">ملاحظات حرجة تتطلب إجراءً فورياً</h2></div>
@@ -370,22 +589,47 @@ export default function ContentReviewPage() {
               <Panel><div className="flex items-start gap-3"><CheckCircle2 className="mt-1 text-palm" /><div><h3 className="font-semibold">لم ترصد مخالفة مهنية مرتبطة بالمراجع المسجلة</h3><p className="mt-2 leading-7 text-ink/70">راجع متطلبات الاعتماد وجودة اللغة قبل تجهيز النشر.</p></div></div></Panel>
             )}
           </section>
+          </>
+          ) : null}
 
-          <div className="grid gap-5 xl:grid-cols-3">
-            {(["compliance", "risk", "language"] as const).map((kindName) => {
+          {activeTab === "compliance" || activeTab === "risk" ? (
+          <div className="grid gap-5">
+            {([activeTab] as const).map((kindName) => {
               const metric = businessScoreExplanation(kindName, review);
+              const value = kindName === "compliance" ? review.complianceScore : review.riskScore;
               return (
-                <Panel key={kindName}>
-                  <p className="text-xs text-ink/55">مؤشر مساند</p>
-                  <div className="mt-2 flex items-center justify-between gap-3"><h3 className="text-lg font-semibold">{metric.label}</h3><StatusBadge tone={kindName === "risk" ? riskTone(review.riskLevel) : "neutral"}>{metric.value}</StatusBadge></div>
-                  <p className="mt-4 leading-7">{metric.explanation}</p>
-                  <div className="mt-3 rounded-md bg-paper p-3 text-sm"><b>الدليل:</b> {metric.evidence}</div>
-                  <div className="mt-3 rounded-md bg-mint/50 p-3 text-sm"><b>الإجراء:</b> {metric.action}</div>
-                </Panel>
+                <MetricExplanation
+                  key={kindName}
+                  label={metric.label}
+                  value={value}
+                  displayValue={kindName === "risk" ? `${metric.value} — ${review.riskScore}%` : metric.value}
+                  explanation={metric.explanation}
+                  evidence={metric.evidence}
+                  action={metric.action}
+                  tone={kindName === "risk" ? riskKpiTone(review.riskLevel) : complianceKpiTone(value)}
+                  inverse={kindName === "risk"}
+                />
               );
             })}
           </div>
+          ) : null}
 
+          {activeTab === "improvements" ? (
+          <>
+          {(() => {
+            const metric = businessScoreExplanation("language", review);
+            return (
+              <MetricExplanation
+                label={metric.label}
+                value={review.languageQuality.score}
+                displayValue={metric.value}
+                explanation={metric.explanation}
+                evidence={metric.evidence}
+                action={metric.action}
+                tone={languageKpiTone(review.languageQuality.score)}
+              />
+            );
+          })()}
           <Panel id="rewrite">
             <SectionTitle title="4. الصياغة المقترحة وأثر التحسين" subtitle="الأثر المتوقع توجيهي، وتُعاد المراجعة فعلياً بعد تطبيق الصياغة." />
             {review.governedRewrites.length ? review.governedRewrites.map((rewrite) => (
@@ -399,7 +643,31 @@ export default function ContentReviewPage() {
               </div>
             )) : <p className="rounded-lg bg-paper p-4 leading-7">لا توجد صياغة بديلة مطلوبة بعد التقييم الحالي.</p>}
           </Panel>
+          </>
+          ) : null}
 
+          {activeTab === "references" ? (
+            <Panel id="references">
+              <SectionTitle title="المراجع المهنية والرسمية" subtitle="المصادر الرسمية المرتبطة مباشرة بالملاحظات، مع بيان القاعدة المتأثرة." />
+              {sortedFindings.length ? (
+                <div className="grid gap-3">
+                  {sortedFindings.map((finding) => (
+                    <article key={`${finding.sourceUrl}-${finding.legalReference}`} className="rounded-lg border border-line bg-paper p-4">
+                      <h3 className="font-semibold">{finding.sourceDocument}</h3>
+                      <p className="mt-2 text-sm leading-7">{finding.legalReference}</p>
+                      <p className="mt-2 text-sm leading-7 text-ink/65">{finding.legalExplanation}</p>
+                      <a href={finding.sourceUrl} target="_blank" rel="noopener noreferrer" className="mt-3 inline-flex items-center gap-2 text-sm text-palm underline">
+                        فتح المرجع الرسمي <ExternalLink size={14} aria-hidden="true" />
+                      </a>
+                    </article>
+                  ))}
+                </div>
+              ) : <p className="rounded-lg bg-paper p-4 leading-7">لم تُرصد ملاحظة تستدعي إظهار مرجع متأثر في هذه المراجعة.</p>}
+            </Panel>
+          ) : null}
+
+          {activeTab === "sharing" ? (
+          <>
           <Panel id="channels">
             <SectionTitle title="5. القنوات المقترحة" subtitle="كل توصية مبنية على نوع المحتوى والجمهور والهدف ونتائج المراجعة." />
             <div className="grid gap-4 lg:grid-cols-3">
@@ -407,7 +675,7 @@ export default function ContentReviewPage() {
                 const Icon = socialBrandIcons[item.key];
                 return (
                   <article key={item.key} className="rounded-xl border border-line bg-white p-5">
-                    <div className="flex items-center justify-between gap-3"><div className="flex items-center gap-3">{Icon ? <Icon size={28} /> : null}<h3 className="text-lg font-semibold">{item.channel}</h3></div><StatusBadge tone={item.suitability === "عالية" ? "good" : "neutral"}>الملاءمة {item.suitability}</StatusBadge></div>
+                    <div className="flex items-center justify-between gap-3"><div className="flex items-center gap-3">{Icon ? <Icon size={28} className={socialBrandStyles[item.key]?.icon} /> : null}<h3 className="text-lg font-semibold">{item.channel}</h3></div><StatusBadge tone={item.suitability === "عالية" ? "good" : "neutral"}>الملاءمة {item.suitability}</StatusBadge></div>
                     <p className="mt-4 leading-7">{item.reason}</p>
                     <dl className="mt-4 space-y-3 text-sm leading-7">
                       <div><dt className="text-ink/55">الجمهور</dt><dd>{item.targetAudience}</dd></div>
@@ -438,7 +706,7 @@ export default function ContentReviewPage() {
 
           <Panel id="approval">
             <SectionTitle title="7. اعتماد النسخة" subtitle="لا تتاح المشاركة أو التصدير إلا للنسخة النهائية التي تمت مراجعتها واعتمادها." />
-            <button type="button" onClick={approveCurrentVersion} disabled={approved || review.findings.some((finding) => !finding.resolved) || !review.languageQuality.passed || ["حرج", "مرتفع"].includes(review.riskLevel)} className="inline-flex items-center gap-2 rounded-md bg-palm px-5 py-2.5 text-white disabled:cursor-not-allowed disabled:opacity-50"><Save size={16} />{approved ? "تم اعتماد النسخة" : "اعتماد النسخة الحالية"}</button>
+            <button type="button" onClick={approveCurrentVersion} disabled={approved || approving || review.findings.some((finding) => !finding.resolved) || !review.languageQuality.passed || ["حرج", "مرتفع"].includes(review.riskLevel)} className="inline-flex items-center gap-2 rounded-md bg-palm px-5 py-2.5 text-white disabled:cursor-not-allowed disabled:opacity-50"><Save size={16} />{approved ? "تم اعتماد النسخة" : approving ? "جار الاعتماد..." : "اعتماد النسخة الحالية"}</button>
             {!approved ? <p className="mt-3 text-sm text-ink/65">عالج الحواجز الظاهرة أولاً. لن يؤدي الاعتماد إلى إخفاء ملاحظة حرجة أو تجاوزها.</p> : null}
           </Panel>
 
@@ -450,9 +718,14 @@ export default function ContentReviewPage() {
               <button type="button" onClick={downloadWord} disabled={!approved} className="inline-flex items-center gap-2 rounded-md border border-line px-4 py-2.5 disabled:opacity-40"><FileDown size={16} />تقرير Word</button>
               <button type="button" onClick={() => window.print()} disabled={!approved} className="inline-flex items-center gap-2 rounded-md border border-line px-4 py-2.5 disabled:opacity-40"><Printer size={16} />طباعة / حفظ PDF</button>
               <button type="button" onClick={prepareSharing} disabled={!approved} className="inline-flex items-center gap-2 rounded-md bg-palm px-4 py-2.5 text-white disabled:opacity-40"><Share2 size={16} />تجهيز المشاركة</button>
+              <Link href="/calendar" className="inline-flex items-center gap-2 rounded-md border border-line px-4 py-2.5"><FileText size={16} />فتح الخطة</Link>
+              <Link href="/content-management" className="inline-flex items-center gap-2 rounded-md border border-line px-4 py-2.5"><FileText size={16} />فتح السجل</Link>
+              {approved ? <Link href="/social-media" className="inline-flex items-center gap-2 rounded-md bg-palm px-4 py-2.5 text-white"><Share2 size={16} />فتح المشاركة والإرسال</Link> : null}
             </div>
             {!approved ? <div className="mt-4 flex items-center gap-2 rounded-lg bg-gold/10 p-4 text-sm"><AlertTriangle size={17} className="text-gold" />يجب اعتماد المخرج قبل إتاحة المشاركة والتصدير.</div> : null}
           </Panel>
+          </>
+          ) : null}
 
           <p className="rounded-lg border border-line bg-white p-4 text-xs leading-7 text-ink/60">
             هذا المقترح استرشادي، تم إنشاؤه بناءً على البيانات المدخلة ونتائج المراجعة والمراجع المهنية المسجلة في المنصة. يظل قرار التعديل أو الاعتماد أو النشر مسؤولية المستخدم.
