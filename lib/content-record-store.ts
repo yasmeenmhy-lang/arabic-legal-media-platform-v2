@@ -58,10 +58,70 @@ function makeId(prefix: string) {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
+export function isCompatibleReviewResult(value: unknown): value is ReviewResult {
+  if (!value || typeof value !== "object") return false;
+  const review = value as Partial<ReviewResult>;
+  return Boolean(
+    review.publicationDecision &&
+    typeof review.publicationDecision.label === "string" &&
+    review.confidence &&
+    typeof review.confidence.label === "string" &&
+    review.readinessDecision &&
+    Array.isArray(review.readinessDecision.blockers) &&
+    Array.isArray(review.channelRecommendations) &&
+    Array.isArray(review.decisionWorkflow) &&
+    Array.isArray(review.findings) &&
+    review.languageQuality &&
+    Array.isArray(review.languageQuality.issues)
+  );
+}
+
+function normalizeStoredRecords(value: unknown): StoredContentRecord[] {
+  if (!Array.isArray(value)) return [];
+
+  return value.flatMap((candidate) => {
+    if (!candidate || typeof candidate !== "object") return [];
+    const record = candidate as Partial<StoredContentRecord>;
+    if (
+      typeof record.id !== "string" ||
+      typeof record.title !== "string" ||
+      !Array.isArray(record.versions)
+    ) return [];
+
+    const versions = record.versions.flatMap((candidateVersion) => {
+      if (!candidateVersion || typeof candidateVersion !== "object") return [];
+      const version = candidateVersion as Partial<StoredContentVersion>;
+      if (
+        typeof version.id !== "string" ||
+        typeof version.contentId !== "string" ||
+        typeof version.version !== "number" ||
+        typeof version.body !== "string" ||
+        typeof version.contentType !== "string"
+      ) return [];
+
+      return [{
+        ...version,
+        channel: typeof version.channel === "string" ? version.channel : "LinkedIn",
+        audience: typeof version.audience === "string" ? version.audience : "الجمهور العام",
+        purpose: typeof version.purpose === "string" ? version.purpose : "التثقيف",
+        references: Array.isArray(version.references) ? version.references : [],
+        analysis: isCompatibleReviewResult(version.analysis) ? version.analysis : undefined
+      } as StoredContentVersion];
+    });
+
+    return [{
+      ...record,
+      versions,
+      actions: Array.isArray(record.actions) ? record.actions : [],
+      sharingStatus: record.sharingStatus ?? "غير متاح"
+    } as StoredContentRecord];
+  });
+}
+
 export function loadContentRecords(): StoredContentRecord[] {
   if (typeof window === "undefined") return [];
   try {
-    return JSON.parse(window.localStorage.getItem(CONTENT_RECORDS_KEY) ?? "[]") as StoredContentRecord[];
+    return normalizeStoredRecords(JSON.parse(window.localStorage.getItem(CONTENT_RECORDS_KEY) ?? "[]"));
   } catch {
     return [];
   }
@@ -76,7 +136,12 @@ export function saveContentRecords(records: StoredContentRecord[]) {
 export function getActiveContentSelection() {
   if (typeof window === "undefined") return null;
   try {
-    return JSON.parse(window.localStorage.getItem(ACTIVE_CONTENT_KEY) ?? "null") as { contentId: string; version: number } | null;
+    const value = JSON.parse(window.localStorage.getItem(ACTIVE_CONTENT_KEY) ?? "null") as unknown;
+    if (!value || typeof value !== "object") return null;
+    const selection = value as { contentId?: unknown; version?: unknown };
+    return typeof selection.contentId === "string" && typeof selection.version === "number"
+      ? { contentId: selection.contentId, version: selection.version }
+      : null;
   } catch {
     return null;
   }

@@ -3,6 +3,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import {
   approveContentVersion,
+  CONTENT_RECORDS_KEY,
   loadContentRecords,
   markContentShared,
   upsertAnalyzedVersion
@@ -57,6 +58,45 @@ describe("versioned content records", () => {
     });
 
     expect(approveContentVersion(saved.record.id, saved.version.version)).toBeNull();
+  });
+
+  it("opens legacy saved content safely while requiring re-analysis", () => {
+    window.localStorage.setItem(CONTENT_RECORDS_KEY, JSON.stringify([{
+      id: "legacy-content",
+      title: "محتوى قديم",
+      currentVersion: 1,
+      status: "جاهز للاعتماد",
+      sharingStatus: "غير متاح",
+      versions: [{
+        id: "legacy-v1",
+        contentId: "legacy-content",
+        version: 1,
+        body: "محتوى محفوظ قبل تحديث نموذج القرار",
+        contentType: "post",
+        contentTypeLabel: "منشور",
+        channel: "LinkedIn",
+        audience: "الجمهور العام",
+        purpose: "التثقيف",
+        status: "جاهز للاعتماد",
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        analysis: {
+          complianceScore: 95,
+          riskLevel: "منخفض",
+          languageQuality: { passed: true, score: 95, issues: [] },
+          findings: [],
+          governedRewrites: []
+        },
+        references: []
+      }],
+      actions: [],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    }]));
+
+    const record = loadContentRecords()[0];
+    expect(record.versions[0].body).toContain("محتوى محفوظ");
+    expect(record.versions[0].analysis).toBeUndefined();
   });
 
   it("blocks sharing until the exact version is approved", () => {

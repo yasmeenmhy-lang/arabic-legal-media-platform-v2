@@ -173,6 +173,9 @@ export default function ContentReviewPage() {
     setPurpose(version.purpose);
     setReview(version.analysis ?? null);
     setApproved(Boolean(version.approvedAt));
+    if (!version.analysis) {
+      setMessage("تم فتح محتوى محفوظ من إصدار سابق. أعد تحليل المحتوى لعرض قرار النشر والنتائج بصيغتها الحالية.");
+    }
   }, []);
 
   const contentTypeLabel = contentTypes.find((item) => item.value === kind)?.label ?? "محتوى مهني";
