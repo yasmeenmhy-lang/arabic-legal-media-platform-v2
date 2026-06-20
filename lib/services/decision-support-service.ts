@@ -204,8 +204,8 @@ export function buildDecisionWorkflow(decision: PublicationDecision, hasRewrite:
     { key: "input", label: "إدخال المحتوى", status: "مكتمل", reason: "تم توفير النص وسياقه.", action: "راجع البيانات عند الحاجة." },
     { key: "analysis", label: "التحليل", status: "مكتمل", reason: "تم تحليل المحتوى وربط النتائج بالأدلة.", action: "ابدأ بأعلى الملاحظات أولوية." },
     { key: "findings", label: "معالجة الملاحظات", status: decision.outcome === "RECOMMENDED" ? "مكتمل" : "الحالي", reason: decision.reason, action: decision.actions[0] ?? "راجع النتائج." },
-    { key: "rewrite", label: "الصياغة المقترحة", status: hasRewrite ? "قادم" : decision.outcome === "RECOMMENDED" ? "مكتمل" : "محجوب", reason: hasRewrite ? "توجد صياغة أكثر أماناً قابلة للتطبيق." : "لا توجد صياغة مطلوبة أو متاحة.", action: hasRewrite ? "راجع الصياغة وطبّقها ثم أعد التحليل." : "انتقل للخطوة التالية." },
-    { key: "approval", label: "اعتماد النسخة", status: approved ? "مكتمل" : blocked ? "محجوب" : "قادم", reason: approved ? "تم اعتماد النسخة الحالية." : "الاعتماد مطلوب للنسخة النهائية فقط.", action: approved ? "انتقل إلى تجهيز النشر." : "أكمل المعالجة ثم اعتمد النسخة." },
-    { key: "sharing", label: "المشاركة والتصدير", status: decision.recommended ? "قادم" : "محجوب", reason: decision.recommended ? "يمكن تجهيز الحزم المعتمدة." : "لا تتاح المخرجات قبل استكمال المتطلبات.", action: decision.recommended ? "اختر القناة وصيغة الحزمة." : "أكمل الحواجز الظاهرة أولاً." }
+    { key: "rewrite", label: "الصياغة المقترحة", status: hasRewrite ? "قادم" : decision.outcome === "RECOMMENDED" ? "مكتمل" : "قيد الانتظار", reason: hasRewrite ? "توجد صياغة أكثر أماناً قابلة للتطبيق." : "لا توجد صياغة مطلوبة أو متاحة.", action: hasRewrite ? "راجع الصياغة وطبّقها ثم أعد التحليل." : "انتقل للخطوة التالية." },
+    { key: "approval", label: "اعتماد النسخة", status: approved ? "مكتمل" : blocked ? "قيد الانتظار" : "قادم", reason: approved ? "تم اعتماد النسخة الحالية." : "الاعتماد مطلوب للنسخة النهائية فقط.", action: approved ? "انتقل إلى تجهيز النشر." : "أكمل المعالجة ثم اعتمد النسخة." },
+    { key: "sharing", label: "المشاركة والتصدير", status: decision.recommended ? "قادم" : "قيد الانتظار", reason: decision.recommended ? "يمكن تجهيز الحزم المعتمدة." : "لا تتاح المخرجات قبل استكمال المتطلبات.", action: decision.recommended ? "اختر القناة وصيغة الحزمة." : "أكمل الحواجز الظاهرة أولاً." }
   ];
 }

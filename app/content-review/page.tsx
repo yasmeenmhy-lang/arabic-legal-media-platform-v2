@@ -16,7 +16,8 @@ import {
   Share2,
   ShieldAlert,
   SpellCheck,
-  Sparkles
+  Sparkles,
+  XCircle
 } from "lucide-react";
 import { CircularGauge, PageHeader, Panel, ProgressBar, SectionTitle, StatusBadge } from "@/components/ui";
 import { socialBrandIcons, socialBrandStyles } from "@/components/social-icons";
@@ -51,6 +52,35 @@ const reviewTabs = [
   { key: "sharing", label: "المشاركة" }
 ] as const;
 type ReviewTab = (typeof reviewTabs)[number]["key"];
+
+const inlineSpellingRules = [
+  { wrong: "القضيه", correction: "القضية", message: "صحح التاء المربوطة في كلمة: القضية." },
+  { wrong: "السعوديه", correction: "السعودية", message: "صحح التاء المربوطة في كلمة: السعودية." },
+  { wrong: "اجراءات", correction: "إجراءات", message: "أضف الهمزة في المصطلح المهني: إجراءات." },
+  { wrong: "اجراء", correction: "إجراء", message: "أضف الهمزة في المصطلح المهني: إجراء." },
+  { wrong: "اللائحه", correction: "اللائحة", message: "صحح التاء المربوطة في كلمة: اللائحة." },
+  { wrong: "الانظمه", correction: "الأنظمة", message: "أضف الهمزة وصحح التاء المربوطة في كلمة: الأنظمة." }
+];
+
+function escapeInlinePattern(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function detectInlineWritingIssues(value: string): LanguageQualityIssue[] {
+  return inlineSpellingRules.flatMap((rule, ruleIndex) => {
+    const pattern = new RegExp(`(?<![\\u0600-\\u06FF])${escapeInlinePattern(rule.wrong)}(?![\\u0600-\\u06FF])`, "g");
+    return Array.from(value.matchAll(pattern)).map((match, matchIndex) => ({
+      id: `inline-spelling-${ruleIndex}-${matchIndex}`,
+      category: "spelling" as const,
+      severity: "medium" as const,
+      message: rule.message,
+      excerpt: match[0],
+      suggestion: `استبدل "${match[0]}" بـ "${rule.correction}".`,
+      start: match.index,
+      end: (match.index ?? 0) + match[0].length
+    }));
+  });
+}
 
 function riskTone(risk: RiskLevel) {
   if (risk === "حرج" || risk === "مرتفع") return "gold" as const;
@@ -161,7 +191,7 @@ function FindingCard({ finding, index }: { finding: ReviewFinding; index: number
         </div>
         <div className="rounded-lg bg-paper p-4">
           <p className="text-xs text-ink/55">المرجع المتأثر</p>
-          <div className="mt-2 flex items-center gap-3 leading-7"><OfficialLogo entity={officialEntityFromUrl(finding.sourceUrl)} /><span>{finding.sourceDocument} — {finding.legalReference}</span></div>
+          <div className="mt-2 flex items-start gap-3 leading-7"><OfficialLogo entity={officialEntityFromUrl(finding.sourceUrl)} /><span className="pt-1">{finding.sourceDocument} — {finding.legalReference}</span></div>
           <a href={finding.sourceUrl} target="_blank" rel="noopener noreferrer" className="mt-2 inline-flex items-center gap-2 text-sm text-palm underline">
             فتح المرجع الرسمي <ExternalLink size={14} aria-hidden="true" />
           </a>
@@ -252,6 +282,99 @@ function SpellingCheckerPanel({ issues }: { issues: LanguageQualityIssue[] }) {
         <p className="rounded-lg bg-paper p-4 text-sm leading-7">لم يرصد المدقق الإملائي أخطاء واضحة في النص الحالي.</p>
       )}
     </Panel>
+  );
+}
+
+function InlineContentGuidance({
+  review,
+  draftText,
+  onApplyRewrite,
+  loading
+}: {
+  review: ReviewResult | null;
+  draftText: string;
+  onApplyRewrite: () => void;
+  loading: boolean;
+}) {
+  const liveSpellingIssues = detectInlineWritingIssues(draftText);
+
+  if (!review) {
+    return (
+      <div className="space-y-3 rounded-lg border border-dashed border-line bg-paper p-3 text-xs leading-6 text-ink/65">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-2 text-palm">
+            <SpellCheck size={16} aria-hidden="true" />
+            <b>تدقيق مباشر أثناء الكتابة داخل منطقة المحتوى</b>
+          </div>
+          <StatusBadge tone={liveSpellingIssues.length ? "gold" : "neutral"}>{liveSpellingIssues.length ? "يحتاج تصحيحًا" : "بانتظار التحليل"}</StatusBadge>
+        </div>
+        {liveSpellingIssues.length ? (
+          <div className="flex flex-wrap gap-2">
+            {liveSpellingIssues.map((issue) => (
+              <span key={issue.id} className="rounded-md border border-red-200 bg-red-50 px-2.5 py-1 text-xs leading-5 text-red-800">
+                <b>{issue.excerpt}</b> ← {issue.suggestion}
+              </span>
+            ))}
+          </div>
+        ) : (
+          <p>سيظهر التدقيق الإملائي واللغوي، والمساعد الذكي، ومسار التعديل المقترح داخل منطقة المحتوى بعد التحليل.</p>
+        )}
+      </div>
+    );
+  }
+
+  const reviewSpellingIssues = review.languageQuality.issues.filter((issue) => issue.category === "spelling");
+  const spellingIssues = reviewSpellingIssues.length ? reviewSpellingIssues : liveSpellingIssues;
+  const firstFinding = review.findings[0];
+  const firstLanguageIssue = review.languageQuality.issues[0] ?? liveSpellingIssues[0];
+  const rewrite = review.governedRewrites[0];
+  const languagePassed = review.languageQuality.passed && liveSpellingIssues.length === 0;
+
+  return (
+    <div className="space-y-3 rounded-lg border border-line bg-white p-3">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex items-center gap-2 text-palm">
+          <SpellCheck size={17} aria-hidden="true" />
+          <p className="text-sm font-semibold">تدقيق مباشر داخل منطقة المحتوى</p>
+        </div>
+        <StatusBadge tone={languagePassed ? "good" : "gold"}>{languagePassed ? "سليم لغويًا" : "يحتاج تصحيحًا"}</StatusBadge>
+      </div>
+
+      {spellingIssues.length ? (
+        <div className="flex flex-wrap gap-2">
+          {spellingIssues.map((issue) => (
+            <span key={issue.id} className="rounded-md border border-red-200 bg-red-50 px-2.5 py-1 text-xs leading-5 text-red-800">
+              <b>{issue.excerpt}</b> ← {issue.suggestion}
+            </span>
+          ))}
+        </div>
+      ) : (
+        <p className="text-xs leading-6 text-ink/60">لم يرصد المدقق أخطاء إملائية واضحة داخل النص الحالي.</p>
+      )}
+
+      <div className="rounded-md bg-mint/50 p-3 text-xs leading-6">
+        <div className="mb-1 flex items-center gap-2 text-palm"><Bot size={16} aria-hidden="true" /><b>المساعد الذكي</b></div>
+        <p>
+          {firstFinding
+            ? `ابدأ بمعالجة "${firstFinding.title}" لأن العبارة المرتبطة هي "${firstFinding.evidence}". الإجراء المقترح: ${firstFinding.suggestedSaferWording}`
+            : firstLanguageIssue
+              ? `ابدأ بتصحيح "${firstLanguageIssue.excerpt}". ${firstLanguageIssue.suggestion}`
+              : "لم تظهر ملاحظة مهنية أو لغوية مانعة. راجع النسخة النهائية قبل الاعتماد."}
+        </p>
+      </div>
+
+      {rewrite ? (
+        <div className="rounded-md border border-palm/20 bg-paper p-3 text-xs leading-6">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <b>مسار التعديل المقترح</b>
+            <button type="button" onClick={onApplyRewrite} disabled={loading} className="inline-flex items-center gap-1 rounded-md bg-palm px-3 py-1.5 text-xs text-white disabled:opacity-50">
+              <Sparkles size={14} />استخدام الصياغة المقترحة
+            </button>
+          </div>
+          <p className="mt-2 text-ink/70">{rewrite.suggestedText}</p>
+        </div>
+      ) : null}
+    </div>
   );
 }
 
@@ -534,6 +657,17 @@ export default function ContentReviewPage() {
     router.push("/social-media");
   }
 
+  function clearContentInput() {
+    setText("");
+    setReview(null);
+    setApproved(false);
+    setVersionNumber(undefined);
+    setContentId(undefined);
+    setIsEditing(false);
+    setEditSnapshot(null);
+    setMessage("تم مسح محتوى مربع النص فقط. لم تتغير بقية الحقول أو السجلات المحفوظة.");
+  }
+
   function navigateToReviewSection(tab: ReviewTab) {
     setActiveTab(tab);
     window.requestAnimationFrame(() => {
@@ -558,7 +692,24 @@ export default function ContentReviewPage() {
           <label className="text-sm">الجمهور<select value={audience} disabled={Boolean(review) && !isEditing} onChange={(event) => setAudience(event.target.value)} className="mt-2 w-full rounded-md border border-line bg-white px-3 py-2.5 disabled:bg-paper disabled:text-ink/60">{audiences.map((item) => <option key={item}>{item}</option>)}</select></label>
           <label className="text-sm">الهدف<select value={purpose} disabled={Boolean(review) && !isEditing} onChange={(event) => setPurpose(event.target.value)} className="mt-2 w-full rounded-md border border-line bg-white px-3 py-2.5 disabled:bg-paper disabled:text-ink/60">{purposes.map((item) => <option key={item}>{item}</option>)}</select></label>
         </div>
-        <label className="mt-4 block text-sm">النص محل المراجعة<textarea value={text} disabled={Boolean(review) && !isEditing} onChange={(event) => setText(event.target.value)} className="mt-2 min-h-44 w-full rounded-lg border border-line p-4 leading-8 disabled:bg-paper disabled:text-ink/65" /></label>
+        <label className="mt-4 block text-sm">
+          <span className="flex flex-wrap items-center justify-between gap-2">
+            <span>النص محل المراجعة</span>
+            <button
+              type="button"
+              onClick={clearContentInput}
+              disabled={loading || text.length === 0}
+              className="inline-flex items-center gap-1 rounded-md border border-line px-3 py-1.5 text-xs text-ink/70 transition hover:border-palm hover:bg-mint hover:text-palm disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              <XCircle size={14} aria-hidden="true" />
+              مسح المحتوى
+            </button>
+          </span>
+          <textarea value={text} disabled={Boolean(review) && !isEditing} onChange={(event) => setText(event.target.value)} className="mt-2 min-h-44 w-full rounded-lg border border-line p-4 leading-8 disabled:bg-paper disabled:text-ink/65" />
+        </label>
+        <div className="mt-3">
+          <InlineContentGuidance review={review} draftText={text} onApplyRewrite={applyRewrite} loading={loading} />
+        </div>
         <div className="mt-4 flex flex-wrap gap-3">
           {!review || isEditing ? <button type="button" onClick={runReview} disabled={loading || text.trim().length < 5} className="inline-flex items-center gap-2 rounded-md bg-palm px-5 py-2.5 text-white disabled:opacity-50"><FileText size={17} />{loading ? "جار التحليل..." : contentId ? "إعادة التحليل" : "تحليل المحتوى"}</button> : null}
           {review && !isEditing ? <button type="button" onClick={beginEditing} className="inline-flex items-center gap-2 rounded-md border border-line px-4 py-2.5"><Edit3 size={16} />تعديل</button> : null}
@@ -703,8 +854,6 @@ export default function ContentReviewPage() {
           </section>
 
           <section id="improvements" className="space-y-5 scroll-mt-24">
-          <SpellingCheckerPanel issues={review.languageQuality.issues} />
-          <SmartAssistantPanel review={review} />
           {(() => {
             const metric = businessScoreExplanation("language", review);
             return (
@@ -741,7 +890,7 @@ export default function ContentReviewPage() {
                 <div className="grid gap-3">
                   {sortedFindings.map((finding) => (
                     <article key={`${finding.sourceUrl}-${finding.legalReference}`} className="rounded-lg border border-line bg-paper p-4">
-                      <div className="flex items-center gap-3"><OfficialLogo entity={officialEntityFromUrl(finding.sourceUrl)} /><h3 className="font-semibold">{finding.sourceDocument}</h3></div>
+                      <div className="flex items-start gap-3"><OfficialLogo entity={officialEntityFromUrl(finding.sourceUrl)} /><h3 className="pt-1 font-semibold">{finding.sourceDocument}</h3></div>
                       <p className="mt-2 text-sm leading-7">{finding.legalReference}</p>
                       <p className="mt-2 text-sm leading-7 text-ink/65">{finding.legalExplanation}</p>
                       <a href={finding.sourceUrl} target="_blank" rel="noopener noreferrer" className="mt-3 inline-flex items-center gap-2 text-sm text-palm underline">
@@ -780,7 +929,7 @@ export default function ContentReviewPage() {
             <SectionTitle title="6. مسار القرار والتنفيذ" subtitle="يوضح المرحلة الحالية، سببها، وما يجب فعله للانتقال إلى الخطوة التالية." />
             <div className="grid gap-3 md:grid-cols-3 xl:grid-cols-6">
               {review.decisionWorkflow.map((stage, index) => (
-                <div key={stage.key} className={`rounded-xl border p-4 ${stage.status === "الحالي" ? "border-palm bg-mint" : stage.status === "محجوب" ? "border-line bg-paper opacity-70" : "border-line bg-white"}`}>
+                <div key={stage.key} className={`rounded-xl border p-4 ${stage.status === "الحالي" ? "border-palm bg-mint" : stage.status === "قيد الانتظار" ? "border-line bg-paper opacity-70" : "border-line bg-white"}`}>
                   <div className="flex items-center justify-between"><span className="grid h-7 w-7 place-items-center rounded-full bg-palm text-xs text-white">{index + 1}</span><StatusBadge tone={stage.status === "مكتمل" ? "good" : stage.status === "الحالي" ? "neutral" : "gold"}>{stage.status}</StatusBadge></div>
                   <h3 className="mt-3 font-semibold">{stage.label}</h3>
                   <p className="mt-2 text-xs leading-6 text-ink/65">{stage.reason}</p>

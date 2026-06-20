@@ -31,7 +31,7 @@ export function OfficialLogo({ entity, className }: { entity: OfficialEntityKey;
       aria-label={`شعار ${style.label}`}
       title={`شعار ${style.label}`}
       className={clsx(
-        "inline-flex min-h-11 min-w-28 shrink-0 items-center justify-center gap-2 rounded-md border border-line px-3 py-2 text-[11px] font-semibold tracking-wide",
+        "inline-flex min-h-10 min-w-[8.5rem] shrink-0 items-center justify-center gap-2 rounded-md border border-line px-3 py-1.5 text-[11px] font-semibold leading-4 tracking-wide",
         style.bg,
         style.color,
         className

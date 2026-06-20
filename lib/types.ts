@@ -46,7 +46,7 @@ export type ChannelRecommendation = {
 export type DecisionWorkflowStage = {
   key: string;
   label: string;
-  status: "مكتمل" | "الحالي" | "محجوب" | "قادم";
+  status: "مكتمل" | "الحالي" | "قيد الانتظار" | "قادم";
   reason: string;
   action: string;
 };

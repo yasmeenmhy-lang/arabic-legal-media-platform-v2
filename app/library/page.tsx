@@ -29,9 +29,9 @@ export default function LibraryPage() {
         <SectionTitle title="الوصول السريع" subtitle="روابط مباشرة إلى المراجع والجهات ذات الصلة." />
         <div className="grid gap-3 sm:grid-cols-2">
           {quickLinks.map(({ label, href }) => (
-            <a key={label} href={href} target="_blank" rel="noopener noreferrer" className="flex items-center justify-between gap-3 rounded-lg border border-line bg-white p-4 text-sm font-normal text-palm transition hover:border-palm focus-ring">
-              <span className="flex items-center gap-3"><OfficialLogo entity={officialEntityFromUrl(href)} />{label}</span>
-              <ExternalLink size={16} />
+            <a key={label} href={href} target="_blank" rel="noopener noreferrer" className="flex items-start justify-between gap-3 rounded-lg border border-line bg-white p-3 text-sm font-normal text-palm transition hover:border-palm focus-ring">
+              <span className="flex min-w-0 items-start gap-3"><OfficialLogo entity={officialEntityFromUrl(href)} /><span className="pt-2 leading-6">{label}</span></span>
+              <ExternalLink size={16} className="mt-2 shrink-0" />
             </a>
           ))}
         </div>
