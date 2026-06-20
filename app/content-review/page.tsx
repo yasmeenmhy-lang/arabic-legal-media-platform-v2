@@ -25,6 +25,7 @@ import { OfficialLogo, officialEntityFromUrl } from "@/components/official-logos
 import { contentKindOptions } from "@/lib/content-types";
 import {
   approveContentVersion,
+  clearActiveContentSelection,
   getActiveContentSelection,
   loadContentRecords,
   markContentShared,
@@ -54,9 +55,28 @@ const reviewTabs = [
 type ReviewTab = (typeof reviewTabs)[number]["key"];
 
 const inlineSpellingRules = [
+  { wrong: "هاذا", correction: "هذا", message: "صحح رسم اسم الإشارة إلى: هذا." },
+  { wrong: "هاذه", correction: "هذه", message: "صحح رسم اسم الإشارة إلى: هذه." },
+  { wrong: "نض", correction: "نص", message: "صحح رسم الكلمة إلى: نص." },
+  { wrong: "اخطا", correction: "أخطاء", message: "أضف الهمزة والمد في كلمة: أخطاء." },
+  { wrong: "اخطاء", correction: "أخطاء", message: "أضف الهمزة في كلمة: أخطاء." },
+  { wrong: "لغويه", correction: "لغوية", message: "صحح التاء المربوطة في كلمة: لغوية." },
+  { wrong: "واضحه", correction: "واضحة", message: "صحح التاء المربوطة في كلمة: واضحة." },
+  { wrong: "قانونيه", correction: "قانونية", message: "صحح التاء المربوطة في كلمة: قانونية." },
+  { wrong: "مهنيه", correction: "مهنية", message: "صحح التاء المربوطة في كلمة: مهنية." },
+  { wrong: "اعلانيه", correction: "إعلانية", message: "أضف الهمزة وصحح التاء المربوطة في كلمة: إعلانية." },
+  { wrong: "اعلاني", correction: "إعلاني", message: "أضف الهمزة في كلمة: إعلاني." },
+  { wrong: "استشاره", correction: "استشارة", message: "صحح التاء المربوطة في كلمة: استشارة." },
+  { wrong: "العملا", correction: "العملاء", message: "صحح رسم الكلمة إلى: العملاء." },
+  { wrong: "المحكمه", correction: "المحكمة", message: "صحح التاء المربوطة في كلمة: المحكمة." },
+  { wrong: "النتيجه", correction: "النتيجة", message: "صحح التاء المربوطة في كلمة: النتيجة." },
+  { wrong: "الاجراءات", correction: "الإجراءات", message: "أضف الهمزة في المصطلح المهني: الإجراءات." },
+  { wrong: "والاجراءات", correction: "والإجراءات", message: "أضف الهمزة في المصطلح المهني: والإجراءات." },
   { wrong: "القضيه", correction: "القضية", message: "صحح التاء المربوطة في كلمة: القضية." },
   { wrong: "السعوديه", correction: "السعودية", message: "صحح التاء المربوطة في كلمة: السعودية." },
   { wrong: "اجراءات", correction: "إجراءات", message: "أضف الهمزة في المصطلح المهني: إجراءات." },
+  { wrong: "الاجراء", correction: "الإجراء", message: "أضف الهمزة في المصطلح المهني: الإجراء." },
+  { wrong: "والاجراء", correction: "والإجراء", message: "أضف الهمزة في المصطلح المهني: والإجراء." },
   { wrong: "اجراء", correction: "إجراء", message: "أضف الهمزة في المصطلح المهني: إجراء." },
   { wrong: "اللائحه", correction: "اللائحة", message: "صحح التاء المربوطة في كلمة: اللائحة." },
   { wrong: "الانظمه", correction: "الأنظمة", message: "أضف الهمزة وصحح التاء المربوطة في كلمة: الأنظمة." }
@@ -298,6 +318,21 @@ function InlineContentGuidance({
 }) {
   const liveSpellingIssues = detectInlineWritingIssues(draftText);
 
+  if (!review && draftText.trim().length === 0) {
+    return (
+      <div className="rounded-lg border border-dashed border-line bg-paper p-3 text-xs leading-6 text-ink/65">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-2 text-palm">
+            <SpellCheck size={16} aria-hidden="true" />
+            <b>لا يوجد محتوى محل مراجعة حاليًا</b>
+          </div>
+          <StatusBadge tone="neutral">لا توجد نتائج</StatusBadge>
+        </div>
+        <p className="mt-2">أدخل نصًا جديدًا لبدء التدقيق والتحليل. لن تظهر مؤشرات أو نتائج مرتبطة بمحتوى سابق بعد مسح النص.</p>
+      </div>
+    );
+  }
+
   if (!review) {
     return (
       <div className="space-y-3 rounded-lg border border-dashed border-line bg-paper p-3 text-xs leading-6 text-ink/65">
@@ -329,6 +364,26 @@ function InlineContentGuidance({
   const firstLanguageIssue = review.languageQuality.issues[0] ?? liveSpellingIssues[0];
   const rewrite = review.governedRewrites[0];
   const languagePassed = review.languageQuality.passed && liveSpellingIssues.length === 0;
+  const assistantGuidance = firstFinding
+    ? [
+        `ما الذي يحتاج انتباهك: ${firstFinding.title}.`,
+        `الدليل من النص: "${firstFinding.evidence}".`,
+        `سبب الملاحظة: ${firstFinding.legalExplanation}`,
+        `الأثر المتوقع: ${firstFinding.issue} — مستوى الأثر ${firstFinding.potentialImpact}.`,
+        `المرجع الرسمي: ${firstFinding.sourceDocument} — ${firstFinding.legalReference}.`,
+        `الإجراء العملي: ${firstFinding.suggestedSaferWording}`
+      ]
+    : firstLanguageIssue
+      ? [
+          `ما الذي يحتاج تصحيحًا: "${firstLanguageIssue.excerpt}".`,
+          `سبب التنبيه: ${firstLanguageIssue.message}`,
+          `التصحيح المقترح: ${firstLanguageIssue.suggestion}`,
+          "بعد التصحيح، أعد التحليل حتى ترتبط النتائج والمؤشرات بالنص الحالي فقط."
+        ]
+      : [
+          review.publicationDecision.reason,
+          review.readinessDecision.actions[0] ?? "راجع النص والسياق قبل الاعتماد أو المشاركة."
+        ];
 
   return (
     <div className="space-y-3 rounded-lg border border-line bg-white p-3">
@@ -361,6 +416,13 @@ function InlineContentGuidance({
               ? `ابدأ بتصحيح "${firstLanguageIssue.excerpt}". ${firstLanguageIssue.suggestion}`
               : "لم تظهر ملاحظة مهنية أو لغوية مانعة. راجع النسخة النهائية قبل الاعتماد."}
         </p>
+      </div>
+
+      <div className="rounded-md border border-palm/20 bg-mint/30 p-3 text-xs leading-6">
+        <div className="mb-2 flex items-center gap-2 text-palm"><Bot size={16} aria-hidden="true" /><b>توجيه المساعد حسب نتيجة التحليل</b></div>
+        <ul className="list-disc space-y-1 pr-5">
+          {assistantGuidance.map((item) => <li key={item}>{item}</li>)}
+        </ul>
       </div>
 
       {rewrite ? (
@@ -658,6 +720,7 @@ export default function ContentReviewPage() {
   }
 
   function clearContentInput() {
+    clearActiveContentSelection();
     setText("");
     setReview(null);
     setApproved(false);
