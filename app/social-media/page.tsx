@@ -20,6 +20,30 @@ const platforms: Array<{
   { key: "youtube_shorts", label: "YouTube Shorts" }
 ];
 
+function prepareChannelCopy(input: {
+  platformLabel: string;
+  body: string;
+  reason?: string;
+  format?: string;
+  timing?: string;
+  hashtags?: string[];
+}) {
+  const lines = [
+    `نسخة مجهزة لقناة ${input.platformLabel}`,
+    "",
+    input.body,
+    "",
+    input.format ? `الصيغة المقترحة: ${input.format}` : null,
+    input.reason ? `سبب ملاءمة القناة: ${input.reason}` : null,
+    input.timing ? `التوقيت المقترح: ${input.timing}` : null,
+    input.hashtags?.length ? `وسوم مقترحة: ${input.hashtags.join(" ")}` : null,
+    "",
+    "تنبيه: راجع النسخة النهائية داخل التطبيق المستهدف قبل النشر، وتبقى مسؤولية النشر على المستخدم."
+  ].filter(Boolean);
+
+  return lines.join("\n");
+}
+
 function download(name: string, body: string) {
   const blob = new Blob([body], { type: "application/json;charset=utf-8" });
   const url = URL.createObjectURL(blob);
@@ -86,6 +110,9 @@ export default function SocialMediaPage() {
         title="تجهيز مخرجات النشر المعتمدة"
         description="اختر نسخة معتمدة، ثم انسخها أو عدّلها أو نزّل حزمها أو افتح قناة المشاركة. لا تنشر المنصة تلقائياً نيابة عن المستخدم."
       />
+      <Link href="/content-review" className="inline-flex rounded-md border border-line px-4 py-2 text-sm text-palm transition hover:border-palm hover:bg-mint focus-ring">
+        عودة إلى نتائج المراجعة
+      </Link>
 
       {approvedItems.length ? (
         <>
@@ -119,9 +146,39 @@ export default function SocialMediaPage() {
                     <p className="mt-4 text-sm leading-7">{recommendation?.reason ?? "يمكن إعداد نسخة لهذه القناة بعد تكييف الصيغة بصرياً ومراجعتها."}</p>
                     <p className="mt-3 text-xs leading-6 text-ink/60">{recommendation?.risks ?? "راجع طول النص والخصوصية وسياسات المنصة قبل النشر."}</p>
                     {platform.share ? (
-                      <a href={platform.share(body)} target="_blank" rel="noopener noreferrer" className="mt-4 inline-flex items-center gap-2 rounded-md bg-palm px-4 py-2.5 text-sm text-white"><Share2 size={15} />فتح المشاركة</a>
+                      <a
+                        href={platform.share(prepareChannelCopy({
+                          platformLabel: platform.label,
+                          body,
+                          reason: recommendation?.reason,
+                          format: recommendation?.format,
+                          timing: recommendation?.timing,
+                          hashtags: recommendation?.hashtags
+                        }))}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="mt-4 inline-flex items-center gap-2 rounded-md bg-palm px-4 py-2.5 text-sm text-white"
+                      >
+                        <Share2 size={15} />فتح المشاركة
+                      </a>
                     ) : (
-                      <button type="button" onClick={async () => { await navigator.clipboard.writeText(body); setMessage(`تم نسخ النص. افتح ${platform.label} وأكمل التجهيز يدوياً.`); }} className="mt-4 inline-flex items-center gap-2 rounded-md border border-line px-4 py-2.5 text-sm"><Clipboard size={15} />نسخ للتجهيز</button>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          await navigator.clipboard.writeText(prepareChannelCopy({
+                            platformLabel: platform.label,
+                            body,
+                            reason: recommendation?.reason,
+                            format: recommendation?.format,
+                            timing: recommendation?.timing,
+                            hashtags: recommendation?.hashtags
+                          }));
+                          setMessage(`تم نسخ نسخة مجهزة لقناة ${platform.label}. افتح التطبيق وأكمل المراجعة قبل النشر.`);
+                        }}
+                        className="mt-4 inline-flex items-center gap-2 rounded-md border border-line px-4 py-2.5 text-sm"
+                      >
+                        <Clipboard size={15} />نسخ للتجهيز
+                      </button>
                     )}
                   </article>
                 );

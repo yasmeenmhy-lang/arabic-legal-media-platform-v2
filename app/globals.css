@@ -25,6 +25,9 @@ body {
   overflow-x: hidden;
   background: #f4f7f6;
   color: #1f2933;
+  font-family: "IBM Plex Sans Arabic", "Noto Sans Arabic", "Segoe UI", Tahoma, Arial, sans-serif;
+  font-size: 14px;
+  line-height: 1.7;
   font-weight: 400;
   letter-spacing: 0;
   text-rendering: optimizeLegibility;
@@ -75,8 +78,23 @@ textarea {
 
 .content-review-window {
   font-family: "IBM Plex Sans Arabic", "Noto Sans Arabic", "Segoe UI", Tahoma, Arial, sans-serif;
-  font-size: 15px;
+  font-size: 14px;
   line-height: 1.7;
+}
+
+h1 {
+  font-size: 1.25rem;
+  line-height: 2rem;
+}
+
+h2 {
+  font-size: 1.125rem;
+  line-height: 1.9rem;
+}
+
+h3 {
+  font-size: 1rem;
+  line-height: 1.75rem;
 }
 
 .content-review-window h1,
@@ -86,15 +104,15 @@ textarea {
 }
 
 .content-review-window > div:first-child h2 {
-  font-size: 1.125rem;
+  font-size: 1rem;
   font-weight: 600;
-  line-height: 2rem;
+  line-height: 1.85rem;
 }
 
 @media (min-width: 640px) {
   .content-review-window > div:first-child h2 {
-    font-size: 1.25rem;
-    line-height: 2.25rem;
+    font-size: 1.125rem;
+    line-height: 2rem;
   }
 }
 

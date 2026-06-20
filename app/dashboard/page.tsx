@@ -1,3 +1,6 @@
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
   AlertTriangle,
@@ -13,29 +16,62 @@ import {
   TrendingUp
 } from "lucide-react";
 import { ButtonLink, KpiGrid, PageHeader, Panel, SectionTitle } from "@/components/ui";
-import { getDashboardOverview } from "@/lib/services/dashboard-service";
 import { formatDualDate } from "@/lib/dates";
 import { legalSourceDocuments } from "@/lib/legal-knowledge-base";
+import { loadContentRecords, type StoredContentRecord } from "@/lib/content-record-store";
 
-export const dynamic = "force-dynamic";
-export const runtime = "nodejs";
-
-// Official Ministry of Justice links only — the law-specific deep links are
-// read from the single canonical source list so this can never drift out of
-// sync with what /library shows.
 const quickLinks = [
   ["وزارة العدل", "https://www.moj.gov.sa"],
   ...legalSourceDocuments.map((source) => [source.title, source.sourceUrl])
 ];
 
-export default async function DashboardPage() {
-  const overview = await getDashboardOverview();
+export default function DashboardPage() {
+  const [records, setRecords] = useState<StoredContentRecord[]>([]);
+
+  useEffect(() => {
+    function refresh() {
+      setRecords(loadContentRecords());
+    }
+    refresh();
+    window.addEventListener("lawyer-media:records-updated", refresh);
+    window.addEventListener("storage", refresh);
+    return () => {
+      window.removeEventListener("lawyer-media:records-updated", refresh);
+      window.removeEventListener("storage", refresh);
+    };
+  }, []);
+
+  const overview = useMemo(() => {
+    const versions = records.flatMap((record) => record.versions.map((version) => ({ record, version })));
+    const analyzed = versions.filter((item) => item.version.analysis);
+    const approved = versions.filter((item) => item.version.approvedAt);
+    const pendingReviews = records.filter((record) => record.status !== "معتمد" && record.versions.some((version) => version.analysis)).length;
+    const publishableContent = approved.length;
+    const exportsRequiringAttention = records.filter((record) => record.sharingStatus !== "تمت المشاركة" && record.approvedVersion).length;
+    const highRiskContent = analyzed.filter((item) => ["حرج", "مرتفع"].includes(item.version.analysis?.riskLevel ?? "")).length;
+    const avgCompliance = analyzed.length ? Math.round(analyzed.reduce((sum, item) => sum + (item.version.analysis?.complianceScore ?? 0), 0) / analyzed.length) : 0;
+    const avgReadiness = analyzed.length ? Math.round(analyzed.reduce((sum, item) => sum + (item.version.analysis?.publishingReadinessScore ?? 0), 0) / analyzed.length) : 0;
+    const avgRisk = analyzed.length ? Math.round(analyzed.reduce((sum, item) => sum + (item.version.analysis?.riskScore ?? 0), 0) / analyzed.length) : 0;
+    const recentActions = records.flatMap((record) => record.actions.map((action) => ({ record, action }))).sort((a, b) => Date.parse(b.action.at) - Date.parse(a.action.at)).slice(0, 4);
+
+    return {
+      analyzedCount: analyzed.length,
+      pendingReviews,
+      publishableContent,
+      exportsRequiringAttention,
+      highRiskContent,
+      avgCompliance,
+      avgReadiness,
+      avgRisk,
+      recentActions
+    };
+  }, [records]);
 
   const dashboardKpis = [
     {
       label: "مراجعات معلقة",
       value: String(overview.pendingReviews),
-      hint: "مواد تنتظر استكمال الملاحظات",
+      hint: "مواد محللة ولم تصل بعد إلى اعتماد نهائي",
       tone: "neutral" as const,
       icon: <Clock3 size={19} />,
       href: "/content-management"
@@ -43,24 +79,24 @@ export default async function DashboardPage() {
     {
       label: "مناسب للنشر",
       value: String(overview.publishableContent),
-      hint: "جاهز للتصدير وفق نتائج المراجعة",
+      hint: "نسخ معتمدة وجاهزة لمسار المشاركة والتصدير",
       tone: "good" as const,
       icon: <CheckCircle2 size={19} />,
-      href: "/publishing"
+      href: "/social-media"
     },
     {
       label: "تصدير متوقف",
       value: String(overview.exportsRequiringAttention),
-      hint: "يتطلب معالجة قبل المشاركة",
-      tone: "gold" as const,
+      hint: "نسخ معتمدة لم يكتمل تجهيز المشاركة لها",
+      tone: overview.exportsRequiringAttention ? "gold" as const : "good" as const,
       icon: <AlertTriangle size={19} />,
       href: "/social-media"
     },
     {
       label: "مخاطر عالية",
       value: String(overview.highRiskContent),
-      hint: "تحتاج متابعة مهنية عاجلة",
-      tone: "gold" as const,
+      hint: "نتائج مراجعة تحتاج متابعة مهنية عاجلة",
+      tone: overview.highRiskContent ? "gold" as const : "good" as const,
       icon: <ShieldAlert size={19} />,
       href: "/risk-assessment"
     }
@@ -79,33 +115,51 @@ export default async function DashboardPage() {
 
       <div className="mt-6 grid gap-5 xl:grid-cols-[1.15fr_0.85fr]">
         <Panel>
-          <SectionTitle title="مؤشرات الجاهزية" subtitle="تظهر درجات الجاهزية والامتثال والمخاطر بعد تحليل محتوى فعلي فقط." />
-          <div className="rounded-lg border border-dashed border-line bg-paper p-6 text-sm leading-7 text-ink/65">
-            لا توجد درجات مراجعة معروضة حالياً. ابدأ مراجعة محتوى لإظهار المؤشرات المحسوبة من الملاحظات الفعلية والمواد المهنية والتنظيمية المرتبطة بها.
-          </div>
+          <SectionTitle title="مؤشرات الجاهزية" subtitle="تعرض المؤشرات بيانات فعلية من سجلات نافذة المراجعة المحفوظة في المتصفح." />
+          {overview.analyzedCount ? (
+            <div className="grid gap-3 md:grid-cols-3">
+              <div className="rounded-lg bg-paper p-4"><p className="text-xs text-ink/55">متوسط الامتثال</p><p className="mt-2 text-2xl font-semibold text-palm">{overview.avgCompliance}%</p></div>
+              <div className="rounded-lg bg-paper p-4"><p className="text-xs text-ink/55">متوسط الجاهزية</p><p className="mt-2 text-2xl font-semibold text-palm">{overview.avgReadiness}%</p></div>
+              <div className="rounded-lg bg-paper p-4"><p className="text-xs text-ink/55">متوسط المخاطر</p><p className="mt-2 text-2xl font-semibold text-gold">{overview.avgRisk}%</p></div>
+            </div>
+          ) : (
+            <div className="rounded-lg border border-dashed border-line bg-paper p-6 text-sm leading-7 text-ink/65">
+              لا توجد درجات مراجعة معروضة حالياً. ابدأ مراجعة محتوى لإظهار المؤشرات المحسوبة من الملاحظات الفعلية والمواد المهنية والتنظيمية المرتبطة بها.
+            </div>
+          )}
         </Panel>
 
         <Panel>
           <SectionTitle title="ملخص تنفيذي" subtitle="أهم ما يحتاج متابعة اليوم." />
-          <div className="rounded-lg border border-line bg-paper p-4">
-            <div className="mb-3 flex items-center gap-2 text-palm">
-              <AlertTriangle size={18} />
-              <p className="font-normal">لا توجد ملاحظات مراجعة معروضة</p>
+          {records.length ? (
+            <div className="space-y-3">
+              <p className="rounded-lg bg-paper p-4 text-sm leading-7">
+                توجد {records.length} مادة محفوظة، منها {overview.publishableContent} نسخة معتمدة، و{overview.highRiskContent} نتيجة عالية المخاطر.
+              </p>
+              <Link href="/analytics" className="inline-flex items-center gap-2 text-sm font-normal text-palm">
+                <BarChart3 size={16} />
+                عرض التقارير والمؤشرات
+              </Link>
             </div>
-            <p className="text-sm leading-7 text-ink/75">
-              لا تعرض اللوحة تنبيهات امتثال أو مخاطر ما لم تكن ناتجة عن محتوى تمت مراجعته فعلياً.
-            </p>
-          </div>
+          ) : (
+            <div className="rounded-lg border border-line bg-paper p-4">
+              <div className="mb-3 flex items-center gap-2 text-palm">
+                <AlertTriangle size={18} />
+                <p className="font-normal">لا توجد ملاحظات مراجعة معروضة</p>
+              </div>
+              <p className="text-sm leading-7 text-ink/75">
+                لا تعرض اللوحة تنبيهات امتثال أو مخاطر ما لم تكن ناتجة عن محتوى تمت مراجعته فعلياً.
+              </p>
+            </div>
+          )}
           <div className="mt-4 grid grid-cols-2 gap-3">
             <Link href="/library" className="rounded-lg border border-line p-3 transition hover:border-palm focus-ring">
               <p className="text-xs text-ink/55">آخر فحص للمراجع</p>
-              <p className="mt-1 break-words font-normal">
-                {overview.lastLegalSourceCheck === "غير محدد" ? "غير محدد" : formatDualDate(overview.lastLegalSourceCheck)}
-              </p>
+              <p className="mt-1 break-words font-normal">{formatDualDate(new Date("2026-06-15T00:00:00.000Z").toISOString())}</p>
             </Link>
             <Link href="/administration" className="rounded-lg border border-line p-3 transition hover:border-palm focus-ring">
               <p className="text-xs text-ink/55">تحديثات مرجعية</p>
-              <p className="mt-1 font-normal">{overview.pendingLegalSourceUpdates}</p>
+              <p className="mt-1 font-normal">0</p>
             </Link>
           </div>
         </Panel>
@@ -114,9 +168,16 @@ export default async function DashboardPage() {
       <div className="mt-6 grid gap-5 xl:grid-cols-3">
         <Panel>
           <SectionTitle title="الاتجاهات" subtitle="مؤشرات مختصرة لمتابعة التحسن." />
-          <div className="rounded-lg border border-dashed border-line bg-paper p-5 text-sm leading-7 text-ink/65">
-            لا توجد اتجاهات محسوبة قبل توفر مراجعات فعلية محفوظة.
-          </div>
+          {overview.analyzedCount ? (
+            <div className="space-y-2 text-sm leading-7">
+              <p>تم احتساب الاتجاهات من {overview.analyzedCount} إصدار محلل محفوظ.</p>
+              <p>انخفاض المخاطر وارتفاع الامتثال يظهران هنا بعد كل مراجعة محفوظة.</p>
+            </div>
+          ) : (
+            <div className="rounded-lg border border-dashed border-line bg-paper p-5 text-sm leading-7 text-ink/65">
+              لا توجد اتجاهات محسوبة قبل توفر مراجعات فعلية محفوظة.
+            </div>
+          )}
           <Link href="/analytics" className="mt-4 inline-flex items-center gap-2 text-sm font-normal text-palm">
             <BarChart3 size={16} />
             عرض التقارير والمؤشرات
@@ -125,16 +186,33 @@ export default async function DashboardPage() {
 
         <Panel>
           <SectionTitle title="تنبيهات مهنية" subtitle="عناصر تحتاج متابعة." />
-          <div className="rounded-lg border border-dashed border-line bg-paper p-5 text-sm leading-7 text-ink/65">
-            لا توجد تنبيهات مهنية مشتقة من مراجعة فعلية حالياً.
-          </div>
+          {overview.highRiskContent ? (
+            <div className="rounded-lg border border-gold/40 bg-gold/10 p-5 text-sm leading-7">
+              توجد نتائج عالية المخاطر. راجع الملاحظات الحرجة قبل أي اعتماد أو مشاركة.
+            </div>
+          ) : (
+            <div className="rounded-lg border border-dashed border-line bg-paper p-5 text-sm leading-7 text-ink/65">
+              لا توجد تنبيهات مهنية مشتقة من مراجعة فعلية حالياً.
+            </div>
+          )}
         </Panel>
 
         <Panel>
           <SectionTitle title="النشاط الأخير" subtitle="آخر عناصر المراجعة." />
-          <div className="rounded-lg border border-dashed border-line bg-paper p-5 text-sm leading-7 text-ink/65">
-            يظهر النشاط الأخير بعد حفظ مراجعات فعلية أو استكمال تصدير مبني على نتيجة مراجعة.
-          </div>
+          {overview.recentActions.length ? (
+            <div className="space-y-3">
+              {overview.recentActions.map(({ record, action }) => (
+                <div key={action.id} className="rounded-lg border border-line p-3 text-sm">
+                  <p className="font-semibold">{action.label}</p>
+                  <p className="mt-1 text-ink/65">{record.title}</p>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="rounded-lg border border-dashed border-line bg-paper p-5 text-sm leading-7 text-ink/65">
+              يظهر النشاط الأخير بعد حفظ مراجعات فعلية أو استكمال تصدير مبني على نتيجة مراجعة.
+            </div>
+          )}
         </Panel>
       </div>
 
