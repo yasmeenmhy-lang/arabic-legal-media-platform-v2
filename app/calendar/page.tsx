@@ -34,11 +34,19 @@ export default function CalendarPage() {
   useEffect(() => {
     const loaded = loadContentRecords();
     setRecords(loaded);
-    setSelectedId(loaded[0]?.id ?? "");
-    setTargetDate(window.localStorage.getItem("lawyer-media:target-publication-date") ?? "");
   }, []);
 
-  const selected = records.find((record) => record.id === selectedId) ?? records[0];
+  useEffect(() => {
+    if (!selectedId) {
+      setTargetDate("");
+      setMessage("");
+      return;
+    }
+    setTargetDate(window.localStorage.getItem(`lawyer-media:target-publication-date:${selectedId}`) ?? "");
+    setMessage("");
+  }, [selectedId]);
+
+  const selected = records.find((record) => record.id === selectedId);
   const version = selected?.versions.find((item) => item.version === selected.currentVersion);
   const review = version?.analysis;
   const recommendations = review?.channelRecommendations ?? [];
@@ -71,14 +79,15 @@ export default function CalendarPage() {
   const progressPercent = stages.length > 1 ? Math.round((progressIndex / (stages.length - 1)) * 100) : 0;
 
   const decisionSummary = useMemo(() => {
+    if (!selected) return "يبدأ التخطيط بعد اختيار محتوى مرتبط بالخطة. لن تظهر بيانات أو مراحل مكتملة لمحتوى غير محدد.";
     if (!review) return "ابدأ بمراجعة محتوى فعلي لربط الخطة بقرار نشر وأدلة.";
     return review.publicationDecision.reason;
-  }, [review]);
+  }, [review, selected]);
 
   function saveSchedule() {
-    if (!targetDate) return;
-    window.localStorage.setItem("lawyer-media:target-publication-date", targetDate);
-    setMessage("تم حفظ الموعد المستهدف ضمن الخطة الاسترشادية.");
+    if (!selectedId || !targetDate) return;
+    window.localStorage.setItem(`lawyer-media:target-publication-date:${selectedId}`, targetDate);
+    setMessage("تم حفظ الموعد المستهدف للمحتوى المختار ضمن الخطة الاسترشادية.");
   }
 
   return (
@@ -130,9 +139,13 @@ export default function CalendarPage() {
       <Panel className="p-2.5 sm:p-3">
         <SectionTitle title="المحتوى المرتبط بالخطة" subtitle="اختيار المحتوى يحدّث قرار النشر والجمهور والقنوات المقترحة تلقائياً." />
         {records.length ? (
-          <select value={selected?.id} onChange={(event) => setSelectedId(event.target.value)} className="w-full rounded-md border border-line bg-white px-3 py-3">
+          <>
+          <select value={selectedId} onChange={(event) => setSelectedId(event.target.value)} className="w-full rounded-md border border-line bg-white px-3 py-3">
+            <option value="">اختر محتوى</option>
             {records.map((record) => <option key={record.id} value={record.id}>{record.title}</option>)}
           </select>
+          {!selected ? <p className="mt-3 rounded-lg bg-paper p-3 leading-7 text-ink/70">يبدأ التخطيط بعد اختيار محتوى. لن يتم عرض قرار نشر أو قنوات أو هدف أو جمهور أو جدول زمني مرتبط بمحتوى سابق.</p> : null}
+          </>
         ) : <p className="rounded-lg bg-paper p-4">لا يوجد محتوى محفوظ. ابدأ من مراجعة المحتوى.</p>}
       </Panel>
 
@@ -140,19 +153,20 @@ export default function CalendarPage() {
         <Panel className="p-2.5 sm:p-3">
           <SectionTitle title="الهدف والقرار" subtitle="هذه المعلومات تشرح القرار الذي تساعد الخطة على تنفيذه." />
           <div className="grid gap-3 md:grid-cols-2">
-            <div className="rounded-lg bg-paper p-3"><div className="flex items-center gap-2 text-palm"><Target size={16} /><p className="text-xs">الهدف</p></div><p className="mt-1 leading-6">{version?.purpose ?? "غير محدد"}</p></div>
-            <div className="rounded-lg bg-paper p-3"><div className="flex items-center gap-2 text-palm"><Users size={16} /><p className="text-xs">الجمهور</p></div><p className="mt-1 leading-6">{version?.audience ?? "غير محدد"}</p></div>
+            <div className="rounded-lg bg-paper p-3"><div className="flex items-center gap-2 text-palm"><Target size={16} /><p className="text-xs">الهدف</p></div><p className="mt-1 leading-6">{selected ? version?.purpose ?? "غير محدد" : "لا يوجد محتوى محدد"}</p></div>
+            <div className="rounded-lg bg-paper p-3"><div className="flex items-center gap-2 text-palm"><Users size={16} /><p className="text-xs">الجمهور</p></div><p className="mt-1 leading-6">{selected ? version?.audience ?? "غير محدد" : "لا يوجد محتوى محدد"}</p></div>
           </div>
           <div className="mt-3 rounded-lg border border-line p-3">
-            <div className="flex flex-wrap items-center justify-between gap-3"><p className="font-semibold">قرار النشر الحالي</p>{review ? <StatusBadge tone={review.publicationDecision.recommended ? "good" : "gold"}>{review.publicationDecision.label}</StatusBadge> : null}</div>
+            <div className="flex flex-wrap items-center justify-between gap-3"><p className="font-semibold">قرار النشر الحالي</p>{selected && review ? <StatusBadge tone={review.publicationDecision.recommended ? "good" : "gold"}>{review.publicationDecision.label}</StatusBadge> : null}</div>
             <p className="mt-2 leading-6 text-ink/75">{decisionSummary}</p>
           </div>
         </Panel>
 
         <Panel className="p-2.5 sm:p-3">
           <SectionTitle title="الجدول الزمني" subtitle="موعد مستهدف يساعد على ترتيب العمل ولا يمثل نشراً تلقائياً." />
-          <label className="text-sm">تاريخ النشر المستهدف<input type="date" value={targetDate} onChange={(event) => setTargetDate(event.target.value)} className="mt-2 w-full rounded-md border border-line px-3 py-2.5" /></label>
-          <button type="button" onClick={saveSchedule} disabled={!targetDate} className="mt-3 inline-flex items-center gap-2 rounded-md bg-palm px-3 py-2 text-sm text-white disabled:opacity-40"><Save size={15} />حفظ الموعد</button>
+          <label className="text-sm">تاريخ النشر المستهدف<input type="date" value={targetDate} onChange={(event) => setTargetDate(event.target.value)} disabled={!selected} className="mt-2 w-full rounded-md border border-line px-3 py-2.5 disabled:bg-paper disabled:text-ink/45" /></label>
+          {!selected ? <p className="mt-2 rounded-lg bg-paper p-3 text-xs leading-6 text-ink/65">اختر محتوى قبل تحديد موعد النشر حتى لا يرتبط الجدول الزمني بمحتوى سابق.</p> : null}
+          <button type="button" onClick={saveSchedule} disabled={!selected || !targetDate} className="mt-3 inline-flex items-center gap-2 rounded-md bg-palm px-3 py-2 text-sm text-white disabled:opacity-40"><Save size={15} />حفظ الموعد</button>
           <div className="mt-3 rounded-lg bg-paper p-3"><p className="text-xs text-ink/55">تقدم الخطة</p><p className="mt-1 text-lg font-semibold">{completed} من {stages.length} مراحل</p><p className="mt-1 text-xs leading-6 text-ink/65">يوضح المؤشر المرحلة الحالية وما يلزم تنفيذه تالياً.</p></div>
         </Panel>
       </div>
@@ -178,7 +192,7 @@ export default function CalendarPage() {
               );
             })}
           </div>
-        ) : <p className="rounded-lg bg-paper p-4 leading-7">لا توجد توصية قناة قبل توفر تحليل فعلي وسياق مكتمل للمحتوى.</p>}
+        ) : <p className="rounded-lg bg-paper p-4 leading-7">{selected ? "لا توجد توصية قناة قبل توفر تحليل فعلي وسياق مكتمل للمحتوى." : "اختر محتوى لعرض القنوات المقترحة المرتبطة به فقط."}</p>}
       </Panel>
 
       <div className="rounded-lg border border-line bg-white p-4 text-xs leading-7 text-ink/60">
