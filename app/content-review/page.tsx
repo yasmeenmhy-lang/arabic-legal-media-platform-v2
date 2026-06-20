@@ -102,6 +102,64 @@ function detectInlineWritingIssues(value: string): LanguageQualityIssue[] {
   });
 }
 
+type AssistantIssue = {
+  id: string;
+  severity: keyof typeof severityOrder;
+  label: string;
+  evidence: string;
+  reason: string;
+  action: string;
+  source?: string;
+};
+
+function languageIssueSeverity(issue: LanguageQualityIssue): keyof typeof severityOrder {
+  if (issue.severity === "high") return "high";
+  if (issue.severity === "medium") return "medium";
+  return "low";
+}
+
+function buildAssistantIssues(review: ReviewResult, liveSpellingIssues: LanguageQualityIssue[]) {
+  const findingIssues: AssistantIssue[] = review.findings.map((finding, index) => ({
+    id: `finding-${index}-${finding.title}`,
+    severity: finding.businessSeverity ?? "low",
+    label: finding.title,
+    evidence: finding.evidence,
+    reason: finding.legalExplanation,
+    action: finding.suggestedSaferWording,
+    source: `${finding.sourceDocument} — ${finding.legalReference}`
+  }));
+
+  const mergedLanguageIssues = [...review.languageQuality.issues, ...liveSpellingIssues].filter(
+    (issue, index, list) => list.findIndex((item) => `${item.category}-${item.excerpt}-${item.suggestion}` === `${issue.category}-${issue.excerpt}-${issue.suggestion}`) === index
+  );
+
+  const languageIssues: AssistantIssue[] = mergedLanguageIssues.map((issue, index) => ({
+    id: `language-${index}-${issue.excerpt}`,
+    severity: languageIssueSeverity(issue),
+    label: issue.category === "spelling" ? "تصحيح إملائي أو لغوي" : "تحسين لغوي أو أسلوبي",
+    evidence: issue.excerpt,
+    reason: issue.message,
+    action: issue.suggestion,
+    source: "قواعد لغوية عربية معيارية للتدقيق الإملائي والتحريري"
+  }));
+
+  const riskIssue: AssistantIssue[] = ["حرج", "مرتفع"].includes(review.riskLevel)
+    ? [{
+        id: "risk-summary",
+        severity: review.riskLevel === "حرج" ? "critical" : "high",
+        label: `مستوى مخاطر ${review.riskLevel}`,
+        evidence: review.findings[0]?.evidence ?? review.legalRiskAssessment.reason,
+        reason: review.legalRiskAssessment.reason,
+        action: review.readinessDecision.actions[0] ?? "عالج المخاطر قبل التفكير في النشر.",
+        source: review.findings[0] ? `${review.findings[0].sourceDocument} — ${review.findings[0].legalReference}` : "نتيجة تقييم المخاطر"
+      }]
+    : [];
+
+  return [...findingIssues, ...riskIssue, ...languageIssues].sort(
+    (a, b) => severityOrder[a.severity] - severityOrder[b.severity]
+  );
+}
+
 function riskTone(risk: RiskLevel) {
   if (risk === "حرج" || risk === "مرتفع") return "gold" as const;
   if (risk === "متوسط") return "neutral" as const;
@@ -364,26 +422,12 @@ function InlineContentGuidance({
   const firstLanguageIssue = review.languageQuality.issues[0] ?? liveSpellingIssues[0];
   const rewrite = review.governedRewrites[0];
   const languagePassed = review.languageQuality.passed && liveSpellingIssues.length === 0;
-  const assistantGuidance = firstFinding
-    ? [
-        `ما الذي يحتاج انتباهك: ${firstFinding.title}.`,
-        `الدليل من النص: "${firstFinding.evidence}".`,
-        `سبب الملاحظة: ${firstFinding.legalExplanation}`,
-        `الأثر المتوقع: ${firstFinding.issue} — مستوى الأثر ${firstFinding.potentialImpact}.`,
-        `المرجع الرسمي: ${firstFinding.sourceDocument} — ${firstFinding.legalReference}.`,
-        `الإجراء العملي: ${firstFinding.suggestedSaferWording}`
-      ]
-    : firstLanguageIssue
-      ? [
-          `ما الذي يحتاج تصحيحًا: "${firstLanguageIssue.excerpt}".`,
-          `سبب التنبيه: ${firstLanguageIssue.message}`,
-          `التصحيح المقترح: ${firstLanguageIssue.suggestion}`,
-          "بعد التصحيح، أعد التحليل حتى ترتبط النتائج والمؤشرات بالنص الحالي فقط."
-        ]
-      : [
-          review.publicationDecision.reason,
-          review.readinessDecision.actions[0] ?? "راجع النص والسياق قبل الاعتماد أو المشاركة."
-        ];
+  const assistantIssues = buildAssistantIssues(review, liveSpellingIssues);
+  const languageBadgeLabel = languagePassed
+    ? review.findings.length
+      ? "لا توجد أخطاء لغوية واضحة"
+      : "سليم لغويًا"
+    : "يحتاج تصحيحًا";
 
   return (
     <div className="space-y-3 rounded-lg border border-line bg-white p-3">
@@ -392,8 +436,9 @@ function InlineContentGuidance({
           <SpellCheck size={17} aria-hidden="true" />
           <p className="text-sm font-semibold">تدقيق مباشر داخل منطقة المحتوى</p>
         </div>
-        <StatusBadge tone={languagePassed ? "good" : "gold"}>{languagePassed ? "سليم لغويًا" : "يحتاج تصحيحًا"}</StatusBadge>
+        <StatusBadge tone={languagePassed ? "good" : "gold"}>{languageBadgeLabel}</StatusBadge>
       </div>
+      <p className="text-xs leading-6 text-ink/55">يعتمد التدقيق اللغوي الحالي على قواعد عربية معيارية للتدقيق الإملائي والتحريري. يمكن ربطه بمصدر لغوي سعودي معتمد مثل المعجم اللغوي السعودي عند توفر ترخيص استخدام واضح ومناسب.</p>
 
       {spellingIssues.length ? (
         <div className="flex flex-wrap gap-2">
@@ -420,9 +465,24 @@ function InlineContentGuidance({
 
       <div className="rounded-md border border-palm/20 bg-mint/30 p-3 text-xs leading-6">
         <div className="mb-2 flex items-center gap-2 text-palm"><Bot size={16} aria-hidden="true" /><b>توجيه المساعد حسب نتيجة التحليل</b></div>
-        <ul className="list-disc space-y-1 pr-5">
-          {assistantGuidance.map((item) => <li key={item}>{item}</li>)}
-        </ul>
+        {assistantIssues.length ? (
+          <ol className="space-y-2 pr-5">
+            {assistantIssues.map((item, index) => (
+              <li key={item.id} className="rounded-md border border-line bg-white p-2">
+                <div className="flex flex-wrap items-center gap-2">
+                  <StatusBadge tone={item.severity === "critical" || item.severity === "high" ? "gold" : "neutral"}>{index + 1}. {item.label}</StatusBadge>
+                  <span className="text-ink/55">الأولوية: {item.severity === "critical" ? "حرجة" : item.severity === "high" ? "عالية" : item.severity === "medium" ? "متوسطة" : "منخفضة"}</span>
+                </div>
+                <p className="mt-2"><b>الدليل:</b> {item.evidence}</p>
+                <p><b>السبب:</b> {item.reason}</p>
+                {item.source ? <p><b>المصدر:</b> {item.source}</p> : null}
+                <p><b>الإجراء المقترح:</b> {item.action}</p>
+              </li>
+            ))}
+          </ol>
+        ) : (
+          <p>{review.publicationDecision.reason}</p>
+        )}
       </div>
 
       {rewrite ? (
@@ -482,10 +542,10 @@ function SmartAssistantPanel({ review }: { review: ReviewResult }) {
 export default function ContentReviewPage() {
   const router = useRouter();
   const [text, setText] = useState("");
-  const [kind, setKind] = useState<ContentKind>("advertisement");
-  const [channel, setChannel] = useState("LinkedIn");
-  const [audience, setAudience] = useState(audiences[0]);
-  const [purpose, setPurpose] = useState(purposes[0]);
+  const [kind, setKind] = useState<ContentKind | "">("");
+  const [channel, setChannel] = useState("");
+  const [audience, setAudience] = useState("");
+  const [purpose, setPurpose] = useState("");
   const [review, setReview] = useState<ReviewResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
@@ -497,7 +557,7 @@ export default function ContentReviewPage() {
   const [isEditing, setIsEditing] = useState(false);
   const [editSnapshot, setEditSnapshot] = useState<{
     text: string;
-    kind: ContentKind;
+    kind: ContentKind | "";
     channel: string;
     audience: string;
     purpose: string;
@@ -523,13 +583,17 @@ export default function ContentReviewPage() {
     }
   }, []);
 
-  const contentTypeLabel = contentTypes.find((item) => item.value === kind)?.label ?? "محتوى مهني";
+  const hasReviewContext = Boolean(kind && channel && audience && purpose);
+  const contentTypeLabel = kind ? contentTypes.find((item) => item.value === kind)?.label ?? "محتوى مهني" : "";
   const sortedFindings = useMemo(
     () => [...(review?.findings ?? [])].sort((a, b) => severityOrder[a.businessSeverity ?? "low"] - severityOrder[b.businessSeverity ?? "low"]),
     [review]
   );
 
   async function requestReview(reviewStatus?: "READY_FOR_PUBLISHING") {
+    if (!kind || !channel || !audience || !purpose) {
+      throw new Error("اختر نوع المحتوى والقناة والجمهور والهدف قبل التحليل حتى ترتبط النتائج بالسياق الصحيح.");
+    }
     const response = await fetch("/api/reviews", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -540,6 +604,10 @@ export default function ContentReviewPage() {
   }
 
   async function runReview() {
+    if (!kind || !channel || !audience || !purpose) {
+      setMessage("اختر نوع المحتوى والقناة والجمهور والهدف قبل التحليل حتى ترتبط النتائج بالسياق الصحيح.");
+      return;
+    }
     setLoading(true);
     setMessage("");
     try {
@@ -571,7 +639,7 @@ export default function ContentReviewPage() {
 
   async function applyRewrite() {
     const rewrite = review?.governedRewrites[0];
-    if (!rewrite) return;
+    if (!rewrite || !kind || !channel || !audience || !purpose) return;
     setText(rewrite.suggestedText);
     setMessage("تم تطبيق الصياغة المقترحة. جار إعادة التقييم للتحقق من النتيجة الفعلية.");
     setLoading(true);
@@ -622,8 +690,8 @@ export default function ContentReviewPage() {
   }
 
   function saveEdits() {
-    if (!contentId || text.trim().length < 5) {
-      setMessage("تعذر الحفظ: يجب أن يحتوي النص على خمسة أحرف على الأقل.");
+    if (!contentId || text.trim().length < 5 || !kind || !channel || !audience || !purpose) {
+      setMessage("تعذر الحفظ: أدخل نصًا من خمسة أحرف على الأقل واختر نوع المحتوى والقناة والجمهور والهدف.");
       return;
     }
     const saved = saveContentDraft({
@@ -750,11 +818,14 @@ export default function ContentReviewPage() {
       <Panel id="input">
         <SectionTitle title="1. إدخال المحتوى والسياق" subtitle="كلما اكتمل السياق ارتفعت موثوقية التوصية." />
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-          <label className="text-sm">نوع المحتوى<select value={kind} disabled={Boolean(review) && !isEditing} onChange={(event) => setKind(event.target.value as ContentKind)} className="mt-2 w-full rounded-md border border-line bg-white px-3 py-2.5 disabled:bg-paper disabled:text-ink/60">{contentTypes.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></label>
-          <label className="text-sm">القناة<select value={channel} disabled={Boolean(review) && !isEditing} onChange={(event) => setChannel(event.target.value)} className="mt-2 w-full rounded-md border border-line bg-white px-3 py-2.5 disabled:bg-paper disabled:text-ink/60">{channels.map((item) => <option key={item}>{item}</option>)}</select></label>
-          <label className="text-sm">الجمهور<select value={audience} disabled={Boolean(review) && !isEditing} onChange={(event) => setAudience(event.target.value)} className="mt-2 w-full rounded-md border border-line bg-white px-3 py-2.5 disabled:bg-paper disabled:text-ink/60">{audiences.map((item) => <option key={item}>{item}</option>)}</select></label>
-          <label className="text-sm">الهدف<select value={purpose} disabled={Boolean(review) && !isEditing} onChange={(event) => setPurpose(event.target.value)} className="mt-2 w-full rounded-md border border-line bg-white px-3 py-2.5 disabled:bg-paper disabled:text-ink/60">{purposes.map((item) => <option key={item}>{item}</option>)}</select></label>
+          <label className="text-sm">نوع المحتوى<select value={kind} disabled={Boolean(review) && !isEditing} onChange={(event) => setKind(event.target.value as ContentKind | "")} className="mt-2 w-full rounded-md border border-line bg-white px-3 py-2.5 disabled:bg-paper disabled:text-ink/60"><option value="">اختر نوع المحتوى</option>{contentTypes.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></label>
+          <label className="text-sm">القناة<select value={channel} disabled={Boolean(review) && !isEditing} onChange={(event) => setChannel(event.target.value)} className="mt-2 w-full rounded-md border border-line bg-white px-3 py-2.5 disabled:bg-paper disabled:text-ink/60"><option value="">اختر القناة</option>{channels.map((item) => <option key={item}>{item}</option>)}</select></label>
+          <label className="text-sm">الجمهور<select value={audience} disabled={Boolean(review) && !isEditing} onChange={(event) => setAudience(event.target.value)} className="mt-2 w-full rounded-md border border-line bg-white px-3 py-2.5 disabled:bg-paper disabled:text-ink/60"><option value="">اختر الجمهور</option>{audiences.map((item) => <option key={item}>{item}</option>)}</select></label>
+          <label className="text-sm">الهدف<select value={purpose} disabled={Boolean(review) && !isEditing} onChange={(event) => setPurpose(event.target.value)} className="mt-2 w-full rounded-md border border-line bg-white px-3 py-2.5 disabled:bg-paper disabled:text-ink/60"><option value="">اختر الهدف</option>{purposes.map((item) => <option key={item}>{item}</option>)}</select></label>
         </div>
+        {!hasReviewContext ? (
+          <p className="mt-2 text-xs leading-6 text-ink/60">اختر نوع المحتوى والقناة والجمهور والهدف حتى يكون التحليل مرتبطًا بالسياق الصحيح. لا يتم تشغيل التحليل قبل اكتمال هذه الاختيارات.</p>
+        ) : null}
         <label className="mt-4 block text-sm">
           <span className="flex flex-wrap items-center justify-between gap-2">
             <span>النص محل المراجعة</span>
@@ -774,9 +845,9 @@ export default function ContentReviewPage() {
           <InlineContentGuidance review={review} draftText={text} onApplyRewrite={applyRewrite} loading={loading} />
         </div>
         <div className="mt-4 flex flex-wrap gap-3">
-          {!review || isEditing ? <button type="button" onClick={runReview} disabled={loading || text.trim().length < 5} className="inline-flex items-center gap-2 rounded-md bg-palm px-5 py-2.5 text-white disabled:opacity-50"><FileText size={17} />{loading ? "جار التحليل..." : contentId ? "إعادة التحليل" : "تحليل المحتوى"}</button> : null}
+          {!review || isEditing ? <button type="button" onClick={runReview} disabled={loading || text.trim().length < 5 || !hasReviewContext} className="inline-flex items-center gap-2 rounded-md bg-palm px-5 py-2.5 text-white disabled:opacity-50"><FileText size={17} />{loading ? "جار التحليل..." : contentId ? "إعادة التحليل" : "تحليل المحتوى"}</button> : null}
           {review && !isEditing ? <button type="button" onClick={beginEditing} className="inline-flex items-center gap-2 rounded-md border border-line px-4 py-2.5"><Edit3 size={16} />تعديل</button> : null}
-          {isEditing && contentId ? <button type="button" onClick={saveEdits} disabled={loading || text.trim().length < 5} className="inline-flex items-center gap-2 rounded-md border border-palm px-4 py-2.5 text-palm disabled:opacity-50"><Save size={16} />حفظ التعديلات</button> : null}
+          {isEditing && contentId ? <button type="button" onClick={saveEdits} disabled={loading || text.trim().length < 5 || !hasReviewContext} className="inline-flex items-center gap-2 rounded-md border border-palm px-4 py-2.5 text-palm disabled:opacity-50"><Save size={16} />حفظ التعديلات</button> : null}
           {isEditing ? <button type="button" onClick={cancelEditing} disabled={loading} className="inline-flex items-center gap-2 rounded-md border border-line px-4 py-2.5 disabled:opacity-50"><AlertTriangle size={16} />إلغاء</button> : null}
         </div>
         {message ? <p className="mt-3 text-sm text-palm">{message}</p> : null}
