@@ -430,6 +430,12 @@ function InlineContentGuidance({
   const firstFinding = review.findings[0];
   const firstLanguageIssue = review.languageQuality.issues[0] ?? liveSpellingIssues[0];
   const rewrite = review.governedRewrites[0];
+  const enhancedFirstFinding = firstFinding
+    ? review.aiEnhancement?.findingExplanations.find((item) => item.traceabilityId === firstFinding.traceabilityId)
+    : undefined;
+  const enhancedRewrite = rewrite
+    ? review.aiEnhancement?.rewriteSuggestions.find((item) => item.rewriteId === rewrite.id)
+    : undefined;
   const languagePassed = review.languageQuality.passed && review.languageQuality.issues.length === 0 && liveSpellingIssues.length === 0;
   const assistantIssues = buildAssistantIssues(review, liveSpellingIssues);
   const languageBadgeLabel = languagePassed
@@ -462,8 +468,10 @@ function InlineContentGuidance({
       <div className="rounded-md bg-mint/50 p-3 text-xs leading-6">
         <div className="mb-1 flex items-center gap-2 text-palm"><Bot size={16} aria-hidden="true" /><b>المساعد الذكي</b></div>
         <p>
-          {firstFinding
-            ? `ابدأ بمعالجة "${firstFinding.title}" لأن العبارة المرتبطة هي "${firstFinding.evidence}". الإجراء المقترح: ${firstFinding.suggestedSaferWording}`
+          {review.aiEnhancement?.assistantSummary
+            ? review.aiEnhancement.assistantSummary
+            : firstFinding
+            ? `ابدأ بمعالجة "${firstFinding.title}" لأن العبارة المرتبطة هي "${firstFinding.evidence}". الإجراء المقترح: ${enhancedFirstFinding?.recommendedAction ?? firstFinding.suggestedSaferWording}`
             : firstLanguageIssue
               ? `ابدأ بتصحيح "${firstLanguageIssue.excerpt}". ${firstLanguageIssue.suggestion}`
               : "لم تظهر ملاحظة مهنية أو لغوية مانعة. راجع النسخة النهائية قبل الاعتماد."}
@@ -500,7 +508,8 @@ function InlineContentGuidance({
               <Sparkles size={14} />استخدام الصياغة المقترحة
             </button>
           </div>
-          <p className="mt-2 text-ink/70">{rewrite.suggestedText}</p>
+          {enhancedRewrite?.explanation ? <p className="mt-2 text-ink/70">{enhancedRewrite.explanation}</p> : null}
+          <p className="mt-2 text-ink/70">{enhancedRewrite?.suggestedText ?? rewrite.suggestedText}</p>
         </div>
       ) : null}
     </div>
@@ -647,20 +656,22 @@ export default function ContentReviewPage() {
   async function applyRewrite() {
     const rewrite = review?.governedRewrites[0];
     if (!rewrite || !kind || !channel || !audience || !purpose) return;
-    setText(rewrite.suggestedText);
+    const enhancedRewrite = review.aiEnhancement?.rewriteSuggestions.find((item) => item.rewriteId === rewrite.id);
+    const rewriteText = enhancedRewrite?.suggestedText ?? rewrite.suggestedText;
+    setText(rewriteText);
     setMessage("تم تطبيق الصياغة المقترحة. جار إعادة التقييم للتحقق من النتيجة الفعلية.");
     setLoading(true);
     try {
       const result = await fetch("/api/reviews", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: rewrite.suggestedText, kind, contentType: contentTypeLabel, channel, audience, purpose })
+        body: JSON.stringify({ text: rewriteText, kind, contentType: contentTypeLabel, channel, audience, purpose })
       }).then((response) => response.json()).then((payload) => payload.data as ReviewResult);
       setReview(result);
       saveLatestReviewSnapshot(result);
       const saved = upsertAnalyzedVersion({
         contentId,
-        body: rewrite.suggestedText,
+        body: rewriteText,
         contentType: kind,
         contentTypeLabel,
         channel,
@@ -1035,9 +1046,12 @@ export default function ContentReviewPage() {
           })()}
           <Panel id="rewrite">
             <SectionTitle title="4. الصياغة المقترحة وأثر التحسين" subtitle="الأثر المتوقع توجيهي، وتُعاد المراجعة فعلياً بعد تطبيق الصياغة." />
-            {review.governedRewrites.length ? review.governedRewrites.map((rewrite) => (
+            {review.governedRewrites.length ? review.governedRewrites.map((rewrite) => {
+              const enhancedRewrite = review.aiEnhancement?.rewriteSuggestions.find((item) => item.rewriteId === rewrite.id);
+              return (
               <div key={rewrite.id} className="rounded-xl border border-line p-5">
-                <p className="leading-8">{rewrite.suggestedText}</p>
+                {enhancedRewrite?.explanation ? <p className="mb-3 rounded-lg bg-mint/50 p-3 text-xs leading-6 text-palm">{enhancedRewrite.explanation}</p> : null}
+                <p className="leading-8">{enhancedRewrite?.suggestedText ?? rewrite.suggestedText}</p>
                 <p className="mt-3 rounded-lg bg-paper p-3 text-xs leading-6 text-ink/65">النص المقترح لغرض التعليم والمساعدة فقط، وتظل مسؤولية النشر والمشاركة والاعتماد على المستخدم.</p>
                 <div className="mt-4 grid gap-3 md:grid-cols-2">
                   <div className="rounded-lg bg-paper p-4"><p className="text-xs text-ink/55">قبل التوصية</p><p className="mt-2">الامتثال {rewrite.originalComplianceScore}% — المخاطر {rewrite.originalRiskLevel}</p></div>
@@ -1045,7 +1059,8 @@ export default function ContentReviewPage() {
                 </div>
                 <button type="button" onClick={applyRewrite} disabled={loading} className="mt-4 inline-flex items-center gap-2 rounded-md bg-palm px-4 py-2.5 text-white"><Sparkles size={16} />تطبيق الصياغة وإعادة التقييم</button>
               </div>
-            )) : <p className="rounded-lg bg-paper p-4 leading-7">لا توجد صياغة بديلة مطلوبة بعد التقييم الحالي.</p>}
+            );
+            }) : <p className="rounded-lg bg-paper p-4 leading-7">لا توجد صياغة بديلة مطلوبة بعد التقييم الحالي.</p>}
           </Panel>
           </section>
 
@@ -1073,15 +1088,16 @@ export default function ContentReviewPage() {
             <div className="grid gap-4 lg:grid-cols-3">
               {review.channelRecommendations.map((item) => {
                 const Icon = socialBrandIcons[item.key];
+                const enhancedChannel = review.aiEnhancement?.channelRationales.find((rationale) => rationale.key === item.key);
                 return (
                   <article key={item.key} className="rounded-xl border border-line bg-white p-5">
                     <div className="flex items-center justify-between gap-3"><div className="flex items-center gap-3">{Icon ? <Icon size={28} className={socialBrandStyles[item.key]?.icon} /> : null}<h3 className="text-base font-semibold">{item.channel}</h3></div><StatusBadge tone={item.suitability === "عالية" ? "good" : "neutral"}>الملاءمة {item.suitability}</StatusBadge></div>
-                    <p className="mt-4 leading-7">{item.reason}</p>
+                    <p className="mt-4 leading-7">{enhancedChannel?.reason ?? item.reason}</p>
                     <dl className="mt-4 space-y-3 text-sm leading-7">
                       <div><dt className="text-ink/55">الجمهور</dt><dd>{item.targetAudience}</dd></div>
                       <div><dt className="text-ink/55">الصيغة</dt><dd>{item.format}</dd></div>
-                      <div><dt className="text-ink/55">الفائدة المتوقعة</dt><dd>{item.expectedBenefit}</dd></div>
-                      <div><dt className="text-ink/55">المخاطر أو القيود</dt><dd>{item.risks}</dd></div>
+                      <div><dt className="text-ink/55">الفائدة المتوقعة</dt><dd>{enhancedChannel?.expectedBenefit ?? item.expectedBenefit}</dd></div>
+                      <div><dt className="text-ink/55">المخاطر أو القيود</dt><dd>{enhancedChannel?.risks ?? item.risks}</dd></div>
                       <div><dt className="text-ink/55">التوقيت المقترح</dt><dd>{item.timing}</dd></div>
                     </dl>
                   </article>

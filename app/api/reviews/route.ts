@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { badRequest, ok } from "@/lib/api";
+import { enhanceReviewOutput } from "@/lib/services/ai-enhancement-service";
 import { reviewContent } from "@/lib/services/review-service";
 import { persistReviewResult } from "@/lib/services/review-persistence-service";
 
@@ -20,12 +21,19 @@ export async function POST(request: Request) {
   const parsed = schema.safeParse(await request.json());
   if (!parsed.success) return badRequest("يرجى إرسال نص صالح للمراجعة");
 
-  const review = reviewContent(parsed.data.text, parsed.data.kind, {
+  const context = {
     contentType: parsed.data.contentType,
     channel: parsed.data.channel,
     audience: parsed.data.audience,
     purpose: parsed.data.purpose,
     reviewStatus: parsed.data.reviewStatus
+  };
+  const baseReview = reviewContent(parsed.data.text, parsed.data.kind, context);
+  const review = await enhanceReviewOutput({
+    text: parsed.data.text,
+    kind: parsed.data.kind,
+    context,
+    review: baseReview
   });
 
   if (parsed.data.contentId) await persistReviewResult(parsed.data.contentId, review);
