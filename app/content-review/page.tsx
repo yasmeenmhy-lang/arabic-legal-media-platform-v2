@@ -169,6 +169,38 @@ function buildAssistantIssues(review: ReviewResult, liveSpellingIssues: Language
   );
 }
 
+function assistantSeverityText(severity: keyof typeof severityOrder) {
+  if (severity === "critical") return "حرجة";
+  if (severity === "high") return "عالية";
+  if (severity === "medium") return "متوسطة";
+  return "منخفضة";
+}
+
+function buildInternalAssistantSummary(review: ReviewResult, assistantIssues: AssistantIssue[], languagePassed: boolean) {
+  const professionalIssues = assistantIssues.filter((issue) => issue.id.startsWith("finding-"));
+  const riskIssues = assistantIssues.filter((issue) => issue.id === "risk-summary");
+  const languageIssues = assistantIssues.filter((issue) => issue.id.startsWith("language-"));
+  const topIssue = assistantIssues[0];
+
+  if (topIssue) {
+    const parts = [
+      professionalIssues.length ? `${professionalIssues.length} ملاحظة مهنية أو امتثالية` : null,
+      riskIssues.length ? "مؤشر مخاطر مرتفع يحتاج معالجة قبل النشر" : null,
+      languageIssues.length ? `${languageIssues.length} ملاحظة لغوية أو إملائية` : null
+    ].filter(Boolean);
+
+    return `ابدأ بالأولوية ${assistantSeverityText(topIssue.severity)}: "${topIssue.label}". رصد النظام ${parts.join("، ")}. راجع الدليل والمرجع والإجراء المقترح لكل بند قبل الاعتماد أو المشاركة.`;
+  }
+
+  if (!languagePassed) {
+    return "لا توجد مخالفة مهنية مرصودة، لكن توجد ملاحظات لغوية أو تحريرية يجب معالجتها قبل اعتماد النسخة النهائية.";
+  }
+
+  return review.publicationDecision.recommended
+    ? "لا توجد ملاحظات مهنية أو لغوية مانعة في النص الحالي. راجع النسخة النهائية وقرار النشر قبل الاعتماد."
+    : review.publicationDecision.reason;
+}
+
 function riskTone(risk: RiskLevel) {
   if (risk === "حرج" || risk === "مرتفع") return "gold" as const;
   if (risk === "متوسط") return "neutral" as const;
@@ -427,17 +459,13 @@ function InlineContentGuidance({
 
   const reviewSpellingIssues = review.languageQuality.issues.filter((issue) => issue.category === "spelling");
   const spellingIssues = reviewSpellingIssues.length ? reviewSpellingIssues : liveSpellingIssues;
-  const firstFinding = review.findings[0];
-  const firstLanguageIssue = review.languageQuality.issues[0] ?? liveSpellingIssues[0];
   const rewrite = review.governedRewrites[0];
-  const enhancedFirstFinding = firstFinding
-    ? review.aiEnhancement?.findingExplanations.find((item) => item.traceabilityId === firstFinding.traceabilityId)
-    : undefined;
   const enhancedRewrite = rewrite
     ? review.aiEnhancement?.rewriteSuggestions.find((item) => item.rewriteId === rewrite.id)
     : undefined;
   const languagePassed = review.languageQuality.passed && review.languageQuality.issues.length === 0 && liveSpellingIssues.length === 0;
   const assistantIssues = buildAssistantIssues(review, liveSpellingIssues);
+  const internalAssistantSummary = buildInternalAssistantSummary(review, assistantIssues, languagePassed);
   const languageBadgeLabel = languagePassed
     ? review.findings.length
       ? "لا توجد أخطاء لغوية واضحة"
@@ -470,11 +498,7 @@ function InlineContentGuidance({
         <p>
           {review.aiEnhancement?.assistantSummary
             ? review.aiEnhancement.assistantSummary
-            : firstFinding
-            ? `ابدأ بمعالجة "${firstFinding.title}" لأن العبارة المرتبطة هي "${firstFinding.evidence}". الإجراء المقترح: ${enhancedFirstFinding?.recommendedAction ?? firstFinding.suggestedSaferWording}`
-            : firstLanguageIssue
-              ? `ابدأ بتصحيح "${firstLanguageIssue.excerpt}". ${firstLanguageIssue.suggestion}`
-              : "لم تظهر ملاحظة مهنية أو لغوية مانعة. راجع النسخة النهائية قبل الاعتماد."}
+            : internalAssistantSummary}
         </p>
       </div>
 
@@ -488,9 +512,10 @@ function InlineContentGuidance({
                   <StatusBadge tone={item.severity === "critical" || item.severity === "high" ? "gold" : "neutral"}>{index + 1}. {item.label}</StatusBadge>
                   <span className="text-ink/55">الأولوية: {item.severity === "critical" ? "حرجة" : item.severity === "high" ? "عالية" : item.severity === "medium" ? "متوسطة" : "منخفضة"}</span>
                 </div>
-                <p className="mt-2"><b>الدليل:</b> {item.evidence}</p>
-                <p><b>السبب:</b> {item.reason}</p>
-                {item.source ? <p><b>المصدر:</b> {item.source}</p> : null}
+                <p className="mt-2"><b>المشكلة:</b> {item.label}</p>
+                <p><b>العبارة المرتبطة:</b> {item.evidence}</p>
+                <p><b>سبب المخالفة أو الملاحظة:</b> {item.reason}</p>
+                {item.source ? <p><b>المرجع:</b> {item.source}</p> : null}
                 <p><b>الإجراء المقترح:</b> {item.action}</p>
               </li>
             ))}
