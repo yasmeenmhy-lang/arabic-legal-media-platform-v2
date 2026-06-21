@@ -54,6 +54,15 @@ const reviewTabs = [
 ] as const;
 type ReviewTab = (typeof reviewTabs)[number]["key"];
 
+const workflowTargets: Record<string, { tab: ReviewTab; targetId: string; actionLabel: string }> = {
+  input: { tab: "findings", targetId: "input", actionLabel: "فتح بيانات المحتوى" },
+  analysis: { tab: "findings", targetId: "analysis-summary", actionLabel: "فتح نتائج التحليل" },
+  findings: { tab: "findings", targetId: "findings", actionLabel: "فتح الملاحظات" },
+  rewrite: { tab: "improvements", targetId: "rewrite", actionLabel: "فتح الصياغة المقترحة" },
+  approval: { tab: "sharing", targetId: "approval", actionLabel: "فتح الاعتماد" },
+  sharing: { tab: "sharing", targetId: "sharing", actionLabel: "فتح المشاركة والتصدير" }
+};
+
 const inlineSpellingRules = [
   { wrong: "هاذا", correction: "هذا", message: "صحح رسم اسم الإشارة إلى: هذا." },
   { wrong: "هاذه", correction: "هذه", message: "صحح رسم اسم الإشارة إلى: هذه." },
@@ -804,6 +813,30 @@ export default function ContentReviewPage() {
     });
   }
 
+  function navigateToWorkflowTarget(stageKey: string) {
+    const target = workflowTargets[stageKey] ?? workflowTargets.findings;
+    setActiveTab(target.tab);
+    window.requestAnimationFrame(() => {
+      document.getElementById(target.targetId)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  }
+
+  function displayWorkflowStatus(stage: ReviewResult["decisionWorkflow"][number]) {
+    if (!review) return stage.status;
+    const rewriteNotRequired =
+      stage.key === "rewrite" &&
+      review.governedRewrites.length === 0 &&
+      review.findings.length === 0 &&
+      review.languageQuality.issues.length === 0;
+    return rewriteNotRequired ? "غير مطلوبة" : stage.status;
+  }
+
+  function workflowStatusTone(status: string) {
+    if (status === "مكتمل" || status === "غير مطلوبة" || status === "لا تنطبق") return "good" as const;
+    if (status === "الحالي") return "neutral" as const;
+    return "gold" as const;
+  }
+
   return (
     <div className="content-review-window space-y-6">
       <PageHeader
@@ -885,7 +918,7 @@ export default function ContentReviewPage() {
             ))}
           </nav>
 
-          <section aria-labelledby="supporting-indicators-title" className="space-y-4">
+          <section id="analysis-summary" aria-labelledby="supporting-indicators-title" className="space-y-4 scroll-mt-24">
             <SectionTitle
               title="المؤشرات المساندة للقرار"
               subtitle="توضح الرسوم مستوى كل جانب، بينما تبقى الملاحظات والأدلة والأثر والإجراء الموصى به هي أساس القرار."
@@ -1060,14 +1093,43 @@ export default function ContentReviewPage() {
           <Panel id="workflow">
             <SectionTitle title="6. مسار القرار والتنفيذ" subtitle="يوضح المرحلة الحالية، سببها، وما يجب فعله للانتقال إلى الخطوة التالية." />
             <div className="grid gap-3 md:grid-cols-3 xl:grid-cols-6">
-              {review.decisionWorkflow.map((stage, index) => (
-                <div key={stage.key} className={`rounded-xl border p-4 ${stage.status === "الحالي" ? "border-palm bg-mint" : stage.status === "قيد الانتظار" ? "border-line bg-paper opacity-70" : "border-line bg-white"}`}>
-                  <div className="flex items-center justify-between"><span className="grid h-7 w-7 place-items-center rounded-full bg-palm text-xs text-white">{index + 1}</span><StatusBadge tone={stage.status === "مكتمل" ? "good" : stage.status === "الحالي" ? "neutral" : "gold"}>{stage.status}</StatusBadge></div>
-                  <h3 className="mt-3 font-semibold">{stage.label}</h3>
-                  <p className="mt-2 text-xs leading-6 text-ink/65">{stage.reason}</p>
-                  <p className="mt-3 text-xs leading-6 text-palm">{stage.action}</p>
-                </div>
-              ))}
+              {review.decisionWorkflow.map((stage, index) => {
+                const displayedStatus = displayWorkflowStatus(stage);
+                const target = workflowTargets[stage.key] ?? workflowTargets.findings;
+                return (
+                  <div
+                    key={stage.key}
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => navigateToWorkflowTarget(stage.key)}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter" || event.key === " ") {
+                        event.preventDefault();
+                        navigateToWorkflowTarget(stage.key);
+                      }
+                    }}
+                    className={`rounded-xl border p-4 text-right transition hover:-translate-y-0.5 hover:border-palm hover:shadow-sm focus-ring ${
+                      displayedStatus === "الحالي"
+                        ? "border-palm bg-mint"
+                        : displayedStatus === "قيد الانتظار"
+                          ? "border-line bg-paper opacity-80"
+                          : "border-line bg-white"
+                    }`}
+                    aria-label={`${stage.label}: ${target.actionLabel}`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="grid h-7 w-7 place-items-center rounded-full bg-palm text-xs text-white">{index + 1}</span>
+                      <StatusBadge tone={workflowStatusTone(displayedStatus)}>{displayedStatus}</StatusBadge>
+                    </div>
+                    <h3 className="mt-3 font-semibold">{stage.label}</h3>
+                    <p className="mt-2 text-xs leading-6 text-ink/65">{stage.reason}</p>
+                    <p className="mt-3 text-xs leading-6 text-palm">{stage.action}</p>
+                    <span className="mt-4 inline-flex rounded-md border border-palm/30 px-3 py-1.5 text-xs font-semibold text-palm">
+                      {target.actionLabel}
+                    </span>
+                  </div>
+                );
+              })}
             </div>
           </Panel>
 
