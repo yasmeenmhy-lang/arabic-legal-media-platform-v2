@@ -174,3 +174,40 @@ export async function enhanceReviewOutput(input: ReviewEnhancementInput): Promis
   }
   return aiEnhancement ? { ...input.review, aiEnhancement } : input.review;
 }
+
+export function diagnoseEnhancementSanitization(rawPayload: unknown) {
+  if (!rawPayload) {
+    return {
+      attempted: false,
+      accepted: false,
+      reason: "no parsed provider payload"
+    };
+  }
+
+  const diagnosticReview = {
+    findings: [{ traceabilityId: "diagnostic-finding" }],
+    governedRewrites: [{ id: "diagnostic-rewrite" }],
+    channelRecommendations: [{ key: "linkedin" }]
+  } as ReviewResult;
+  const sanitized = sanitizeEnhancement(rawPayload, diagnosticReview);
+  return {
+    attempted: true,
+    accepted: Boolean(sanitized),
+    reason: sanitized ? null : "sanitizeEnhancement rejected provider payload",
+    counts: sanitized
+      ? {
+          findingExplanations: sanitized.findingExplanations.length,
+          rewriteSuggestions: sanitized.rewriteSuggestions.length,
+          channelRationales: sanitized.channelRationales.length,
+          hasAssistantSummary: Boolean(sanitized.assistantSummary),
+          hasRecommendationSummary: Boolean(sanitized.recommendationSummary)
+        }
+      : {
+          findingExplanations: 0,
+          rewriteSuggestions: 0,
+          channelRationales: 0,
+          hasAssistantSummary: false,
+          hasRecommendationSummary: false
+        }
+  };
+}

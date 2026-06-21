@@ -6,6 +6,29 @@ type AIProviderRequest = {
   maxTokens?: number;
 };
 
+export type AIProviderDiagnosticResult = {
+  runtime: {
+    enabled: boolean;
+    providerSetting: string;
+    hasOpenAIKey: boolean;
+    hasAnthropicKey: boolean;
+  };
+  provider: {
+    selected: ProviderName | null;
+    requestAttempted: boolean;
+    responseStatus: number | null;
+    responseOk: boolean | null;
+  };
+  parsing: {
+    jsonParsed: boolean;
+  };
+  fallback: {
+    used: boolean;
+    reason: string | null;
+  };
+  rawPayload?: unknown;
+};
+
 function enhancementEnabled() {
   return process.env.AI_ENHANCEMENT_ENABLED === "true";
 }
@@ -166,5 +189,151 @@ export async function requestAIEnhancementJson(input: AIProviderRequest) {
       errorName: error instanceof Error ? error.name : "UnknownError"
     });
     return null;
+  }
+}
+
+function safeParseJsonObject(value: string) {
+  try {
+    return { parsed: true, value: JSON.parse(value) as unknown };
+  } catch {
+    const match = value.match(/\{[\s\S]*\}/);
+    if (!match) return { parsed: false, value: null };
+    try {
+      return { parsed: true, value: JSON.parse(match[0]) as unknown };
+    } catch {
+      return { parsed: false, value: null };
+    }
+  }
+}
+
+function resolveDiagnosticProvider() {
+  const enabled = enhancementEnabled();
+  const providerSetting = process.env.AI_ENHANCEMENT_PROVIDER ?? "auto";
+  const hasOpenAIKey = Boolean(process.env.OPENAI_API_KEY);
+  const hasAnthropicKey = Boolean(process.env.ANTHROPIC_API_KEY);
+  let selected: ProviderName | null = null;
+  let fallbackReason: string | null = null;
+
+  if (!enabled) fallbackReason = "AI_ENHANCEMENT_ENABLED is not true";
+  else if (providerSetting === "openai") selected = hasOpenAIKey ? "openai" : null;
+  else if (providerSetting === "anthropic") selected = hasAnthropicKey ? "anthropic" : null;
+  else if (providerSetting === "auto") selected = hasOpenAIKey ? "openai" : hasAnthropicKey ? "anthropic" : null;
+  else fallbackReason = "unsupported AI_ENHANCEMENT_PROVIDER";
+
+  if (enabled && !selected && !fallbackReason) {
+    fallbackReason = providerSetting === "openai"
+      ? "OPENAI_API_KEY missing for openai provider"
+      : providerSetting === "anthropic"
+        ? "ANTHROPIC_API_KEY missing for anthropic provider"
+        : "no provider API key available";
+  }
+
+  return {
+    enabled,
+    providerSetting,
+    hasOpenAIKey,
+    hasAnthropicKey,
+    selected,
+    fallbackReason
+  };
+}
+
+export async function diagnoseAIEnhancementProvider(): Promise<AIProviderDiagnosticResult> {
+  const runtime = resolveDiagnosticProvider();
+  const diagnostic: AIProviderDiagnosticResult = {
+    runtime: {
+      enabled: runtime.enabled,
+      providerSetting: runtime.providerSetting,
+      hasOpenAIKey: runtime.hasOpenAIKey,
+      hasAnthropicKey: runtime.hasAnthropicKey
+    },
+    provider: {
+      selected: runtime.selected,
+      requestAttempted: false,
+      responseStatus: null,
+      responseOk: null
+    },
+    parsing: {
+      jsonParsed: false
+    },
+    fallback: {
+      used: Boolean(runtime.fallbackReason),
+      reason: runtime.fallbackReason
+    }
+  };
+
+  if (!runtime.selected) return diagnostic;
+
+  const system = "أعد JSON تشخيصيًا آمنًا فقط ولا تذكر أي مزود أو نموذج.";
+  const user = JSON.stringify({
+    assistantSummary: "تحسين تشخيصي قصير.",
+    findingExplanations: [{ traceabilityId: "diagnostic-finding", explanation: "شرح تشخيصي.", impact: "أثر تشخيصي.", recommendedAction: "إجراء تشخيصي." }],
+    rewriteSuggestions: [{ rewriteId: "diagnostic-rewrite", explanation: "شرح صياغة تشخيصي.", suggestedText: "صياغة تشخيصية آمنة." }],
+    channelRationales: [{ key: "linkedin", reason: "مبرر تشخيصي.", expectedBenefit: "فائدة تشخيصية.", risks: "قيد تشخيصي." }],
+    recommendationSummary: "ملخص تشخيصي."
+  });
+
+  try {
+    diagnostic.provider.requestAttempted = true;
+    const response = runtime.selected === "openai"
+      ? await fetch("https://api.openai.com/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            model: "gpt-4o-mini",
+            temperature: 0,
+            response_format: { type: "json_object" },
+            messages: [
+              { role: "system", content: system },
+              { role: "user", content: user }
+            ],
+            max_tokens: 700
+          })
+        })
+      : await fetch("https://api.anthropic.com/v1/messages", {
+          method: "POST",
+          headers: {
+            "x-api-key": process.env.ANTHROPIC_API_KEY ?? "",
+            "anthropic-version": "2023-06-01",
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            model: "claude-3-5-haiku-latest",
+            max_tokens: 700,
+            temperature: 0,
+            system,
+            messages: [{ role: "user", content: user }]
+          })
+        });
+
+    diagnostic.provider.responseStatus = response.status;
+    diagnostic.provider.responseOk = response.ok;
+    if (!response.ok) {
+      diagnostic.fallback = { used: true, reason: `${runtime.selected} response not ok` };
+      return diagnostic;
+    }
+
+    const data = await response.json() as { choices?: Array<{ message?: { content?: string } }>; content?: Array<{ type?: string; text?: string }> };
+    const content = runtime.selected === "openai"
+      ? data.choices?.[0]?.message?.content
+      : data.content?.find((item) => item.type === "text")?.text;
+    if (!content) {
+      diagnostic.fallback = { used: true, reason: `${runtime.selected} response missing content` };
+      return diagnostic;
+    }
+    const parsed = safeParseJsonObject(content);
+    diagnostic.parsing.jsonParsed = parsed.parsed;
+    diagnostic.rawPayload = parsed.value;
+    if (!parsed.parsed) diagnostic.fallback = { used: true, reason: "provider response JSON parsing failed" };
+    return diagnostic;
+  } catch (error) {
+    diagnostic.fallback = {
+      used: true,
+      reason: error instanceof Error ? `provider request threw: ${error.name}` : "provider request threw"
+    };
+    return diagnostic;
   }
 }
