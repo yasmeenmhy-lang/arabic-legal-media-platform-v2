@@ -8,6 +8,10 @@ type ReviewEnhancementInput = {
   review: ReviewResult;
 };
 
+function logAIEnhancement(message: string, details: Record<string, unknown> = {}) {
+  console.info("[ai-enhancement]", message, details);
+}
+
 function cleanText(value: unknown, maxLength = 900) {
   if (typeof value !== "string") return undefined;
   const cleaned = value
@@ -85,6 +89,16 @@ function sanitizeEnhancement(raw: unknown, review: ReviewResult): AIEnhancement 
     enhancement.rewriteSuggestions.length ||
     enhancement.channelRationales.length
   );
+  if (!hasUsefulOutput) {
+    logAIEnhancement("sanitize-rejected", {
+      reason: "provider output did not contain allowed useful fields",
+      findingExplanations: enhancement.findingExplanations.length,
+      rewriteSuggestions: enhancement.rewriteSuggestions.length,
+      channelRationales: enhancement.channelRationales.length,
+      hasAssistantSummary: Boolean(enhancement.assistantSummary),
+      hasRecommendationSummary: Boolean(enhancement.recommendationSummary)
+    });
+  }
   return hasUsefulOutput ? enhancement : null;
 }
 
@@ -146,6 +160,17 @@ export async function enhanceReviewOutput(input: ReviewEnhancementInput): Promis
     user: JSON.stringify(buildEnhancementPayload(input)),
     maxTokens: 1800
   });
+  if (!raw) {
+    logAIEnhancement("fallback", { reason: "no provider enhancement payload" });
+  }
   const aiEnhancement = sanitizeEnhancement(raw, input.review);
+  if (aiEnhancement) {
+    logAIEnhancement("enhancement-created", {
+      findingExplanations: aiEnhancement.findingExplanations.length,
+      rewriteSuggestions: aiEnhancement.rewriteSuggestions.length,
+      channelRationales: aiEnhancement.channelRationales.length,
+      hasAssistantSummary: Boolean(aiEnhancement.assistantSummary)
+    });
+  }
   return aiEnhancement ? { ...input.review, aiEnhancement } : input.review;
 }
