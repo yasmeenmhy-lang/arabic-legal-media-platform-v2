@@ -421,7 +421,7 @@ function InlineContentGuidance({
   const firstFinding = review.findings[0];
   const firstLanguageIssue = review.languageQuality.issues[0] ?? liveSpellingIssues[0];
   const rewrite = review.governedRewrites[0];
-  const languagePassed = review.languageQuality.passed && liveSpellingIssues.length === 0;
+  const languagePassed = review.languageQuality.passed && review.languageQuality.issues.length === 0 && liveSpellingIssues.length === 0;
   const assistantIssues = buildAssistantIssues(review, liveSpellingIssues);
   const languageBadgeLabel = languagePassed
     ? review.findings.length
@@ -438,8 +438,6 @@ function InlineContentGuidance({
         </div>
         <StatusBadge tone={languagePassed ? "good" : "gold"}>{languageBadgeLabel}</StatusBadge>
       </div>
-      <p className="text-xs leading-6 text-ink/55">يعتمد التدقيق اللغوي الحالي على قواعد عربية معيارية للتدقيق الإملائي والتحريري. يمكن ربطه بمصدر لغوي سعودي معتمد مثل المعجم اللغوي السعودي عند توفر ترخيص استخدام واضح ومناسب.</p>
-
       {spellingIssues.length ? (
         <div className="flex flex-wrap gap-2">
           {spellingIssues.map((issue) => (
