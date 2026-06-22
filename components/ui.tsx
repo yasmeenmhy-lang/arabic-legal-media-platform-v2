@@ -106,17 +106,18 @@ export function KpiCard({
 }) {
   const toneStyle = toneStyles[tone];
   const content = (
-    <Panel className={clsx("relative h-full overflow-hidden", toneStyle.border)}>
-      <div className={clsx("absolute inset-x-0 top-0 h-1", toneStyle.solid)} />
-      <div className="flex min-w-0 items-start justify-between gap-3">
-        <div className="min-w-0">
-          <p className="text-xs font-normal text-ink/55">{label}</p>
-          <p className={clsx("mt-2 break-words text-3xl font-normal leading-none", toneStyle.text)}>{value}</p>
+    <div className={clsx("group relative h-full w-full max-w-full rounded-lg border bg-white shadow-sm", toneStyle.border)}>
+      <div className={clsx("h-[3px] rounded-t-lg", toneStyle.solid)} />
+      <div className="relative p-4 sm:p-5">
+        {/* hint → tooltip on hover */}
+        <div className="pointer-events-none absolute bottom-full right-0 z-50 mb-1.5 hidden max-w-[200px] break-words rounded-md bg-ink/90 px-2.5 py-1.5 text-xs leading-5 text-white shadow-md group-hover:block">
+          {hint}
         </div>
-        {icon ? <div className={clsx("grid h-10 w-10 shrink-0 place-items-center rounded-md", toneStyle.soft, toneStyle.text)}>{icon}</div> : null}
+        {icon ? <div className={clsx("mb-2.5 grid h-9 w-9 place-items-center rounded-md", toneStyle.soft, toneStyle.text)}>{icon}</div> : null}
+        <p className={clsx("break-words text-[26px] font-semibold leading-none", toneStyle.text)}>{value}</p>
+        <p className="mt-2 text-[12px] text-ink/55">{label}</p>
       </div>
-      <p className="mt-3 text-xs leading-6 text-ink/55">{hint}</p>
-    </Panel>
+    </div>
   );
 
   if (!href) return content;

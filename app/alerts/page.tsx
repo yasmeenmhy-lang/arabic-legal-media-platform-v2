@@ -111,7 +111,12 @@ export default function AlertsPage() {
                 </article>
               ))}
             </div>
-          ) : <p className="text-sm leading-7 text-ink/65">لا توجد تنبيهات مراجعة معروضة حالياً.</p>}
+          ) : (
+            <div className="flex flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-line bg-paper py-6 text-center">
+              <Bell size={18} className="text-ink/30" />
+              <span className="text-sm text-ink/50">لا تنبيهات مراجعة حالياً</span>
+            </div>
+          )}
         </Panel>
 
         <Panel>
@@ -133,7 +138,12 @@ export default function AlertsPage() {
                 </article>
               ))}
             </div>
-          ) : <p className="text-sm leading-7 text-ink/65">لا توجد مؤشرات مخاطر أو امتثال أو جاهزية تحتاج متابعة في هذه الجلسة.</p>}
+          ) : (
+            <div className="flex flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-line bg-paper py-6 text-center">
+              <AlertTriangle size={18} className="text-ink/30" />
+              <span className="text-sm text-ink/50">لا مخاطر تحتاج متابعة</span>
+            </div>
+          )}
         </Panel>
 
         <Panel>
@@ -160,7 +170,12 @@ export default function AlertsPage() {
                 </article>
               ))}
             </div>
-          ) : <p className="text-sm leading-7 text-ink/65">لم يتم عرض تحديث مرجعي معلق حالياً.</p>}
+          ) : (
+            <div className="flex flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-line bg-paper py-6 text-center">
+              <Settings size={18} className="text-ink/30" />
+              <span className="text-sm text-ink/50">لا تحديثات مرجعية معلقة</span>
+            </div>
+          )}
         </Panel>
       </div>
 

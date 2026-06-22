@@ -6,21 +6,46 @@ import { useRouter } from "next/navigation";
 import {
   AlertTriangle,
   ArrowRight,
+  Award,
+  BarChart2,
+  BookOpen,
   Bot,
+  Building2,
+  CalendarDays,
   CheckCircle2,
   Edit3,
   ExternalLink,
   FileDown,
   FileText,
+  Globe,
+  Image,
+  Layers,
+  Megaphone,
+  MessageSquare,
+  Printer,
   Save,
+  Scale,
   Share2,
   ShieldAlert,
   SpellCheck,
   Sparkles,
+  TrendingUp,
+  User,
+  Users,
+  Video,
   XCircle
 } from "lucide-react";
 import { CircularGauge, PageHeader, Panel, ProgressBar, SectionTitle, StatusBadge } from "@/components/ui";
-import { socialBrandIcons, socialBrandStyles } from "@/components/social-icons";
+import {
+  LinkedInIcon,
+  XIcon,
+  InstagramIcon,
+  TikTokIcon,
+  SnapchatIcon,
+  YouTubeIcon,
+  socialBrandIcons,
+  socialBrandStyles
+} from "@/components/social-icons";
 import { OfficialLogo, officialEntityFromUrl } from "@/components/official-logos";
 import { contentKindOptions } from "@/lib/content-types";
 import {
@@ -41,6 +66,46 @@ const contentTypes = contentKindOptions.filter((item) =>
 const channels = ["LinkedIn", "X", "Instagram", "TikTok", "Snapchat", "YouTube", "الموقع الإلكتروني"];
 const audiences = ["عملاء محتملون من الأفراد", "منشآت ورواد أعمال", "زملاء وقطاع قانوني", "الجمهور العام"];
 const purposes = ["تثقيف الجمهور حول موضوع قانوني", "رفع الوعي بالخدمات المهنية", "تعزيز الحضور المهني والثقة", "حملة توعوية"];
+
+const contentTypeIcons: Record<string, React.ReactNode> = {
+  post: <FileText size={13} />,
+  advertisement: <Megaphone size={13} />,
+  campaign: <Layers size={13} />,
+  article: <BookOpen size={13} />,
+  script: <Video size={13} />,
+  caption: <MessageSquare size={13} />,
+  visual_content: <Image size={13} />,
+  infographic: <BarChart2 size={13} />,
+  publishing_plan: <CalendarDays size={13} />
+};
+
+const channelIcons: Record<string, React.ReactNode> = {
+  LinkedIn: <LinkedInIcon size={13} />,
+  X: <XIcon size={13} />,
+  Instagram: <InstagramIcon size={13} />,
+  TikTok: <TikTokIcon size={13} />,
+  Snapchat: <SnapchatIcon size={13} />,
+  YouTube: <YouTubeIcon size={13} />,
+  "الموقع الإلكتروني": <Globe size={13} />
+};
+
+const audienceIcons: Record<string, React.ReactNode> = {
+  "عملاء محتملون من الأفراد": <User size={13} />,
+  "منشآت ورواد أعمال": <Building2 size={13} />,
+  "زملاء وقطاع قانوني": <Scale size={13} />,
+  "الجمهور العام": <Users size={13} />
+};
+
+const purposeIcons: Record<string, React.ReactNode> = {
+  "تثقيف الجمهور حول موضوع قانوني": <BookOpen size={13} />,
+  "رفع الوعي بالخدمات المهنية": <TrendingUp size={13} />,
+  "تعزيز الحضور المهني والثقة": <Award size={13} />,
+  "حملة توعوية": <Megaphone size={13} />
+};
+
+const chipBase = "inline-flex cursor-pointer items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm transition focus-ring";
+const chipIdle = "border-line bg-white text-ink/65 hover:border-palm hover:bg-mint hover:text-palm";
+const chipSelected = "border-palm bg-mint text-palm shadow-[0_0_0_1px_theme(colors.palm)]";
 
 const severityLabel = { critical: "حرجة", high: "عالية", medium: "متوسطة", low: "منخفضة" } as const;
 const severityOrder = { critical: 0, high: 1, medium: 2, low: 3 } as const;
@@ -884,26 +949,73 @@ export default function ContentReviewPage() {
 
       <Panel id="input">
         <SectionTitle title="1. إدخال المحتوى والسياق" subtitle="كلما اكتمل السياق ارتفعت موثوقية التوصية." />
-        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-          <label className="text-sm">نوع المحتوى<select value={kind} disabled={Boolean(review) && !isEditing} onChange={(event) => setKind(event.target.value as ContentKind | "")} className="mt-2 w-full rounded-md border border-line bg-white px-3 py-2.5 disabled:bg-paper disabled:text-ink/60"><option value="">اختر نوع المحتوى</option>{contentTypes.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></label>
-          <label className="text-sm">القناة<select value={channel} disabled={Boolean(review) && !isEditing} onChange={(event) => setChannel(event.target.value)} className="mt-2 w-full rounded-md border border-line bg-white px-3 py-2.5 disabled:bg-paper disabled:text-ink/60"><option value="">اختر القناة</option>{channels.map((item) => <option key={item}>{item}</option>)}</select></label>
-          <label className="text-sm">الجمهور<select value={audience} disabled={Boolean(review) && !isEditing} onChange={(event) => setAudience(event.target.value)} className="mt-2 w-full rounded-md border border-line bg-white px-3 py-2.5 disabled:bg-paper disabled:text-ink/60"><option value="">اختر الجمهور</option>{audiences.map((item) => <option key={item}>{item}</option>)}</select></label>
-          <label className="text-sm">الهدف<select value={purpose} disabled={Boolean(review) && !isEditing} onChange={(event) => setPurpose(event.target.value)} className="mt-2 w-full rounded-md border border-line bg-white px-3 py-2.5 disabled:bg-paper disabled:text-ink/60"><option value="">اختر الهدف</option>{purposes.map((item) => <option key={item}>{item}</option>)}</select></label>
+
+        {/* شريط اكتمال السياق */}
+        <div className="mb-5">
+          <div className="mb-1.5 flex items-center justify-between text-xs">
+            <span className="text-ink/55">اكتمال السياق</span>
+            <span className="font-semibold text-palm">4 من 4</span>
+          </div>
+          <div className="h-1.5 overflow-hidden rounded-full bg-paper">
+            <div className="h-full rounded-full bg-palm opacity-80" style={{ width: "100%" }} />
+          </div>
+        </div>
+
+        {/* نوع المحتوى */}
+        <div className={`mb-4 ${Boolean(review) && !isEditing ? "pointer-events-none opacity-60" : ""}`}>
+          <p className="mb-2 text-sm text-ink/65">نوع المحتوى</p>
+          <div className="flex flex-wrap gap-2">
+            {contentTypes.map((item) => (
+              <button key={item.value} type="button" onClick={() => setKind(item.value as ContentKind)} className={`${chipBase} ${kind === item.value ? chipSelected : chipIdle}`}>
+                {contentTypeIcons[item.value]}{item.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* القناة */}
+        <div className={`mb-4 ${Boolean(review) && !isEditing ? "pointer-events-none opacity-60" : ""}`}>
+          <p className="mb-2 text-sm text-ink/65">القناة</p>
+          <div className="flex flex-wrap gap-2">
+            {channels.map((item) => (
+              <button key={item} type="button" onClick={() => setChannel(item)} className={`${chipBase} ${channel === item ? chipSelected : chipIdle}`}>
+                {channelIcons[item]}{item}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* الجمهور */}
+        <div className={`mb-4 ${Boolean(review) && !isEditing ? "pointer-events-none opacity-60" : ""}`}>
+          <p className="mb-2 text-sm text-ink/65">الجمهور</p>
+          <div className="flex flex-wrap gap-2">
+            {audiences.map((item) => (
+              <button key={item} type="button" onClick={() => setAudience(item)} className={`${chipBase} ${audience === item ? chipSelected : chipIdle}`}>
+                {audienceIcons[item]}{item}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* الهدف */}
+        <div className={`mb-4 ${Boolean(review) && !isEditing ? "pointer-events-none opacity-60" : ""}`}>
+          <p className="mb-2 text-sm text-ink/65">الهدف</p>
+          <div className="flex flex-wrap gap-2">
+            {purposes.map((item) => (
+              <button key={item} type="button" onClick={() => setPurpose(item)} className={`${chipBase} ${purpose === item ? chipSelected : chipIdle}`}>
+                {purposeIcons[item]}{item}
+              </button>
+            ))}
+          </div>
         </div>
         {!hasReviewContext ? (
-          <p className="mt-2 text-xs leading-6 text-ink/60">اختر نوع المحتوى والقناة والجمهور والهدف حتى يكون التحليل مرتبطًا بالسياق الصحيح. لا يتم تشغيل التحليل قبل اكتمال هذه الاختيارات.</p>
+          <p className="mt-2 text-xs leading-6 text-ink/60">اختر نوع المحتوى والقناة والجمهور والهدف حتى يكون التحليل مرتبطًا بالسياق الصحيح.</p>
         ) : null}
         <label className="mt-4 block text-sm">
           <span className="flex flex-wrap items-center justify-between gap-2">
             <span>النص محل المراجعة</span>
-            <button
-              type="button"
-              onClick={clearContentInput}
-              disabled={loading || text.length === 0}
-              className="inline-flex items-center gap-1 rounded-md border border-line px-3 py-1.5 text-xs text-ink/70 transition hover:border-palm hover:bg-mint hover:text-palm disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              <XCircle size={14} aria-hidden="true" />
-              مسح المحتوى
+            <button type="button" onClick={clearContentInput} disabled={loading || text.length === 0} className="inline-flex items-center gap-1 rounded-md border border-line px-3 py-1.5 text-xs text-ink/70 transition hover:border-palm hover:bg-mint hover:text-palm disabled:cursor-not-allowed disabled:opacity-40">
+              <XCircle size={14} aria-hidden="true" />مسح المحتوى
             </button>
           </span>
           <textarea value={text} disabled={Boolean(review) && !isEditing} onChange={(event) => setText(event.target.value)} className="mt-2 min-h-44 w-full rounded-lg border border-line p-4 leading-8 disabled:bg-paper disabled:text-ink/65" />

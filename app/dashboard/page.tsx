@@ -11,11 +11,12 @@ import {
   Clock3,
   ExternalLink,
   FileCheck2,
+  Info,
   ShieldAlert,
   ShieldCheck,
   TrendingUp
 } from "lucide-react";
-import { ButtonLink, KpiGrid, PageHeader, Panel, SectionTitle } from "@/components/ui";
+import { ButtonLink, KpiGrid, PageHeader, Panel, ProgressBar, SectionTitle } from "@/components/ui";
 import { formatDualDate } from "@/lib/dates";
 import { legalSourceDocuments } from "@/lib/legal-knowledge-base";
 import { loadContentRecords, type StoredContentRecord } from "@/lib/content-record-store";
@@ -117,16 +118,31 @@ export default function DashboardPage() {
         <Panel>
           <SectionTitle title="مؤشرات الجاهزية" subtitle="تعرض المؤشرات بيانات فعلية من سجلات نافذة المراجعة المحفوظة في المتصفح." />
           {overview.analyzedCount ? (
-            <div className="grid gap-3 md:grid-cols-3">
-              <div className="rounded-lg bg-paper p-4"><p className="text-xs text-ink/55">متوسط الامتثال</p><p className="mt-2 text-2xl font-semibold text-palm">{overview.avgCompliance}%</p></div>
-              <div className="rounded-lg bg-paper p-4"><p className="text-xs text-ink/55">متوسط الجاهزية</p><p className="mt-2 text-2xl font-semibold text-palm">{overview.avgReadiness}%</p></div>
-              <div className="rounded-lg bg-paper p-4"><p className="text-xs text-ink/55">متوسط المخاطر</p><p className="mt-2 text-2xl font-semibold text-gold">{overview.avgRisk}%</p></div>
+            <div className="space-y-4">
+              {([
+                { label: "الامتثال", value: overview.avgCompliance, tone: "good" as const },
+                { label: "جاهزية النشر", value: overview.avgReadiness, tone: "good" as const },
+                { label: "المخاطر المتبقية", value: overview.avgRisk, tone: "gold" as const }
+              ]).map(({ label, value, tone }) => (
+                <div key={label}>
+                  <div className="mb-1.5 flex items-center justify-between gap-2 text-sm">
+                    <span className="text-ink/75">{label}</span>
+                    <span className={tone === "good" ? "font-semibold tabular-nums text-palm" : "font-semibold tabular-nums text-gold"}>
+                      {value > 0 ? `${value}%` : "—"}
+                    </span>
+                  </div>
+                  <ProgressBar value={value} tone={tone} />
+                </div>
+              ))}
             </div>
           ) : (
             <div className="rounded-lg border border-dashed border-line bg-paper p-6 text-sm leading-7 text-ink/65">
               لا توجد درجات مراجعة معروضة حالياً. ابدأ مراجعة محتوى لإظهار المؤشرات المحسوبة من الملاحظات الفعلية والمواد المهنية والتنظيمية المرتبطة بها.
             </div>
           )}
+          <p className="mt-4 border-t border-line pt-3 text-xs leading-6 text-ink/50">
+            ★ الدرجات مؤشرات مساندة وليست النتيجة الأساسية
+          </p>
         </Panel>
 
         <Panel>
@@ -191,10 +207,20 @@ export default function DashboardPage() {
               توجد نتائج عالية المخاطر. راجع الملاحظات الحرجة قبل أي اعتماد أو مشاركة.
             </div>
           ) : (
-            <div className="rounded-lg border border-dashed border-line bg-paper p-5 text-sm leading-7 text-ink/65">
-              لا توجد تنبيهات مهنية مشتقة من مراجعة فعلية حالياً.
+            <div className="flex flex-wrap gap-2">
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-line bg-paper px-3 py-1.5 text-xs text-ink/55">
+                <Info size={12} />
+                لا تنبيهات مهنية فعلية حالياً
+              </span>
             </div>
           )}
+          <Link href="/content-review#findings" className="mt-3 inline-flex items-center gap-1.5 text-xs text-palm">
+            <ExternalLink size={12} />
+            عرض الملاحظات التفصيلية
+          </Link>
+          <p className="mt-4 border-t border-line pt-3 text-xs leading-6 text-ink/50">
+            ★ الدرجات مؤشرات مساندة وليست النتيجة الأساسية
+          </p>
         </Panel>
 
         <Panel>
