@@ -60,7 +60,7 @@ export function assertPermission(role: RoleName, permission: string) {
 export const demoSession = {
   user: {
     id: "demo-lawyer",
-    name: "أحمد عبدالعزيز",
+    name: "ياسمين",
     role: "LAWYER" as RoleName
   }
 };

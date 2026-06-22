@@ -4,7 +4,7 @@ import type { ContentKind, ProfessionalOfficialReference, ReviewResult } from "@
 
 export const CONTENT_RECORDS_KEY = "lawyer-media:content-records:v2";
 export const ACTIVE_CONTENT_KEY = "lawyer-media:active-content";
-export const DEMO_USER_NAME = "أحمد عبدالعزيز";
+export const DEMO_USER_NAME = "ياسمين";
 
 export type ContentAction = {
   id: string;
