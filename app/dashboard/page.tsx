@@ -203,12 +203,34 @@ export default function DashboardPage() {
         <Panel>
           <SectionTitle title="تنبيهات مهنية" subtitle="عناصر تحتاج متابعة." />
           <div className="flex flex-wrap gap-2">
-            {overview.highRiskContent ? (
+            {overview.analyzedCount > 0 && overview.avgCompliance < 50 && (
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-red-200 bg-red-50 px-3 py-1.5 text-xs text-red-700">
+                <ShieldAlert size={12} />
+                امتثال {overview.avgCompliance}% — مخالفة حرجة
+              </span>
+            )}
+            {overview.highRiskContent > 0 && (
               <span className="inline-flex items-center gap-1.5 rounded-full border border-goldBorder bg-goldSoft px-3 py-1.5 text-xs text-gold">
                 <ShieldAlert size={12} />
                 {overview.highRiskContent} نتيجة عالية المخاطر
               </span>
-            ) : (
+            )}
+            {overview.pendingReviews > 0 && (
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-line bg-paper px-3 py-1.5 text-xs text-ink/65">
+                <Clock3 size={12} />
+                {overview.pendingReviews} مراجعة معلقة
+              </span>
+            )}
+            {overview.publishableContent > 0 && (
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-palm/25 bg-mint px-3 py-1.5 text-xs text-palm">
+                <CheckCircle2 size={12} />
+                {overview.publishableContent} جاهز للنشر
+              </span>
+            )}
+            {!overview.highRiskContent &&
+             !overview.pendingReviews &&
+             !overview.publishableContent &&
+             !(overview.analyzedCount > 0 && overview.avgCompliance < 50) && (
               <span className="inline-flex items-center gap-1.5 rounded-full border border-line bg-paper px-3 py-1.5 text-xs text-ink/55">
                 <Info size={12} />
                 لا تنبيهات مهنية فعلية حالياً
