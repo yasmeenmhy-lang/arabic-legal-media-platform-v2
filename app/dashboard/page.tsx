@@ -202,18 +202,19 @@ export default function DashboardPage() {
 
         <Panel>
           <SectionTitle title="تنبيهات مهنية" subtitle="عناصر تحتاج متابعة." />
-          {overview.highRiskContent ? (
-            <div className="rounded-lg border border-gold/40 bg-gold/10 p-5 text-sm leading-7">
-              توجد نتائج عالية المخاطر. راجع الملاحظات الحرجة قبل أي اعتماد أو مشاركة.
-            </div>
-          ) : (
-            <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2">
+            {overview.highRiskContent ? (
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-goldBorder bg-goldSoft px-3 py-1.5 text-xs text-gold">
+                <ShieldAlert size={12} />
+                {overview.highRiskContent} نتيجة عالية المخاطر
+              </span>
+            ) : (
               <span className="inline-flex items-center gap-1.5 rounded-full border border-line bg-paper px-3 py-1.5 text-xs text-ink/55">
                 <Info size={12} />
                 لا تنبيهات مهنية فعلية حالياً
               </span>
-            </div>
-          )}
+            )}
+          </div>
           <Link href="/content-review#findings" className="mt-3 inline-flex items-center gap-1.5 text-xs text-palm">
             <ExternalLink size={12} />
             عرض الملاحظات التفصيلية
