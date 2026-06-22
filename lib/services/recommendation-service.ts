@@ -93,7 +93,63 @@ function generalValidationReferences(): GovernedRewriteReference[] {
     }));
 }
 
+function normalizedContentScope(context: ReviewContext) {
+  return context.contentType?.trim() || "المحتوى المهني";
+}
+
+function buildInternalSafeSentence(finding: ReviewFinding, context: ReviewContext) {
+  const serviceScope = normalizedContentScope(context);
+  const id = finding.legalKnowledgeEntryId;
+  const evidence = `${finding.evidence} ${finding.matchedPattern}`.toLowerCase();
+
+  if (id.includes("no-guaranteed-outcomes") || evidence.includes("100%") || evidence.includes("نضمن") || evidence.includes("مضمونة") || evidence.includes("كسب")) {
+    return `يقدم المكتب مراجعة مهنية للوقائع والمستندات المتعلقة بـ${serviceScope}، مع بيان الخيارات النظامية الممكنة دون وعد بنتيجة محددة أو ضمان لمآل الإجراء.`;
+  }
+
+  if (id.includes("advertising") || evidence.includes("أفضل") || evidence.includes("رقم واحد") || evidence.includes("الأقوى") || evidence.includes("لا مثيل")) {
+    return "يعرض المكتب خدماته القانونية بصياغة تعريفية مهنية، مع تجنب عبارات التفضيل أو التفوق أو المقارنات غير المثبتة، وبما يحافظ على وضوح الإعلان وصدقه.";
+  }
+
+  if (id.includes("confidentiality")) {
+    return "تُعرض الخبرة أو نطاق الخدمات بصورة عامة دون الإفصاح عن أسماء العملاء أو تفاصيل القضايا أو المستندات أو أي بيانات يمكن أن تكشف معلومات سرية.";
+  }
+
+  if (id.includes("dignity")) {
+    return "تُصاغ الرسالة بلغة مهنية هادئة تحافظ على شرف المهنة ومكانتها وثقة الجمهور، وتتجنب العبارات العدائية أو المثيرة أو غير الملائمة.";
+  }
+
+  if (id.includes("license") || id.includes("prohibited-wording")) {
+    return "تُذكر الصفة المهنية ونطاق الخدمة بدقة دون الإيحاء بترخيص أو اعتماد أو موافقة رسمية غير مثبتة من جهة مختصة.";
+  }
+
+  if (id.includes("training")) {
+    return "يوضح المكتب خبرته وخدماته بعبارات محددة وقابلة للتحقق، دون مبالغة أو تعميم أو ادعاء خبرة مطلقة في جميع الحالات.";
+  }
+
+  if (id.includes("conflict")) {
+    return "يؤكد المكتب التزامه بالتحقق من تعارض المصالح قبل قبول أي عمل، وبما يحافظ على استقلالية التمثيل وحماية مصالح العملاء.";
+  }
+
+  if (id.includes("communication") || id.includes("solicitation")) {
+    return "يمكن للراغبين طلب مراجعة مهنية وفق الوقائع والمستندات ذات الصلة، دون ربط التواصل بتحقيق نتيجة محددة أو استخدام ضغط تسويقي غير ملائم.";
+  }
+
+  if (id.includes("public-communication")) {
+    return "تُعرض المعلومة القانونية بصيغة توعوية عامة، مع التنبيه إلى أن تقدير الموقف النظامي يتطلب مراجعة الوقائع والمستندات ذات الصلة.";
+  }
+
+  return finding.suggestedSaferWording || "استبدل العبارة محل الملاحظة بصياغة مهنية محايدة لا تتضمن وعدًا أو ادعاءً غير مثبت.";
+}
+
+function ensureProfessionalClosing(text: string) {
+  const trimmed = text.trim().replace(/[\s.؟!،؛]+$/, "");
+  if (trimmed.includes("وفق الأنظمة والتعليمات ذات العلاقة")) return `${trimmed}.`;
+  return `${trimmed}، وفق الأنظمة والتعليمات ذات العلاقة.`;
+}
+
 function safeSentenceForFinding(finding: ReviewFinding, context: ReviewContext) {
+  return buildInternalSafeSentence(finding, context);
+
   const serviceScope = context.contentType || "المحتوى المهني";
 
   if (finding.legalKnowledgeEntryId.includes("no-guaranteed-outcomes")) {
@@ -143,9 +199,7 @@ function replaceFindingEvidence(text: string, findings: ReviewFinding[], context
 function buildCandidateText(text: string, findings: ReviewFinding[], kind: ContentKind, context: ReviewContext) {
   const legallySaferDraft = replaceFindingEvidence(text, findings, context);
   const languageDraft = reviewLanguageQuality({ text: legallySaferDraft, kind }).improvedDraft;
-  return languageDraft.includes("وفق الأنظمة والتعليمات ذات العلاقة")
-    ? languageDraft
-    : `${languageDraft.replace(/[\s.؟!،؛]+$/, "")}، وفق الأنظمة والتعليمات ذات العلاقة.`;
+  return ensureProfessionalClosing(languageDraft);
 }
 
 function riskIsReducedOrUnchanged(originalRiskScore: number, proposedRiskScore: number) {

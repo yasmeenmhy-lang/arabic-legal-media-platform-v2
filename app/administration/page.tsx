@@ -1,3 +1,4 @@
+import { ExternalLink } from "lucide-react";
 import { DataTable, PageHeader, Panel, SectionTitle, StatusBadge } from "@/components/ui";
 import { getLegalSourceUpdateCenter } from "@/lib/services/legal-source-update-service";
 import { governedRewriteSettings } from "@/lib/services/recommendation-service";
@@ -27,6 +28,7 @@ function auditActionLabel(action: string) {
 
 export default async function AdministrationPage() {
   const updateCenter = await getLegalSourceUpdateCenter();
+  const sourceById = new Map(updateCenter.sources.map((source) => [source.sourceDocumentId, source]));
 
   return (
     <div className="space-y-6">
@@ -69,7 +71,21 @@ export default async function AdministrationPage() {
         <SectionTitle title="سجل المتابعة" subtitle="سجل مختصر للتغيرات والإجراءات المرتبطة بالمراجع." />
         <DataTable
           headers={["النشاط", "المصدر", "المستخدم", "التاريخ", "التفاصيل"]}
-          rows={updateCenter.auditTrail.map((audit) => [auditActionLabel(audit.action), audit.sourceDocumentId, audit.actor, formatDualDateTime(audit.at), audit.details])}
+          rows={updateCenter.auditTrail.map((audit) => {
+            const source = sourceById.get(audit.sourceDocumentId);
+            return [
+              auditActionLabel(audit.action),
+              source?.sourceUrl ? (
+                <a key={`${audit.id}-source`} href={source.sourceUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-palm underline underline-offset-4">
+                  {source.title}
+                  <ExternalLink size={14} aria-hidden="true" />
+                </a>
+              ) : audit.sourceDocumentId,
+              audit.actor,
+              formatDualDateTime(audit.at),
+              audit.details
+            ];
+          })}
         />
       </Panel>
 

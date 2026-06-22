@@ -20,11 +20,43 @@ function wordPattern(value: string) {
 }
 
 const spellingRules: Array<{ pattern: RegExp; correction: string; message: string }> = [
+  { pattern: wordPattern("هاذا"), correction: "هذا", message: "صحح رسم اسم الإشارة إلى: هذا." },
+  { pattern: wordPattern("هاذه"), correction: "هذه", message: "صحح رسم اسم الإشارة إلى: هذه." },
+  { pattern: wordPattern("نض"), correction: "نص", message: "صحح رسم الكلمة إلى: نص." },
+  { pattern: wordPattern("اخطا"), correction: "أخطاء", message: "أضف الهمزة والمد في كلمة: أخطاء." },
+  { pattern: wordPattern("اخطاء"), correction: "أخطاء", message: "أضف الهمزة في كلمة: أخطاء." },
+  { pattern: wordPattern("لغويه"), correction: "لغوية", message: "صحح التاء المربوطة في كلمة: لغوية." },
+  { pattern: wordPattern("واضحه"), correction: "واضحة", message: "صحح التاء المربوطة في كلمة: واضحة." },
+  { pattern: wordPattern("قانونيه"), correction: "قانونية", message: "صحح التاء المربوطة في كلمة: قانونية." },
+  { pattern: wordPattern("مهنيه"), correction: "مهنية", message: "صحح التاء المربوطة في كلمة: مهنية." },
+  { pattern: wordPattern("اعلانيه"), correction: "إعلانية", message: "أضف الهمزة وصحح التاء المربوطة في كلمة: إعلانية." },
+  { pattern: wordPattern("اعلاني"), correction: "إعلاني", message: "أضف الهمزة في كلمة: إعلاني." },
+  { pattern: wordPattern("استشاره"), correction: "استشارة", message: "صحح التاء المربوطة في كلمة: استشارة." },
+  { pattern: wordPattern("العملا"), correction: "العملاء", message: "صحح رسم الكلمة إلى: العملاء." },
+  { pattern: wordPattern("المحكمه"), correction: "المحكمة", message: "صحح التاء المربوطة في كلمة: المحكمة." },
+  { pattern: wordPattern("النتيجه"), correction: "النتيجة", message: "صحح التاء المربوطة في كلمة: النتيجة." },
   { pattern: wordPattern("ان"), correction: "أن", message: "استخدم الهمزة في (أن) عند فتح الجملة المصدرية." },
   { pattern: wordPattern("الى"), correction: "إلى", message: "اكتب حرف الجر بصيغته الصحيحة: إلى." },
   { pattern: wordPattern("علي"), correction: "على", message: "اكتب حرف الجر بصيغته الصحيحة: على." },
+  { pattern: wordPattern("الاجراءات"), correction: "الإجراءات", message: "أضف الهمزة في المصطلح المهني: الإجراءات." },
+  { pattern: wordPattern("والاجراءات"), correction: "والإجراءات", message: "أضف الهمزة في المصطلح المهني: والإجراءات." },
   { pattern: wordPattern("اجراءات"), correction: "إجراءات", message: "أضف الهمزة في المصطلح المهني: إجراءات." },
+  { pattern: wordPattern("الاجراء"), correction: "الإجراء", message: "أضف الهمزة في المصطلح المهني: الإجراء." },
+  { pattern: wordPattern("والاجراء"), correction: "والإجراء", message: "أضف الهمزة في المصطلح المهني: والإجراء." },
+  { pattern: wordPattern("اجراء"), correction: "إجراء", message: "أضف الهمزة في المصطلح المهني: إجراء." },
   { pattern: wordPattern("مسؤليه"), correction: "مسؤولية", message: "صحح رسم الكلمة إلى: مسؤولية." },
+  { pattern: wordPattern("ومسؤليه"), correction: "ومسؤولية", message: "صحح رسم الكلمة إلى: ومسؤولية." },
+  { pattern: wordPattern("مسئوليه"), correction: "مسؤولية", message: "صحح رسم الكلمة إلى: مسؤولية." },
+  { pattern: wordPattern("ومسئوليه"), correction: "ومسؤولية", message: "صحح رسم الكلمة إلى: ومسؤولية." },
+  { pattern: wordPattern("مسؤوليه"), correction: "مسؤولية", message: "صحح التاء المربوطة في كلمة: مسؤولية." },
+  { pattern: wordPattern("ومسؤوليه"), correction: "ومسؤولية", message: "صحح التاء المربوطة في كلمة: ومسؤولية." },
+  { pattern: wordPattern("مسؤلية"), correction: "مسؤولية", message: "صحح رسم الكلمة إلى: مسؤولية." },
+  { pattern: wordPattern("القضيه"), correction: "القضية", message: "صحح التاء المربوطة في كلمة: القضية." },
+  { pattern: wordPattern("القضيةه"), correction: "القضية", message: "احذف الحرف الزائد واكتب: القضية." },
+  { pattern: wordPattern("محاميى"), correction: "محامي", message: "صحح رسم الكلمة إلى: محامي." },
+  { pattern: wordPattern("السعوديه"), correction: "السعودية", message: "صحح التاء المربوطة في كلمة: السعودية." },
+  { pattern: wordPattern("الانظمه"), correction: "الأنظمة", message: "أضف الهمزة وصحح التاء المربوطة في كلمة: الأنظمة." },
+  { pattern: wordPattern("اللائحه"), correction: "اللائحة", message: "صحح التاء المربوطة في كلمة: اللائحة." },
   { pattern: wordPattern("شي"), correction: "شيء", message: "اكتب الكلمة بصيغتها الفصيحة: شيء." }
 ];
 
@@ -213,7 +245,7 @@ export function reviewLanguageQuality(input: LanguageQualityReviewInput, thresho
 
   const { score, categoryScores } = calculateScores(issues);
   return {
-    passed: score >= threshold && !issues.some((issue) => issue.severity === "critical"),
+    passed: score >= threshold && !issues.some((issue) => issue.severity === "critical" || issue.category === "spelling"),
     score,
     threshold,
     normalizedText: normalizeArabic(text),

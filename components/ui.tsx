@@ -3,12 +3,13 @@ import { ArrowLeft, CheckCircle2, Clock3, FileText, ShieldAlert } from "lucide-r
 import { clsx } from "clsx";
 import React from "react";
 
-type Tone = "neutral" | "good" | "gold";
+type Tone = "neutral" | "good" | "gold" | "danger";
 
 const toneStyles: Record<Tone, { soft: string; text: string; border: string; solid: string }> = {
   good: { soft: "bg-mint", text: "text-palm", border: "border-palm/25", solid: "bg-palm" },
   neutral: { soft: "bg-warmGraySoft", text: "text-warmGrayText", border: "border-warmGrayBorder", solid: "bg-warmGray" },
-  gold: { soft: "bg-goldSoft", text: "text-gold", border: "border-goldBorder", solid: "bg-gold" }
+  gold: { soft: "bg-goldSoft", text: "text-gold", border: "border-goldBorder", solid: "bg-gold" },
+  danger: { soft: "bg-red-50", text: "text-red-700", border: "border-red-200", solid: "bg-red-600" }
 };
 
 export function PageHeader({
@@ -27,7 +28,7 @@ export function PageHeader({
       <div className="flex flex-col justify-between gap-5 lg:flex-row lg:items-center">
         <div className="min-w-0 max-w-full">
           {eyebrow ? <p className="mb-2 text-xs font-normal text-palm">{eyebrow}</p> : null}
-          <h2 className="text-xl font-bold leading-9 text-ink sm:text-[1.65rem] sm:leading-10">{title}</h2>
+          <h2 className="text-lg font-semibold leading-8 text-ink sm:text-xl sm:leading-9">{title}</h2>
           <p className="mt-2 max-w-4xl text-sm leading-7 text-ink/65">{description}</p>
         </div>
         {action ? <div className="min-w-0 shrink-0">{action}</div> : null}

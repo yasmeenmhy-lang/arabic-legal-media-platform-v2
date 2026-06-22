@@ -3,8 +3,8 @@ import "./globals.css";
 import { AppShell } from "@/components/app-shell";
 
 export const metadata: Metadata = {
-  title: "منصة تمكين وإدارة المحتوى الإعلامي والإعلاني للمحامين",
-  description: "منصة عربية مهنية لمراجعة المحتوى الإعلامي والإعلاني للمحامين ودعم الامتثال والمخاطر وجاهزية النشر."
+  title: "إدارة المحتوى الإعلامي والإعلاني للمحامين",
+  description: "نافذة عربية مهنية لمراجعة المحتوى الإعلامي والإعلاني للمحامين ودعم الامتثال والمخاطر وجاهزية النشر."
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

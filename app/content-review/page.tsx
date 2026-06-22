@@ -1,17 +1,20 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   AlertTriangle,
+  ArrowRight,
   Award,
   BarChart2,
   BookOpen,
+  Bot,
   Building2,
   CalendarDays,
   CheckCircle2,
-  Clipboard,
-  Download,
   Edit3,
+  ExternalLink,
   FileDown,
   FileText,
   Globe,
@@ -24,32 +27,38 @@ import {
   Scale,
   Share2,
   ShieldAlert,
+  SpellCheck,
   Sparkles,
   TrendingUp,
   User,
   Users,
-  Video
+  Video,
+  XCircle
 } from "lucide-react";
+import { CircularGauge, PageHeader, Panel, ProgressBar, SectionTitle, StatusBadge } from "@/components/ui";
 import {
   LinkedInIcon,
   XIcon,
   InstagramIcon,
   TikTokIcon,
   SnapchatIcon,
-  YouTubeIcon
+  YouTubeIcon,
+  socialBrandIcons,
+  socialBrandStyles
 } from "@/components/social-icons";
-import { PageHeader, Panel, SectionTitle, StatusBadge } from "@/components/ui";
-import { socialBrandIcons } from "@/components/social-icons";
+import { OfficialLogo, officialEntityFromUrl } from "@/components/official-logos";
 import { contentKindOptions } from "@/lib/content-types";
 import {
   approveContentVersion,
+  clearActiveContentSelection,
   getActiveContentSelection,
   loadContentRecords,
   markContentShared,
+  saveContentDraft,
   upsertAnalyzedVersion
 } from "@/lib/content-record-store";
 import { saveLatestReviewSnapshot } from "@/components/review-context-summary";
-import type { ContentKind, ReviewFinding, ReviewResult, RiskLevel } from "@/lib/types";
+import type { ContentKind, LanguageQualityIssue, ReviewFinding, ReviewResult, RiskLevel } from "@/lib/types";
 
 const contentTypes = contentKindOptions.filter((item) =>
   (["post", "advertisement", "campaign", "article", "script", "caption", "visual_content", "infographic", "publishing_plan"] as ContentKind[]).includes(item.value)
@@ -100,6 +109,162 @@ const chipSelected = "border-palm bg-mint text-palm shadow-[0_0_0_1px_theme(colo
 
 const severityLabel = { critical: "حرجة", high: "عالية", medium: "متوسطة", low: "منخفضة" } as const;
 const severityOrder = { critical: 0, high: 1, medium: 2, low: 3 } as const;
+const reviewTabs = [
+  { key: "findings", label: "الملاحظات" },
+  { key: "compliance", label: "الامتثال" },
+  { key: "risk", label: "المخاطر" },
+  { key: "improvements", label: "فرص التحسين" },
+  { key: "references", label: "المراجع المهنية والرسمية" },
+  { key: "sharing", label: "المشاركة" }
+] as const;
+type ReviewTab = (typeof reviewTabs)[number]["key"];
+
+const workflowTargets: Record<string, { tab: ReviewTab; targetId: string; actionLabel: string }> = {
+  input: { tab: "findings", targetId: "input", actionLabel: "فتح بيانات المحتوى" },
+  analysis: { tab: "findings", targetId: "analysis-summary", actionLabel: "فتح نتائج التحليل" },
+  findings: { tab: "findings", targetId: "findings", actionLabel: "فتح الملاحظات" },
+  rewrite: { tab: "improvements", targetId: "rewrite", actionLabel: "فتح الصياغة المقترحة" },
+  approval: { tab: "sharing", targetId: "approval", actionLabel: "فتح الاعتماد" },
+  sharing: { tab: "sharing", targetId: "sharing", actionLabel: "فتح المشاركة والتصدير" }
+};
+
+const inlineSpellingRules = [
+  { wrong: "هاذا", correction: "هذا", message: "صحح رسم اسم الإشارة إلى: هذا." },
+  { wrong: "هاذه", correction: "هذه", message: "صحح رسم اسم الإشارة إلى: هذه." },
+  { wrong: "نض", correction: "نص", message: "صحح رسم الكلمة إلى: نص." },
+  { wrong: "اخطا", correction: "أخطاء", message: "أضف الهمزة والمد في كلمة: أخطاء." },
+  { wrong: "اخطاء", correction: "أخطاء", message: "أضف الهمزة في كلمة: أخطاء." },
+  { wrong: "لغويه", correction: "لغوية", message: "صحح التاء المربوطة في كلمة: لغوية." },
+  { wrong: "واضحه", correction: "واضحة", message: "صحح التاء المربوطة في كلمة: واضحة." },
+  { wrong: "قانونيه", correction: "قانونية", message: "صحح التاء المربوطة في كلمة: قانونية." },
+  { wrong: "مهنيه", correction: "مهنية", message: "صحح التاء المربوطة في كلمة: مهنية." },
+  { wrong: "اعلانيه", correction: "إعلانية", message: "أضف الهمزة وصحح التاء المربوطة في كلمة: إعلانية." },
+  { wrong: "اعلاني", correction: "إعلاني", message: "أضف الهمزة في كلمة: إعلاني." },
+  { wrong: "استشاره", correction: "استشارة", message: "صحح التاء المربوطة في كلمة: استشارة." },
+  { wrong: "العملا", correction: "العملاء", message: "صحح رسم الكلمة إلى: العملاء." },
+  { wrong: "المحكمه", correction: "المحكمة", message: "صحح التاء المربوطة في كلمة: المحكمة." },
+  { wrong: "النتيجه", correction: "النتيجة", message: "صحح التاء المربوطة في كلمة: النتيجة." },
+  { wrong: "الاجراءات", correction: "الإجراءات", message: "أضف الهمزة في المصطلح المهني: الإجراءات." },
+  { wrong: "والاجراءات", correction: "والإجراءات", message: "أضف الهمزة في المصطلح المهني: والإجراءات." },
+  { wrong: "القضيه", correction: "القضية", message: "صحح التاء المربوطة في كلمة: القضية." },
+  { wrong: "السعوديه", correction: "السعودية", message: "صحح التاء المربوطة في كلمة: السعودية." },
+  { wrong: "اجراءات", correction: "إجراءات", message: "أضف الهمزة في المصطلح المهني: إجراءات." },
+  { wrong: "الاجراء", correction: "الإجراء", message: "أضف الهمزة في المصطلح المهني: الإجراء." },
+  { wrong: "والاجراء", correction: "والإجراء", message: "أضف الهمزة في المصطلح المهني: والإجراء." },
+  { wrong: "اجراء", correction: "إجراء", message: "أضف الهمزة في المصطلح المهني: إجراء." },
+  { wrong: "اللائحه", correction: "اللائحة", message: "صحح التاء المربوطة في كلمة: اللائحة." },
+  { wrong: "الانظمه", correction: "الأنظمة", message: "أضف الهمزة وصحح التاء المربوطة في كلمة: الأنظمة." }
+];
+
+function escapeInlinePattern(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function detectInlineWritingIssues(value: string): LanguageQualityIssue[] {
+  return inlineSpellingRules.flatMap((rule, ruleIndex) => {
+    const pattern = new RegExp(`(?<![\\u0600-\\u06FF])${escapeInlinePattern(rule.wrong)}(?![\\u0600-\\u06FF])`, "g");
+    return Array.from(value.matchAll(pattern)).map((match, matchIndex) => ({
+      id: `inline-spelling-${ruleIndex}-${matchIndex}`,
+      category: "spelling" as const,
+      severity: "medium" as const,
+      message: rule.message,
+      excerpt: match[0],
+      suggestion: `استبدل "${match[0]}" بـ "${rule.correction}".`,
+      start: match.index,
+      end: (match.index ?? 0) + match[0].length
+    }));
+  });
+}
+
+type AssistantIssue = {
+  id: string;
+  severity: keyof typeof severityOrder;
+  label: string;
+  evidence: string;
+  reason: string;
+  action: string;
+  source?: string;
+};
+
+function languageIssueSeverity(issue: LanguageQualityIssue): keyof typeof severityOrder {
+  if (issue.severity === "high") return "high";
+  if (issue.severity === "medium") return "medium";
+  return "low";
+}
+
+function buildAssistantIssues(review: ReviewResult, liveSpellingIssues: LanguageQualityIssue[]) {
+  const findingIssues: AssistantIssue[] = review.findings.map((finding, index) => ({
+    id: `finding-${index}-${finding.title}`,
+    severity: finding.businessSeverity ?? "low",
+    label: finding.title,
+    evidence: finding.evidence,
+    reason: finding.legalExplanation,
+    action: finding.suggestedSaferWording,
+    source: `${finding.sourceDocument} — ${finding.legalReference}`
+  }));
+
+  const mergedLanguageIssues = [...review.languageQuality.issues, ...liveSpellingIssues].filter(
+    (issue, index, list) => list.findIndex((item) => `${item.category}-${item.excerpt}-${item.suggestion}` === `${issue.category}-${issue.excerpt}-${issue.suggestion}`) === index
+  );
+
+  const languageIssues: AssistantIssue[] = mergedLanguageIssues.map((issue, index) => ({
+    id: `language-${index}-${issue.excerpt}`,
+    severity: languageIssueSeverity(issue),
+    label: issue.category === "spelling" ? "تصحيح إملائي أو لغوي" : "تحسين لغوي أو أسلوبي",
+    evidence: issue.excerpt,
+    reason: issue.message,
+    action: issue.suggestion,
+    source: "قواعد لغوية عربية معيارية للتدقيق الإملائي والتحريري"
+  }));
+
+  const riskIssue: AssistantIssue[] = ["حرج", "مرتفع"].includes(review.riskLevel)
+    ? [{
+        id: "risk-summary",
+        severity: review.riskLevel === "حرج" ? "critical" : "high",
+        label: `مستوى مخاطر ${review.riskLevel}`,
+        evidence: review.findings[0]?.evidence ?? review.legalRiskAssessment.reason,
+        reason: review.legalRiskAssessment.reason,
+        action: review.readinessDecision.actions[0] ?? "عالج المخاطر قبل التفكير في النشر.",
+        source: review.findings[0] ? `${review.findings[0].sourceDocument} — ${review.findings[0].legalReference}` : "نتيجة تقييم المخاطر"
+      }]
+    : [];
+
+  return [...findingIssues, ...riskIssue, ...languageIssues].sort(
+    (a, b) => severityOrder[a.severity] - severityOrder[b.severity]
+  );
+}
+
+function assistantSeverityText(severity: keyof typeof severityOrder) {
+  if (severity === "critical") return "حرجة";
+  if (severity === "high") return "عالية";
+  if (severity === "medium") return "متوسطة";
+  return "منخفضة";
+}
+
+function buildInternalAssistantSummary(review: ReviewResult, assistantIssues: AssistantIssue[], languagePassed: boolean) {
+  const professionalIssues = assistantIssues.filter((issue) => issue.id.startsWith("finding-"));
+  const riskIssues = assistantIssues.filter((issue) => issue.id === "risk-summary");
+  const languageIssues = assistantIssues.filter((issue) => issue.id.startsWith("language-"));
+  const topIssue = assistantIssues[0];
+
+  if (topIssue) {
+    const parts = [
+      professionalIssues.length ? `${professionalIssues.length} ملاحظة مهنية أو امتثالية` : null,
+      riskIssues.length ? "مؤشر مخاطر مرتفع يحتاج معالجة قبل النشر" : null,
+      languageIssues.length ? `${languageIssues.length} ملاحظة لغوية أو إملائية` : null
+    ].filter(Boolean);
+
+    return `ابدأ بالأولوية ${assistantSeverityText(topIssue.severity)}: "${topIssue.label}". رصد النظام ${parts.join("، ")}. راجع الدليل والمرجع والإجراء المقترح لكل بند قبل الاعتماد أو المشاركة.`;
+  }
+
+  if (!languagePassed) {
+    return "لا توجد مخالفة مهنية مرصودة، لكن توجد ملاحظات لغوية أو تحريرية يجب معالجتها قبل اعتماد النسخة النهائية.";
+  }
+
+  return review.publicationDecision.recommended
+    ? "لا توجد ملاحظات مهنية أو لغوية مانعة في النص الحالي. راجع النسخة النهائية وقرار النشر قبل الاعتماد."
+    : review.publicationDecision.reason;
+}
 
 function riskTone(risk: RiskLevel) {
   if (risk === "حرج" || risk === "مرتفع") return "gold" as const;
@@ -113,6 +278,31 @@ function decisionTone(review: ReviewResult) {
     : review.publicationDecision.outcome === "RECOMMENDED_AFTER_FINDINGS"
       ? "neutral" as const
       : "gold" as const;
+}
+
+function complianceKpiTone(value: number) {
+  if (value >= 80) return "good" as const;
+  if (value >= 60) return "gold" as const;
+  return "danger" as const;
+}
+
+function languageKpiTone(value: number) {
+  if (value >= 80) return "good" as const;
+  if (value >= 60) return "neutral" as const;
+  return "gold" as const;
+}
+
+function riskKpiTone(risk: RiskLevel) {
+  if (risk === "حرج" || risk === "مرتفع") return "danger" as const;
+  if (risk === "متوسط") return "gold" as const;
+  return "good" as const;
+}
+
+function readinessKpiTone(review: ReviewResult) {
+  if (review.publicationDecision.outcome === "RECOMMENDED") return "good" as const;
+  if (review.publicationDecision.outcome === "NOT_RECOMMENDED") return "danger" as const;
+  if (review.publishingReadinessScore < 60) return "danger" as const;
+  return "gold" as const;
 }
 
 function businessScoreExplanation(kind: "compliance" | "risk" | "language", review: ReviewResult) {
@@ -164,7 +354,7 @@ function FindingCard({ finding, index }: { finding: ReviewFinding; index: number
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <p className="text-xs text-ink/50">الأولوية {index + 1}</p>
-          <h3 className="mt-1 text-lg font-semibold leading-8">{finding.title}</h3>
+          <h3 className="mt-1 text-base font-semibold leading-8">{finding.title}</h3>
         </div>
         <StatusBadge tone={severity === "critical" || severity === "high" ? "gold" : severity === "medium" ? "neutral" : "good"}>
           {severityLabel[severity]}
@@ -185,9 +375,9 @@ function FindingCard({ finding, index }: { finding: ReviewFinding; index: number
         </div>
         <div className="rounded-lg bg-paper p-4">
           <p className="text-xs text-ink/55">المرجع المتأثر</p>
-          <p className="mt-2 leading-7">{finding.sourceDocument} — {finding.legalReference}</p>
-          <a href={finding.sourceUrl} target="_blank" rel="noreferrer" className="mt-2 inline-flex text-sm text-palm underline">
-            فتح المرجع الرسمي
+          <div className="mt-2 flex items-start gap-3 leading-7"><OfficialLogo entity={officialEntityFromUrl(finding.sourceUrl)} /><span className="pt-1">{finding.sourceDocument} — {finding.legalReference}</span></div>
+          <a href={finding.sourceUrl} target="_blank" rel="noopener noreferrer" className="mt-2 inline-flex items-center gap-2 text-sm text-palm underline">
+            فتح المرجع الرسمي <ExternalLink size={14} aria-hidden="true" />
           </a>
         </div>
         <div className="rounded-lg bg-paper p-4">
@@ -208,18 +398,276 @@ function FindingCard({ finding, index }: { finding: ReviewFinding; index: number
   );
 }
 
+function MetricExplanation({
+  label,
+  value,
+  displayValue,
+  explanation,
+  evidence,
+  action,
+  tone = "neutral",
+  inverse = false
+}: {
+  label: string;
+  value: number;
+  displayValue: string;
+  explanation: string;
+  evidence: string;
+  action: string;
+  tone?: "neutral" | "good" | "gold" | "danger";
+  inverse?: boolean;
+}) {
+  const visualValue = value;
+  return (
+    <Panel className="h-full">
+      <div className="grid gap-5 sm:grid-cols-[132px_1fr] sm:items-center">
+        <CircularGauge value={visualValue} label={inverse ? "كلما ارتفع المؤشر ارتفع الخطر" : "مؤشر مساند للقرار"} tone={tone} />
+        <div>
+          <p className="text-xs text-ink/55">مؤشر مساند — لا يحل محل التفسير</p>
+          <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
+            <h3 className="text-base font-semibold">{label}</h3>
+            <StatusBadge tone={tone}>{displayValue}</StatusBadge>
+          </div>
+          <p className="mt-3 leading-7">{explanation}</p>
+          <div className="mt-3"><ProgressBar value={visualValue} tone={tone} /></div>
+        </div>
+      </div>
+      <div className="mt-4 grid gap-3 lg:grid-cols-2">
+        <div className="rounded-md bg-paper p-3 text-sm leading-7"><b>الدليل:</b> {evidence}</div>
+        <div className="rounded-md bg-mint/50 p-3 text-sm leading-7"><b>الإجراء الموصى به:</b> {action}</div>
+      </div>
+    </Panel>
+  );
+}
+
+function SpellingCheckerPanel({ issues }: { issues: LanguageQualityIssue[] }) {
+  const spellingIssues = issues.filter((issue) => issue.category === "spelling");
+  return (
+    <Panel id="smart-spelling-checker">
+      <SectionTitle
+        title="المدقق الإملائي الذكي"
+        subtitle="يعرض الكلمات أو العبارات ذات الأخطاء الإملائية الواضحة، ولا يعتبر النص صحيحًا عند وجود خطأ إملائي ظاهر."
+      />
+      {spellingIssues.length ? (
+        <div className="grid gap-3">
+          {spellingIssues.map((issue) => (
+            <article key={issue.id} className="rounded-lg border border-red-200 bg-red-50 p-4">
+              <div className="flex flex-wrap items-center gap-3">
+                <SpellCheck size={18} className="text-red-700" aria-hidden="true" />
+                <span className="rounded-md bg-white px-2.5 py-1 text-sm font-semibold text-red-700">{issue.excerpt}</span>
+                <span className="text-sm text-ink/65">←</span>
+                <span className="rounded-md bg-mint px-2.5 py-1 text-sm text-palm">{issue.suggestion}</span>
+              </div>
+              <p className="mt-3 text-sm leading-7 text-red-800">{issue.message}</p>
+            </article>
+          ))}
+        </div>
+      ) : (
+        <p className="rounded-lg bg-paper p-4 text-sm leading-7">لم يرصد المدقق الإملائي أخطاء واضحة في النص الحالي.</p>
+      )}
+    </Panel>
+  );
+}
+
+function InlineContentGuidance({
+  review,
+  draftText,
+  onApplyRewrite,
+  loading
+}: {
+  review: ReviewResult | null;
+  draftText: string;
+  onApplyRewrite: () => void;
+  loading: boolean;
+}) {
+  const liveSpellingIssues = detectInlineWritingIssues(draftText);
+
+  if (!review && draftText.trim().length === 0) {
+    return (
+      <div className="rounded-lg border border-dashed border-line bg-paper p-3 text-xs leading-6 text-ink/65">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-2 text-palm">
+            <SpellCheck size={16} aria-hidden="true" />
+            <b>لا يوجد محتوى محل مراجعة حاليًا</b>
+          </div>
+          <StatusBadge tone="neutral">لا توجد نتائج</StatusBadge>
+        </div>
+        <p className="mt-2">أدخل نصًا جديدًا لبدء التدقيق والتحليل. لن تظهر مؤشرات أو نتائج مرتبطة بمحتوى سابق بعد مسح النص.</p>
+      </div>
+    );
+  }
+
+  if (!review) {
+    return (
+      <div className="space-y-3 rounded-lg border border-dashed border-line bg-paper p-3 text-xs leading-6 text-ink/65">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-2 text-palm">
+            <SpellCheck size={16} aria-hidden="true" />
+            <b>تدقيق مباشر أثناء الكتابة داخل منطقة المحتوى</b>
+          </div>
+          <StatusBadge tone={liveSpellingIssues.length ? "gold" : "neutral"}>{liveSpellingIssues.length ? "يحتاج تصحيحًا" : "بانتظار التحليل"}</StatusBadge>
+        </div>
+        {liveSpellingIssues.length ? (
+          <div className="flex flex-wrap gap-2">
+            {liveSpellingIssues.map((issue) => (
+              <span key={issue.id} className="rounded-md border border-red-200 bg-red-50 px-2.5 py-1 text-xs leading-5 text-red-800">
+                <b>{issue.excerpt}</b> ← {issue.suggestion}
+              </span>
+            ))}
+          </div>
+        ) : (
+          <p>سيظهر التدقيق الإملائي واللغوي، والمساعد الذكي، ومسار التعديل المقترح داخل منطقة المحتوى بعد التحليل.</p>
+        )}
+      </div>
+    );
+  }
+
+  const reviewSpellingIssues = review.languageQuality.issues.filter((issue) => issue.category === "spelling");
+  const spellingIssues = reviewSpellingIssues.length ? reviewSpellingIssues : liveSpellingIssues;
+  const rewrite = review.governedRewrites[0];
+  const enhancedRewrite = rewrite
+    ? review.aiEnhancement?.rewriteSuggestions.find((item) => item.rewriteId === rewrite.id)
+    : undefined;
+  const languagePassed = review.languageQuality.passed && review.languageQuality.issues.length === 0 && liveSpellingIssues.length === 0;
+  const assistantIssues = buildAssistantIssues(review, liveSpellingIssues);
+  const internalAssistantSummary = buildInternalAssistantSummary(review, assistantIssues, languagePassed);
+  const languageBadgeLabel = languagePassed
+    ? review.findings.length
+      ? "لا توجد أخطاء لغوية واضحة"
+      : "سليم لغويًا"
+    : "يحتاج تصحيحًا";
+
+  return (
+    <div className="space-y-3 rounded-lg border border-line bg-white p-3">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex items-center gap-2 text-palm">
+          <SpellCheck size={17} aria-hidden="true" />
+          <p className="text-sm font-semibold">تدقيق مباشر داخل منطقة المحتوى</p>
+        </div>
+        <StatusBadge tone={languagePassed ? "good" : "gold"}>{languageBadgeLabel}</StatusBadge>
+      </div>
+      {spellingIssues.length ? (
+        <div className="flex flex-wrap gap-2">
+          {spellingIssues.map((issue) => (
+            <span key={issue.id} className="rounded-md border border-red-200 bg-red-50 px-2.5 py-1 text-xs leading-5 text-red-800">
+              <b>{issue.excerpt}</b> ← {issue.suggestion}
+            </span>
+          ))}
+        </div>
+      ) : (
+        <p className="text-xs leading-6 text-ink/60">لم يرصد المدقق أخطاء إملائية واضحة داخل النص الحالي.</p>
+      )}
+
+      <div className="rounded-md bg-mint/50 p-3 text-xs leading-6">
+        <div className="mb-1 flex items-center gap-2 text-palm"><Bot size={16} aria-hidden="true" /><b>المساعد الذكي</b></div>
+        <p>
+          {review.aiEnhancement?.assistantSummary
+            ? review.aiEnhancement.assistantSummary
+            : internalAssistantSummary}
+        </p>
+      </div>
+
+      <div className="rounded-md border border-palm/20 bg-mint/30 p-3 text-xs leading-6">
+        <div className="mb-2 flex items-center gap-2 text-palm"><Bot size={16} aria-hidden="true" /><b>توجيه المساعد حسب نتيجة التحليل</b></div>
+        {assistantIssues.length ? (
+          <ol className="space-y-2 pr-5">
+            {assistantIssues.map((item, index) => (
+              <li key={item.id} className="rounded-md border border-line bg-white p-2">
+                <div className="flex flex-wrap items-center gap-2">
+                  <StatusBadge tone={item.severity === "critical" || item.severity === "high" ? "gold" : "neutral"}>{index + 1}. {item.label}</StatusBadge>
+                  <span className="text-ink/55">الأولوية: {item.severity === "critical" ? "حرجة" : item.severity === "high" ? "عالية" : item.severity === "medium" ? "متوسطة" : "منخفضة"}</span>
+                </div>
+                <p className="mt-2"><b>المشكلة:</b> {item.label}</p>
+                <p><b>العبارة المرتبطة:</b> {item.evidence}</p>
+                <p><b>سبب المخالفة أو الملاحظة:</b> {item.reason}</p>
+                {item.source ? <p><b>المرجع:</b> {item.source}</p> : null}
+                <p><b>الإجراء المقترح:</b> {item.action}</p>
+              </li>
+            ))}
+          </ol>
+        ) : (
+          <p>{review.publicationDecision.reason}</p>
+        )}
+      </div>
+
+      {rewrite ? (
+        <div className="rounded-md border border-palm/20 bg-paper p-3 text-xs leading-6">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <b>مسار التعديل المقترح</b>
+            <button type="button" onClick={onApplyRewrite} disabled={loading} className="inline-flex items-center gap-1 rounded-md bg-palm px-3 py-1.5 text-xs text-white disabled:opacity-50">
+              <Sparkles size={14} />استخدام الصياغة المقترحة
+            </button>
+          </div>
+          {enhancedRewrite?.explanation ? <p className="mt-2 text-ink/70">{enhancedRewrite.explanation}</p> : null}
+          <p className="mt-2 text-ink/70">{enhancedRewrite?.suggestedText ?? rewrite.suggestedText}</p>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function SmartAssistantPanel({ review }: { review: ReviewResult }) {
+  const firstFinding = review.findings[0];
+  const firstLanguageIssue = review.languageQuality.issues[0];
+  const guidance = firstFinding
+    ? [
+        `ابدأ بمعالجة: ${firstFinding.title}.`,
+        `سبب الملاحظة: ${firstFinding.legalExplanation}`,
+        `العبارة المرتبطة داخل المحتوى: "${firstFinding.evidence}".`,
+        `المرجع: ${firstFinding.sourceDocument} — ${firstFinding.legalReference}.`,
+        `اقتراح التعديل: ${firstFinding.suggestedSaferWording}`
+      ]
+    : firstLanguageIssue
+      ? [
+          `ابدأ بتحسين اللغة: ${firstLanguageIssue.message}`,
+          `العبارة المرتبطة: "${firstLanguageIssue.excerpt}".`,
+          `التصحيح أو التحسين المقترح: ${firstLanguageIssue.suggestion}`,
+          "بعد التصحيح، أعد التحليل للتأكد من أثر التعديل على جاهزية النشر."
+        ]
+      : [
+          "لم تظهر ملاحظة مهنية أو إملائية واضحة في التحليل الحالي.",
+          "راجع السياق والجمهور والقناة قبل النشر، ثم اعتمد النسخة النهائية عند اكتمال المراجعة."
+        ];
+
+  return (
+    <Panel id="smart-assistant">
+      <SectionTitle
+        title="المساعد الذكي داخل النافذة"
+        subtitle="يساعدك على فهم الملاحظة وسببها والقاعدة المرتبطة بها وطريقة تعديل النص، دون أن يحل محل مسؤولية المستخدم في النشر."
+      />
+      <div className="rounded-xl border border-palm/20 bg-mint/40 p-4">
+        <div className="flex items-center gap-2 text-palm"><Bot size={20} aria-hidden="true" /><h3 className="font-semibold">توجيه عملي للمراجعة الحالية</h3></div>
+        <ul className="mt-3 list-disc space-y-2 pr-5 text-sm leading-7">
+          {guidance.map((item) => <li key={item}>{item}</li>)}
+        </ul>
+      </div>
+    </Panel>
+  );
+}
+
 export default function ContentReviewPage() {
+  const router = useRouter();
   const [text, setText] = useState("");
-  const [kind, setKind] = useState<ContentKind>("advertisement");
-  const [channel, setChannel] = useState("LinkedIn");
-  const [audience, setAudience] = useState(audiences[0]);
-  const [purpose, setPurpose] = useState(purposes[0]);
+  const [kind, setKind] = useState<ContentKind | "">("");
+  const [channel, setChannel] = useState("");
+  const [audience, setAudience] = useState("");
+  const [purpose, setPurpose] = useState("");
   const [review, setReview] = useState<ReviewResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [contentId, setContentId] = useState<string>();
   const [versionNumber, setVersionNumber] = useState<number>();
   const [approved, setApproved] = useState(false);
+  const [approving, setApproving] = useState(false);
+  const [activeTab, setActiveTab] = useState<ReviewTab>("findings");
+  const [isEditing, setIsEditing] = useState(false);
+  const [editSnapshot, setEditSnapshot] = useState<{
+    text: string;
+    kind: ContentKind | "";
+    channel: string;
+    audience: string;
+    purpose: string;
+  } | null>(null);
 
   useEffect(() => {
     const selection = getActiveContentSelection();
@@ -241,13 +689,17 @@ export default function ContentReviewPage() {
     }
   }, []);
 
-  const contentTypeLabel = contentTypes.find((item) => item.value === kind)?.label ?? "محتوى مهني";
+  const hasReviewContext = Boolean(kind && channel && audience && purpose);
+  const contentTypeLabel = kind ? contentTypes.find((item) => item.value === kind)?.label ?? "محتوى مهني" : "";
   const sortedFindings = useMemo(
     () => [...(review?.findings ?? [])].sort((a, b) => severityOrder[a.businessSeverity ?? "low"] - severityOrder[b.businessSeverity ?? "low"]),
     [review]
   );
 
   async function requestReview(reviewStatus?: "READY_FOR_PUBLISHING") {
+    if (!kind || !channel || !audience || !purpose) {
+      throw new Error("اختر نوع المحتوى والقناة والجمهور والهدف قبل التحليل حتى ترتبط النتائج بالسياق الصحيح.");
+    }
     const response = await fetch("/api/reviews", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -258,6 +710,10 @@ export default function ContentReviewPage() {
   }
 
   async function runReview() {
+    if (!kind || !channel || !audience || !purpose) {
+      setMessage("اختر نوع المحتوى والقناة والجمهور والهدف قبل التحليل حتى ترتبط النتائج بالسياق الصحيح.");
+      return;
+    }
     setLoading(true);
     setMessage("");
     try {
@@ -277,6 +733,8 @@ export default function ContentReviewPage() {
       setContentId(saved.record.id);
       setVersionNumber(saved.version.version);
       setApproved(false);
+      setIsEditing(false);
+      setEditSnapshot(null);
       setMessage("اكتمل التحليل. ابدأ بقرار النشر ثم عالج الملاحظات حسب الأولوية.");
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "تعذر إكمال المراجعة.");
@@ -287,21 +745,23 @@ export default function ContentReviewPage() {
 
   async function applyRewrite() {
     const rewrite = review?.governedRewrites[0];
-    if (!rewrite) return;
-    setText(rewrite.suggestedText);
+    if (!rewrite || !kind || !channel || !audience || !purpose) return;
+    const enhancedRewrite = review.aiEnhancement?.rewriteSuggestions.find((item) => item.rewriteId === rewrite.id);
+    const rewriteText = enhancedRewrite?.suggestedText ?? rewrite.suggestedText;
+    setText(rewriteText);
     setMessage("تم تطبيق الصياغة المقترحة. جار إعادة التقييم للتحقق من النتيجة الفعلية.");
     setLoading(true);
     try {
       const result = await fetch("/api/reviews", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: rewrite.suggestedText, kind, contentType: contentTypeLabel, channel, audience, purpose })
+        body: JSON.stringify({ text: rewriteText, kind, contentType: contentTypeLabel, channel, audience, purpose })
       }).then((response) => response.json()).then((payload) => payload.data as ReviewResult);
       setReview(result);
       saveLatestReviewSnapshot(result);
       const saved = upsertAnalyzedVersion({
         contentId,
-        body: rewrite.suggestedText,
+        body: rewriteText,
         contentType: kind,
         contentTypeLabel,
         channel,
@@ -317,16 +777,73 @@ export default function ContentReviewPage() {
     }
   }
 
+  function beginEditing() {
+    setEditSnapshot({ text, kind, channel, audience, purpose });
+    setIsEditing(true);
+    setMessage("يمكنك الآن تعديل المحتوى والسياق. احفظ المسودة أو أعد التحليل مباشرة.");
+    document.getElementById("input")?.scrollIntoView({ behavior: "smooth" });
+  }
+
+  function cancelEditing() {
+    if (editSnapshot) {
+      setText(editSnapshot.text);
+      setKind(editSnapshot.kind);
+      setChannel(editSnapshot.channel);
+      setAudience(editSnapshot.audience);
+      setPurpose(editSnapshot.purpose);
+    }
+    setEditSnapshot(null);
+    setIsEditing(false);
+    setMessage("تم إلغاء التعديلات غير المحفوظة.");
+  }
+
+  function saveEdits() {
+    if (!contentId || text.trim().length < 5 || !kind || !channel || !audience || !purpose) {
+      setMessage("تعذر الحفظ: أدخل نصًا من خمسة أحرف على الأقل واختر نوع المحتوى والقناة والجمهور والهدف.");
+      return;
+    }
+    const saved = saveContentDraft({
+      contentId,
+      body: text,
+      contentType: kind,
+      contentTypeLabel,
+      channel,
+      audience,
+      purpose
+    });
+    if (!saved) {
+      setMessage("تعذر حفظ التعديلات لأن سجل المحتوى غير متاح.");
+      return;
+    }
+    setVersionNumber(saved.version.version);
+    setReview(null);
+    setApproved(false);
+    setEditSnapshot(null);
+    setIsEditing(false);
+    setMessage("تم حفظ التعديلات كمسودة. أعد التحليل لعرض قرار النشر المحدث.");
+  }
+
   async function approveCurrentVersion() {
-    if (!contentId || !versionNumber || !review) return;
-    const saved = approveContentVersion(contentId, versionNumber);
-    if (!saved) return;
-    const approvedReview = await requestReview("READY_FOR_PUBLISHING");
-    saved.version.analysis = approvedReview;
-    setReview(approvedReview);
-    saveLatestReviewSnapshot(approvedReview);
-    setApproved(true);
-    setMessage("تم اعتماد الإصدار النهائي. أصبحت خيارات المشاركة والتصدير متاحة.");
+    if (!contentId || !versionNumber || !review || approving) return;
+    setApproving(true);
+    setMessage("");
+    try {
+      const saved = approveContentVersion(contentId, versionNumber);
+      if (!saved) {
+        setMessage("تعذر الاعتماد: عالج الملاحظات والحواجز الظاهرة أولاً.");
+        return;
+      }
+      const approvedReview = await requestReview("READY_FOR_PUBLISHING");
+      saved.version.analysis = approvedReview;
+      setReview(approvedReview);
+      saveLatestReviewSnapshot(approvedReview);
+      setApproved(true);
+      setMessage("تم اعتماد الإصدار النهائي. أصبحت خيارات المشاركة والتصدير متاحة.");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "تعذر إكمال الاعتماد.");
+    } finally {
+      setApproving(false);
+    }
   }
 
   const report = review ? {
@@ -372,16 +889,62 @@ export default function ContentReviewPage() {
 
   function prepareSharing() {
     if (!approved || !contentId || !versionNumber) return;
-    markContentShared(contentId, versionNumber);
+    const shared = markContentShared(contentId, versionNumber);
+    if (!shared) return;
     setMessage("تم تجهيز النسخة المعتمدة للمشاركة وتسجيل الإجراء.");
+    router.push("/social-media");
+  }
+
+  function clearContentInput() {
+    clearActiveContentSelection();
+    setText("");
+    setReview(null);
+    setApproved(false);
+    setVersionNumber(undefined);
+    setContentId(undefined);
+    setIsEditing(false);
+    setEditSnapshot(null);
+    setMessage("تم مسح محتوى مربع النص فقط. لم تتغير بقية الحقول أو السجلات المحفوظة.");
+  }
+
+  function navigateToReviewSection(tab: ReviewTab) {
+    setActiveTab(tab);
+    window.requestAnimationFrame(() => {
+      document.getElementById(tab)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  }
+
+  function navigateToWorkflowTarget(stageKey: string) {
+    const target = workflowTargets[stageKey] ?? workflowTargets.findings;
+    setActiveTab(target.tab);
+    window.requestAnimationFrame(() => {
+      document.getElementById(target.targetId)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  }
+
+  function displayWorkflowStatus(stage: ReviewResult["decisionWorkflow"][number]) {
+    if (!review) return stage.status;
+    const rewriteNotRequired =
+      stage.key === "rewrite" &&
+      review.governedRewrites.length === 0 &&
+      review.findings.length === 0 &&
+      review.languageQuality.issues.length === 0;
+    return rewriteNotRequired ? "غير مطلوبة" : stage.status;
+  }
+
+  function workflowStatusTone(status: string) {
+    if (status === "مكتمل" || status === "غير مطلوبة" || status === "لا تنطبق") return "good" as const;
+    if (status === "الحالي") return "neutral" as const;
+    return "gold" as const;
   }
 
   return (
-    <div className="space-y-6">
+    <div className="content-review-window space-y-6">
       <PageHeader
         eyebrow="مساعد قرار النشر للمحامي"
-        title="مراجعة المحتوى واتخاذ قرار النشر"
+        title="إدارة المحتوى الإعلامي والإعلاني للمحامين"
         description="ابدأ بما يحتاج إلى قرار: الملاحظات، الأدلة، الأثر، والإجراء الموصى به. الدرجات مؤشرات مساندة وليست النتيجة الأساسية."
+        action={<button type="button" onClick={() => router.back()} className="inline-flex items-center gap-2 rounded-md border border-line px-4 py-2.5 text-sm transition hover:bg-paper focus-ring"><ArrowRight size={16} />رجوع</button>}
       />
 
       <Panel id="input">
@@ -399,80 +962,72 @@ export default function ContentReviewPage() {
         </div>
 
         {/* نوع المحتوى */}
-        <div className="mb-4">
+        <div className={`mb-4 ${Boolean(review) && !isEditing ? "pointer-events-none opacity-60" : ""}`}>
           <p className="mb-2 text-sm text-ink/65">نوع المحتوى</p>
           <div className="flex flex-wrap gap-2">
             {contentTypes.map((item) => (
-              <button
-                key={item.value}
-                type="button"
-                onClick={() => setKind(item.value as ContentKind)}
-                className={`${chipBase} ${kind === item.value ? chipSelected : chipIdle}`}
-              >
-                {contentTypeIcons[item.value]}
-                {item.label}
+              <button key={item.value} type="button" onClick={() => setKind(item.value as ContentKind)} className={`${chipBase} ${kind === item.value ? chipSelected : chipIdle}`}>
+                {contentTypeIcons[item.value]}{item.label}
               </button>
             ))}
           </div>
         </div>
 
         {/* القناة */}
-        <div className="mb-4">
+        <div className={`mb-4 ${Boolean(review) && !isEditing ? "pointer-events-none opacity-60" : ""}`}>
           <p className="mb-2 text-sm text-ink/65">القناة</p>
           <div className="flex flex-wrap gap-2">
             {channels.map((item) => (
-              <button
-                key={item}
-                type="button"
-                onClick={() => setChannel(item)}
-                className={`${chipBase} ${channel === item ? chipSelected : chipIdle}`}
-              >
-                {channelIcons[item]}
-                {item}
+              <button key={item} type="button" onClick={() => setChannel(item)} className={`${chipBase} ${channel === item ? chipSelected : chipIdle}`}>
+                {channelIcons[item]}{item}
               </button>
             ))}
           </div>
         </div>
 
         {/* الجمهور */}
-        <div className="mb-4">
+        <div className={`mb-4 ${Boolean(review) && !isEditing ? "pointer-events-none opacity-60" : ""}`}>
           <p className="mb-2 text-sm text-ink/65">الجمهور</p>
           <div className="flex flex-wrap gap-2">
             {audiences.map((item) => (
-              <button
-                key={item}
-                type="button"
-                onClick={() => setAudience(item)}
-                className={`${chipBase} ${audience === item ? chipSelected : chipIdle}`}
-              >
-                {audienceIcons[item]}
-                {item}
+              <button key={item} type="button" onClick={() => setAudience(item)} className={`${chipBase} ${audience === item ? chipSelected : chipIdle}`}>
+                {audienceIcons[item]}{item}
               </button>
             ))}
           </div>
         </div>
 
         {/* الهدف */}
-        <div className="mb-4">
+        <div className={`mb-4 ${Boolean(review) && !isEditing ? "pointer-events-none opacity-60" : ""}`}>
           <p className="mb-2 text-sm text-ink/65">الهدف</p>
           <div className="flex flex-wrap gap-2">
             {purposes.map((item) => (
-              <button
-                key={item}
-                type="button"
-                onClick={() => setPurpose(item)}
-                className={`${chipBase} ${purpose === item ? chipSelected : chipIdle}`}
-              >
-                {purposeIcons[item]}
-                {item}
+              <button key={item} type="button" onClick={() => setPurpose(item)} className={`${chipBase} ${purpose === item ? chipSelected : chipIdle}`}>
+                {purposeIcons[item]}{item}
               </button>
             ))}
           </div>
         </div>
-        <label className="mt-4 block text-sm">النص محل المراجعة<textarea value={text} onChange={(event) => setText(event.target.value)} className="mt-2 min-h-44 w-full rounded-lg border border-line p-4 leading-8" /></label>
+        {!hasReviewContext ? (
+          <p className="mt-2 text-xs leading-6 text-ink/60">اختر نوع المحتوى والقناة والجمهور والهدف حتى يكون التحليل مرتبطًا بالسياق الصحيح.</p>
+        ) : null}
+        <label className="mt-4 block text-sm">
+          <span className="flex flex-wrap items-center justify-between gap-2">
+            <span>النص محل المراجعة</span>
+            <button type="button" onClick={clearContentInput} disabled={loading || text.length === 0} className="inline-flex items-center gap-1 rounded-md border border-line px-3 py-1.5 text-xs text-ink/70 transition hover:border-palm hover:bg-mint hover:text-palm disabled:cursor-not-allowed disabled:opacity-40">
+              <XCircle size={14} aria-hidden="true" />مسح المحتوى
+            </button>
+          </span>
+          <textarea value={text} disabled={Boolean(review) && !isEditing} onChange={(event) => setText(event.target.value)} className="mt-2 min-h-44 w-full rounded-lg border border-line p-4 leading-8 disabled:bg-paper disabled:text-ink/65" />
+        </label>
+        <div className="mt-3">
+          <InlineContentGuidance review={review} draftText={text} onApplyRewrite={applyRewrite} loading={loading} />
+        </div>
         <div className="mt-4 flex flex-wrap gap-3">
-          <button type="button" onClick={runReview} disabled={loading || text.trim().length < 5} className="inline-flex items-center gap-2 rounded-md bg-palm px-5 py-2.5 text-white disabled:opacity-50"><FileText size={17} />{loading ? "جار التحليل..." : "تحليل المحتوى"}</button>
-          {review ? <button type="button" onClick={() => document.getElementById("input")?.scrollIntoView({ behavior: "smooth" })} className="inline-flex items-center gap-2 rounded-md border border-line px-4 py-2.5"><Edit3 size={16} />تعديل المدخلات</button> : null}
+          {!review || isEditing ? <button type="button" onClick={runReview} disabled={loading || text.trim().length < 5 || !hasReviewContext} className="inline-flex items-center gap-2 rounded-md bg-palm px-5 py-2.5 text-white disabled:opacity-50"><FileText size={17} />{loading ? "جار التحليل..." : contentId ? "إعادة التحليل" : "تحليل المحتوى"}</button> : null}
+          {review && !isEditing ? <button type="button" onClick={beginEditing} className="inline-flex items-center gap-2 rounded-md border border-line px-4 py-2.5"><Edit3 size={16} />تعديل</button> : null}
+          {isEditing && contentId ? <button type="button" onClick={saveEdits} disabled={loading || text.trim().length < 5 || !hasReviewContext} className="inline-flex items-center gap-2 rounded-md border border-palm px-4 py-2.5 text-palm disabled:opacity-50"><Save size={16} />حفظ التعديلات</button> : null}
+          {isEditing ? <button type="button" onClick={cancelEditing} disabled={loading} className="inline-flex items-center gap-2 rounded-md border border-line px-4 py-2.5 disabled:opacity-50"><AlertTriangle size={16} />إلغاء</button> : null}
         </div>
         {message ? <p className="mt-3 text-sm text-palm">{message}</p> : null}
       </Panel>
@@ -483,7 +1038,7 @@ export default function ContentReviewPage() {
             <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
               <div>
                 <p className="text-xs text-palm">2. قرار النشر</p>
-                <h2 className="mt-2 text-2xl font-bold">{review.publicationDecision.label}</h2>
+                <h2 className="mt-2 text-lg font-semibold">{review.publicationDecision.label}</h2>
                 <p className="mt-3 max-w-4xl leading-8 text-ink/75">{review.publicationDecision.reason}</p>
               </div>
               <div className="flex flex-wrap gap-2">
@@ -497,6 +1052,70 @@ export default function ContentReviewPage() {
             </div>
           </Panel>
 
+          <nav aria-label="أقسام نتيجة مراجعة المحتوى" className="sticky top-2 z-10 flex gap-2 overflow-x-auto rounded-lg border border-line bg-white/95 p-2 shadow-sm backdrop-blur">
+            {reviewTabs.map((tab) => (
+              <button
+                key={tab.key}
+                type="button"
+                onClick={() => navigateToReviewSection(tab.key)}
+                aria-current={activeTab === tab.key ? "page" : undefined}
+                className={`shrink-0 rounded-md px-4 py-2 text-xs transition focus-ring sm:text-sm ${activeTab === tab.key ? "bg-palm text-white" : "text-ink/70 hover:bg-paper hover:text-ink"}`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </nav>
+
+          <section id="analysis-summary" aria-labelledby="supporting-indicators-title" className="space-y-4 scroll-mt-24">
+            <SectionTitle
+              title="المؤشرات المساندة للقرار"
+              subtitle="توضح الرسوم مستوى كل جانب، بينما تبقى الملاحظات والأدلة والأثر والإجراء الموصى به هي أساس القرار."
+            />
+            <div className="grid gap-4 xl:grid-cols-2">
+              {(["compliance", "language"] as const).map((kindName) => {
+                const metric = businessScoreExplanation(kindName, review);
+                const value = kindName === "compliance" ? review.complianceScore : review.languageQuality.score;
+                return (
+                  <MetricExplanation
+                    key={kindName}
+                    label={kindName === "language" ? "جودة المحتوى" : metric.label}
+                    value={value}
+                    displayValue={metric.value}
+                    explanation={metric.explanation}
+                    evidence={metric.evidence}
+                    action={metric.action}
+                    tone={kindName === "language" ? languageKpiTone(value) : complianceKpiTone(value)}
+                  />
+                );
+              })}
+              {(() => {
+                const metric = businessScoreExplanation("risk", review);
+                return (
+                  <MetricExplanation
+                    label={metric.label}
+                    value={review.riskScore}
+                    displayValue={`${metric.value} — ${review.riskScore}%`}
+                    explanation={metric.explanation}
+                    evidence={metric.evidence}
+                    action={metric.action}
+                    tone={riskKpiTone(review.riskLevel)}
+                    inverse
+                  />
+                );
+              })()}
+              <MetricExplanation
+                label="جاهزية النشر"
+                value={review.publishingReadinessScore}
+                displayValue={`${review.readinessDecision.level} — ${review.publishingReadinessScore}%`}
+                explanation={review.readinessDecision.reasons.join(" ")}
+                evidence={review.readinessDecision.blockers.join("، ") || "لا توجد حواجز مانعة متبقية وفق نتائج المراجعة الحالية."}
+                action={review.readinessDecision.actions.join("، ") || "راجع النسخة النهائية واعتمدها قبل تجهيز المشاركة."}
+                tone={readinessKpiTone(review)}
+              />
+            </div>
+          </section>
+
+          <>
           {sortedFindings.some((item) => item.businessSeverity === "critical") ? (
             <div className="rounded-xl border-2 border-red-300 bg-red-50 p-5">
               <div className="flex items-center gap-2 text-red-800"><ShieldAlert size={22} /><h2 className="text-lg font-bold">ملاحظات حرجة تتطلب إجراءً فورياً</h2></div>
@@ -504,56 +1123,118 @@ export default function ContentReviewPage() {
             </div>
           ) : null}
 
-          <section id="findings" className="space-y-4">
+          <section id="findings" className="space-y-4 scroll-mt-24">
             <SectionTitle title="3. الملاحظات حسب الأولوية" subtitle="الملاحظات الحرجة أولاً، ثم العالية والمتوسطة والمنخفضة. لا يعتمد العرض على ترتيب الاكتشاف." />
             {sortedFindings.length ? sortedFindings.map((finding, index) => <FindingCard key={`${finding.title}-${finding.evidence}`} finding={finding} index={index} />) : (
               <Panel><div className="flex items-start gap-3"><CheckCircle2 className="mt-1 text-palm" /><div><h3 className="font-semibold">لم ترصد مخالفة مهنية مرتبطة بالمراجع المسجلة</h3><p className="mt-2 leading-7 text-ink/70">راجع متطلبات الاعتماد وجودة اللغة قبل تجهيز النشر.</p></div></div></Panel>
             )}
           </section>
+          </>
 
-          <div className="grid gap-5 xl:grid-cols-3">
-            {(["compliance", "risk", "language"] as const).map((kindName) => {
-              const metric = businessScoreExplanation(kindName, review);
+          <section id="compliance" className="scroll-mt-24">
+            {(() => {
+              const metric = businessScoreExplanation("compliance", review);
               return (
-                <Panel key={kindName}>
-                  <p className="text-xs text-ink/55">مؤشر مساند</p>
-                  <div className="mt-2 flex items-center justify-between gap-3"><h3 className="text-lg font-semibold">{metric.label}</h3><StatusBadge tone={kindName === "risk" ? riskTone(review.riskLevel) : "neutral"}>{metric.value}</StatusBadge></div>
-                  <p className="mt-4 leading-7">{metric.explanation}</p>
-                  <div className="mt-3 rounded-md bg-paper p-3 text-sm"><b>الدليل:</b> {metric.evidence}</div>
-                  <div className="mt-3 rounded-md bg-mint/50 p-3 text-sm"><b>الإجراء:</b> {metric.action}</div>
-                </Panel>
+                <MetricExplanation
+                  label={metric.label}
+                  value={review.complianceScore}
+                  displayValue={metric.value}
+                  explanation={metric.explanation}
+                  evidence={metric.evidence}
+                  action={metric.action}
+                  tone={complianceKpiTone(review.complianceScore)}
+                />
               );
-            })}
-          </div>
+            })()}
+          </section>
 
+          <section id="risk" className="scroll-mt-24">
+            {(() => {
+              const metric = businessScoreExplanation("risk", review);
+              return (
+                <MetricExplanation
+                  label={metric.label}
+                  value={review.riskScore}
+                  displayValue={`${metric.value} — ${review.riskScore}%`}
+                  explanation={metric.explanation}
+                  evidence={metric.evidence}
+                  action={metric.action}
+                  tone={riskKpiTone(review.riskLevel)}
+                  inverse
+                />
+              );
+            })()}
+          </section>
+
+          <section id="improvements" className="space-y-5 scroll-mt-24">
+          {(() => {
+            const metric = businessScoreExplanation("language", review);
+            return (
+              <MetricExplanation
+                label={metric.label}
+                value={review.languageQuality.score}
+                displayValue={metric.value}
+                explanation={metric.explanation}
+                evidence={metric.evidence}
+                action={metric.action}
+                tone={languageKpiTone(review.languageQuality.score)}
+              />
+            );
+          })()}
           <Panel id="rewrite">
             <SectionTitle title="4. الصياغة المقترحة وأثر التحسين" subtitle="الأثر المتوقع توجيهي، وتُعاد المراجعة فعلياً بعد تطبيق الصياغة." />
-            {review.governedRewrites.length ? review.governedRewrites.map((rewrite) => (
+            {review.governedRewrites.length ? review.governedRewrites.map((rewrite) => {
+              const enhancedRewrite = review.aiEnhancement?.rewriteSuggestions.find((item) => item.rewriteId === rewrite.id);
+              return (
               <div key={rewrite.id} className="rounded-xl border border-line p-5">
-                <p className="leading-8">{rewrite.suggestedText}</p>
+                {enhancedRewrite?.explanation ? <p className="mb-3 rounded-lg bg-mint/50 p-3 text-xs leading-6 text-palm">{enhancedRewrite.explanation}</p> : null}
+                <p className="leading-8">{enhancedRewrite?.suggestedText ?? rewrite.suggestedText}</p>
+                <p className="mt-3 rounded-lg bg-paper p-3 text-xs leading-6 text-ink/65">النص المقترح لغرض التعليم والمساعدة فقط، وتظل مسؤولية النشر والمشاركة والاعتماد على المستخدم.</p>
                 <div className="mt-4 grid gap-3 md:grid-cols-2">
                   <div className="rounded-lg bg-paper p-4"><p className="text-xs text-ink/55">قبل التوصية</p><p className="mt-2">الامتثال {rewrite.originalComplianceScore}% — المخاطر {rewrite.originalRiskLevel}</p></div>
                   <div className="rounded-lg bg-mint p-4"><p className="text-xs text-palm">الأثر المتوقع بعد التطبيق</p><p className="mt-2">الامتثال المتوقع {rewrite.proposedComplianceScore}% — المخاطر المتوقعة {rewrite.proposedRiskLevel}</p></div>
                 </div>
                 <button type="button" onClick={applyRewrite} disabled={loading} className="mt-4 inline-flex items-center gap-2 rounded-md bg-palm px-4 py-2.5 text-white"><Sparkles size={16} />تطبيق الصياغة وإعادة التقييم</button>
               </div>
-            )) : <p className="rounded-lg bg-paper p-4 leading-7">لا توجد صياغة بديلة مطلوبة بعد التقييم الحالي.</p>}
+            );
+            }) : <p className="rounded-lg bg-paper p-4 leading-7">لا توجد صياغة بديلة مطلوبة بعد التقييم الحالي.</p>}
           </Panel>
+          </section>
 
+            <Panel id="references" className="scroll-mt-24">
+              <SectionTitle title="المراجع المهنية والرسمية" subtitle="المصادر الرسمية المرتبطة مباشرة بالملاحظات، مع بيان القاعدة المتأثرة." />
+              {sortedFindings.length ? (
+                <div className="grid gap-3">
+                  {sortedFindings.map((finding) => (
+                    <article key={`${finding.sourceUrl}-${finding.legalReference}`} className="rounded-lg border border-line bg-paper p-4">
+                      <div className="flex items-start gap-3"><OfficialLogo entity={officialEntityFromUrl(finding.sourceUrl)} /><h3 className="pt-1 font-semibold">{finding.sourceDocument}</h3></div>
+                      <p className="mt-2 text-sm leading-7">{finding.legalReference}</p>
+                      <p className="mt-2 text-sm leading-7 text-ink/65">{finding.legalExplanation}</p>
+                      <a href={finding.sourceUrl} target="_blank" rel="noopener noreferrer" className="mt-3 inline-flex items-center gap-2 text-sm text-palm underline">
+                        فتح المرجع الرسمي <ExternalLink size={14} aria-hidden="true" />
+                      </a>
+                    </article>
+                  ))}
+                </div>
+              ) : <p className="rounded-lg bg-paper p-4 leading-7">لم تُرصد ملاحظة تستدعي إظهار مرجع متأثر في هذه المراجعة.</p>}
+            </Panel>
+
+          <>
           <Panel id="channels">
             <SectionTitle title="5. القنوات المقترحة" subtitle="كل توصية مبنية على نوع المحتوى والجمهور والهدف ونتائج المراجعة." />
             <div className="grid gap-4 lg:grid-cols-3">
               {review.channelRecommendations.map((item) => {
                 const Icon = socialBrandIcons[item.key];
+                const enhancedChannel = review.aiEnhancement?.channelRationales.find((rationale) => rationale.key === item.key);
                 return (
                   <article key={item.key} className="rounded-xl border border-line bg-white p-5">
-                    <div className="flex items-center justify-between gap-3"><div className="flex items-center gap-3">{Icon ? <Icon size={28} /> : null}<h3 className="text-lg font-semibold">{item.channel}</h3></div><StatusBadge tone={item.suitability === "عالية" ? "good" : "neutral"}>الملاءمة {item.suitability}</StatusBadge></div>
-                    <p className="mt-4 leading-7">{item.reason}</p>
+                    <div className="flex items-center justify-between gap-3"><div className="flex items-center gap-3">{Icon ? <Icon size={28} className={socialBrandStyles[item.key]?.icon} /> : null}<h3 className="text-base font-semibold">{item.channel}</h3></div><StatusBadge tone={item.suitability === "عالية" ? "good" : "neutral"}>الملاءمة {item.suitability}</StatusBadge></div>
+                    <p className="mt-4 leading-7">{enhancedChannel?.reason ?? item.reason}</p>
                     <dl className="mt-4 space-y-3 text-sm leading-7">
                       <div><dt className="text-ink/55">الجمهور</dt><dd>{item.targetAudience}</dd></div>
                       <div><dt className="text-ink/55">الصيغة</dt><dd>{item.format}</dd></div>
-                      <div><dt className="text-ink/55">الفائدة المتوقعة</dt><dd>{item.expectedBenefit}</dd></div>
-                      <div><dt className="text-ink/55">المخاطر أو القيود</dt><dd>{item.risks}</dd></div>
+                      <div><dt className="text-ink/55">الفائدة المتوقعة</dt><dd>{enhancedChannel?.expectedBenefit ?? item.expectedBenefit}</dd></div>
+                      <div><dt className="text-ink/55">المخاطر أو القيود</dt><dd>{enhancedChannel?.risks ?? item.risks}</dd></div>
                       <div><dt className="text-ink/55">التوقيت المقترح</dt><dd>{item.timing}</dd></div>
                     </dl>
                   </article>
@@ -565,34 +1246,61 @@ export default function ContentReviewPage() {
           <Panel id="workflow">
             <SectionTitle title="6. مسار القرار والتنفيذ" subtitle="يوضح المرحلة الحالية، سببها، وما يجب فعله للانتقال إلى الخطوة التالية." />
             <div className="grid gap-3 md:grid-cols-3 xl:grid-cols-6">
-              {review.decisionWorkflow.map((stage, index) => (
-                <div key={stage.key} className={`rounded-xl border p-4 ${stage.status === "الحالي" ? "border-palm bg-mint" : stage.status === "محجوب" ? "border-line bg-paper opacity-70" : "border-line bg-white"}`}>
-                  <div className="flex items-center justify-between"><span className="grid h-7 w-7 place-items-center rounded-full bg-palm text-xs text-white">{index + 1}</span><StatusBadge tone={stage.status === "مكتمل" ? "good" : stage.status === "الحالي" ? "neutral" : "gold"}>{stage.status}</StatusBadge></div>
-                  <h3 className="mt-3 font-semibold">{stage.label}</h3>
-                  <p className="mt-2 text-xs leading-6 text-ink/65">{stage.reason}</p>
-                  <p className="mt-3 text-xs leading-6 text-palm">{stage.action}</p>
-                </div>
-              ))}
+              {review.decisionWorkflow.map((stage, index) => {
+                const displayedStatus = displayWorkflowStatus(stage);
+                const target = workflowTargets[stage.key] ?? workflowTargets.findings;
+                return (
+                  <div
+                    key={stage.key}
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => navigateToWorkflowTarget(stage.key)}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter" || event.key === " ") {
+                        event.preventDefault();
+                        navigateToWorkflowTarget(stage.key);
+                      }
+                    }}
+                    className={`rounded-xl border p-4 text-right transition hover:-translate-y-0.5 hover:border-palm hover:shadow-sm focus-ring ${
+                      displayedStatus === "الحالي"
+                        ? "border-palm bg-mint"
+                        : displayedStatus === "قيد الانتظار"
+                          ? "border-line bg-paper opacity-80"
+                          : "border-line bg-white"
+                    }`}
+                    aria-label={`${stage.label}: ${target.actionLabel}`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="grid h-7 w-7 place-items-center rounded-full bg-palm text-xs text-white">{index + 1}</span>
+                      <StatusBadge tone={workflowStatusTone(displayedStatus)}>{displayedStatus}</StatusBadge>
+                    </div>
+                    <h3 className="mt-3 font-semibold">{stage.label}</h3>
+                    <p className="mt-2 text-xs leading-6 text-ink/65">{stage.reason}</p>
+                    <p className="mt-3 text-xs leading-6 text-palm">{stage.action}</p>
+                    <span className="mt-4 inline-flex rounded-md border border-palm/30 px-3 py-1.5 text-xs font-semibold text-palm">
+                      {target.actionLabel}
+                    </span>
+                  </div>
+                );
+              })}
             </div>
           </Panel>
 
           <Panel id="approval">
             <SectionTitle title="7. اعتماد النسخة" subtitle="لا تتاح المشاركة أو التصدير إلا للنسخة النهائية التي تمت مراجعتها واعتمادها." />
-            <button type="button" onClick={approveCurrentVersion} disabled={approved || review.findings.some((finding) => !finding.resolved) || !review.languageQuality.passed || ["حرج", "مرتفع"].includes(review.riskLevel)} className="inline-flex items-center gap-2 rounded-md bg-palm px-5 py-2.5 text-white disabled:cursor-not-allowed disabled:opacity-50"><Save size={16} />{approved ? "تم اعتماد النسخة" : "اعتماد النسخة الحالية"}</button>
+            <button type="button" onClick={approveCurrentVersion} disabled={approved || approving || review.findings.some((finding) => !finding.resolved) || !review.languageQuality.passed || ["حرج", "مرتفع"].includes(review.riskLevel)} className="inline-flex items-center gap-2 rounded-md bg-palm px-5 py-2.5 text-white disabled:cursor-not-allowed disabled:opacity-50"><Save size={16} />{approved ? "تم اعتماد النسخة" : approving ? "جار الاعتماد..." : "اعتماد النسخة الحالية"}</button>
             {!approved ? <p className="mt-3 text-sm text-ink/65">عالج الحواجز الظاهرة أولاً. لن يؤدي الاعتماد إلى إخفاء ملاحظة حرجة أو تجاوزها.</p> : null}
           </Panel>
 
-          <Panel id="sharing">
-            <SectionTitle title="8. المشاركة والتصدير" subtitle="وحدة واحدة تحفظ النسخ والتنزيل والتقارير وتجهيز المشاركة دون ادعاء نشر تلقائي." />
+          <Panel id="sharing" className="scroll-mt-24">
+            <SectionTitle title="8. المشاركة والتصدير" subtitle="وحدة واحدة تحفظ النسخ والتنزيل والتقارير والمشاركة دون ادعاء نشر تلقائي." />
             <div className="flex flex-wrap gap-3">
-              <button type="button" onClick={copyReport} disabled={!approved} className="inline-flex items-center gap-2 rounded-md border border-line px-4 py-2.5 disabled:opacity-40"><Clipboard size={16} />نسخ التقرير</button>
-              <button type="button" onClick={downloadAnalysis} disabled={!approved} className="inline-flex items-center gap-2 rounded-md border border-line px-4 py-2.5 disabled:opacity-40"><Download size={16} />حزمة التحليل</button>
               <button type="button" onClick={downloadWord} disabled={!approved} className="inline-flex items-center gap-2 rounded-md border border-line px-4 py-2.5 disabled:opacity-40"><FileDown size={16} />تقرير Word</button>
-              <button type="button" onClick={() => window.print()} disabled={!approved} className="inline-flex items-center gap-2 rounded-md border border-line px-4 py-2.5 disabled:opacity-40"><Printer size={16} />طباعة / حفظ PDF</button>
-              <button type="button" onClick={prepareSharing} disabled={!approved} className="inline-flex items-center gap-2 rounded-md bg-palm px-4 py-2.5 text-white disabled:opacity-40"><Share2 size={16} />تجهيز المشاركة</button>
+              <button type="button" onClick={prepareSharing} disabled={!approved} className="inline-flex items-center gap-2 rounded-md bg-palm px-4 py-2.5 text-white disabled:opacity-40"><Share2 size={16} />المشاركة</button>
             </div>
             {!approved ? <div className="mt-4 flex items-center gap-2 rounded-lg bg-gold/10 p-4 text-sm"><AlertTriangle size={17} className="text-gold" />يجب اعتماد المخرج قبل إتاحة المشاركة والتصدير.</div> : null}
           </Panel>
+          </>
 
           <p className="rounded-lg border border-line bg-white p-4 text-xs leading-7 text-ink/60">
             هذا المقترح استرشادي، تم إنشاؤه بناءً على البيانات المدخلة ونتائج المراجعة والمراجع المهنية المسجلة في المنصة. يظل قرار التعديل أو الاعتماد أو النشر مسؤولية المستخدم.

@@ -22,7 +22,7 @@ export default function LoginPage() {
           <input className="mt-2 w-full rounded border border-line px-3 py-2 focus-ring" type="password" defaultValue="Demo@12345" />
         </label>
         <Link href="/dashboard" className="block w-full rounded bg-palm px-4 py-2 text-center font-normal text-white focus-ring">
-          دخول بالحساب الافتراضي — أحمد عبدالعزيز
+          دخول بالحساب الافتراضي — ياسمين
         </Link>
         <div className="my-4 flex items-center gap-3 text-xs text-ink/45"><span className="h-px flex-1 bg-line" />أو<span className="h-px flex-1 bg-line" /></div>
         {nafath.enabled ? (

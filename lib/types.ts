@@ -46,7 +46,7 @@ export type ChannelRecommendation = {
 export type DecisionWorkflowStage = {
   key: string;
   label: string;
-  status: "مكتمل" | "الحالي" | "محجوب" | "قادم";
+  status: "مكتمل" | "الحالي" | "قيد الانتظار" | "قادم";
   reason: string;
   action: string;
 };
@@ -335,6 +335,30 @@ export type ReviewResult = {
   readinessDecision: ReadinessDecision;
   channelRecommendations: ChannelRecommendation[];
   decisionWorkflow: DecisionWorkflowStage[];
+  aiEnhancement?: AIEnhancement;
+};
+
+export type AIEnhancement = {
+  assistantSummary?: string;
+  findingExplanations: Array<{
+    traceabilityId: string;
+    explanation?: string;
+    impact?: string;
+    recommendedAction?: string;
+  }>;
+  rewriteSuggestions: Array<{
+    rewriteId: string;
+    explanation?: string;
+    suggestedText?: string;
+  }>;
+  channelRationales: Array<{
+    key: SocialPlatformKey;
+    reason?: string;
+    expectedBenefit?: string;
+    risks?: string;
+  }>;
+  recommendationSummary?: string;
+  generatedAt: string;
 };
 
 export type ProfessionalOfficialReference = {

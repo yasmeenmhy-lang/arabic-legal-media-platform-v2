@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { BarChart3, Download, FileCheck2, ShieldAlert } from "lucide-react";
 import { BarList, KpiGrid, PageHeader, Panel, SectionTitle, StatusBadge } from "@/components/ui";
 import { loadContentRecords, type StoredContentRecord } from "@/lib/content-record-store";
@@ -17,18 +18,70 @@ export default function AnalyticsPage() {
   const actionCount = records.reduce((sum, item) => sum + item.actions.length, 0);
 
   function downloadReport() {
-    const payload = records.map((record) => ({
-      contentId: record.id,
-      status: record.status,
-      approvedVersion: record.approvedVersion,
-      versions: record.versions,
-      actions: record.actions
-    }));
-    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json;charset=utf-8" });
+    const generatedAt = new Date().toLocaleString("ar-SA");
+    const rows = records.map((record) => {
+      const current = record.versions.find((item) => item.version === record.currentVersion);
+      const approvedVersion = record.approvedVersion
+        ? record.versions.find((item) => item.version === record.approvedVersion)
+        : undefined;
+      const analysis = approvedVersion?.analysis ?? current?.analysis;
+      const findings = analysis?.findings ?? [];
+      const references = approvedVersion?.references ?? current?.references ?? [];
+
+      return `
+        <section class="record">
+          <h2>${record.title}</h2>
+          <dl>
+            <div><dt>حالة المحتوى</dt><dd>${record.status}</dd></div>
+            <div><dt>النسخة المعتمدة</dt><dd>${record.approvedVersion ? `الإصدار ${record.approvedVersion}` : "لا توجد نسخة معتمدة"}</dd></div>
+            <div><dt>قرار النشر</dt><dd>${analysis?.publicationDecision.label ?? "لم يتم تحليل المحتوى بعد"}</dd></div>
+            <div><dt>جاهزية النشر</dt><dd>${analysis?.readinessDecision.level ?? "غير متاحة"}</dd></div>
+          </dl>
+          <div class="metrics">
+            <p><strong>الامتثال:</strong> ${analysis ? `${analysis.complianceScore}%` : "غير متاح"}</p>
+            <p><strong>المخاطر:</strong> ${analysis ? `${analysis.riskLevel} (${analysis.riskScore}%)` : "غير متاح"}</p>
+            <p><strong>جودة اللغة:</strong> ${analysis ? `${analysis.languageQuality.score}%` : "غير متاح"}</p>
+          </div>
+          <h3>أبرز الملاحظات والإجراءات</h3>
+          ${
+            findings.length
+              ? `<ul>${findings.slice(0, 6).map((finding) => `<li><strong>${finding.title}</strong><br/>الدليل: ${finding.evidence}<br/>الإجراء المقترح: ${finding.suggestedSaferWording}</li>`).join("")}</ul>`
+              : "<p>لا توجد ملاحظات مهنية ظاهرة في النسخة الحالية.</p>"
+          }
+          <h3>المراجع المهنية والرسمية</h3>
+          ${
+            references.length
+              ? `<ul>${references.slice(0, 6).map((reference) => `<li><strong>${reference.referenceName}</strong><br/>${reference.articleOrRuleNumber}<br/>سبب الاستناد: ${reference.relianceReason}</li>`).join("")}</ul>`
+              : "<p>لا توجد مراجع مرتبطة بهذه النسخة.</p>"
+          }
+        </section>
+      `;
+    }).join("");
+    const html = `<!doctype html>
+      <html lang="ar" dir="rtl">
+        <head>
+          <meta charset="utf-8" />
+          <title>التقرير التفصيلي للمحتوى والاعتمادات</title>
+          <style>
+            body{font-family:"IBM Plex Sans Arabic",Tahoma,Arial,sans-serif;line-height:1.8;color:#1f2933;margin:32px;background:#fff}
+            h1{font-size:22px;margin-bottom:4px} h2{font-size:18px;margin-top:0} h3{font-size:15px;margin:18px 0 8px}
+            .meta{color:#52605a;margin-bottom:24px}.record{border:1px solid #d8e0dc;border-radius:14px;padding:18px;margin-bottom:16px}
+            dl{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:12px 0}dt{font-size:12px;color:#66756f}dd{margin:0;font-weight:600}
+            .metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;background:#f4f7f6;padding:12px;border-radius:10px}
+            li{margin-bottom:10px}
+          </style>
+        </head>
+        <body>
+          <h1>التقرير التفصيلي للمحتوى والاعتمادات</h1>
+          <p class="meta">تقرير مقروء ومنظم للمستخدم النهائي — تاريخ الإنشاء: ${generatedAt}</p>
+          ${rows || "<p>لا توجد سجلات محتوى محفوظة لإعداد التقرير.</p>"}
+        </body>
+      </html>`;
+    const blob = new Blob([html], { type: "text/html;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = "تقرير-المحتوى-والاعتمادات.json";
+    link.download = "التقرير-التفصيلي-للمحتوى-والاعتمادات.html";
     link.click();
     URL.revokeObjectURL(url);
   }
@@ -40,6 +93,9 @@ export default function AnalyticsPage() {
         title="التقارير والمؤشرات"
         description="تعرض التقارير المؤشرات المحسوبة من مراجعات فعلية محفوظة فقط."
       />
+      <Link href="/dashboard" className="inline-flex rounded-md border border-line px-4 py-2 text-sm text-palm transition hover:border-palm hover:bg-mint focus-ring">
+        عودة إلى لوحة التحكم
+      </Link>
 
       <KpiGrid items={[
         { label: "المحتويات", value: `${records.length}`, hint: "مواد مستقلة محفوظة في السجل لاتخاذ قرار المتابعة", tone: "neutral", icon: <BarChart3 size={20} /> },

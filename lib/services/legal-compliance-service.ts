@@ -80,8 +80,8 @@ function findEvidence(text: string, patterns: string[]) {
 }
 
 function classifyContentContext(sentence: string): ReviewFinding["contentClassification"] {
-  const guaranteeSignals = ["نضمن", "يضمن", "مضمون", "مضمونة", "الفوز", "كسب", "نتيجة", "نتائج مؤكدة", "الحكم لصالحك"];
-  const misleadingSignals = ["أفضل", "الأفضل", "رقم واحد", "نسبة نجاح", "الأقوى", "لا مثيل", "كل القضايا", "بلا استثناء"];
+  const guaranteeSignals = ["نضمن", "يضمن", "مضمون", "مضمونة", "نضمن النتائج", "نتائج مضمونة", "الفوز", "كسب", "نتيجة", "نسبة نجاح 100%", "100%", "لا نخسر", "نتائج مؤكدة", "الحكم لصالحك"];
+  const misleadingSignals = ["أفضل", "أفضل محامي", "أفضل محام", "أفضل مكتب", "الأفضل", "رقم واحد", "رقم 1", "نسبة نجاح", "الأقوى", "أقوى محامي", "لا مثيل", "كل القضايا", "بلا استثناء"];
   const marketingSignals = ["احجز", "اتصل", "تواصل", "عرض", "خصم", "خدمة", "حلول"];
   const professionalSignals = ["يقدم", "خدمات", "مراجعة", "دراسة", "استشارات", "وفق الأنظمة", "مكتب"];
 
@@ -98,14 +98,14 @@ function contextSupportsRule(entry: (typeof legalKnowledgeEntries)[number], evid
   const phrase = evidence.phrase;
 
   if (entry.id.includes("no-guaranteed-outcomes")) {
-    return classification === "وعد بنتيجة" || ["نضمن", "يضمن", "مضمون", "مضمونة", "كسب", "الفوز", "نتيجة"].some((signal) => phrase.includes(signal));
+    return classification === "وعد بنتيجة" || ["نضمن", "يضمن", "مضمون", "مضمونة", "كسب", "الفوز", "نتيجة", "100%", "لا نخسر"].some((signal) => phrase.includes(signal));
   }
 
   if (entry.id.includes("advertising") || ruleContext.includes("إعلان") || ruleContext.includes("تضليل")) {
     return (
       classification === "إعلان مضلل محتمل" ||
       classification === "ادعاء تسويقي" ||
-      ["أفضل", "الأفضل", "نسبة نجاح", "رقم واحد", "نتائج"].some((signal) => phrase.includes(signal))
+      ["أفضل", "الأفضل", "نسبة نجاح", "رقم واحد", "رقم 1", "أقوى", "نتائج"].some((signal) => phrase.includes(signal))
     );
   }
 
@@ -178,7 +178,7 @@ function buildFinding(
     legalReference: entry.legalReference,
     articleTitle: entry.articleTitle ?? entry.section,
     articleTextExcerpt: entry.fullText,
-    explanation: `رصدت المنصة العبارة الفعلية من النص: "${evidence.phrase}". سبب الرصد هو احتواؤها على مؤشر "${evidence.matchedPattern}" المرتبط بالمرجع المحدد.`,
+    explanation: `رصدت المراجعة العبارة الفعلية من النص: "${evidence.phrase}". سبب الرصد هو احتواؤها على مؤشر "${evidence.matchedPattern}" المرتبط بخط الأساس المهني والنظامي المحدد.`,
     legalExplanation: buildLegalExplanation(entry, evidence.phrase, context),
     reviewOutcome: "رصدت ملاحظة",
     confidenceLevel: confidenceFromEvidence(evidence.matchedPattern, entry),
@@ -321,7 +321,7 @@ export function runLegalComplianceReview(text: string, context?: ReviewContext, 
   const referencesPanel = buildReferencesPanel(findings);
 
   return {
-    passed: riskLevel === "منخفض" || riskLevel === "متوسط",
+    passed: findings.length === 0 && (riskLevel === "منخفض" || riskLevel === "متوسط"),
     complianceScore,
     complianceScoreExplanation,
     riskLevel,
