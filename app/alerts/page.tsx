@@ -17,8 +17,11 @@ export default function AlertsPage() {
             <Bell className="text-palm" size={22} />
             <StatusBadge tone="good">حالي</StatusBadge>
           </div>
-          <SectionTitle title="تنبيهات المراجعة" subtitle="مرتبطة بنتائج مراجعة فعلية محفوظة في الجلسة." />
-          <p className="text-sm leading-7 text-ink/65">لا توجد تنبيهات مراجعة معروضة حالياً.</p>
+          <SectionTitle title="تنبيهات المراجعة" />
+          <div className="flex flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-line bg-paper py-6 text-center">
+            <Bell size={18} className="text-ink/30" />
+            <span className="text-sm text-ink/50">لا تنبيهات مراجعة حالياً</span>
+          </div>
         </Panel>
 
         <Panel>
@@ -26,8 +29,11 @@ export default function AlertsPage() {
             <AlertTriangle className="text-gold" size={22} />
             <StatusBadge tone="neutral">متابعة</StatusBadge>
           </div>
-          <SectionTitle title="تنبيهات المخاطر" subtitle="تظهر عند وجود محتوى عالي المخاطر أو غير مناسب للتصدير وفق نتيجة المراجعة." />
-          <p className="text-sm leading-7 text-ink/65">لا توجد مؤشرات مخاطر تحتاج متابعة في هذه الجلسة.</p>
+          <SectionTitle title="تنبيهات المخاطر" />
+          <div className="flex flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-line bg-paper py-6 text-center">
+            <AlertTriangle size={18} className="text-ink/30" />
+            <span className="text-sm text-ink/50">لا مخاطر تحتاج متابعة</span>
+          </div>
         </Panel>
 
         <Panel>
@@ -35,8 +41,11 @@ export default function AlertsPage() {
             <Settings className="text-palm" size={22} />
             <StatusBadge tone="neutral">المراجع</StatusBadge>
           </div>
-          <SectionTitle title="تنبيهات المراجع" subtitle="مرتبطة بتحديث مصادر وزارة العدل والمراجع الرسمية." />
-          <p className="text-sm leading-7 text-ink/65">لم يتم عرض تحديث مرجعي معلق حالياً.</p>
+          <SectionTitle title="تنبيهات المراجع" />
+          <div className="flex flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-line bg-paper py-6 text-center">
+            <Settings size={18} className="text-ink/30" />
+            <span className="text-sm text-ink/50">لا تحديثات مرجعية معلقة</span>
+          </div>
         </Panel>
       </div>
 

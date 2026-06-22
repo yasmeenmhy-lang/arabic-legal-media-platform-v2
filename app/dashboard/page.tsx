@@ -8,11 +8,12 @@ import {
   Clock3,
   ExternalLink,
   FileCheck2,
+  Info,
   ShieldAlert,
   ShieldCheck,
   TrendingUp
 } from "lucide-react";
-import { ButtonLink, KpiGrid, PageHeader, Panel, SectionTitle } from "@/components/ui";
+import { ButtonLink, KpiGrid, PageHeader, Panel, ProgressBar, SectionTitle } from "@/components/ui";
 import { getDashboardOverview } from "@/lib/services/dashboard-service";
 import { formatDualDate } from "@/lib/dates";
 import { legalSourceDocuments } from "@/lib/legal-knowledge-base";
@@ -80,9 +81,26 @@ export default async function DashboardPage() {
       <div className="mt-6 grid gap-5 xl:grid-cols-[1.15fr_0.85fr]">
         <Panel>
           <SectionTitle title="مؤشرات الجاهزية" subtitle="تظهر درجات الجاهزية والامتثال والمخاطر بعد تحليل محتوى فعلي فقط." />
-          <div className="rounded-lg border border-dashed border-line bg-paper p-6 text-sm leading-7 text-ink/65">
-            لا توجد درجات مراجعة معروضة حالياً. ابدأ مراجعة محتوى لإظهار المؤشرات المحسوبة من الملاحظات الفعلية والمواد المهنية والتنظيمية المرتبطة بها.
+          <div className="space-y-4">
+            {([
+              { label: "الامتثال", value: 0, tone: "good" as const },
+              { label: "جاهزية النشر", value: 0, tone: "good" as const },
+              { label: "المخاطر المتبقية", value: 0, tone: "gold" as const }
+            ]).map(({ label, value, tone }) => (
+              <div key={label}>
+                <div className="mb-1.5 flex items-center justify-between gap-2 text-sm">
+                  <span className="text-ink/75">{label}</span>
+                  <span className={tone === "good" ? "font-semibold tabular-nums text-palm" : "font-semibold tabular-nums text-gold"}>
+                    {value > 0 ? `${value}%` : "—"}
+                  </span>
+                </div>
+                <ProgressBar value={value} tone={tone} />
+              </div>
+            ))}
           </div>
+          <p className="mt-4 border-t border-line pt-3 text-xs leading-6 text-ink/50">
+            ★ الدرجات مؤشرات مساندة وليست النتيجة الأساسية
+          </p>
         </Panel>
 
         <Panel>
@@ -125,9 +143,19 @@ export default async function DashboardPage() {
 
         <Panel>
           <SectionTitle title="تنبيهات مهنية" subtitle="عناصر تحتاج متابعة." />
-          <div className="rounded-lg border border-dashed border-line bg-paper p-5 text-sm leading-7 text-ink/65">
-            لا توجد تنبيهات مهنية مشتقة من مراجعة فعلية حالياً.
+          <div className="flex flex-wrap gap-2">
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-line bg-paper px-3 py-1.5 text-xs text-ink/55">
+              <Info size={12} />
+              لا تنبيهات مهنية فعلية حالياً
+            </span>
           </div>
+          <Link href="/content-review#findings" className="mt-3 inline-flex items-center gap-1.5 text-xs text-palm">
+            <ExternalLink size={12} />
+            عرض الملاحظات التفصيلية
+          </Link>
+          <p className="mt-4 border-t border-line pt-3 text-xs leading-6 text-ink/50">
+            ★ الدرجات مؤشرات مساندة وليست النتيجة الأساسية
+          </p>
         </Panel>
 
         <Panel>
