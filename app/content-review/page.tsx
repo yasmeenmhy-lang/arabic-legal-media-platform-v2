@@ -171,13 +171,27 @@ function FindingCards({ review }: { review: ReviewResult }) {
   return (
     <div className="space-y-5">
       {review.findings.length > 0 ? review.findings.map((finding) => (
-        <article key={`${finding.legalKnowledgeEntryId}-${finding.evidence}`} className="w-full rounded-lg border border-line bg-white p-4 shadow-sm sm:p-5">
+        <article
+          key={`${finding.legalKnowledgeEntryId}-${finding.evidence}`}
+          className="w-full p-4 sm:p-5"
+          style={
+            finding.severity === "حرج"
+              ? { backgroundColor: '#fef2f2', border: '0.5px solid #fca5a5', borderRight: '3px solid #dc2626', borderRadius: '12px' }
+              : finding.severity === "منخفض"
+              ? { backgroundColor: '#f4f7f6', border: '0.5px solid #d8e1de', borderRadius: '12px' }
+              : { backgroundColor: '#ffffff', border: '0.5px solid #d8e1de', borderRadius: '12px' }
+          }
+        >
           <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
             <div className="min-w-0">
               <p className="text-base font-normal leading-8 text-ink">{finding.title}</p>
               <p className="mt-1 text-sm leading-7 text-ink/55">{finding.legalReference} - {finding.articleTitle}</p>
             </div>
-            <StatusBadge tone={toneFromRisk(finding.severity)}>{finding.severity}</StatusBadge>
+            {finding.severity === "حرج" ? (
+              <span style={{ backgroundColor: '#fef2f2', color: '#dc2626', border: '1px solid #fca5a5', borderRadius: '99px', padding: '2px 10px', fontSize: '12px', fontWeight: 500 }}>حرجة</span>
+            ) : (
+              <StatusBadge tone={toneFromRisk(finding.severity)}>{finding.severity}</StatusBadge>
+            )}
           </div>
           <div className="grid gap-4 lg:grid-cols-2">
             <ReadableBlock label="فئة الملاحظة">{finding.category} - {finding.domain}</ReadableBlock>
@@ -369,11 +383,12 @@ function Chip({ label, active, onClick }: { label: string; active: boolean; onCl
     <button
       type="button"
       onClick={onClick}
-      className={`rounded-full border px-3 py-1.5 text-sm leading-6 transition-colors ${
+      className={`rounded-full px-3 py-1.5 text-sm leading-6 transition-colors ${
         active
-          ? "border-palm bg-palm text-white"
-          : "border-line bg-white text-ink/70 hover:border-palm hover:text-palm"
+          ? "border border-palm bg-palm text-white"
+          : "bg-white text-ink/60 hover:border-palm hover:text-palm"
       }`}
+      style={active ? undefined : { border: '0.5px solid #d8e1de' }}
     >
       {label}
     </button>
@@ -521,7 +536,7 @@ export default function ContentReviewPage() {
   ];
 
   return (
-    <div className="min-h-full bg-paper -mx-3 px-3 py-0 sm:-mx-6 sm:px-6">
+    <div className="min-h-full -mx-3 px-3 py-0 sm:-mx-6 sm:px-6" style={{ backgroundColor: '#edf0ef' }}>
       <PageHeader
         eyebrow="إعداد وتحليل المحتوى"
         title="إعداد وتحليل المحتوى الإعلامي والإعلاني"
@@ -603,7 +618,7 @@ export default function ContentReviewPage() {
           <div className="space-y-6">
             {/* نوع المحتوى */}
             <div>
-              <p className="mb-3 text-sm text-ink/60">نوع المحتوى</p>
+              <p className="mb-3 text-sm font-medium text-ink/60">نوع المحتوى</p>
               <div className="flex flex-wrap gap-2">
                 {contentTypes.map((item) => (
                   <Chip
@@ -618,7 +633,7 @@ export default function ContentReviewPage() {
 
             {/* القناة */}
             <div>
-              <p className="mb-3 text-sm text-ink/60">القناة</p>
+              <p className="mb-3 text-sm font-medium text-ink/60">القناة</p>
               <div className="flex flex-wrap gap-2">
                 {channels.map((item) => (
                   <Chip
@@ -633,7 +648,7 @@ export default function ContentReviewPage() {
 
             {/* الجمهور */}
             <div>
-              <p className="mb-3 text-sm text-ink/60">الجمهور المستهدف</p>
+              <p className="mb-3 text-sm font-medium text-ink/60">الجمهور المستهدف</p>
               <div className="flex flex-wrap gap-2">
                 {audienceOptions.map((item) => (
                   <Chip
@@ -656,7 +671,7 @@ export default function ContentReviewPage() {
 
             {/* الغرض */}
             <div>
-              <p className="mb-3 text-sm text-ink/60">الغرض من المحتوى</p>
+              <p className="mb-3 text-sm font-medium text-ink/60">الغرض من المحتوى</p>
               <div className="flex flex-wrap gap-2">
                 {purposeOptions.map((item) => (
                   <Chip
@@ -689,40 +704,39 @@ export default function ContentReviewPage() {
           </div>
 
           {/* Decision Banner */}
-          <div className={`rounded-xl border p-5 ${
-            review.exportAllowed
-              ? "border-palm/20 bg-mint"
-              : review.riskLevel === "حرج"
-              ? "border-goldBorder bg-goldSoft"
-              : "border-line bg-paper"
-          }`}>
-            <div className="flex flex-wrap items-start justify-between gap-4">
-              <div className="min-w-0">
-                <p className="text-xs text-ink/55">قرار المراجعة</p>
-                <p className="mt-1 text-lg font-normal leading-8 text-ink">
-                  {review.exportAllowed
-                    ? "مناسب للنشر وفق نتائج المراجعة"
-                    : review.complianceScore >= 85
-                    ? "مناسب بعد تعديلات طفيفة"
-                    : review.complianceScore >= 70
-                    ? "يتطلب معالجة ملاحظات الامتثال"
-                    : "غير مناسب للنشر حالياً"}
-                </p>
-                <p className="mt-2 text-sm leading-7 text-ink/70">{review.summary}</p>
+          {review.exportAllowed ? (
+            <div className="rounded-xl p-5" style={{ backgroundColor: '#e6f0ec', border: '0.5px solid #c5d8d0', borderRight: '4px solid #2d6a5a' }}>
+              <div className="flex flex-wrap items-start justify-between gap-4">
+                <div className="min-w-0">
+                  <p className="text-xs" style={{ color: '#6b9e8e' }}>قرار المراجعة</p>
+                  <p className="mt-1 font-medium leading-8" style={{ fontSize: '18px', color: '#2d6a5a' }}>مناسب للنشر وفق نتائج المراجعة</p>
+                  <p className="mt-2 text-sm leading-7 text-ink/65">{review.summary}</p>
+                </div>
+                <StatusBadge tone="good">جاهز للنشر</StatusBadge>
               </div>
-              <StatusBadge tone={review.exportAllowed ? "good" : toneFromRisk(review.riskLevel)}>
-                {review.exportAllowed ? "جاهز للنشر" : "يتطلب مراجعة"}
-              </StatusBadge>
             </div>
-          </div>
+          ) : (
+            <div className="rounded-xl p-5" style={{ backgroundColor: '#fbf6ea', border: '0.5px solid #ead8ad', borderRight: '4px solid #a7782b' }}>
+              <div className="flex flex-wrap items-start justify-between gap-4">
+                <div className="min-w-0">
+                  <p className="text-xs" style={{ color: '#a7782b' }}>قرار المراجعة</p>
+                  <p className="mt-1 font-medium leading-8" style={{ fontSize: '18px', color: '#a7782b' }}>
+                    {review.complianceScore >= 85 ? "مناسب بعد تعديلات طفيفة" : review.complianceScore >= 70 ? "يتطلب معالجة ملاحظات الامتثال" : "غير مناسب للنشر حالياً"}
+                  </p>
+                  <p className="mt-2 text-sm leading-7 text-ink/65">{review.summary}</p>
+                </div>
+                <StatusBadge tone={toneFromRisk(review.riskLevel)}>يتطلب مراجعة</StatusBadge>
+              </div>
+            </div>
+          )}
 
           {/* 4 Score Indicators — single card, 4-column grid */}
-          <div className="rounded-xl border border-line bg-white p-5">
+          <div className="rounded-xl bg-white p-5" style={{ border: '0.5px solid #d8e1de' }}>
             <div className="grid grid-cols-2 gap-x-6 gap-y-5 xl:grid-cols-4 xl:divide-x xl:divide-line xl:divide-x-reverse">
               <div className="xl:pl-0 xl:pr-6">
                 <p className="text-xs text-ink/50">جودة المحتوى</p>
-                <p className="mt-2 text-3xl font-normal text-palm">{review.languageQuality.score}%</p>
-                <p className="mt-1 text-xs text-ink/45">لغة وصياغة ومقروئية</p>
+                <p className="mt-2 text-3xl font-normal" style={{ color: '#2d6a5a' }}>{review.languageQuality.score}%</p>
+                <p className="mt-1 text-xs text-ink/40">لغة وصياغة ومقروئية</p>
                 <div className="mt-2.5">
                   <StatusBadge tone={toneFromScore(review.languageQuality.score)}>
                     {review.languageQuality.score >= 85 ? "مرتفع" : review.languageQuality.score >= 70 ? "متوسط" : "منخفض"}
@@ -731,26 +745,32 @@ export default function ContentReviewPage() {
               </div>
               <div className="xl:px-6">
                 <p className="text-xs text-ink/50">مستوى الامتثال</p>
-                <p className="mt-2 text-3xl font-normal text-palm">{review.complianceScore}%</p>
-                <p className="mt-1 text-xs text-ink/45">{complianceLevelLabel(review.complianceScore)}</p>
+                <p className="mt-2 text-3xl font-normal" style={{ color: review.complianceScore >= 70 ? '#2d6a5a' : review.complianceScore >= 40 ? '#a7782b' : '#dc2626' }}>
+                  {review.complianceScore}%
+                </p>
+                <p className="mt-1 text-xs text-ink/40">{complianceLevelLabel(review.complianceScore)}</p>
                 <div className="mt-2.5">
                   <StatusBadge tone={toneFromScore(review.complianceScore)}>
-                    {review.complianceScore >= 85 ? "ملتزم" : review.complianceScore >= 70 ? "متوسط" : "يتطلب تحسين"}
+                    {review.complianceScore >= 70 ? "ملتزم" : review.complianceScore >= 40 ? "متوسط" : "يتطلب تحسين"}
                   </StatusBadge>
                 </div>
               </div>
               <div className="xl:px-6">
                 <p className="text-xs text-ink/50">مستوى المخاطر</p>
-                <p className="mt-2 text-2xl font-normal text-ink">{review.riskLevel}</p>
-                <p className="mt-1 text-xs text-ink/45">درجة المخاطر: {review.riskScore}%</p>
+                <p className="mt-2 text-2xl font-normal" style={{ color: review.riskLevel === 'منخفض' ? '#2d6a5a' : review.riskLevel === 'متوسط' ? '#a7782b' : '#dc2626' }}>
+                  {review.riskLevel}
+                </p>
+                <p className="mt-1 text-xs text-ink/40">درجة المخاطر: {review.riskScore}%</p>
                 <div className="mt-2.5">
                   <StatusBadge tone={toneFromRisk(review.riskLevel)}>{review.riskLevel}</StatusBadge>
                 </div>
               </div>
               <div className="xl:pl-6">
                 <p className="text-xs text-ink/50">جاهزية النشر</p>
-                <p className="mt-2 text-3xl font-normal text-palm">{review.publishingReadinessScore}%</p>
-                <p className="mt-1 text-xs text-ink/45">{review.exportAllowed ? "مناسب للتصدير" : "يتطلب معالجة"}</p>
+                <p className="mt-2 text-3xl font-normal" style={{ color: review.publishingReadinessScore >= 70 ? '#2d6a5a' : '#a7782b' }}>
+                  {review.publishingReadinessScore}%
+                </p>
+                <p className="mt-1 text-xs text-ink/40">{review.exportAllowed ? "مناسب للتصدير" : "يتطلب معالجة"}</p>
                 <div className="mt-2.5">
                   <StatusBadge tone={review.exportAllowed ? "good" : toneFromRisk(review.riskLevel)}>
                     {review.exportAllowed ? "جاهز" : "معالجة مطلوبة"}
