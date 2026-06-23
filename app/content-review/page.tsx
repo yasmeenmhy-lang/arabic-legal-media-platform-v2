@@ -35,7 +35,7 @@ import {
   Video,
   XCircle
 } from "lucide-react";
-import { PageHeader, Panel, SectionTitle, StatusBadge } from "@/components/ui";
+import { CircularGauge, PageHeader, Panel, ProgressBar, SectionTitle, StatusBadge } from "@/components/ui";
 import {
   LinkedInIcon,
   XIcon,
@@ -296,6 +296,38 @@ function readinessKpiTone(review: ReviewResult) {
   return "gold" as const;
 }
 
+function businessScoreExplanation(kind: "compliance" | "risk" | "language", review: ReviewResult) {
+  if (kind === "compliance") {
+    return {
+      label: "الامتثال",
+      value: `${review.complianceScore}%`,
+      explanation: review.findings.length
+        ? `تأثر المستوى بسبب ${review.findings.length} ملاحظة غير معالجة مرتبطة بمراجع مهنية أو رسمية.`
+        : "لم ترصد ملاحظات مخالفة مرتبطة بالمراجع المسجلة.",
+      evidence: review.findings[0]?.evidence ?? "صياغة مهنية غير قطعية.",
+      action: review.findings[0]?.suggestedSaferWording ?? "حافظ على الصياغة الحالية وراجع النسخة النهائية."
+    };
+  }
+  if (kind === "risk") {
+    return {
+      label: "المخاطر",
+      value: review.riskLevel,
+      explanation: review.legalRiskAssessment.reason,
+      evidence: review.findings[0]?.evidence ?? "لا توجد عبارة عالية المخاطر مرصودة.",
+      action: review.findings[0]?.suggestedSaferWording ?? "استمر في تجنب الوعود والادعاءات غير المدعومة."
+    };
+  }
+  return {
+    label: "جودة اللغة",
+    value: `${review.languageQuality.score}%`,
+    explanation: review.languageQuality.issues.length
+      ? `توجد ${review.languageQuality.issues.length} فرصة لتحسين الوضوح والصياغة المهنية.`
+      : "الصياغة واضحة ومناسبة للمراجعة المهنية.",
+    evidence: review.languageQuality.issues[0]?.excerpt || "النص الحالي",
+    action: review.languageQuality.issues[0]?.suggestion || "لا يلزم تعديل لغوي جوهري."
+  };
+}
+
 function downloadBlob(name: string, type: string, body: string) {
   const blob = new Blob([body], { type });
   const url = URL.createObjectURL(blob);
@@ -357,30 +389,47 @@ function FindingCard({ finding, index }: { finding: ReviewFinding; index: number
   );
 }
 
-function CompactIndicator({
+function MetricExplanation({
   id,
   label,
   value,
-  description,
-  tone = "neutral"
+  displayValue,
+  explanation,
+  evidence,
+  action,
+  tone = "neutral",
+  inverse = false
 }: {
   id?: string;
   label: string;
-  value: string;
-  description: string;
+  value: number;
+  displayValue: string;
+  explanation: string;
+  evidence: string;
+  action: string;
   tone?: "neutral" | "good" | "gold" | "danger";
+  inverse?: boolean;
 }) {
+  const visualValue = value;
   return (
-    <article id={id} className="scroll-mt-24 rounded-xl border border-line bg-white p-4 shadow-sm">
-      <div className="flex items-start justify-between gap-3">
+    <Panel id={id} className="h-full scroll-mt-24">
+      <div className="grid gap-5 sm:grid-cols-[132px_1fr] sm:items-center">
+        <CircularGauge value={visualValue} label={inverse ? "كلما ارتفع المؤشر ارتفع الخطر" : "مؤشر مساند للقرار"} tone={tone} />
         <div>
-          <p className="text-xs text-ink/55">مؤشر مساند للقرار</p>
-          <h3 className="mt-1 text-sm font-semibold">{label}</h3>
+          <p className="text-xs text-ink/55">مؤشر مساند — لا يحل محل التفسير</p>
+          <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
+            <h3 className="text-base font-semibold">{label}</h3>
+            <StatusBadge tone={tone}>{displayValue}</StatusBadge>
+          </div>
+          <p className="mt-3 leading-7">{explanation}</p>
+          <div className="mt-3"><ProgressBar value={visualValue} tone={tone} /></div>
         </div>
-        <StatusBadge tone={tone}>{value}</StatusBadge>
       </div>
-      <p className="mt-3 text-sm leading-7 text-ink/70">{description}</p>
-    </article>
+      <div className="mt-4 grid gap-3 lg:grid-cols-2">
+        <div className="rounded-md bg-paper p-3 text-sm leading-7"><b>الدليل:</b> {evidence}</div>
+        <div className="rounded-md bg-mint/50 p-3 text-sm leading-7"><b>الإجراء الموصى به:</b> {action}</div>
+      </div>
+    </Panel>
   );
 }
 
@@ -989,34 +1038,50 @@ export default function ContentReviewPage() {
           <section id="analysis-summary" aria-labelledby="supporting-indicators-title" className="space-y-4 scroll-mt-24">
             <SectionTitle
               title="المؤشرات المساندة للقرار"
-              subtitle="المؤشرات الأربعة الأساسية كما هي، وتبقى الملاحظات والأدلة والإجراء الموصى به أساس القرار."
+              subtitle="توضح الرسوم مستوى كل جانب، بينما تبقى الملاحظات والأدلة والأثر والإجراء الموصى به هي أساس القرار."
             />
-            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-              <CompactIndicator
-                id="compliance"
-                label="الامتثال"
-                value={`${review.complianceScore}%`}
-                description={review.findings.length ? `${review.findings.length} ملاحظة تحتاج معالجة.` : "لا توجد ملاحظات امتثال ظاهرة."}
-                tone={complianceKpiTone(review.complianceScore)}
-              />
-              <CompactIndicator
-                id="risk"
-                label="المخاطر"
-                value={`${review.riskScore}%`}
-                description={`مستوى المخاطر: ${review.riskLevel}`}
-                tone={riskKpiTone(review.riskLevel)}
-              />
-              <CompactIndicator
+            <div className="grid gap-4 xl:grid-cols-2">
+              {(["compliance", "language"] as const).map((kindName) => {
+                const metric = businessScoreExplanation(kindName, review);
+                const value = kindName === "compliance" ? review.complianceScore : review.languageQuality.score;
+                return (
+                  <MetricExplanation
+                    key={kindName}
+                    id={kindName === "compliance" ? "compliance" : undefined}
+                    label={kindName === "language" ? "جودة المحتوى" : metric.label}
+                    value={value}
+                    displayValue={metric.value}
+                    explanation={metric.explanation}
+                    evidence={metric.evidence}
+                    action={metric.action}
+                    tone={kindName === "language" ? languageKpiTone(value) : complianceKpiTone(value)}
+                  />
+                );
+              })}
+              {(() => {
+                const metric = businessScoreExplanation("risk", review);
+                return (
+                  <MetricExplanation
+                    id="risk"
+                    label={metric.label}
+                    value={review.riskScore}
+                    displayValue={`${metric.value} — ${review.riskScore}%`}
+                    explanation={metric.explanation}
+                    evidence={metric.evidence}
+                    action={metric.action}
+                    tone={riskKpiTone(review.riskLevel)}
+                    inverse
+                  />
+                );
+              })()}
+              <MetricExplanation
                 label="جاهزية النشر"
-                value={`${review.publishingReadinessScore}%`}
-                description={review.readinessDecision.level}
+                value={review.publishingReadinessScore}
+                displayValue={`${review.readinessDecision.level} — ${review.publishingReadinessScore}%`}
+                explanation={review.readinessDecision.reasons.join(" ")}
+                evidence={review.readinessDecision.blockers.join("، ") || "لا توجد حواجز مانعة متبقية وفق نتائج المراجعة الحالية."}
+                action={review.readinessDecision.actions.join("، ") || "راجع النسخة النهائية واعتمدها قبل تجهيز المشاركة."}
                 tone={readinessKpiTone(review)}
-              />
-              <CompactIndicator
-                label="جودة المحتوى"
-                value={`${review.languageQuality.score}%`}
-                description={review.languageQuality.issues.length ? `${review.languageQuality.issues.length} ملاحظة لغوية.` : "الصياغة واضحة لغويًا."}
-                tone={languageKpiTone(review.languageQuality.score)}
               />
             </div>
           </section>
