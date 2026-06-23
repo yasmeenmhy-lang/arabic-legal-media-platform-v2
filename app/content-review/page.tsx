@@ -593,8 +593,7 @@ export default function ContentReviewPage() {
     { label: "المؤشرات", count: undefined },
     { label: "الصياغة المقترحة", count: review?.governedRewrites.length },
     { label: "المراجع الرسمية", count: review?.referencesPanel.length },
-    { label: "القنوات المقترحة", count: undefined },
-    { label: "مسار التنفيذ", count: undefined }
+    { label: "القنوات المقترحة", count: undefined }
   ];
 
   return (
@@ -993,16 +992,6 @@ export default function ContentReviewPage() {
               {/* القنوات المقترحة */}
               {activeTab === 4 && <RecommendationCards items={planningSuggestions} />}
 
-              {/* مسار التنفيذ */}
-              {activeTab === 5 && (
-                <WorkflowSteps steps={[
-                  `جودة اللغة والصياغة: ${workflowStatusLabels[review.workflow[0]?.status ?? "pending"]}`,
-                  `ملاحظات الامتثال: ${workflowStatusLabels[review.workflow[1]?.status ?? "pending"]}`,
-                  `مؤشرات المخاطر: ${workflowStatusLabels[review.workflow[2]?.status ?? "pending"]}`,
-                  `جاهزية النشر: ${workflowStatusLabels[review.workflow[3]?.status ?? "pending"]}`,
-                  `التصدير والمشاركة: ${workflowStatusLabels[review.workflow[4]?.status ?? "pending"]}`
-                ]} />
-              )}
             </div>
           </div>
         </section>
