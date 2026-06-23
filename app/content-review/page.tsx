@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type CSSProperties, type ReactNode } from "react";
 import { CheckCircle2, Download, FileText, Link2, Save, Share2 } from "lucide-react";
 import { DataTable, PageHeader, Panel, SectionTitle, StatusBadge, WorkflowSteps } from "@/components/ui";
 import { saveLatestReviewSnapshot } from "@/components/review-context-summary";
@@ -167,84 +167,106 @@ function OpportunityCards({ review }: { review: ReviewResult }) {
   );
 }
 
+function levelChipStyle(level: string) {
+  if (level === "حرج" || level === "مرتفع") return { borderRadius: '20px', backgroundColor: '#fef2f2', color: '#dc2626', border: '0.5px solid #fca5a5' };
+  if (level === "متوسط") return { borderRadius: '20px', backgroundColor: '#fbf6ea', color: '#a7782b', border: '0.5px solid #ead8ad' };
+  if (level === "منخفض") return { borderRadius: '20px', backgroundColor: '#e6f0ec', color: '#2d6a5a', border: '0.5px solid #c5d8d0' };
+  return { borderRadius: '20px', backgroundColor: '#f4f7f6', color: '#4b6b62', border: '0.5px solid #d8e1de' };
+}
+
 function FindingCards({ review }: { review: ReviewResult }) {
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
+
+  function toggle(key: string) {
+    setExpanded(prev => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key); else next.add(key);
+      return next;
+    });
+  }
+
   return (
-    <div className="space-y-5">
-      {review.findings.length > 0 ? review.findings.map((finding) => (
-        <article
-          key={`${finding.legalKnowledgeEntryId}-${finding.evidence}`}
-          className="w-full p-3"
-          style={
-            finding.severity === "حرج"
-              ? { backgroundColor: '#fef2f2', border: '0.5px solid #fca5a5', borderRight: '3px solid #dc2626', borderRadius: '16px' }
-              : finding.severity === "منخفض"
-              ? { backgroundColor: '#f4f7f6', border: '0.5px solid #d8e1de', borderRadius: '16px' }
-              : { backgroundColor: '#ffffff', border: '0.5px solid #d8e1de', borderRadius: '16px' }
-          }
-        >
-          {/* Header: title + single badge */}
-          <div className="mb-3 flex flex-wrap items-start justify-between gap-2">
-            <div className="min-w-0">
-              <p className="text-sm font-medium leading-7 text-ink">{finding.title}</p>
-              <p className="mt-0.5 text-[13px] leading-6 text-ink/55">{finding.legalReference} — {finding.articleTitle}</p>
-            </div>
-            {finding.severity === "حرج" ? (
-              <span style={{ backgroundColor: '#fef2f2', color: '#dc2626', border: '1px solid #fca5a5', borderRadius: '20px', padding: '2px 8px', fontSize: '11px', fontWeight: 500 }}>حرجة</span>
-            ) : (
-              <StatusBadge tone={toneFromRisk(finding.severity)}>{finding.severity}</StatusBadge>
-            )}
-          </div>
+    <div className="space-y-3">
+      {review.findings.length > 0 ? review.findings.map((finding) => {
+        const id = `${finding.legalKnowledgeEntryId}-${finding.evidence}`;
+        const isCritical = finding.severity === "حرج";
+        const borderColor = isCritical ? '#fca5a5' : '#d8e1de';
+        const divider = { borderTop: `0.5px solid ${borderColor}` } as const;
+        const chipCls = 'inline-flex items-center px-2.5 py-0.5 text-[12px] leading-5';
+        const clamp3 = { display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' } as CSSProperties;
 
-          {/* Compact field rows — content-driven height, no min-height */}
-          <div className="space-y-2">
-            {/* Row 1: 3-col — category | evidence | source */}
-            <div className="grid gap-3 border-t border-line/40 pt-2" style={{ gridTemplateColumns: '1fr 1fr 1fr' }}>
-              <div>
-                <p className="mb-0.5 text-[11px] text-ink/45">فئة الملاحظة</p>
-                <p className="text-[13px] leading-6 text-ink">{finding.category} — {finding.domain}</p>
-              </div>
-              <div>
-                <p className="mb-0.5 text-[11px] text-ink/45">العبارة محل المراجعة</p>
-                <p className="text-[13px] leading-6 text-ink">{finding.evidence}</p>
-              </div>
-              <div>
-                <p className="mb-0.5 text-[11px] text-ink/45">المصدر القانوني</p>
-                <a href={finding.sourceUrl} target="_blank" rel="noreferrer" className="text-[13px] font-normal leading-6 text-palm underline underline-offset-4">{finding.sourceDocument}</a>
+        return (
+          <article
+            key={id}
+            style={
+              isCritical
+                ? { backgroundColor: '#fef2f2', border: '0.5px solid #fca5a5', borderRight: '3px solid #dc2626', borderRadius: '16px', overflow: 'hidden' }
+                : finding.severity === "منخفض"
+                ? { backgroundColor: '#f4f7f6', border: '0.5px solid #d8e1de', borderRadius: '16px', overflow: 'hidden' }
+                : { backgroundColor: '#ffffff', border: '0.5px solid #d8e1de', borderRadius: '16px', overflow: 'hidden' }
+            }
+          >
+            {/* Layer 1 — Header */}
+            <div className="flex items-start gap-2.5 p-3 pb-2.5">
+              <span className="mt-0.5 shrink-0">
+                {isCritical ? (
+                  <span style={{ backgroundColor: '#fef2f2', color: '#dc2626', border: '1px solid #fca5a5', borderRadius: '20px', padding: '2px 8px', fontSize: '11px', fontWeight: 500 }}>حرجة</span>
+                ) : (
+                  <StatusBadge tone={toneFromRisk(finding.severity)}>{finding.severity}</StatusBadge>
+                )}
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-semibold leading-6 text-ink">{finding.title}</p>
+                <p className="mt-0.5 text-[12px] leading-5 text-ink/50">{finding.legalReference} — {finding.articleTitle}</p>
               </div>
             </div>
+            <div style={divider} />
 
-            {/* Row 2: severity level + expected impact */}
-            <div className="grid gap-3 border-t border-line/40 pt-2" style={{ gridTemplateColumns: '1fr 1fr' }}>
-              <div>
-                <p className="mb-0.5 text-[11px] text-ink/45">مستوى الخطورة</p>
-                <p className="text-[13px] leading-6 text-ink">{finding.severity}</p>
-              </div>
-              <div>
-                <p className="mb-0.5 text-[11px] text-ink/45">الأثر المتوقع</p>
-                <p className="text-[13px] leading-6 text-ink">{finding.potentialImpact}</p>
-              </div>
+            {/* Layer 2 — Quick stats chips */}
+            <div className="flex flex-wrap items-center gap-1.5 px-3 py-2">
+              <span className={chipCls} style={{ borderRadius: '20px', backgroundColor: '#f4f7f6', color: '#4b6b62', border: '0.5px solid #d8e1de' }}>
+                {finding.category} — {finding.domain}
+              </span>
+              <span className={chipCls} style={levelChipStyle(finding.severity)}>
+                مستوى الخطورة: {finding.severity}
+              </span>
+              <span className={chipCls} style={levelChipStyle(finding.potentialImpact)}>
+                الأثر المتوقع: {finding.potentialImpact}
+              </span>
             </div>
+            <div style={divider} />
 
-            {/* Row 3: excerpt + legal explanation — equal 1fr 1fr */}
-            <div className="grid gap-3 border-t border-line/40 pt-2" style={{ gridTemplateColumns: '1fr 1fr' }}>
+            {/* Layer 3 — Content: 2 equal columns with line-clamp */}
+            <div className="grid gap-3 p-3" style={{ gridTemplateColumns: '1fr 1fr' }}>
               <div>
-                <p className="mb-0.5 text-[11px] text-ink/45">مقتطف المرجع النظامي</p>
-                <p className="text-[13px] leading-6 text-ink">{finding.articleTextExcerpt}</p>
+                <p className="mb-1 text-[11px] text-ink/45">مقتطف المرجع النظامي</p>
+                <p className="text-[13px] leading-6 text-ink" style={expanded.has(id + '-r') ? undefined : clamp3}>
+                  {finding.articleTextExcerpt}
+                </p>
+                <button type="button" onClick={() => toggle(id + '-r')} className="mt-1 text-[12px] text-palm/70 hover:text-palm">
+                  {expanded.has(id + '-r') ? 'إخفاء ↑' : 'عرض المزيد ↓'}
+                </button>
               </div>
               <div>
-                <p className="mb-0.5 text-[11px] text-ink/45">الشرح القانوني</p>
-                <p className="text-[13px] leading-6 text-ink">{finding.legalExplanation} نتيجة الفحص: {finding.reviewOutcome}. مستوى الثقة: {finding.confidenceLevel}.</p>
+                <p className="mb-1 text-[11px] text-ink/45">الشرح القانوني</p>
+                <p className="text-[13px] leading-6 text-ink" style={expanded.has(id + '-l') ? undefined : clamp3}>
+                  {finding.legalExplanation} نتيجة الفحص: {finding.reviewOutcome}. مستوى الثقة: {finding.confidenceLevel}.
+                </p>
+                <button type="button" onClick={() => toggle(id + '-l')} className="mt-1 text-[12px] text-palm/70 hover:text-palm">
+                  {expanded.has(id + '-l') ? 'إخفاء ↑' : 'عرض المزيد ↓'}
+                </button>
               </div>
             </div>
+            <div style={divider} />
 
-            {/* Row 4: recommendation — flush below grid, pt-2 only */}
-            <div className="border-t border-line/40 pt-2">
-              <p className="mb-0.5 text-[11px] text-ink/45">التوصية</p>
-              <p className="text-[13px] leading-6 text-ink">{finding.suggestedSaferWording}</p>
+            {/* Layer 4 — Recommendation footer */}
+            <div className="flex items-start gap-2 px-3 py-2" style={{ backgroundColor: isCritical ? '#fff0f0' : '#f4f7f6' }}>
+              <span className="mt-0.5 shrink-0 text-[13px] text-ink/40">←</span>
+              <p className="text-[13px] leading-6 text-ink/80">{finding.suggestedSaferWording}</p>
             </div>
-          </div>
-        </article>
-      )) : (
+          </article>
+        );
+      }) : (
         <article className="w-full rounded-2xl border border-line bg-white p-4">
           <div className="mb-3"><StatusBadge tone="good">منخفض</StatusBadge></div>
           <p className="text-sm leading-8 text-ink/75">{review.summary}</p>
