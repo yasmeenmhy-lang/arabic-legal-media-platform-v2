@@ -195,13 +195,17 @@ function FindingCards({ review }: { review: ReviewResult }) {
             )}
           </div>
 
-          {/* Compact field rows */}
+          {/* Compact field rows — content-driven height, no min-height */}
           <div className="space-y-2">
-            {/* Row 1: category + source (short fields) */}
-            <div className="grid grid-cols-2 gap-3 border-t border-line/40 pt-2">
+            {/* Row 1: 3-col — category | evidence | source */}
+            <div className="grid gap-3 border-t border-line/40 pt-2" style={{ gridTemplateColumns: '1fr 1fr 1fr' }}>
               <div>
                 <p className="mb-0.5 text-[11px] text-ink/45">فئة الملاحظة</p>
                 <p className="text-[13px] leading-6 text-ink">{finding.category} — {finding.domain}</p>
+              </div>
+              <div>
+                <p className="mb-0.5 text-[11px] text-ink/45">العبارة محل المراجعة</p>
+                <p className="text-[13px] leading-6 text-ink">{finding.evidence}</p>
               </div>
               <div>
                 <p className="mb-0.5 text-[11px] text-ink/45">المصدر القانوني</p>
@@ -209,8 +213,8 @@ function FindingCards({ review }: { review: ReviewResult }) {
               </div>
             </div>
 
-            {/* Row 2: severity level + expected impact (separate labeled fields) */}
-            <div className="grid grid-cols-2 gap-3 border-t border-line/40 pt-2">
+            {/* Row 2: severity level + expected impact */}
+            <div className="grid gap-3 border-t border-line/40 pt-2" style={{ gridTemplateColumns: '1fr 1fr' }}>
               <div>
                 <p className="mb-0.5 text-[11px] text-ink/45">مستوى الخطورة</p>
                 <p className="text-[13px] leading-6 text-ink">{finding.severity}</p>
@@ -221,14 +225,8 @@ function FindingCards({ review }: { review: ReviewResult }) {
               </div>
             </div>
 
-            {/* Row 3: evidence (full width) */}
-            <div className="border-t border-line/40 pt-2">
-              <p className="mb-0.5 text-[11px] text-ink/45">العبارة محل المراجعة</p>
-              <p className="text-[13px] leading-6 text-ink">{finding.evidence}</p>
-            </div>
-
-            {/* Row 4: excerpt + legal explanation side by side */}
-            <div className="grid grid-cols-2 gap-3 border-t border-line/40 pt-2">
+            {/* Row 3: excerpt + legal explanation — equal 1fr 1fr */}
+            <div className="grid gap-3 border-t border-line/40 pt-2" style={{ gridTemplateColumns: '1fr 1fr' }}>
               <div>
                 <p className="mb-0.5 text-[11px] text-ink/45">مقتطف المرجع النظامي</p>
                 <p className="text-[13px] leading-6 text-ink">{finding.articleTextExcerpt}</p>
@@ -239,7 +237,7 @@ function FindingCards({ review }: { review: ReviewResult }) {
               </div>
             </div>
 
-            {/* Row 5: recommendation (full width) */}
+            {/* Row 4: recommendation — flush below grid, pt-2 only */}
             <div className="border-t border-line/40 pt-2">
               <p className="mb-0.5 text-[11px] text-ink/45">التوصية</p>
               <p className="text-[13px] leading-6 text-ink">{finding.suggestedSaferWording}</p>
