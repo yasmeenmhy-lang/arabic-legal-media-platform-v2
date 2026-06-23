@@ -10,6 +10,7 @@
 :root {
   color-scheme: light;
   background: #f4f7f6;
+  --color-background-tertiary: #dde3e0;
 }
 
 html {

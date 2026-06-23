@@ -147,7 +147,7 @@ function OpportunityCards({ review }: { review: ReviewResult }) {
   return (
     <div className="space-y-4">
       {issues.length > 0 ? issues.map((issue) => (
-        <article key={issue.id} className="w-full rounded-lg border border-line bg-white p-4">
+        <article key={issue.id} className="w-full rounded-2xl border border-line bg-white p-4">
           <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
             <p className="text-sm font-normal leading-7 text-ink">{categoryLabels[issue.category]} — ملاحظة تحسين صياغي غير مرتبطة بمرجع نظامي محدد.</p>
             <StatusBadge tone={severityTone[issue.severity]}>{severityLabels[issue.severity]}</StatusBadge>
@@ -158,7 +158,7 @@ function OpportunityCards({ review }: { review: ReviewResult }) {
           </div>
         </article>
       )) : (
-        <article className="w-full rounded-lg border border-line bg-white p-4">
+        <article className="w-full rounded-2xl border border-line bg-white p-4">
           <div className="mb-3"><StatusBadge tone="good">مناسب</StatusBadge></div>
           <p className="text-sm leading-8 text-ink/75">لا توجد ملاحظات لغوية مؤثرة. يمكن الانتقال إلى مراجعة الامتثال والمخاطر.</p>
         </article>
@@ -176,10 +176,10 @@ function FindingCards({ review }: { review: ReviewResult }) {
           className="w-full p-4 sm:p-5"
           style={
             finding.severity === "حرج"
-              ? { backgroundColor: '#fef2f2', border: '0.5px solid #fca5a5', borderRight: '3px solid #dc2626', borderRadius: '12px' }
+              ? { backgroundColor: '#fef2f2', border: '0.5px solid #fca5a5', borderRight: '3px solid #dc2626', borderRadius: '16px' }
               : finding.severity === "منخفض"
-              ? { backgroundColor: '#f4f7f6', border: '0.5px solid #d8e1de', borderRadius: '12px' }
-              : { backgroundColor: '#ffffff', border: '0.5px solid #d8e1de', borderRadius: '12px' }
+              ? { backgroundColor: '#f4f7f6', border: '0.5px solid #d8e1de', borderRadius: '16px' }
+              : { backgroundColor: '#ffffff', border: '0.5px solid #d8e1de', borderRadius: '16px' }
           }
         >
           <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
@@ -188,7 +188,7 @@ function FindingCards({ review }: { review: ReviewResult }) {
               <p className="mt-1 text-sm leading-7 text-ink/55">{finding.legalReference} - {finding.articleTitle}</p>
             </div>
             {finding.severity === "حرج" ? (
-              <span style={{ backgroundColor: '#fef2f2', color: '#dc2626', border: '1px solid #fca5a5', borderRadius: '99px', padding: '2px 10px', fontSize: '12px', fontWeight: 500 }}>حرجة</span>
+              <span style={{ backgroundColor: '#fef2f2', color: '#dc2626', border: '1px solid #fca5a5', borderRadius: '20px', padding: '2px 8px', fontSize: '11px', fontWeight: 500 }}>حرجة</span>
             ) : (
               <StatusBadge tone={toneFromRisk(finding.severity)}>{finding.severity}</StatusBadge>
             )}
@@ -208,7 +208,7 @@ function FindingCards({ review }: { review: ReviewResult }) {
           </div>
         </article>
       )) : (
-        <article className="w-full rounded-lg border border-line bg-white p-4">
+        <article className="w-full rounded-2xl border border-line bg-white p-4">
           <div className="mb-3"><StatusBadge tone="good">منخفض</StatusBadge></div>
           <p className="text-sm leading-8 text-ink/75">{review.summary}</p>
           <p className="mt-3 text-sm leading-8 text-ink/75">استمر في الحفاظ على صياغة مهنية غير قطعية.</p>
@@ -226,7 +226,7 @@ function ReferencesMobile({ review }: { review: ReviewResult }) {
           item.sourceDocument === reference.sourceDocument && item.legalReference === reference.legalReference
         );
         return (
-          <article key={`${reference.sourceDocument}-${reference.legalReference}`} className="w-full rounded-lg border border-line bg-white p-4">
+          <article key={`${reference.sourceDocument}-${reference.legalReference}`} className="w-full rounded-2xl border border-line bg-white p-4">
             <div className="space-y-4">
               <ReadableBlock label="اسم المرجع">{reference.sourceDocument}</ReadableBlock>
               <ReadableBlock label="اسم القاعدة أو اللائحة">{reference.sourceDocument}</ReadableBlock>
@@ -237,7 +237,7 @@ function ReferencesMobile({ review }: { review: ReviewResult }) {
               <ReadableBlock label="أثره على المحتوى">{finding ? `${finding.issue} — الأثر المحتمل: ${finding.potentialImpact}` : "يدعم توثيق نتيجة التحليل دون إنشاء ملاحظة إضافية."}</ReadableBlock>
               <ReadableBlock label="التوجيه التطبيقي">{finding?.suggestedSaferWording ?? finding?.advice ?? "الالتزام بصياغة مهنية واضحة ومراجعة النص قبل النشر."}</ReadableBlock>
               <ReadableBlock label="الرابط الرسمي المباشر">
-                <a href={reference.sourceUrl} target="_blank" rel="noreferrer" className="inline-flex rounded-md bg-palm px-4 py-2.5 font-normal text-white no-underline focus-ring">
+                <a href={reference.sourceUrl} target="_blank" rel="noreferrer" className="inline-flex rounded-[10px] bg-palm px-4 py-2.5 font-normal text-white no-underline focus-ring">
                   الوصول المباشر إلى المرجع الرسمي
                 </a>
               </ReadableBlock>
@@ -245,7 +245,7 @@ function ReferencesMobile({ review }: { review: ReviewResult }) {
           </article>
         );
       }) : (
-        <article className="w-full rounded-lg border border-line bg-white p-4">
+        <article className="w-full rounded-2xl border border-line bg-white p-4">
           <p className="text-sm leading-8 text-ink/75">{review.summary}</p>
         </article>
       )}
@@ -307,7 +307,7 @@ function riskImpactLabel(value: GovernedRewriteSuggestion["validation"]["riskImp
 function GovernedRewriteCards({ rewrites }: { rewrites: GovernedRewriteSuggestion[] }) {
   if (rewrites.length === 0) {
     return (
-      <article className="w-full rounded-lg border border-line bg-paper p-4">
+      <article className="w-full rounded-2xl border border-line bg-paper p-4">
         <p className="text-sm leading-8 text-ink/70">
           لا توجد صياغة بديلة قابلة للعرض حالياً. لا تعرض المنصة أي مقترح صياغي ما لم يجتز التحقق القانوني، وإعادة فحص الامتثال، وجودة اللغة، وأثر المخاطر.
         </p>
@@ -318,7 +318,7 @@ function GovernedRewriteCards({ rewrites }: { rewrites: GovernedRewriteSuggestio
   return (
     <div className="space-y-4">
       {rewrites.map((rewrite) => (
-        <article key={rewrite.id} className="w-full rounded-lg border border-line bg-paper p-4">
+        <article key={rewrite.id} className="w-full rounded-2xl border border-line bg-paper p-4">
           <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
             <div>
               <p className="text-sm font-normal leading-7 text-ink">صياغة مقترحة بعد التحقق</p>
@@ -329,15 +329,15 @@ function GovernedRewriteCards({ rewrites }: { rewrites: GovernedRewriteSuggestio
           <div className="space-y-4">
             <ReadableBlock label="النص المقترح">{rewrite.suggestedText}</ReadableBlock>
             <div className="grid gap-3 sm:grid-cols-3">
-              <div className="rounded-md bg-white p-3 text-xs leading-6">
+              <div className="rounded-xl bg-white p-3 text-xs leading-6">
                 <span className="block text-ink/55">التحقق القانوني</span>
                 <strong className="font-normal text-palm">{validationLabel(rewrite.validation.legalCompliance)}</strong>
               </div>
-              <div className="rounded-md bg-white p-3 text-xs leading-6">
+              <div className="rounded-xl bg-white p-3 text-xs leading-6">
                 <span className="block text-ink/55">جودة اللغة</span>
                 <strong className="font-normal text-palm">{validationLabel(rewrite.validation.languageQuality)} - {rewrite.proposedLanguageQuality}%</strong>
               </div>
-              <div className="rounded-md bg-white p-3 text-xs leading-6">
+              <div className="rounded-xl bg-white p-3 text-xs leading-6">
                 <span className="block text-ink/55">أثر المخاطر</span>
                 <strong className="font-normal text-palm">{riskImpactLabel(rewrite.validation.riskImpact)}</strong>
               </div>
@@ -351,7 +351,7 @@ function GovernedRewriteCards({ rewrites }: { rewrites: GovernedRewriteSuggestio
                     href={reference.sourceUrl}
                     target="_blank"
                     rel="noreferrer"
-                    className="block rounded-md border border-line bg-white p-3 text-palm underline underline-offset-4"
+                    className="block rounded-xl border border-line bg-white p-3 text-palm underline underline-offset-4"
                   >
                     {reference.sourceDocument}{reference.legalReference ? ` - ${reference.legalReference}` : ""}
                   </a>
@@ -369,7 +369,7 @@ function RecommendationCards({ items }: { items: string[][] }) {
   return (
     <div className="space-y-4">
       {items.map(([label, value]) => (
-        <article key={label} className="w-full rounded-lg border border-line bg-white p-4">
+        <article key={label} className="w-full rounded-2xl border border-line bg-white p-4">
           <ReadableBlock label={label}>{value}</ReadableBlock>
         </article>
       ))}
@@ -383,12 +383,15 @@ function Chip({ label, active, onClick }: { label: string; active: boolean; onCl
     <button
       type="button"
       onClick={onClick}
-      className={`rounded-full px-3 py-1.5 text-sm leading-6 transition-colors ${
+      className={`px-3 py-1.5 text-sm leading-6 transition-colors ${
         active
           ? "border border-palm bg-palm text-white"
           : "bg-white text-ink/60 hover:border-palm hover:text-palm"
       }`}
-      style={active ? undefined : { border: '0.5px solid #d8e1de' }}
+      style={active
+        ? { borderRadius: '20px' }
+        : { borderRadius: '20px', border: '0.5px solid #d8e1de' }
+      }
     >
       {label}
     </button>
@@ -536,7 +539,7 @@ export default function ContentReviewPage() {
   ];
 
   return (
-    <div className="min-h-full -mx-3 px-3 py-0 sm:-mx-6 sm:px-6" style={{ backgroundColor: '#edf0ef' }}>
+    <div className="min-h-full -mx-3 px-3 py-0 sm:-mx-6 sm:px-6" style={{ backgroundColor: 'var(--color-background-tertiary)' }}>
       <PageHeader
         eyebrow="إعداد وتحليل المحتوى"
         title="إعداد وتحليل المحتوى الإعلامي والإعلاني"
@@ -572,7 +575,7 @@ export default function ContentReviewPage() {
           <SectionTitle title="المحتوى محل المراجعة" subtitle="أدخل النص كاملاً لتحليله وفق المراجع المهنية والتنظيمية." />
           <div className="relative">
             <textarea
-              className="min-h-52 w-full rounded-md border border-line p-3 leading-8 focus-ring"
+              className="min-h-52 w-full rounded-[10px] border border-line p-3 leading-8 focus-ring"
               value={text}
               onChange={(event) => setText(event.target.value)}
               placeholder="أدخل نص المحتوى الإعلامي أو الإعلاني هنا..."
@@ -589,12 +592,12 @@ export default function ContentReviewPage() {
                 className="sr-only"
                 onChange={(event) => setFileName(event.target.files?.[0]?.name ?? "")}
               />
-              <span className="inline-flex items-center gap-2 rounded-md border border-dashed border-line bg-paper px-3 py-2 text-xs text-ink/60 transition hover:border-palm hover:text-palm">
+              <span className="inline-flex items-center gap-2 rounded-[10px] border border-dashed border-line bg-paper px-3 py-2 text-xs text-ink/60 transition hover:border-palm hover:text-palm">
                 {fileName ? `📎 ${fileName}` : "إرفاق ملف داعم (PDF، صورة)"}
               </span>
             </label>
             <button
-              className="inline-flex items-center gap-2 rounded-md bg-palm px-5 py-2.5 text-sm font-normal text-white focus-ring disabled:cursor-not-allowed disabled:opacity-60"
+              className="inline-flex items-center gap-2 rounded-[10px] bg-palm px-5 py-2.5 text-sm font-normal text-white focus-ring disabled:cursor-not-allowed disabled:opacity-60"
               type="button"
               onClick={runReview}
               disabled={loading || text.trim().length < 5}
@@ -661,7 +664,7 @@ export default function ContentReviewPage() {
               </div>
               {audienceChoice === "أخرى" && (
                 <input
-                  className="mt-3 w-full rounded-md border border-line px-3 py-2.5 text-sm focus-ring"
+                  className="mt-3 w-full rounded-[10px] border border-line px-3 py-2.5 text-sm focus-ring"
                   placeholder="حدد الجمهور المستهدف"
                   value={audienceOther}
                   onChange={(event) => setAudienceOther(event.target.value)}
@@ -684,7 +687,7 @@ export default function ContentReviewPage() {
               </div>
               {purposeChoice === "أخرى" && (
                 <input
-                  className="mt-3 w-full rounded-md border border-line px-3 py-2.5 text-sm focus-ring"
+                  className="mt-3 w-full rounded-[10px] border border-line px-3 py-2.5 text-sm focus-ring"
                   placeholder="حدد الغرض من المحتوى"
                   value={purposeOther}
                   onChange={(event) => setPurposeOther(event.target.value)}
@@ -705,7 +708,7 @@ export default function ContentReviewPage() {
 
           {/* Decision Banner */}
           {review.exportAllowed ? (
-            <div className="rounded-xl p-5" style={{ backgroundColor: '#e6f0ec', border: '0.5px solid #c5d8d0', borderRight: '4px solid #2d6a5a' }}>
+            <div className="p-5" style={{ backgroundColor: '#e6f0ec', border: '0.5px solid #c5d8d0', borderRight: '4px solid #2d6a5a', borderRadius: '16px' }}>
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div className="min-w-0">
                   <p className="text-xs" style={{ color: '#6b9e8e' }}>قرار المراجعة</p>
@@ -716,7 +719,7 @@ export default function ContentReviewPage() {
               </div>
             </div>
           ) : (
-            <div className="rounded-xl p-5" style={{ backgroundColor: '#fbf6ea', border: '0.5px solid #ead8ad', borderRight: '4px solid #a7782b' }}>
+            <div className="p-5" style={{ backgroundColor: '#fbf6ea', border: '0.5px solid #ead8ad', borderRight: '4px solid #a7782b', borderRadius: '16px' }}>
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div className="min-w-0">
                   <p className="text-xs" style={{ color: '#a7782b' }}>قرار المراجعة</p>
@@ -731,7 +734,7 @@ export default function ContentReviewPage() {
           )}
 
           {/* 4 Score Indicators — single card, 4-column grid */}
-          <div className="rounded-xl bg-white p-5" style={{ border: '0.5px solid #d8e1de' }}>
+          <div className="bg-white p-5" style={{ border: '0.5px solid #d8e1de', borderRadius: '16px' }}>
             <div className="grid grid-cols-2 gap-x-6 gap-y-5 xl:grid-cols-4 xl:divide-x xl:divide-line xl:divide-x-reverse">
               <div className="xl:pl-0 xl:pr-6">
                 <p className="text-xs text-ink/50">جودة المحتوى</p>
@@ -781,7 +784,7 @@ export default function ContentReviewPage() {
           </div>
 
           {/* Tab System */}
-          <div className="overflow-hidden rounded-xl border border-line bg-white">
+          <div className="overflow-hidden rounded-2xl border border-line bg-white">
             {/* Tab Bar — chips */}
             <div className="flex flex-wrap gap-2 border-b border-line bg-paper/60 px-4 py-3">
               {tabLabels.map((tab, index) => (
@@ -789,7 +792,7 @@ export default function ContentReviewPage() {
                   key={tab.label}
                   type="button"
                   onClick={() => setActiveTab(index)}
-                  className={`inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-sm transition-colors ${
+                  className={`inline-flex items-center gap-1.5 rounded-[8px] px-4 py-1.5 text-sm transition-colors ${
                     activeTab === index
                       ? "bg-palm font-normal text-white"
                       : "border border-line/70 bg-white text-ink/60 hover:border-palm/40 hover:text-ink"
@@ -820,7 +823,7 @@ export default function ContentReviewPage() {
                     <div className="space-y-3">
                       <div className="flex items-center justify-between gap-2">
                         <p className="text-sm font-normal text-ink">مستوى الامتثال</p>
-                        <span className="rounded-md bg-mint px-2.5 py-1 text-sm font-normal text-palm">{review.complianceScore}%</span>
+                        <span className="rounded-[20px] bg-mint px-2.5 py-1 text-sm font-normal text-palm">{review.complianceScore}%</span>
                       </div>
                       <div className="h-2 overflow-hidden rounded-full bg-paper">
                         <div className={`h-full rounded-full transition-all ${review.complianceScore >= 85 ? "bg-palm" : review.complianceScore >= 70 ? "bg-warmGray" : "bg-gold"}`} style={{ width: `${review.complianceScore}%` }} />
@@ -829,7 +832,7 @@ export default function ContentReviewPage() {
                       {review.complianceScoreExplanation.contributions.length > 0 && (
                         <div className="space-y-2">
                           {review.complianceScoreExplanation.contributions.map((item) => (
-                            <div key={item.traceabilityId} className="rounded-md border border-line bg-paper p-3">
+                            <div key={item.traceabilityId} className="rounded-xl border border-line bg-paper p-3">
                               <p className="text-sm font-normal">{item.label}</p>
                               <p className="mt-1 text-xs leading-6 text-ink/65">{item.explanation}</p>
                             </div>
@@ -849,7 +852,7 @@ export default function ContentReviewPage() {
                       {review.riskScoreExplanation.contributions.length > 0 && (
                         <div className="space-y-2">
                           {review.riskScoreExplanation.contributions.map((item) => (
-                            <div key={item.traceabilityId} className="rounded-md border border-line bg-paper p-3">
+                            <div key={item.traceabilityId} className="rounded-xl border border-line bg-paper p-3">
                               <p className="text-sm font-normal">{item.label}</p>
                               <p className="mt-1 text-xs leading-6 text-ink/65">{item.explanation}</p>
                             </div>
@@ -868,7 +871,7 @@ export default function ContentReviewPage() {
                       </div>
                       <p className="text-sm leading-7 text-ink/75">{readinessExplanation(review)}</p>
                       {review.publishingReadinessExplanation.factors.map((factor) => (
-                        <div key={factor.key} className="rounded-md border border-line bg-paper p-3">
+                        <div key={factor.key} className="rounded-xl border border-line bg-paper p-3">
                           <div className="flex items-center justify-between gap-2">
                             <p className="text-sm font-normal">{factor.label}</p>
                             <StatusBadge tone={factor.sourceScore >= 85 ? "good" : factor.sourceScore >= 70 ? "neutral" : "gold"}>
@@ -959,7 +962,7 @@ export default function ContentReviewPage() {
               <div>
                 <SectionTitle title="اعتماد الإصدار" subtitle="اعتمد الإصدار الحالي بعد مراجعة التحليل والصياغة المقترحة والمراجع." />
                 {review.findings.some((f) => f.severity === "حرج") && !approved && (
-                  <div className="mb-4 rounded-lg border border-goldBorder bg-goldSoft p-3">
+                  <div className="mb-4 rounded-xl border border-goldBorder bg-goldSoft p-3">
                     <p className="text-sm leading-7 text-gold">⚠ يتضمن المحتوى ملاحظة حرجة. يُنصح بمعالجتها قبل الاعتماد.</p>
                   </div>
                 )}
@@ -968,7 +971,7 @@ export default function ContentReviewPage() {
                     type="button"
                     onClick={approveCurrentVersion}
                     disabled={approved || !review || !contentId || !versionNumber}
-                    className="inline-flex items-center gap-2 rounded-md bg-palm px-5 py-2.5 text-sm font-normal text-white focus-ring disabled:cursor-not-allowed disabled:opacity-50"
+                    className="inline-flex items-center gap-2 rounded-[10px] bg-palm px-5 py-2.5 text-sm font-normal text-white focus-ring disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     <CheckCircle2 size={17} />
                     {approved ? "تم الاعتماد" : "اعتماد"}
@@ -984,7 +987,7 @@ export default function ContentReviewPage() {
               {/* Export */}
               <div>
                 <SectionTitle title="التصدير والمشاركة" subtitle="متاحة بعد الاعتماد — تشمل الملخص والدرجات والمراجع والملاحظات." />
-                <div className="mb-4 rounded-lg border border-line bg-paper p-4">
+                <div className="mb-4 rounded-xl border border-line bg-paper p-4">
                   <StatusBadge tone={review.exportAllowed ? "good" : toneFromRisk(review.riskLevel)}>
                     {review.exportAllowed ? "مناسب للتصدير وفق نتائج المراجعة" : "يتطلب معالجة الملاحظات"}
                   </StatusBadge>
@@ -993,13 +996,13 @@ export default function ContentReviewPage() {
                   </p>
                 </div>
                 <div className="flex flex-wrap gap-3">
-                  <button type="button" disabled={!approved} onClick={copyReviewPackage} className="inline-flex items-center gap-2 rounded-md border border-line bg-white px-4 py-2.5 text-sm font-normal focus-ring disabled:cursor-not-allowed disabled:opacity-50">
+                  <button type="button" disabled={!approved} onClick={copyReviewPackage} className="inline-flex items-center gap-2 rounded-[10px] border border-line bg-white px-4 py-2.5 text-sm font-normal focus-ring disabled:cursor-not-allowed disabled:opacity-50">
                     <Link2 size={16} />نسخ
                   </button>
-                  <button type="button" disabled={!approved} onClick={downloadReviewPackage} className="inline-flex items-center gap-2 rounded-md bg-palm px-4 py-2.5 text-sm font-normal text-white focus-ring disabled:cursor-not-allowed disabled:opacity-50">
+                  <button type="button" disabled={!approved} onClick={downloadReviewPackage} className="inline-flex items-center gap-2 rounded-[10px] bg-palm px-4 py-2.5 text-sm font-normal text-white focus-ring disabled:cursor-not-allowed disabled:opacity-50">
                     <Download size={16} />تنزيل
                   </button>
-                  <button type="button" disabled={!approved} onClick={prepareSharing} className="inline-flex items-center gap-2 rounded-md border border-line bg-white px-4 py-2.5 text-sm font-normal focus-ring disabled:cursor-not-allowed disabled:opacity-50">
+                  <button type="button" disabled={!approved} onClick={prepareSharing} className="inline-flex items-center gap-2 rounded-[10px] border border-line bg-white px-4 py-2.5 text-sm font-normal focus-ring disabled:cursor-not-allowed disabled:opacity-50">
                     <Share2 size={16} />تجهيز المشاركة
                   </button>
                 </div>
@@ -1012,7 +1015,7 @@ export default function ContentReviewPage() {
       )}
 
       {review && (
-        <div className="mt-6 rounded-lg border border-line bg-white p-4 text-xs leading-6 text-ink/65">{advisoryDisclaimer}</div>
+        <div className="mt-6 rounded-2xl border border-line bg-white p-4 text-xs leading-6 text-ink/65">{advisoryDisclaimer}</div>
       )}
     </div>
   );
