@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { CheckCircle2, Download, FileText, Link2, Save, Share2 } from "lucide-react";
-import { DataTable, PageHeader, Panel, ScoreCard, SectionTitle, StatusBadge, WorkflowSteps } from "@/components/ui";
+import { DataTable, PageHeader, Panel, SectionTitle, StatusBadge, WorkflowSteps } from "@/components/ui";
 import { saveLatestReviewSnapshot } from "@/components/review-context-summary";
 import { advisoryDisclaimer } from "@/lib/governance";
 import { contentKindOptions } from "@/lib/content-types";
@@ -521,7 +521,7 @@ export default function ContentReviewPage() {
   ];
 
   return (
-    <>
+    <div className="min-h-full bg-paper -mx-3 px-3 py-0 sm:-mx-6 sm:px-6">
       <PageHeader
         eyebrow="إعداد وتحليل المحتوى"
         title="إعداد وتحليل المحتوى الإعلامي والإعلاني"
@@ -716,59 +716,69 @@ export default function ContentReviewPage() {
             </div>
           </div>
 
-          {/* 4 Score Cards */}
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-            <ScoreCard
-              label="جودة المحتوى"
-              value={review.languageQuality.score}
-              tone={toneFromScore(review.languageQuality.score)}
-              detail="لغة وصياغة ومقروئية"
-            />
-            <ScoreCard
-              label="مستوى الامتثال"
-              value={review.complianceScore}
-              tone={toneFromScore(review.complianceScore)}
-              detail={complianceLevelLabel(review.complianceScore)}
-            />
-            <div className="rounded-lg border border-line bg-white p-4">
-              <p className="text-sm font-normal text-ink">مستوى المخاطر</p>
-              <div className="mt-3">
-                <StatusBadge tone={toneFromRisk(review.riskLevel)}>{review.riskLevel}</StatusBadge>
+          {/* 4 Score Indicators — single card, 4-column grid */}
+          <div className="rounded-xl border border-line bg-white p-5">
+            <div className="grid grid-cols-2 gap-x-6 gap-y-5 xl:grid-cols-4 xl:divide-x xl:divide-line xl:divide-x-reverse">
+              <div className="xl:pl-0 xl:pr-6">
+                <p className="text-xs text-ink/50">جودة المحتوى</p>
+                <p className="mt-2 text-3xl font-normal text-palm">{review.languageQuality.score}%</p>
+                <p className="mt-1 text-xs text-ink/45">لغة وصياغة ومقروئية</p>
+                <div className="mt-2.5">
+                  <StatusBadge tone={toneFromScore(review.languageQuality.score)}>
+                    {review.languageQuality.score >= 85 ? "مرتفع" : review.languageQuality.score >= 70 ? "متوسط" : "منخفض"}
+                  </StatusBadge>
+                </div>
               </div>
-              <p className="mt-3 text-xs leading-6 text-ink/55">درجة المخاطر: {review.riskScore}%</p>
-            </div>
-            <div className="rounded-lg border border-line bg-white p-4">
-              <p className="text-sm font-normal text-ink">جاهزية النشر</p>
-              <div className="mt-3">
-                <StatusBadge tone={review.exportAllowed ? "good" : toneFromRisk(review.riskLevel)}>
-                  {review.publishingReadinessScore}%
-                </StatusBadge>
+              <div className="xl:px-6">
+                <p className="text-xs text-ink/50">مستوى الامتثال</p>
+                <p className="mt-2 text-3xl font-normal text-palm">{review.complianceScore}%</p>
+                <p className="mt-1 text-xs text-ink/45">{complianceLevelLabel(review.complianceScore)}</p>
+                <div className="mt-2.5">
+                  <StatusBadge tone={toneFromScore(review.complianceScore)}>
+                    {review.complianceScore >= 85 ? "ملتزم" : review.complianceScore >= 70 ? "متوسط" : "يتطلب تحسين"}
+                  </StatusBadge>
+                </div>
               </div>
-              <p className="mt-3 text-xs leading-6 text-ink/55">
-                {review.exportAllowed ? "مناسب للتصدير وفق نتائج المراجعة" : "يتطلب معالجة الملاحظات"}
-              </p>
+              <div className="xl:px-6">
+                <p className="text-xs text-ink/50">مستوى المخاطر</p>
+                <p className="mt-2 text-2xl font-normal text-ink">{review.riskLevel}</p>
+                <p className="mt-1 text-xs text-ink/45">درجة المخاطر: {review.riskScore}%</p>
+                <div className="mt-2.5">
+                  <StatusBadge tone={toneFromRisk(review.riskLevel)}>{review.riskLevel}</StatusBadge>
+                </div>
+              </div>
+              <div className="xl:pl-6">
+                <p className="text-xs text-ink/50">جاهزية النشر</p>
+                <p className="mt-2 text-3xl font-normal text-palm">{review.publishingReadinessScore}%</p>
+                <p className="mt-1 text-xs text-ink/45">{review.exportAllowed ? "مناسب للتصدير" : "يتطلب معالجة"}</p>
+                <div className="mt-2.5">
+                  <StatusBadge tone={review.exportAllowed ? "good" : toneFromRisk(review.riskLevel)}>
+                    {review.exportAllowed ? "جاهز" : "معالجة مطلوبة"}
+                  </StatusBadge>
+                </div>
+              </div>
             </div>
           </div>
 
           {/* Tab System */}
           <div className="overflow-hidden rounded-xl border border-line bg-white">
-            {/* Tab Bar */}
-            <div className="flex overflow-x-auto border-b border-line px-1">
+            {/* Tab Bar — chips */}
+            <div className="flex flex-wrap gap-2 border-b border-line bg-paper/60 px-4 py-3">
               {tabLabels.map((tab, index) => (
                 <button
                   key={tab.label}
                   type="button"
                   onClick={() => setActiveTab(index)}
-                  className={`shrink-0 px-4 py-3 text-sm transition-colors ${
+                  className={`inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-sm transition-colors ${
                     activeTab === index
-                      ? "border-b-2 border-palm font-normal text-palm"
-                      : "text-ink/55 hover:text-ink"
+                      ? "bg-palm font-normal text-white"
+                      : "border border-line/70 bg-white text-ink/60 hover:border-palm/40 hover:text-ink"
                   }`}
                 >
                   {tab.label}
                   {tab.count !== undefined && tab.count > 0 && (
-                    <span className={`mr-1.5 rounded-full px-1.5 py-0.5 text-xs ${
-                      index === 0 ? "bg-goldSoft text-gold" : "bg-mint text-palm"
+                    <span className={`rounded-full px-1.5 py-0.5 text-xs ${
+                      activeTab === index ? "bg-white/20 text-white" : index === 0 ? "bg-goldSoft text-gold" : "bg-mint text-palm"
                     }`}>
                       {tab.count}
                     </span>
@@ -984,6 +994,6 @@ export default function ContentReviewPage() {
       {review && (
         <div className="mt-6 rounded-lg border border-line bg-white p-4 text-xs leading-6 text-ink/65">{advisoryDisclaimer}</div>
       )}
-    </>
+    </div>
   );
 }
