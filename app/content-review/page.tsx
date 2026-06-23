@@ -239,7 +239,7 @@ function FindingCards({ review }: { review: ReviewResult }) {
             {/* Layer 3 — Content: 2 equal columns with line-clamp */}
             <div className="grid gap-3 p-3" style={{ gridTemplateColumns: '1fr 1fr' }}>
               <div>
-                <p className="mb-1 text-[11px] text-ink/45">مقتطف المرجع النظامي</p>
+                <p className="mb-1 text-[11px] text-ink/45">المرجع النظامي</p>
                 <p className="text-[13px] leading-6 text-ink" style={expanded.has(id + '-r') ? undefined : clamp3}>
                   {finding.articleTextExcerpt}
                 </p>
