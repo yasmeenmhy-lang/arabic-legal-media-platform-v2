@@ -593,7 +593,8 @@ export default function ContentReviewPage() {
     { label: "المؤشرات", count: undefined },
     { label: "الصياغة المقترحة", count: review?.governedRewrites.length },
     { label: "المراجع الرسمية", count: review?.referencesPanel.length },
-    { label: "القنوات المقترحة", count: undefined }
+    { label: "القنوات المقترحة", count: undefined },
+    { label: "مسار التنفيذ", count: undefined }
   ];
 
   return (
@@ -791,6 +792,56 @@ export default function ContentReviewPage() {
             </div>
           )}
 
+          {/* 4 Score Indicators — single card, 4-column grid */}
+          <div className="bg-white p-5" style={{ border: '0.5px solid #d8e1de', borderRadius: '16px' }}>
+            <div className="grid grid-cols-2 gap-x-6 gap-y-5 xl:grid-cols-4 xl:divide-x xl:divide-line xl:divide-x-reverse">
+              <div className="xl:pl-0 xl:pr-6">
+                <p className="text-xs text-ink/50">جودة المحتوى</p>
+                <p className="mt-2 text-3xl font-normal" style={{ color: '#2d6a5a' }}>{review.languageQuality.score}%</p>
+                <p className="mt-1 text-xs text-ink/40">لغة وصياغة ومقروئية</p>
+                <div className="mt-2.5">
+                  <StatusBadge tone={toneFromScore(review.languageQuality.score)}>
+                    {review.languageQuality.score >= 85 ? "مرتفع" : review.languageQuality.score >= 70 ? "متوسط" : "منخفض"}
+                  </StatusBadge>
+                </div>
+              </div>
+              <div className="xl:px-6">
+                <p className="text-xs text-ink/50">مستوى الامتثال</p>
+                <p className="mt-2 text-3xl font-normal" style={{ color: review.complianceScore >= 70 ? '#2d6a5a' : review.complianceScore >= 40 ? '#a7782b' : '#dc2626' }}>
+                  {review.complianceScore}%
+                </p>
+                <p className="mt-1 text-xs text-ink/40">{complianceLevelLabel(review.complianceScore)}</p>
+                <div className="mt-2.5">
+                  <StatusBadge tone={toneFromScore(review.complianceScore)}>
+                    {review.complianceScore >= 70 ? "ملتزم" : review.complianceScore >= 40 ? "متوسط" : "يتطلب تحسين"}
+                  </StatusBadge>
+                </div>
+              </div>
+              <div className="xl:px-6">
+                <p className="text-xs text-ink/50">مستوى المخاطر</p>
+                <p className="mt-2 text-2xl font-normal" style={{ color: review.riskLevel === 'منخفض' ? '#2d6a5a' : review.riskLevel === 'متوسط' ? '#a7782b' : '#dc2626' }}>
+                  {review.riskLevel}
+                </p>
+                <p className="mt-1 text-xs text-ink/40">درجة المخاطر: {review.riskScore}%</p>
+                <div className="mt-2.5">
+                  <StatusBadge tone={toneFromRisk(review.riskLevel)}>{review.riskLevel}</StatusBadge>
+                </div>
+              </div>
+              <div className="xl:pl-6">
+                <p className="text-xs text-ink/50">جاهزية النشر</p>
+                <p className="mt-2 text-3xl font-normal" style={{ color: review.publishingReadinessScore >= 70 ? '#2d6a5a' : '#a7782b' }}>
+                  {review.publishingReadinessScore}%
+                </p>
+                <p className="mt-1 text-xs text-ink/40">{review.exportAllowed ? "مناسب للتصدير" : "يتطلب معالجة"}</p>
+                <div className="mt-2.5">
+                  <StatusBadge tone={review.exportAllowed ? "good" : toneFromRisk(review.riskLevel)}>
+                    {review.exportAllowed ? "جاهز" : "معالجة مطلوبة"}
+                  </StatusBadge>
+                </div>
+              </div>
+            </div>
+          </div>
+
           {/* Tab System */}
           <div className="overflow-hidden rounded-2xl border border-line bg-white">
             {/* Tab Bar — chips */}
@@ -826,123 +877,83 @@ export default function ContentReviewPage() {
               {/* المؤشرات */}
               {activeTab === 1 && (
                 <div className="space-y-6">
-
-                  {/* Hero — 4 score cards */}
-                  <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
-                    {/* جودة المحتوى */}
-                    <div style={{ backgroundColor: review.languageQuality.score >= 70 ? '#e6f0ec' : '#fbf6ea', borderRadius: '12px', padding: '16px', border: '0.5px solid ' + (review.languageQuality.score >= 70 ? '#c5d8d0' : '#ead8ad') }}>
-                      <p className="text-xs text-ink/55">جودة المحتوى</p>
-                      <p className="mt-2 text-3xl font-light" style={{ color: review.languageQuality.score >= 85 ? '#2d6a5a' : review.languageQuality.score >= 70 ? '#a7782b' : '#dc2626' }}>
-                        {review.languageQuality.score}%
-                      </p>
-                      <div className="mt-2.5 h-1.5 overflow-hidden rounded-full" style={{ backgroundColor: 'rgba(0,0,0,0.07)' }}>
-                        <div className="h-full rounded-full transition-all" style={{ width: `${review.languageQuality.score}%`, backgroundColor: review.languageQuality.score >= 85 ? '#2d6a5a' : review.languageQuality.score >= 70 ? '#a7782b' : '#dc2626' }} />
+                  <div className="grid gap-5 lg:grid-cols-3">
+                    {/* Compliance */}
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="text-sm font-normal text-ink">مستوى الامتثال</p>
+                        <span className="rounded-[20px] bg-mint px-2.5 py-1 text-sm font-normal text-palm">{review.complianceScore}%</span>
                       </div>
-                      <p className="mt-2 text-[11px] text-ink/40">لغة وصياغة ومقروئية</p>
-                    </div>
-
-                    {/* مستوى الامتثال */}
-                    <div style={{ backgroundColor: review.complianceScore >= 70 ? '#e6f0ec' : review.complianceScore >= 40 ? '#fbf6ea' : '#fef2f2', borderRadius: '12px', padding: '16px', border: '0.5px solid ' + (review.complianceScore >= 70 ? '#c5d8d0' : review.complianceScore >= 40 ? '#ead8ad' : '#fca5a5') }}>
-                      <p className="text-xs text-ink/55">مستوى الامتثال</p>
-                      <p className="mt-2 text-3xl font-light" style={{ color: review.complianceScore >= 70 ? '#2d6a5a' : review.complianceScore >= 40 ? '#a7782b' : '#dc2626' }}>
-                        {review.complianceScore}%
-                      </p>
-                      <div className="mt-2.5 h-1.5 overflow-hidden rounded-full" style={{ backgroundColor: 'rgba(0,0,0,0.07)' }}>
-                        <div className="h-full rounded-full transition-all" style={{ width: `${review.complianceScore}%`, backgroundColor: review.complianceScore >= 70 ? '#2d6a5a' : review.complianceScore >= 40 ? '#a7782b' : '#dc2626' }} />
+                      <div className="h-2 overflow-hidden rounded-full bg-paper">
+                        <div className={`h-full rounded-full transition-all ${review.complianceScore >= 85 ? "bg-palm" : review.complianceScore >= 70 ? "bg-warmGray" : "bg-gold"}`} style={{ width: `${review.complianceScore}%` }} />
                       </div>
-                      <p className="mt-2 text-[11px] text-ink/40">{complianceLevelLabel(review.complianceScore)}</p>
-                    </div>
-
-                    {/* مستوى المخاطر */}
-                    <div style={{ backgroundColor: review.riskLevel === 'منخفض' ? '#e6f0ec' : review.riskLevel === 'متوسط' ? '#fbf6ea' : '#fef2f2', borderRadius: '12px', padding: '16px', border: '0.5px solid ' + (review.riskLevel === 'منخفض' ? '#c5d8d0' : review.riskLevel === 'متوسط' ? '#ead8ad' : '#fca5a5') }}>
-                      <p className="text-xs text-ink/55">مستوى المخاطر</p>
-                      <p className="mt-2 text-2xl font-light" style={{ color: review.riskLevel === 'منخفض' ? '#2d6a5a' : review.riskLevel === 'متوسط' ? '#a7782b' : '#dc2626' }}>
-                        {review.riskLevel}
-                      </p>
-                      <div className="mt-2.5 h-1.5 overflow-hidden rounded-full" style={{ backgroundColor: 'rgba(0,0,0,0.07)' }}>
-                        <div className="h-full rounded-full transition-all" style={{ width: `${review.riskScore}%`, backgroundColor: review.riskLevel === 'منخفض' ? '#2d6a5a' : review.riskLevel === 'متوسط' ? '#a7782b' : '#dc2626' }} />
-                      </div>
-                      <p className="mt-2 text-[11px] text-ink/40">درجة المخاطر: {review.riskScore}%</p>
-                    </div>
-
-                    {/* جاهزية النشر */}
-                    <div style={{ backgroundColor: review.publishingReadinessScore >= 70 ? '#e6f0ec' : '#fbf6ea', borderRadius: '12px', padding: '16px', border: '0.5px solid ' + (review.publishingReadinessScore >= 70 ? '#c5d8d0' : '#ead8ad') }}>
-                      <p className="text-xs text-ink/55">جاهزية النشر</p>
-                      <p className="mt-2 text-3xl font-light" style={{ color: review.publishingReadinessScore >= 70 ? '#2d6a5a' : '#a7782b' }}>
-                        {review.publishingReadinessScore}%
-                      </p>
-                      <div className="mt-2.5 h-1.5 overflow-hidden rounded-full" style={{ backgroundColor: 'rgba(0,0,0,0.07)' }}>
-                        <div className="h-full rounded-full transition-all" style={{ width: `${review.publishingReadinessScore}%`, backgroundColor: review.publishingReadinessScore >= 70 ? '#2d6a5a' : '#a7782b' }} />
-                      </div>
-                      <p className="mt-2 text-[11px] text-ink/40">{review.exportAllowed ? "مناسب للتصدير" : "يتطلب معالجة"}</p>
-                    </div>
-                  </div>
-
-                  {/* Detailed breakdown — 3 columns */}
-                  <div className="grid gap-4 border-t border-line pt-5 lg:grid-cols-3">
-                    {/* Compliance detail */}
-                    <div className="space-y-2.5">
-                      <p className="text-sm font-medium text-ink">تفاصيل الامتثال</p>
-                      <p className="text-sm leading-7 text-ink/70">{complianceExplanation(review)}</p>
+                      <p className="text-sm leading-7 text-ink/75">{complianceExplanation(review)}</p>
                       {review.complianceScoreExplanation.contributions.length > 0 && (
-                        <div className="space-y-2 pt-1">
+                        <div className="space-y-2">
                           {review.complianceScoreExplanation.contributions.map((item) => (
-                            <div key={item.traceabilityId} style={{ borderRadius: '10px', border: '0.5px solid #d8e1de', backgroundColor: '#f4f7f6', padding: '10px 12px' }}>
-                              <p className="text-[13px] font-normal text-ink">{item.label}</p>
-                              <p className="mt-0.5 text-xs leading-5 text-ink/60">{item.explanation}</p>
+                            <div key={item.traceabilityId} className="rounded-xl border border-line bg-paper p-3">
+                              <p className="text-sm font-normal">{item.label}</p>
+                              <p className="mt-1 text-xs leading-6 text-ink/65">{item.explanation}</p>
                             </div>
                           ))}
                         </div>
                       )}
                     </div>
 
-                    {/* Risk detail */}
-                    <div className="space-y-2.5">
-                      <p className="text-sm font-medium text-ink">تفاصيل المخاطر</p>
-                      <p className="text-sm leading-7 text-ink/70">{riskExplanation(review)}</p>
-                      {review.riskScoreExplanation.contributions.length > 0 && (
-                        <div className="space-y-2 pt-1">
-                          {review.riskScoreExplanation.contributions.map((item) => (
-                            <div key={item.traceabilityId} style={{ borderRadius: '10px', border: '0.5px solid #d8e1de', backgroundColor: '#f4f7f6', padding: '10px 12px' }}>
-                              <p className="text-[13px] font-normal text-ink">{item.label}</p>
-                              <p className="mt-0.5 text-xs leading-5 text-ink/60">{item.explanation}</p>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Readiness detail */}
-                    <div className="space-y-2.5">
-                      <p className="text-sm font-medium text-ink">تفاصيل الجاهزية</p>
-                      <p className="text-sm leading-7 text-ink/70">{readinessExplanation(review)}</p>
-                      <div className="space-y-2 pt-1">
-                        {review.publishingReadinessExplanation.factors.map((factor) => (
-                          <div key={factor.key} style={{ borderRadius: '10px', border: '0.5px solid #d8e1de', backgroundColor: '#f4f7f6', padding: '10px 12px' }}>
-                            <div className="flex items-center justify-between gap-2">
-                              <p className="text-[13px] font-normal text-ink">{factor.label}</p>
-                              <StatusBadge tone={factor.sourceScore >= 85 ? "good" : factor.sourceScore >= 70 ? "neutral" : "gold"}>
-                                {factor.sourceScore >= 85 ? "مناسب" : factor.sourceScore >= 70 ? "مقبول" : "يتطلب تحسين"}
-                              </StatusBadge>
-                            </div>
-                            <p className="mt-1 text-xs leading-5 text-ink/60">{factor.explanation}</p>
-                          </div>
-                        ))}
+                    {/* Risk */}
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="text-sm font-normal text-ink">مستوى المخاطر</p>
+                        <StatusBadge tone={toneFromRisk(review.riskLevel)}>{review.riskLevel}</StatusBadge>
                       </div>
+                      <p className="text-xs text-ink/55">درجة المخاطر: {review.riskScore}%</p>
+                      <p className="text-sm leading-7 text-ink/75">{riskExplanation(review)}</p>
+                      {review.riskScoreExplanation.contributions.length > 0 && (
+                        <div className="space-y-2">
+                          {review.riskScoreExplanation.contributions.map((item) => (
+                            <div key={item.traceabilityId} className="rounded-xl border border-line bg-paper p-3">
+                              <p className="text-sm font-normal">{item.label}</p>
+                              <p className="mt-1 text-xs leading-6 text-ink/65">{item.explanation}</p>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Readiness */}
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="text-sm font-normal text-ink">جاهزية النشر</p>
+                        <StatusBadge tone={review.exportAllowed ? "good" : toneFromRisk(review.riskLevel)}>
+                          {review.publishingReadinessScore}%
+                        </StatusBadge>
+                      </div>
+                      <p className="text-sm leading-7 text-ink/75">{readinessExplanation(review)}</p>
+                      {review.publishingReadinessExplanation.factors.map((factor) => (
+                        <div key={factor.key} className="rounded-xl border border-line bg-paper p-3">
+                          <div className="flex items-center justify-between gap-2">
+                            <p className="text-sm font-normal">{factor.label}</p>
+                            <StatusBadge tone={factor.sourceScore >= 85 ? "good" : factor.sourceScore >= 70 ? "neutral" : "gold"}>
+                              {factor.sourceScore >= 85 ? "مناسب" : factor.sourceScore >= 70 ? "مقبول" : "يتطلب تحسين"}
+                            </StatusBadge>
+                          </div>
+                          <p className="mt-1 text-xs leading-6 text-ink/60">{factor.explanation}</p>
+                        </div>
+                      ))}
                     </div>
                   </div>
 
                   {/* Language quality bars */}
                   <div className="border-t border-line pt-5">
-                    <p className="mb-4 text-sm font-medium text-ink">جودة اللغة والصياغة</p>
+                    <p className="mb-4 text-sm font-normal text-ink">جودة اللغة والصياغة</p>
                     <div className="space-y-3">
                       {Object.entries(review.languageQuality.categoryScores).map(([category, score]) => (
                         <div key={category} className="flex items-center gap-3">
                           <span className="w-36 shrink-0 text-xs text-ink/60">{categoryLabels[category as LanguageIssueCategory]}</span>
                           <div className="h-2 flex-1 overflow-hidden rounded-full bg-paper">
-                            <div className="h-full rounded-full transition-all" style={{ width: `${score}%`, backgroundColor: (score as number) >= 85 ? '#2d6a5a' : (score as number) >= 70 ? '#a7782b' : '#dc2626' }} />
+                            <div className="h-full rounded-full bg-palm/70 transition-all" style={{ width: `${score}%` }} />
                           </div>
-                          <span className="w-10 shrink-0 text-left text-xs font-normal" style={{ color: (score as number) >= 85 ? '#2d6a5a' : (score as number) >= 70 ? '#a7782b' : '#dc2626' }}>{score}%</span>
+                          <span className="w-10 shrink-0 text-left text-xs font-normal text-palm">{score}%</span>
                         </div>
                       ))}
                     </div>
@@ -950,26 +961,25 @@ export default function ContentReviewPage() {
 
                   {/* Opportunities */}
                   <div className="border-t border-line pt-5">
-                    <p className="mb-4 text-sm font-medium text-ink">فرص التحسين اللغوي</p>
+                    <p className="mb-4 text-sm font-normal text-ink">فرص التحسين اللغوي</p>
                     <OpportunityCards review={review} />
                   </div>
 
-                  {/* Conduct compliance — 2 side by side */}
-                  <div className="grid gap-3 border-t border-line pt-5 sm:grid-cols-2">
-                    <div style={{ borderRadius: '10px', border: '0.5px solid #d8e1de', backgroundColor: '#f4f7f6', padding: '14px 16px' }}>
-                      <p className="mb-1.5 text-sm font-medium text-ink">قواعد السلوك المهني</p>
-                      <p className="mb-2.5 text-xs leading-5 text-ink/60">{review.professionalConductCompliance.summary}</p>
-                      <StatusBadge tone={review.professionalConductCompliance.passed ? "good" : "gold"}>
-                        {review.professionalConductCompliance.passed ? "لم ترصد ملاحظة ذات صلة" : "رصدت ملاحظات مرتبطة"}
-                      </StatusBadge>
-                    </div>
-                    <div style={{ borderRadius: '10px', border: '0.5px solid #d8e1de', backgroundColor: '#f4f7f6', padding: '14px 16px' }}>
-                      <p className="mb-1.5 text-sm font-medium text-ink">اللائحة التنفيذية للمحاماة</p>
-                      <p className="mb-2.5 text-xs leading-5 text-ink/60">{review.executiveRegulationCompliance.summary}</p>
-                      <StatusBadge tone={review.executiveRegulationCompliance.passed ? "good" : "gold"}>
-                        {review.executiveRegulationCompliance.passed ? "لم ترصد ملاحظة ذات صلة" : "رصدت ملاحظات مرتبطة"}
-                      </StatusBadge>
-                    </div>
+                  {/* Professional conduct */}
+                  <div className="border-t border-line pt-5">
+                    <p className="mb-3 text-sm font-normal text-ink">امتثال قواعد السلوك المهني</p>
+                    <p className="mb-3 text-sm leading-7 text-ink/75">{review.professionalConductCompliance.summary}</p>
+                    <StatusBadge tone={review.professionalConductCompliance.passed ? "good" : "gold"}>
+                      {review.professionalConductCompliance.passed ? "لم ترصد ملاحظة ذات صلة" : "رصدت ملاحظات مرتبطة بالمصدر"}
+                    </StatusBadge>
+                  </div>
+
+                  <div className="border-t border-line pt-5">
+                    <p className="mb-3 text-sm font-normal text-ink">امتثال اللائحة التنفيذية لنظام المحاماة</p>
+                    <p className="mb-3 text-sm leading-7 text-ink/75">{review.executiveRegulationCompliance.summary}</p>
+                    <StatusBadge tone={review.executiveRegulationCompliance.passed ? "good" : "gold"}>
+                      {review.executiveRegulationCompliance.passed ? "لم ترصد ملاحظة ذات صلة" : "رصدت ملاحظات مرتبطة بالمصدر"}
+                    </StatusBadge>
                   </div>
                 </div>
               )}
@@ -982,6 +992,17 @@ export default function ContentReviewPage() {
 
               {/* القنوات المقترحة */}
               {activeTab === 4 && <RecommendationCards items={planningSuggestions} />}
+
+              {/* مسار التنفيذ */}
+              {activeTab === 5 && (
+                <WorkflowSteps steps={[
+                  `جودة اللغة والصياغة: ${workflowStatusLabels[review.workflow[0]?.status ?? "pending"]}`,
+                  `ملاحظات الامتثال: ${workflowStatusLabels[review.workflow[1]?.status ?? "pending"]}`,
+                  `مؤشرات المخاطر: ${workflowStatusLabels[review.workflow[2]?.status ?? "pending"]}`,
+                  `جاهزية النشر: ${workflowStatusLabels[review.workflow[3]?.status ?? "pending"]}`,
+                  `التصدير والمشاركة: ${workflowStatusLabels[review.workflow[4]?.status ?? "pending"]}`
+                ]} />
+              )}
             </div>
           </div>
         </section>
