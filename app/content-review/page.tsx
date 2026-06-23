@@ -173,7 +173,7 @@ function FindingCards({ review }: { review: ReviewResult }) {
       {review.findings.length > 0 ? review.findings.map((finding) => (
         <article
           key={`${finding.legalKnowledgeEntryId}-${finding.evidence}`}
-          className="w-full p-4 sm:p-5"
+          className="w-full p-3"
           style={
             finding.severity === "حرج"
               ? { backgroundColor: '#fef2f2', border: '0.5px solid #fca5a5', borderRight: '3px solid #dc2626', borderRadius: '16px' }
@@ -182,10 +182,11 @@ function FindingCards({ review }: { review: ReviewResult }) {
               : { backgroundColor: '#ffffff', border: '0.5px solid #d8e1de', borderRadius: '16px' }
           }
         >
-          <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
+          {/* Header: title + single badge */}
+          <div className="mb-3 flex flex-wrap items-start justify-between gap-2">
             <div className="min-w-0">
-              <p className="text-base font-normal leading-8 text-ink">{finding.title}</p>
-              <p className="mt-1 text-sm leading-7 text-ink/55">{finding.legalReference} - {finding.articleTitle}</p>
+              <p className="text-sm font-medium leading-7 text-ink">{finding.title}</p>
+              <p className="mt-0.5 text-[13px] leading-6 text-ink/55">{finding.legalReference} — {finding.articleTitle}</p>
             </div>
             {finding.severity === "حرج" ? (
               <span style={{ backgroundColor: '#fef2f2', color: '#dc2626', border: '1px solid #fca5a5', borderRadius: '20px', padding: '2px 8px', fontSize: '11px', fontWeight: 500 }}>حرجة</span>
@@ -193,18 +194,56 @@ function FindingCards({ review }: { review: ReviewResult }) {
               <StatusBadge tone={toneFromRisk(finding.severity)}>{finding.severity}</StatusBadge>
             )}
           </div>
-          <div className="grid gap-4 lg:grid-cols-2">
-            <ReadableBlock label="فئة الملاحظة">{finding.category} - {finding.domain}</ReadableBlock>
-            <ReadableBlock label="الشدة والأثر المحتمل">{finding.severity} - {finding.potentialImpact}</ReadableBlock>
-            <ReadableBlock label="العبارة محل المراجعة">{finding.evidence}</ReadableBlock>
-            <ReadableBlock label="المصدر القانوني">
-              <a href={finding.sourceUrl} target="_blank" rel="noreferrer" className="font-normal text-palm underline underline-offset-4">{finding.sourceDocument}</a>
-            </ReadableBlock>
-            <ReadableBlock label="مقتطف المرجع النظامي">{finding.articleTextExcerpt}</ReadableBlock>
-            <ReadableBlock label="الشرح القانوني">
-              {finding.legalExplanation} نتيجة الفحص: {finding.reviewOutcome}. مستوى الثقة: {finding.confidenceLevel}.
-            </ReadableBlock>
-            <ReadableBlock label="التوصية">{finding.suggestedSaferWording}</ReadableBlock>
+
+          {/* Compact field rows */}
+          <div className="space-y-2">
+            {/* Row 1: category + source (short fields) */}
+            <div className="grid grid-cols-2 gap-3 border-t border-line/40 pt-2">
+              <div>
+                <p className="mb-0.5 text-[11px] text-ink/45">فئة الملاحظة</p>
+                <p className="text-[13px] leading-6 text-ink">{finding.category} — {finding.domain}</p>
+              </div>
+              <div>
+                <p className="mb-0.5 text-[11px] text-ink/45">المصدر القانوني</p>
+                <a href={finding.sourceUrl} target="_blank" rel="noreferrer" className="text-[13px] font-normal leading-6 text-palm underline underline-offset-4">{finding.sourceDocument}</a>
+              </div>
+            </div>
+
+            {/* Row 2: severity level + expected impact (separate labeled fields) */}
+            <div className="grid grid-cols-2 gap-3 border-t border-line/40 pt-2">
+              <div>
+                <p className="mb-0.5 text-[11px] text-ink/45">مستوى الخطورة</p>
+                <p className="text-[13px] leading-6 text-ink">{finding.severity}</p>
+              </div>
+              <div>
+                <p className="mb-0.5 text-[11px] text-ink/45">الأثر المتوقع</p>
+                <p className="text-[13px] leading-6 text-ink">{finding.potentialImpact}</p>
+              </div>
+            </div>
+
+            {/* Row 3: evidence (full width) */}
+            <div className="border-t border-line/40 pt-2">
+              <p className="mb-0.5 text-[11px] text-ink/45">العبارة محل المراجعة</p>
+              <p className="text-[13px] leading-6 text-ink">{finding.evidence}</p>
+            </div>
+
+            {/* Row 4: excerpt + legal explanation side by side */}
+            <div className="grid grid-cols-2 gap-3 border-t border-line/40 pt-2">
+              <div>
+                <p className="mb-0.5 text-[11px] text-ink/45">مقتطف المرجع النظامي</p>
+                <p className="text-[13px] leading-6 text-ink">{finding.articleTextExcerpt}</p>
+              </div>
+              <div>
+                <p className="mb-0.5 text-[11px] text-ink/45">الشرح القانوني</p>
+                <p className="text-[13px] leading-6 text-ink">{finding.legalExplanation} نتيجة الفحص: {finding.reviewOutcome}. مستوى الثقة: {finding.confidenceLevel}.</p>
+              </div>
+            </div>
+
+            {/* Row 5: recommendation (full width) */}
+            <div className="border-t border-line/40 pt-2">
+              <p className="mb-0.5 text-[11px] text-ink/45">التوصية</p>
+              <p className="text-[13px] leading-6 text-ink">{finding.suggestedSaferWording}</p>
+            </div>
           </div>
         </article>
       )) : (
