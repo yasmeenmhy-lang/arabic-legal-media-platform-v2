@@ -212,6 +212,7 @@ export type ReviewFinding = {
   reviewOutcome: "لم ترصد ملاحظة" | "رصدت ملاحظة";
   confidenceLevel: "منخفض" | "متوسط" | "مرتفع";
   sourceUrl: string;
+  sourceType?: "pattern" | "semantic";
 };
 
 export type FindingCategory =
