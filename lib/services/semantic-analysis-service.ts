@@ -194,6 +194,8 @@ export async function runSemanticAnalysis(
   existingPatternEntryIds: Set<string>,
   contentKind?: ContentKind
 ): Promise<ReviewFinding[]> {
+  console.log("[semantic-debug] API KEY exists:", !!process.env.ANTHROPIC_API_KEY);
+  console.log("[semantic-debug] ENABLED:", process.env.SEMANTIC_ANALYSIS_ENABLED);
   if (!isSemanticAnalysisEnabled()) {
     console.log("[semantic] gated: SEMANTIC_ANALYSIS_ENABLED =", JSON.stringify(process.env.SEMANTIC_ANALYSIS_ENABLED));
     return [];
