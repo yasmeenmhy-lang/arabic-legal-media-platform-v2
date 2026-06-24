@@ -43,6 +43,7 @@ export function classifyLegalKnowledgeEntry(entry: LegalKnowledgeEntry): {
   if (entry.id.includes("advertising")) return { category: "ضوابط الإعلان", domain: "إعلاني", potentialImpact: entry.severity };
   if (entry.id.includes("training")) return { category: "الخبرة المهنية", domain: "مهني", potentialImpact: entry.severity };
   if (entry.id.includes("dignity")) return { category: "كرامة المهنة", domain: "مهني", potentialImpact: entry.severity };
+  if (entry.id.includes("competent-authority")) return { category: "الامتثال التنظيمي", domain: "نظامي", potentialImpact: "مرتفع" };
   return { category: "التواصل العام", domain: "إجرائي", potentialImpact: entry.severity };
 }
 
