@@ -22,7 +22,7 @@ export async function POST(request: Request) {
   const parsed = schema.safeParse(await request.json());
   if (!parsed.success) return ok([]);
 
-  const review = reviewContent(parsed.data.text, parsed.data.kind, {
+  const review = await reviewContent(parsed.data.text, parsed.data.kind, {
     contentType: parsed.data.contentType,
     channel: parsed.data.channel,
     audience: parsed.data.audience,

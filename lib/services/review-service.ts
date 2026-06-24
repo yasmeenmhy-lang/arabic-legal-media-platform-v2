@@ -3,7 +3,8 @@ import { advisoryDisclaimer } from "@/lib/governance";
 import { createReviewedContentContext } from "@/lib/review-context";
 import { reviewLanguageQuality } from "@/lib/services/language-quality-service";
 import { runPublishingReadinessReview } from "@/lib/services/approval-workflow-service";
-import { runLegalComplianceReview } from "@/lib/services/legal-compliance-service";
+import { runLegalComplianceReview, rebuildComplianceFromFindings } from "@/lib/services/legal-compliance-service";
+import { runSemanticAnalysis } from "@/lib/services/semantic-analysis-service";
 import { buildGovernedRewriteSuggestions } from "@/lib/services/recommendation-service";
 import {
   calculatePublishingReadiness,
@@ -39,7 +40,7 @@ function buildWorkflow(languageQualityPassed: boolean, compliancePassed: boolean
   });
 }
 
-export function reviewContent(text: string, kind: ContentKind = "post", context: ReviewContext = {}): ReviewResult {
+export async function reviewContent(text: string, kind: ContentKind = "post", context: ReviewContext = {}): Promise<ReviewResult> {
   const profile = resolveScoringProfile(kind, context.channel);
   const languageQuality = reviewLanguageQuality({
     text,
@@ -50,7 +51,12 @@ export function reviewContent(text: string, kind: ContentKind = "post", context:
     }
   });
 
-  const compliance = runLegalComplianceReview(text, context, profile);
+  const patternCompliance = runLegalComplianceReview(text, context, profile);
+  const patternEntryIds = new Set(patternCompliance.findings.map((f) => f.legalKnowledgeEntryId));
+  const semanticFindings = await runSemanticAnalysis(text, context, patternEntryIds, kind);
+  const compliance = semanticFindings.length > 0
+    ? rebuildComplianceFromFindings([...patternCompliance.findings, ...semanticFindings], profile)
+    : patternCompliance;
   const reviewStatus = deriveReviewStatus({
     languageScore: languageQuality.score,
     complianceScore: compliance.complianceScore,
@@ -144,8 +150,8 @@ export function reviewContent(text: string, kind: ContentKind = "post", context:
   };
 }
 
-export function assertContentCanExport(text: string, kind: ContentKind = "social_export") {
-  const review = reviewContent(text, kind);
+export async function assertContentCanExport(text: string, kind: ContentKind = "social_export") {
+  const review = await reviewContent(text, kind);
 
   return {
     allowed: review.exportAllowed,

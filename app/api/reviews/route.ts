@@ -28,7 +28,7 @@ export async function POST(request: Request) {
     purpose: parsed.data.purpose,
     reviewStatus: parsed.data.reviewStatus
   };
-  const baseReview = reviewContent(parsed.data.text, parsed.data.kind, context);
+  const baseReview = await reviewContent(parsed.data.text, parsed.data.kind, context);
   const review = await enhanceReviewOutput({
     text: parsed.data.text,
     kind: parsed.data.kind,

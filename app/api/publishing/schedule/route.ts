@@ -15,7 +15,7 @@ export async function POST(request: Request) {
   const parsed = schema.safeParse(await request.json());
   if (!parsed.success) return badRequest("بيانات الجدولة غير مكتملة");
 
-  const exportGate = assertContentCanExport(parsed.data.body, "social_export");
+  const exportGate = await assertContentCanExport(parsed.data.body, "social_export");
   if (!exportGate.allowed) {
     return NextResponse.json(
       {

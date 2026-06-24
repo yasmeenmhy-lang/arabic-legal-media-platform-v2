@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeAll, beforeEach, describe, expect, it } from "vitest";
 import {
   approveContentVersion,
   CONTENT_RECORDS_KEY,
@@ -12,10 +12,13 @@ import {
 import { reviewContent } from "@/lib/services/review-service";
 
 describe("versioned content records", () => {
+  beforeAll(() => {
+    process.env.SEMANTIC_ANALYSIS_ENABLED = "false";
+  });
   beforeEach(() => window.localStorage.clear());
 
-  it("preserves an approved version and creates a new current version after editing", () => {
-    const firstReview = reviewContent("يقدم المكتب محتوى توعوياً عاماً وفق الأنظمة والتعليمات ذات العلاقة.", "advertisement", { contentType: "إعلان", channel: "X" });
+  it("preserves an approved version and creates a new current version after editing", async () => {
+    const firstReview = await reviewContent("يقدم المكتب محتوى توعوياً عاماً وفق الأنظمة والتعليمات ذات العلاقة.", "advertisement", { contentType: "إعلان", channel: "X" });
     const first = upsertAnalyzedVersion({
       body: "يقدم المكتب محتوى توعوياً عاماً وفق الأنظمة والتعليمات ذات العلاقة.",
       contentType: "advertisement",
@@ -27,7 +30,7 @@ describe("versioned content records", () => {
     });
     approveContentVersion(first.record.id, first.version.version);
 
-    const secondReview = reviewContent("نقدم مراجعة مهنية للخيارات المتاحة", "advertisement", { contentType: "إعلان", channel: "X" });
+    const secondReview = await reviewContent("نقدم مراجعة مهنية للخيارات المتاحة", "advertisement", { contentType: "إعلان", channel: "X" });
     const second = upsertAnalyzedVersion({
       contentId: first.record.id,
       body: "نقدم مراجعة مهنية للخيارات المتاحة",
@@ -46,8 +49,8 @@ describe("versioned content records", () => {
     expect(record.versions.find((version) => version.version === 2)?.approvedAt).toBeUndefined();
   });
 
-  it("prevents approval of a version with unresolved critical findings", () => {
-    const review = reviewContent("نضمن لك الفوز بالقضية", "advertisement", { contentType: "إعلان", channel: "X" });
+  it("prevents approval of a version with unresolved critical findings", async () => {
+    const review = await reviewContent("نضمن لك الفوز بالقضية", "advertisement", { contentType: "إعلان", channel: "X" });
     const saved = upsertAnalyzedVersion({
       body: "نضمن لك الفوز بالقضية",
       contentType: "advertisement",
@@ -100,8 +103,8 @@ describe("versioned content records", () => {
     expect(record.versions[0].analysis).toBeUndefined();
   });
 
-  it("blocks sharing until the exact version is approved", () => {
-    const review = reviewContent("محتوى مهني واضح", "post", { contentType: "منشور", channel: "LinkedIn" });
+  it("blocks sharing until the exact version is approved", async () => {
+    const review = await reviewContent("محتوى مهني واضح", "post", { contentType: "منشور", channel: "LinkedIn" });
     const saved = upsertAnalyzedVersion({
       body: "محتوى مهني واضح",
       contentType: "post",
@@ -116,8 +119,8 @@ describe("versioned content records", () => {
     expect(markContentShared(saved.record.id, saved.version.version)).toBe(true);
   });
 
-  it("persists edited draft fields and invalidates the previous analysis until reanalysis", () => {
-    const review = reviewContent("محتوى مهني توعوي واضح", "post", { contentType: "منشور", channel: "LinkedIn" });
+  it("persists edited draft fields and invalidates the previous analysis until reanalysis", async () => {
+    const review = await reviewContent("محتوى مهني توعوي واضح", "post", { contentType: "منشور", channel: "LinkedIn" });
     const saved = upsertAnalyzedVersion({
       body: "محتوى مهني توعوي واضح",
       contentType: "post",
