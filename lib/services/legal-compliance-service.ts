@@ -101,6 +101,24 @@ function contextSupportsRule(entry: (typeof legalKnowledgeEntries)[number], evid
     return classification === "وعد بنتيجة" || ["نضمن", "يضمن", "مضمون", "مضمونة", "كسب", "الفوز", "نتيجة", "100%", "لا نخسر"].some((signal) => phrase.includes(signal));
   }
 
+  if (entry.id.includes("public-communication")) {
+    return [
+      "المرفق العدلي", "ثقة الجمهور", "زعزعة الثقة",
+      "النهائي", "نهائية", "مضمون", "الحكم", "تكفي", "يكفي",
+      "ستكسب", "ستربح", "وستكسب", "وستربح",
+      "دون لجوء للقضاء", "بدون محكمة", "للجميع",
+      "رأي قانوني", "استشارة قانونية نهائية"
+    ].some((signal) => phrase.includes(signal));
+  }
+
+  if (entry.id.includes("advertising-controls")) {
+    return (
+      classification === "إعلان مضلل محتمل" ||
+      classification === "ادعاء تسويقي" ||
+      ["تخفيض", "خصم", "سعر", "باقة", "عرض", "أرخص", "مضمون", "سريع", "أفضل", "نتائج", "موسم", "محدود"].some((signal) => phrase.includes(signal))
+    );
+  }
+
   if (entry.id.includes("advertising") || ruleContext.includes("إعلان") || ruleContext.includes("تضليل")) {
     return (
       classification === "إعلان مضلل محتمل" ||
@@ -111,10 +129,11 @@ function contextSupportsRule(entry: (typeof legalKnowledgeEntries)[number], evid
 
   if (entry.id.includes("confidentiality")) return ["عميل", "قضية", "هوية", "مستندات", "بيانات"].some((signal) => phrase.includes(signal));
   if (entry.id.includes("conflict")) return ["الطرفين", "الأطراف", "الخصوم", "تعارض"].some((signal) => phrase.includes(signal));
-  if (entry.id.includes("dignity")) return ["خصم", "فضيحة", "انتقم", "اهزم", "اسحق"].some((signal) => phrase.includes(signal));
-  if (entry.id.includes("license") || entry.id.includes("prohibited-wording")) return ["معتمد", "مرخص", "وزارة العدل", "رسمي", "مصادق", "ترخيص"].some((signal) => phrase.includes(signal));
-  if (entry.id.includes("training")) return ["خبرة", "خبير", "كل القضايا", "الأكثر"].some((signal) => phrase.includes(signal));
-  if (entry.id.includes("communication") || entry.id.includes("solicitation")) return classification === "ادعاء تسويقي" || ["تواصل", "اتصل", "احجز", "فوراً", "فرصة"].some((signal) => phrase.includes(signal));
+  if (entry.id.includes("dignity")) return ["خصم", "فضيحة", "انتقم", "اهزم", "اسحق", "غيرنا", "فاشل", "ضعيف", "يخذل", "تثق", "تضر"].some((signal) => phrase.includes(signal));
+  if (entry.id.includes("license") || entry.id.includes("prohibited-wording")) return ["معتمد", "مرخص", "وزارة العدل", "رسمي", "مصادق", "ترخيص", "حكومي", "تفويض"].some((signal) => phrase.includes(signal));
+  if (entry.id.includes("training")) return ["خبرة", "خبير", "كل القضايا", "الأكثر", "تضليل", "تزييف", "خداع", "كسبنا", "نخسر", "رضا", "جائزة", "مصنّف", "مصنف", "تصنيف", "إحصائيات", "أسرار", "ألف قضية"].some((signal) => phrase.includes(signal));
+  if (entry.id.includes("communication") || entry.id.includes("solicitation")) return classification === "ادعاء تسويقي" || ["تواصل", "اتصل", "احجز", "فوراً", "فرصة", "ضحية", "متضرر", "حوادث"].some((signal) => phrase.includes(signal));
+  if (entry.id.includes("competent-authority")) return ["الضوابط", "القيود", "الاشتراطات", "الإعفاء", "التصريح", "الجهة المختصة", "هيئة المحامين", "وزارة العدل", "التنظيم", "الرقابة", "مستثنى", "معفى", "ملزم"].some((signal) => phrase.includes(signal));
 
   return classification !== "معلومة قانونية";
 }
