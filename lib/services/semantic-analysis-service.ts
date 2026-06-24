@@ -194,10 +194,16 @@ export async function runSemanticAnalysis(
   existingPatternEntryIds: Set<string>,
   contentKind?: ContentKind
 ): Promise<ReviewFinding[]> {
-  if (!isSemanticAnalysisEnabled()) return [];
+  if (!isSemanticAnalysisEnabled()) {
+    console.log("[semantic] gated: SEMANTIC_ANALYSIS_ENABLED =", JSON.stringify(process.env.SEMANTIC_ANALYSIS_ENABLED));
+    return [];
+  }
 
   const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) return [];
+  if (!apiKey) {
+    console.log("[semantic] gated: ANTHROPIC_API_KEY is empty or missing");
+    return [];
+  }
 
   const profile = resolveScoringProfile(contentKind ?? ("post" as ContentKind), context?.channel);
   const contextSummary = buildContextSummary(context);
@@ -209,8 +215,12 @@ export async function runSemanticAnalysis(
       entry.legalReference !== null
   );
 
-  if (targetEntries.length === 0) return [];
+  if (targetEntries.length === 0) {
+    console.log("[semantic] gated: no target entries remaining after dedup (pattern layer caught all)");
+    return [];
+  }
 
+  console.log("[semantic] starting: entries =", targetEntries.map(e => e.id).join(", "));
   const client = new Anthropic({ apiKey });
   const findings: ReviewFinding[] = [];
 
@@ -229,16 +239,17 @@ export async function runSemanticAnalysis(
         .join("");
 
       const result = parseSemanticResponse(rawText);
+      console.log(`[semantic] entry=${entry.id} violation=${result?.violationDetected} confidence=${result?.confidenceLevel}`);
       if (!result || !result.violationDetected) continue;
 
       const finding = buildSemanticFinding(entry, result, profile);
       if (finding) findings.push(finding);
-    } catch {
-      // Circuit breaker: any error on a single entry is silently skipped.
-      // The pattern-matching layer results are always returned regardless.
+    } catch (err) {
+      console.error(`[semantic] circuit-breaker: entry=${entry.id} error=`, err instanceof Error ? err.message : String(err));
       continue;
     }
   }
 
+  console.log("[semantic] done: findings =", findings.length);
   return findings;
 }
