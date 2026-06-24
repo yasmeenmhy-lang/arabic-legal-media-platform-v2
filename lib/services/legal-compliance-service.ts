@@ -354,3 +354,31 @@ export function runLegalComplianceReview(text: string, context?: ReviewContext, 
     noViolationMessage
   };
 }
+
+// Rebuilds compliance sections and scores from a pre-built (merged) findings array.
+// Used by review-service after merging pattern + semantic findings.
+export function rebuildComplianceFromFindings(mergedFindings: ReviewFinding[], profile: ScoringProfile) {
+  const order = { critical: 0, high: 1, medium: 2, low: 3 };
+  const sorted = [...mergedFindings].sort(
+    (a, b) => (order[a.businessSeverity ?? "low"] ?? 3) - (order[b.businessSeverity ?? "low"] ?? 3)
+  );
+
+  const complianceScoreExplanation = calculateComplianceScore(sorted, profile);
+  const riskScoreExplanation = calculateRiskScore(sorted, profile);
+  const complianceScore = complianceScoreExplanation.finalScore;
+  const riskLevel = riskScoreExplanation.level;
+
+  return {
+    passed: sorted.length === 0 && (riskLevel === "منخفض" || riskLevel === "متوسط"),
+    complianceScore,
+    complianceScoreExplanation,
+    riskLevel,
+    riskScore: riskScoreExplanation.score,
+    riskScoreExplanation,
+    findings: sorted,
+    professionalConductCompliance: buildSection("امتثال قواعد السلوك المهني", PROFESSIONAL_CONDUCT_SOURCE_ID, sorted),
+    executiveRegulationCompliance: buildSection("امتثال اللائحة التنفيذية لنظام المحاماة في المملكة العربية السعودية", EXECUTIVE_REGULATION_SOURCE_ID, sorted),
+    legalRiskAssessment: buildRiskAssessment(sorted, riskScoreExplanation),
+    referencesPanel: buildReferencesPanel(sorted)
+  };
+}

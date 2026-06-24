@@ -17,12 +17,12 @@ function readinessStatusFromReview(review: ReviewResult): ReviewReadinessStatus 
 export class MockAIService implements AIService {
   async reviewMediaContent(input: AIContentInput): Promise<AIContentOutput> {
     const submittedContextText = [input.topic, input.audience, input.practiceArea, input.channel, input.objective].filter(Boolean).join(" ");
-    const pipelineReviews = [reviewContent(submittedContextText, "post", {
+    const pipelineReviews = await Promise.all([reviewContent(submittedContextText, "post", {
       contentType: "طلب مراجعة مساند",
       channel: input.channel,
       audience: input.audience,
       purpose: input.objective
-    })];
+    })]);
 
     const legalCitations = pipelineReviews.flatMap((review) =>
       review.findings.map((finding) => ({

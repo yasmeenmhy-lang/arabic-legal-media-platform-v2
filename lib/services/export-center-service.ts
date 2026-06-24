@@ -1,8 +1,8 @@
 import { assertContentCanExport } from "@/lib/services/review-service";
 import { advisoryDisclaimer } from "@/lib/governance";
 
-export function prepareExportContent(text: string) {
-  const gate = assertContentCanExport(text, "social_export");
+export async function prepareExportContent(text: string) {
+  const gate = await assertContentCanExport(text, "social_export");
   const governedRewrite = gate.review.governedRewrites[0];
 
   if (!gate.allowed) {

@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it } from "vitest";
 import { legalKnowledgeEntries, legalSourceDocuments } from "@/lib/legal-knowledge-base";
 import { reviewContent } from "@/lib/services/review-service";
 import { buildReviewPersistenceData } from "@/lib/services/review-persistence-service";
@@ -9,8 +9,13 @@ function isOfficialMojUrl(sourceUrl: string) {
 }
 
 describe("reviewContent", () => {
-  it("flags guaranteed outcomes and exaggerated claims", () => {
-    const result = reviewContent("نضمن لك أفضل محام يساعدك على اكسب قضيتك.");
+  beforeAll(() => {
+    // Disable semantic analysis layer during tests — no API key available in CI.
+    process.env.SEMANTIC_ANALYSIS_ENABLED = "false";
+  });
+
+  it("flags guaranteed outcomes and exaggerated claims", async () => {
+    const result = await reviewContent("نضمن لك أفضل محام يساعدك على اكسب قضيتك.");
 
     expect(["متوسط", "مرتفع", "حرج"]).toContain(result.riskLevel);
     expect(result.findings.length).toBeGreaterThanOrEqual(2);
@@ -26,8 +31,8 @@ describe("reviewContent", () => {
     expect(result.findings[0].explanation).toBeTruthy();
   });
 
-  it("returns only auditable findings linked to registered legal references", () => {
-    const result = reviewContent("يضمن مكتبنا تحقيق أفضل النتائج لعملائه");
+  it("returns only auditable findings linked to registered legal references", async () => {
+    const result = await reviewContent("يضمن مكتبنا تحقيق أفضل النتائج لعملائه");
 
     expect(result.findings.length).toBeGreaterThan(0);
 
@@ -59,8 +64,8 @@ describe("reviewContent", () => {
     }
   });
 
-  it("uses registered contextual patterns with sentence support, not exact phrases only", () => {
-    const result = reviewContent("يعلن المكتب عن خدمة تحقق نتيجة لصالح العميل في النزاع التجاري.");
+  it("uses registered contextual patterns with sentence support, not exact phrases only", async () => {
+    const result = await reviewContent("يعلن المكتب عن خدمة تحقق نتيجة لصالح العميل في النزاع التجاري.");
 
     expect(result.findings.length).toBeGreaterThan(0);
     expect(result.findings.some((finding) => finding.matchedPattern === "تحقق نتيجة")).toBe(true);
@@ -68,16 +73,16 @@ describe("reviewContent", () => {
     expect(["متوسط", "مرتفع", "حرج"]).toContain(result.riskLevel);
   });
 
-  it("keeps neutral educational wording low risk", () => {
-    const result = reviewContent("هذه مادة توعوية عامة عن الالتزامات التعاقدية ولا تغني عن مراجعة محام مختص.");
+  it("keeps neutral educational wording low risk", async () => {
+    const result = await reviewContent("هذه مادة توعوية عامة عن الالتزامات التعاقدية ولا تغني عن مراجعة محام مختص.");
 
     expect(result.riskLevel).toBe("منخفض");
     expect(result.findings).toHaveLength(0);
   });
 
-  it("returns compact review context without exposing the full submitted content", () => {
+  it("returns compact review context without exposing the full submitted content", async () => {
     const submittedContent = "يقدم المكتب خدمات قانونية للأفراد والمنشآت وفق الأنظمة والتعليمات ذات العلاقة. ".repeat(8);
-    const result = reviewContent(submittedContent, "post", { contentType: "منشور", channel: "LinkedIn" });
+    const result = await reviewContent(submittedContent, "post", { contentType: "منشور", channel: "LinkedIn" });
 
     expect(result.reviewContext.reviewId).toMatch(/^REV-/);
     expect(result.reviewContext.contentType).toBe("منشور");
@@ -89,8 +94,8 @@ describe("reviewContent", () => {
     expect((result as unknown as { text?: string }).text).toBeUndefined();
   });
 
-  it("shows governed rewrites only after legal, compliance, language, and risk validation", () => {
-    const result = reviewContent("يضمن مكتبنا تحقيق أفضل النتائج لعملائه.", "advertisement", {
+  it("shows governed rewrites only after legal, compliance, language, and risk validation", async () => {
+    const result = await reviewContent("يضمن مكتبنا تحقيق أفضل النتائج لعملائه.", "advertisement", {
       contentType: "إعلان مهني",
       channel: "LinkedIn",
       audience: "عملاء محتملون"
@@ -113,16 +118,16 @@ describe("reviewContent", () => {
     expect(rewrite.suggestedText).not.toContain("أفضل النتائج");
   });
 
-  it("does not display a rewrite for neutral content that needs no governed correction", () => {
-    const result = reviewContent("يقدم المكتب خدمات قانونية للأفراد والمنشآت وفق الأنظمة والتعليمات ذات العلاقة.", "post");
+  it("does not display a rewrite for neutral content that needs no governed correction", async () => {
+    const result = await reviewContent("يقدم المكتب خدمات قانونية للأفراد والمنشآت وفق الأنظمة والتعليمات ذات العلاقة.", "post");
 
     expect(result.findings).toHaveLength(0);
     expect(result.complianceScore).toBe(100);
     expect(result.governedRewrites).toHaveLength(0);
   });
 
-  it("calculates compliance exclusively from finding score impacts", () => {
-    const result = reviewContent("يضمن مكتبنا تحقيق أفضل النتائج لعملائه.", "advertisement");
+  it("calculates compliance exclusively from finding score impacts", async () => {
+    const result = await reviewContent("يضمن مكتبنا تحقيق أفضل النتائج لعملائه.", "advertisement");
     const expectedDeduction = result.findings.reduce((sum, finding) => sum + finding.scoreImpact, 0);
 
     expect(result.complianceScoreExplanation.calculatedFromFindingsOnly).toBe(true);
@@ -131,8 +136,8 @@ describe("reviewContent", () => {
     expect(result.complianceScoreExplanation.contributions).toHaveLength(result.findings.length);
   });
 
-  it("calculates risk independently from configurable finding severity", () => {
-    const result = reviewContent("نضمن أفضل النتائج ونمثل الطرفين دون تعارض مصالح.", "advertisement");
+  it("calculates risk independently from configurable finding severity", async () => {
+    const result = await reviewContent("نضمن أفضل النتائج ونمثل الطرفين دون تعارض مصالح.", "advertisement");
     const explanation = result.riskScoreExplanation;
     const expected = Math.min(100, explanation.contributions.reduce((sum, item) => sum + item.value, 0));
 
@@ -143,8 +148,8 @@ describe("reviewContent", () => {
     expect(explanation.contributions.every((item) => item.value > 0)).toBe(true);
   });
 
-  it("calculates publishing readiness from compliance, risk, language, and approval", () => {
-    const result = reviewContent(
+  it("calculates publishing readiness from compliance, risk, language, and approval", async () => {
+    const result = await reviewContent(
       "يقدم المكتب خدمات قانونية للأفراد والمنشآت وفق الأنظمة والتعليمات ذات العلاقة.",
       "post",
       {
@@ -167,15 +172,17 @@ describe("reviewContent", () => {
     expect(result.publishingReadinessScore).toBe(expected);
   });
 
-  it("uses context completeness for confidence rather than an undocumented readiness weight", () => {
+  it("uses context completeness for confidence rather than an undocumented readiness weight", async () => {
     const text = "يقدم المكتب خدمات قانونية للأفراد والمنشآت وفق الأنظمة والتعليمات ذات العلاقة.";
-    const incomplete = reviewContent(text, "post");
-    const complete = reviewContent(text, "post", {
-      contentType: "منشور",
-      channel: "LinkedIn",
-      audience: "منشآت",
-      purpose: "تثقيف مهني"
-    });
+    const [incomplete, complete] = await Promise.all([
+      reviewContent(text, "post"),
+      reviewContent(text, "post", {
+        contentType: "منشور",
+        channel: "LinkedIn",
+        audience: "منشآت",
+        purpose: "تثقيف مهني"
+      })
+    ]);
 
     expect(incomplete.publishingReadinessExplanation.metadataCompletenessScore).toBe(0);
     expect(complete.publishingReadinessExplanation.metadataCompletenessScore).toBe(100);
@@ -183,8 +190,8 @@ describe("reviewContent", () => {
     expect(complete.confidence.level).toBe("High");
   });
 
-  it("returns a versioned review traceability record", () => {
-    const result = reviewContent("يضمن مكتبنا تحقيق أفضل النتائج لعملائه.");
+  it("returns a versioned review traceability record", async () => {
+    const result = await reviewContent("يضمن مكتبنا تحقيق أفضل النتائج لعملائه.");
 
     expect(result.traceability.reviewId).toBe(result.reviewContext.reviewId);
     expect(result.traceability.scoringModelVersion).toBe("decision-support-v2");
@@ -193,8 +200,8 @@ describe("reviewContent", () => {
     expect(result.traceability.sourceDocumentIds.length).toBeGreaterThan(0);
   });
 
-  it("places critical findings first and produces a publication decision", () => {
-    const result = reviewContent("نضمن لك الفوز في القضية مع نشر تفاصيل العميل.", "advertisement", {
+  it("places critical findings first and produces a publication decision", async () => {
+    const result = await reviewContent("نضمن لك الفوز في القضية مع نشر تفاصيل العميل.", "advertisement", {
       contentType: "إعلان مهني",
       channel: "LinkedIn",
       audience: "عملاء محتملون",
@@ -207,8 +214,8 @@ describe("reviewContent", () => {
     expect(result.readinessDecision.blockers.length).toBeGreaterThan(0);
   });
 
-  it("explains channel recommendations with audience, benefit, and limitations", () => {
-    const result = reviewContent("مادة توعوية عامة عن الالتزامات التعاقدية وفق الأنظمة.", "post", {
+  it("explains channel recommendations with audience, benefit, and limitations", async () => {
+    const result = await reviewContent("مادة توعوية عامة عن الالتزامات التعاقدية وفق الأنظمة.", "post", {
       contentType: "منشور",
       channel: "LinkedIn",
       audience: "منشآت ورواد أعمال",
@@ -222,8 +229,8 @@ describe("reviewContent", () => {
     expect(result.channelRecommendations[0].risks).toBeTruthy();
   });
 
-  it("serializes governed scores and finding traceability for persistence", () => {
-    const result = reviewContent("يضمن مكتبنا تحقيق أفضل النتائج لعملائه.");
+  it("serializes governed scores and finding traceability for persistence", async () => {
+    const result = await reviewContent("يضمن مكتبنا تحقيق أفضل النتائج لعملائه.");
     const data = buildReviewPersistenceData("content-1", result);
 
     expect(data.riskScore).toBe(result.riskScore);
@@ -243,8 +250,8 @@ describe("reviewContent", () => {
     "رقم واحد",
     "أقوى محامي",
     "لا نخسر القضايا"
-  ])("flags prohibited professional advertising phrase: %s", (text) => {
-    const result = reviewContent(text, "advertisement", {
+  ])("flags prohibited professional advertising phrase: %s", async (text) => {
+    const result = await reviewContent(text, "advertisement", {
       contentType: "إعلان مهني",
       channel: "LinkedIn",
       audience: "عملاء محتملون",
@@ -262,8 +269,8 @@ describe("reviewContent", () => {
     expect(result.governedRewrites.length).toBeGreaterThan(0);
   });
 
-  it("does not pass language quality when obvious spelling mistakes exist", () => {
-    const result = reviewContent("هذا نص عن القضيه والاجراءات في السعوديه", "post");
+  it("does not pass language quality when obvious spelling mistakes exist", async () => {
+    const result = await reviewContent("هذا نص عن القضيه والاجراءات في السعوديه", "post");
 
     expect(result.languageQuality.passed).toBe(false);
     expect(result.languageQuality.issues.some((issue) => issue.category === "spelling" && issue.excerpt === "القضيه")).toBe(true);
