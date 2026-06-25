@@ -1,8 +1,8 @@
-// SEMANTIC COMPLIANCE ANALYSIS — PRIMARY ANALYSIS ENGINE
-// Sends content to Claude to detect violations by meaning and context across
-// all eligible rules (legalReference !== null). No pattern matching pre-filter.
-// Controlled by SEMANTIC_ANALYSIS_ENABLED=true env var.
-// Falls back silently to empty results on any error or missing API key.
+// SEMANTIC COMPLIANCE ANALYSIS — HOLISTIC ENGINE
+// ONE call to Claude with all eligible rules. Claude reads the text first,
+// then identifies only the rules actually violated — ignores the rest.
+// This prevents false positives caused by per-rule prompting.
+// Controlled by SEMANTIC_ANALYSIS_ENABLED=true + ANTHROPIC_API_KEY env vars.
 
 import Anthropic from "@anthropic-ai/sdk";
 import type { ContentKind, ReviewContext, ReviewFinding, RiskLevel } from "@/lib/types";
@@ -40,70 +40,69 @@ function buildContextSummary(context?: ReviewContext): string {
   return parts.length > 0 ? parts.join(" | ") : "غير محدد";
 }
 
-function buildPrompt(
+function buildHolisticPrompt(
   text: string,
-  entry: (typeof legalKnowledgeEntries)[number],
+  entries: (typeof legalKnowledgeEntries),
   contextSummary: string
 ): string {
-  const examplePatterns = entry.prohibitedPatterns.length > 0
-    ? entry.prohibitedPatterns.slice(0, 4).join("، ")
-    : "(لا تنطبق أنماط حرفية — يعتمد التحليل على روح القاعدة والسياق)";
+  const rulesList = entries
+    .map((entry) => {
+      const shortText = entry.fullText.length > 300
+        ? entry.fullText.slice(0, 300) + "..."
+        : entry.fullText;
+      const patterns = entry.prohibitedPatterns.slice(0, 3).join("، ");
+      return [
+        `[${entry.id}]`,
+        `المرجع: ${entry.legalReference}`,
+        `العنوان: ${entry.articleTitle ?? entry.section}`,
+        `النص: ${shortText}`,
+        patterns ? `أمثلة محظورة: ${patterns}` : ""
+      ].filter(Boolean).join("\n");
+    })
+    .join("\n\n---\n\n");
+
   return `أنت محلل امتثال قانوني متخصص في مراجعة المحتوى الرقمي الصادر عن المحامين في المملكة العربية السعودية.
 
-## الإطار العام
-هذه المنصة تراجع كل ما ينشره المحامي أو مكتب المحاماة على وسائل التواصل الاجتماعي والإعلام الرقمي، بما في ذلك:
-- المنشورات اليومية (منشور، تغريدة، تعليق، ستوري)
-- الإعلانات المهنية والحملات التسويقية
-- الأخبار والتعليقات القانونية وآراء الرأي
-- أي نص ينوي المحامي نشره بأي صيغة كانت
+## السياق الثابت
+هذه المنصة مخصصة للمحامين حصراً. كل نص يُدخل هو نص ينشره محامٍ أو مكتب محاماة على وسائل التواصل الاجتماعي — سواء كان منشوراً، تغريدة، تعليقاً، رداً، أو إعلاناً. حلّل النص دائماً من هذا المنظور حتى لو بدا النص غير رسمي أو مكتوباً بضمير المتكلم.
 
-## الافتراض الجوهري
-**الكاتب دائماً محامٍ أو مكتب محاماة**، حتى لو كتب النص بضمير المتكلم ("أنا"، "عندي") أو بدا وكأنه يتحدث عن تجربة شخصية. المحامون ينشرون أحياناً عن قضايا موكليهم بضمير المتكلم، أو يشاركون تجاربهم في التعامل مع الجهات القضائية.
-
-النص المراد تحليله:
+## النص المراد تحليله
 «${text}»
 
-السياق: ${contextSummary}
+## السياق الإضافي
+${contextSummary}
 
-القاعدة القانونية:
-- المصدر: ${entry.sourceDocument}
-- المرجع: ${entry.legalReference}
-- عنوان المادة: ${entry.articleTitle ?? entry.section}
-- نص المادة: ${entry.fullText}
-- أمثلة على الأنماط المحظورة: ${examplePatterns}
+## قائمة القواعد القانونية (${entries.length} قاعدة)
+${rulesList}
 
 ## المهمة
-هل يخالف هذا النص روح هذه القاعدة، سواء بشكل صريح أو ضمني أو سياقي؟
+١. اقرأ النص كاملاً وافهمه أولاً.
+٢. مرّ على قائمة القواعد وحدد فقط ما ينتهكه النص فعلاً.
+٣. القاعدة التي لا ينتهكها النص — تجاهلها تماماً ولا تذكرها.
+٤. إذا لم توجد أي مخالفة — أرجع مصفوفة فارغة [].
 
-انتبه تحديداً لهذه الأنماط:
-- **نشر تفاصيل قضية منظورة**: الإشارة إلى دعوى قائمة أو مرحلتها أو صعوبات رفعها (مخالفة ق37/2 فقرة 5)
-- **التشكيك في نزاهة القضاء**: التعبير عن إحباط من جهة قضائية أو الإيحاء بعدم كفاءتها (مخالفة ق37/2 فقرة 4)
-- **كشف سرية الموكل**: أي تفصيل عن هوية موكل أو وقائع قضيته (مخالفة ق37/2 فقرة 2)
-- **وعود بنتائج محددة**: ضمان الفوز أو نسب نجاح (مخالفة ق37/1)
-- **الاستشارة المجانية أو الإيحاء التجاري** (مخالفة محتملة للقاعدة 38/1)
-- **عبارات الضغط والاستعجال** مثل "لا تضيع حقك" أو "تواصل الآن" (مخالفة ق37/6)
+## قواعد صارمة
+- لا تخترع مخالفات غير موجودة فعلاً في النص
+- الوصف المهني المشروع والتثقيف القانوني العام والتعريف بالخدمات بأسلوب محايد ليست مخالفات
+- إذا كان مستوى ثقتك "منخفض" في وجود المخالفة — لا تُدرجها
+- evidenceExcerpt يجب أن يكون نصاً حرفياً مقتبساً من النص المُعطى
 
-أجب بـ JSON فقط — لا تضف أي نص خارجه:
-{
-  "violationDetected": true أو false,
-  "confidenceLevel": "مرتفع" أو "متوسط" أو "منخفض",
-  "evidenceExcerpt": "العبارة أو الجملة المحددة من النص التي تحمل المخالفة (فارغة إذا لم توجد)",
-  "violationType": "صريح" أو "ضمني" أو "سياقي",
-  "severity": "حرج" أو "مرتفع" أو "متوسط" أو "منخفض",
-  "explanation": "شرح موجز وواضح لسبب المخالفة أو غيابها",
-  "advice": "التوصية التطبيقية للمحامي"
+أجب بـ JSON array فقط — لا تضف أي نص خارجه ([] إذا لم توجد مخالفات):
+[
+  {
+    "ruleId": "معرّف القاعدة من القائمة أعلاه",
+    "confidenceLevel": "مرتفع" أو "متوسط",
+    "evidenceExcerpt": "العبارة الحرفية من النص التي تُثبت المخالفة",
+    "violationType": "صريح" أو "ضمني" أو "سياقي",
+    "severity": "حرج" أو "مرتفع" أو "متوسط" أو "منخفض",
+    "explanation": "شرح موجز لسبب المخالفة",
+    "advice": "التوصية التطبيقية للمحامي"
+  }
+]`;
 }
 
-قواعد صارمة لا تتجاوزها:
-١. لا تخترع مخالفات — فقط ما يدعمه النص فعلاً
-٢. التوصيف المهني المشروع والتثقيف القانوني العام ليسا مخالفة
-٣. إذا وجدت دليلاً ضمنياً واضحاً على مخالفة، سجّلها بمستوى ثقة "متوسط" بدلاً من تجاهلها
-٤. إذا كانت confidenceLevel "منخفض"، ضع violationDetected = false
-٥. evidenceExcerpt يجب أن يكون مقتبساً حرفياً من النص المعطى`;
-}
-
-interface SemanticAnalysisResult {
-  violationDetected: boolean;
+interface HolisticViolation {
+  ruleId: string;
   confidenceLevel: "مرتفع" | "متوسط" | "منخفض";
   evidenceExcerpt: string;
   violationType: "صريح" | "ضمني" | "سياقي";
@@ -112,39 +111,37 @@ interface SemanticAnalysisResult {
   advice: string;
 }
 
-function parseSemanticResponse(raw: string): SemanticAnalysisResult | null {
+function parseHolisticResponse(raw: string): HolisticViolation[] {
   try {
-    const jsonMatch = raw.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) return null;
-    const parsed = JSON.parse(jsonMatch[0]) as Partial<SemanticAnalysisResult>;
-    if (typeof parsed.violationDetected !== "boolean") return null;
-    return {
-      violationDetected: parsed.violationDetected,
-      confidenceLevel: parsed.confidenceLevel ?? "منخفض",
-      evidenceExcerpt: parsed.evidenceExcerpt ?? "",
-      violationType: parsed.violationType ?? "سياقي",
-      severity: parsed.severity ?? "متوسط",
-      explanation: parsed.explanation ?? "",
-      advice: parsed.advice ?? ""
-    };
+    const jsonMatch = raw.match(/\[[\s\S]*\]/);
+    if (!jsonMatch) return [];
+    const parsed = JSON.parse(jsonMatch[0]) as Partial<HolisticViolation>[];
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .filter((v) => typeof v.ruleId === "string" && v.ruleId && typeof v.evidenceExcerpt === "string" && v.evidenceExcerpt)
+      .map((v) => ({
+        ruleId: v.ruleId!,
+        confidenceLevel: v.confidenceLevel ?? "متوسط",
+        evidenceExcerpt: v.evidenceExcerpt!.trim(),
+        violationType: v.violationType ?? "سياقي",
+        severity: v.severity ?? "متوسط",
+        explanation: v.explanation ?? "",
+        advice: v.advice ?? ""
+      }));
   } catch {
-    return null;
+    return [];
   }
 }
 
 function buildSemanticFinding(
   entry: (typeof legalKnowledgeEntries)[number],
-  result: SemanticAnalysisResult,
+  violation: HolisticViolation,
   profile: ScoringProfile
 ): ReviewFinding | null {
-  // Only entries with legalReference can produce auditable findings
   if (!entry.legalReference) return null;
+  if (violation.confidenceLevel === "منخفض") return null;
 
-  // Reject low-confidence detections
-  if (result.confidenceLevel === "منخفض") return null;
-
-  // Evidence must quote something from the original text
-  const evidence = result.evidenceExcerpt.trim();
+  const evidence = violation.evidenceExcerpt.trim();
   if (!evidence) return null;
 
   const classification = classifyLegalKnowledgeEntry(entry);
@@ -160,21 +157,21 @@ function buildSemanticFinding(
     weight: 0,
     scoreImpact: 0,
     issue: entry.riskCategories.join("، "),
-    severity: result.severity,
+    severity: violation.severity,
     evidence,
-    matchedPattern: `[دلالي — ${result.violationType}]`,
+    matchedPattern: `[دلالي — ${violation.violationType}]`,
     contentClassification: "إعلان مضلل محتمل" as const,
-    advice: result.advice || entry.recommendedAction,
+    advice: violation.advice || entry.recommendedAction,
     suggestedSaferWording: entry.recommendedAction,
     legalCitation: `${entry.sourceDocument}، ${entry.legalReference}`,
     sourceDocument: entry.sourceDocument,
     legalReference: entry.legalReference,
     articleTitle: entry.articleTitle ?? entry.section,
     articleTextExcerpt: entry.fullText,
-    explanation: result.explanation,
-    legalExplanation: `رصد التحليل الدلالي عبارة «${evidence}» بوصفها مخالفة ${result.violationType} لـ${entry.legalReference} من ${entry.sourceDocument}. ${result.explanation}`,
+    explanation: violation.explanation,
+    legalExplanation: `رصد التحليل الدلالي عبارة «${evidence}» بوصفها مخالفة ${violation.violationType} لـ${entry.legalReference} من ${entry.sourceDocument}. ${violation.explanation}`,
     reviewOutcome: "رصدت ملاحظة" as const,
-    confidenceLevel: result.confidenceLevel,
+    confidenceLevel: violation.confidenceLevel,
     sourceUrl: entry.sourceUrl,
     sourceType: "semantic" as const
   } satisfies ReviewFinding;
@@ -215,8 +212,6 @@ export async function runSemanticAnalysis(
 
   const profile = resolveScoringProfile(contentKind ?? ("post" as ContentKind), context?.channel);
   const contextSummary = buildContextSummary(context);
-
-  // All entries with an auditable legal reference are eligible — no pre-filter by entry list.
   const targetEntries = legalKnowledgeEntries.filter((entry) => entry.legalReference !== null);
 
   if (targetEntries.length === 0) {
@@ -224,36 +219,36 @@ export async function runSemanticAnalysis(
     return [];
   }
 
-  console.log("[semantic] starting: entries =", targetEntries.length);
+  console.log("[semantic] starting holistic analysis: entries =", targetEntries.length);
+
   const client = new Anthropic({ apiKey });
-  const results = await Promise.all(
-    targetEntries.map(async (entry) => {
-      try {
-        const prompt = buildPrompt(text, entry, contextSummary);
-        const message = await client.messages.create({
-          model: "claude-haiku-4-5-20251001",
-          max_tokens: 512,
-          messages: [{ role: "user", content: prompt }]
-        });
+  const prompt = buildHolisticPrompt(text, targetEntries, contextSummary);
 
-        const rawText = message.content
-          .filter((block) => block.type === "text")
-          .map((block) => (block as { type: "text"; text: string }).text)
-          .join("");
+  const message = await client.messages.create({
+    model: "claude-haiku-4-5-20251001",
+    max_tokens: 4096,
+    messages: [{ role: "user", content: prompt }]
+  });
 
-        const result = parseSemanticResponse(rawText);
-        console.log(`[semantic] entry=${entry.id} violation=${result?.violationDetected} confidence=${result?.confidenceLevel}`);
-        if (!result || !result.violationDetected) return null;
+  const rawText = message.content
+    .filter((block) => block.type === "text")
+    .map((block) => (block as { type: "text"; text: string }).text)
+    .join("");
 
-        return buildSemanticFinding(entry, result, profile);
-      } catch (err) {
-        console.error(`[semantic] circuit-breaker: entry=${entry.id} error=`, err instanceof Error ? err.message : String(err));
+  const violations = parseHolisticResponse(rawText);
+  console.log("[semantic] violations identified by Claude:", violations.length);
+
+  const findings = violations
+    .map((violation) => {
+      const entry = targetEntries.find((e) => e.id === violation.ruleId);
+      if (!entry) {
+        console.log(`[semantic] unknown ruleId skipped: ${violation.ruleId}`);
         return null;
       }
+      return buildSemanticFinding(entry, violation, profile);
     })
-  );
+    .filter((f): f is ReviewFinding => f !== null);
 
-  const findings = results.filter((f): f is ReviewFinding => f !== null);
   console.log("[semantic] done: findings =", findings.length);
   return findings;
 }
