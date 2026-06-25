@@ -3,7 +3,7 @@ import { advisoryDisclaimer } from "@/lib/governance";
 import { createReviewedContentContext } from "@/lib/review-context";
 import { reviewLanguageQuality } from "@/lib/services/language-quality-service";
 import { runPublishingReadinessReview } from "@/lib/services/approval-workflow-service";
-import { runLegalComplianceReview, rebuildComplianceFromFindings } from "@/lib/services/legal-compliance-service";
+import { rebuildComplianceFromFindings } from "@/lib/services/legal-compliance-service";
 import { runSemanticAnalysis } from "@/lib/services/semantic-analysis-service";
 import { buildGovernedRewriteSuggestions } from "@/lib/services/recommendation-service";
 import {
@@ -51,20 +51,7 @@ export async function reviewContent(text: string, kind: ContentKind = "post", co
     }
   });
 
-  // Primary engine: semantic analysis via Claude (all eligible rules, context-aware).
-  // Fallback: pattern matching (Layer 1) used when API key is absent or semantic engine fails.
-  const semanticEnabled = process.env.SEMANTIC_ANALYSIS_ENABLED === "true" && !!process.env.ANTHROPIC_API_KEY;
-  let compliance;
-  if (semanticEnabled) {
-    try {
-      compliance = rebuildComplianceFromFindings(await runSemanticAnalysis(text, context, kind), profile);
-    } catch (err) {
-      console.error("[review] semantic engine failed, falling back to Layer 1:", err instanceof Error ? err.message : String(err));
-      compliance = runLegalComplianceReview(text, context, profile);
-    }
-  } else {
-    compliance = runLegalComplianceReview(text, context, profile);
-  }
+  const compliance = rebuildComplianceFromFindings(await runSemanticAnalysis(text, context, kind), profile);
   const reviewStatus = deriveReviewStatus({
     languageScore: languageQuality.score,
     complianceScore: compliance.complianceScore,

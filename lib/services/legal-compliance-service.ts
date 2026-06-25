@@ -317,46 +317,7 @@ function buildRiskAssessment(findings: ReviewFinding[], riskScoreExplanation: Re
   };
 }
 
-export function runLegalComplianceReview(text: string, context?: ReviewContext, selectedProfile?: ScoringProfile) {
-  const profile = selectedProfile ?? resolveScoringProfile((context?.contentType === "إعلان" || context?.contentType === "إعلان مهني") ? "advertisement" : "post", context?.channel);
-  const findings: ReviewFinding[] = legalKnowledgeEntries.flatMap((entry) => {
-    if (!isTraceableRegisteredRule(entry)) return [];
-    const evidence = findEvidence(text, [...entry.prohibitedPatterns, ...(entry.contextualPatterns ?? [])]);
-    if (!evidence) return [];
-    if (!contextSupportsRule(entry, evidence)) return [];
-    return [buildFinding(entry, evidence, context, profile)];
-  }).filter(isAuditableFinding).sort((a, b) => {
-    const order = { critical: 0, high: 1, medium: 2, low: 3 };
-    return order[a.businessSeverity ?? "low"] - order[b.businessSeverity ?? "low"];
-  });
-
-  const complianceScoreExplanation = calculateComplianceScore(findings, profile);
-  const riskScoreExplanation = calculateRiskScore(findings, profile);
-  const complianceScore = complianceScoreExplanation.finalScore;
-  const riskLevel = riskScoreExplanation.level;
-  const professionalConductCompliance = buildSection("امتثال قواعد السلوك المهني", PROFESSIONAL_CONDUCT_SOURCE_ID, findings);
-  const executiveRegulationCompliance = buildSection("امتثال اللائحة التنفيذية لنظام المحاماة في المملكة العربية السعودية", EXECUTIVE_REGULATION_SOURCE_ID, findings);
-  const legalRiskAssessment = buildRiskAssessment(findings, riskScoreExplanation);
-  const referencesPanel = buildReferencesPanel(findings);
-
-  return {
-    passed: findings.length === 0 && (riskLevel === "منخفض" || riskLevel === "متوسط"),
-    complianceScore,
-    complianceScoreExplanation,
-    riskLevel,
-    riskScore: riskScoreExplanation.score,
-    riskScoreExplanation,
-    findings,
-    professionalConductCompliance,
-    executiveRegulationCompliance,
-    legalRiskAssessment,
-    referencesPanel,
-    noViolationMessage
-  };
-}
-
-// Rebuilds compliance sections and scores from a pre-built (merged) findings array.
-// Used by review-service after merging pattern + semantic findings.
+// Rebuilds compliance sections and scores from a findings array produced by the semantic engine.
 export function rebuildComplianceFromFindings(mergedFindings: ReviewFinding[], profile: ScoringProfile) {
   const order = { critical: 0, high: 1, medium: 2, low: 3 };
   const sorted = [...mergedFindings].sort(

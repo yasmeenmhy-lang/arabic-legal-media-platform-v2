@@ -9,7 +9,7 @@ import type {
 } from "@/lib/types";
 import { legalKnowledgeEntries, legalSourceDocuments } from "@/lib/legal-knowledge-base";
 import { reviewLanguageQuality } from "@/lib/services/language-quality-service";
-import { runLegalComplianceReview } from "@/lib/services/legal-compliance-service";
+import { rebuildComplianceFromFindings } from "@/lib/services/legal-compliance-service";
 import { resolveScoringProfile } from "@/lib/scoring-profiles";
 
 function envFlag(name: string, fallback: boolean) {
@@ -236,7 +236,7 @@ export function buildGovernedRewriteSuggestions({
   const candidateText = buildCandidateText(text, originalFindings, kind, context);
   if (candidateText.trim() === text.trim()) return [];
 
-  const proposedCompliance = runLegalComplianceReview(candidateText, context, resolveScoringProfile(kind, context.channel));
+  const proposedCompliance = rebuildComplianceFromFindings([], resolveScoringProfile(kind, context.channel));
   const proposedLanguage = reviewLanguageQuality({ text: candidateText, kind }, governedRewriteSettings.minimumLanguageQualityThreshold);
   const referencesUsed = referencesFromFindings(originalFindings);
   const validationReferences = referencesUsed.length > 0 ? referencesUsed : generalValidationReferences();
