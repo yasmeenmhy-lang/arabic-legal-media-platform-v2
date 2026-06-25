@@ -1,6 +1,6 @@
-// SEMANTIC COMPLIANCE ANALYSIS — LAYER 2
-// Sends content to Claude to detect violations by meaning and context,
-// not just literal pattern matching. Runs after the pattern-matching pass.
+// SEMANTIC COMPLIANCE ANALYSIS — PRIMARY ANALYSIS ENGINE
+// Sends content to Claude to detect violations by meaning and context across
+// all eligible rules (legalReference !== null). No pattern matching pre-filter.
 // Controlled by SEMANTIC_ANALYSIS_ENABLED=true env var.
 // Falls back silently to empty results on any error or missing API key.
 
@@ -16,24 +16,6 @@ import {
 } from "@/lib/services/scoring-service";
 import type { ScoringProfile } from "@/lib/scoring-profiles";
 import { resolveScoringProfile } from "@/lib/scoring-profiles";
-
-// High-risk entries eligible for semantic analysis.
-// All must have legalReference !== null (required for auditable findings).
-// Only rules where violations appear implicitly/contextually in media content
-// benefit from semantic analysis — explicit pattern violations are caught by Layer 1.
-const SEMANTIC_TARGET_ENTRY_IDS = [
-  // ── Layer 1 originals (advertising & media rules) ──────────────────────────
-  "conduct-no-guaranteed-outcomes",              // ق16/3 — ضمان النتائج (implicit guarantees)
-  "conduct-advertising-accuracy",                // ق38/1 — صحة الإعلان (misleading by implication)
-  "conduct-client-solicitation",                 // ق37/6 — استقطاب العملاء (indirect targeting)
-  "conduct-confidentiality",                     // ق37/2 — السرية (implied disclosure)
-  "regulations-competent-authority-instructions",// ق38/5 — تعليمات الجهة المختصة
-
-  // ── New high-value entries added in rule expansion ──────────────────────────
-  "conduct-rule-18-no-deception-exploitation",   // ق18  — الخداع الضمني في الإعلان
-  "conduct-rule-27-no-illegal-advisory",         // ق27  — الاستشارة المعينة على التحايل
-  "conduct-rule-9bis-former-judiciary"           // ق9مكرر — الإيحاء بصلة قضائية في الإعلان
-] as const;
 
 // SEM- prefix distinguishes semantic findings from pattern findings (FND-) in audit trails.
 function semanticTraceabilityId(entryId: string, evidence: string): string {
@@ -63,7 +45,9 @@ function buildPrompt(
   entry: (typeof legalKnowledgeEntries)[number],
   contextSummary: string
 ): string {
-  const examplePatterns = entry.prohibitedPatterns.slice(0, 4).join("، ");
+  const examplePatterns = entry.prohibitedPatterns.length > 0
+    ? entry.prohibitedPatterns.slice(0, 4).join("، ")
+    : "(لا تنطبق أنماط حرفية — يعتمد التحليل على روح القاعدة والسياق)";
   return `أنت محلل امتثال قانوني متخصص في مراجعة المحتوى الإعلامي للمحامين في المملكة العربية السعودية.
 
 النص المراد تحليله:
@@ -199,7 +183,6 @@ function buildSemanticFinding(
 export async function runSemanticAnalysis(
   text: string,
   context: ReviewContext | undefined,
-  existingPatternEntryIds: Set<string>,
   contentKind?: ContentKind
 ): Promise<ReviewFinding[]> {
   if (!isSemanticAnalysisEnabled()) {
@@ -216,19 +199,15 @@ export async function runSemanticAnalysis(
   const profile = resolveScoringProfile(contentKind ?? ("post" as ContentKind), context?.channel);
   const contextSummary = buildContextSummary(context);
 
-  const targetEntries = legalKnowledgeEntries.filter(
-    (entry) =>
-      SEMANTIC_TARGET_ENTRY_IDS.includes(entry.id as (typeof SEMANTIC_TARGET_ENTRY_IDS)[number]) &&
-      !existingPatternEntryIds.has(entry.id) &&
-      entry.legalReference !== null
-  );
+  // All entries with an auditable legal reference are eligible — no pre-filter by entry list.
+  const targetEntries = legalKnowledgeEntries.filter((entry) => entry.legalReference !== null);
 
   if (targetEntries.length === 0) {
-    console.log("[semantic] gated: no target entries remaining after dedup (pattern layer caught all)");
+    console.log("[semantic] gated: no eligible entries with legalReference");
     return [];
   }
 
-  console.log("[semantic] starting: entries =", targetEntries.map(e => e.id).join(", "));
+  console.log("[semantic] starting: entries =", targetEntries.length);
   const client = new Anthropic({ apiKey });
   const results = await Promise.all(
     targetEntries.map(async (entry) => {
