@@ -17,16 +17,11 @@ import {
 import type { ScoringProfile } from "@/lib/scoring-profiles";
 import { resolveScoringProfile } from "@/lib/scoring-profiles";
 
-// SEM- prefix distinguishes semantic findings from pattern findings (FND-) in audit trails.
 function semanticTraceabilityId(entryId: string, evidence: string): string {
   const value = `${entryId}:${evidence}`;
   let hash = 0;
   for (let i = 0; i < value.length; i++) hash = (hash * 31 + value.charCodeAt(i)) >>> 0;
   return `SEM-${hash.toString(16).toUpperCase().padStart(8, "0")}`;
-}
-
-function isSemanticAnalysisEnabled(): boolean {
-  return process.env.SEMANTIC_ANALYSIS_ENABLED === "true";
 }
 
 function buildContextSummary(context?: ReviewContext): string {
@@ -199,16 +194,8 @@ export async function runSemanticAnalysis(
   context: ReviewContext | undefined,
   contentKind?: ContentKind
 ): Promise<ReviewFinding[]> {
-  if (!isSemanticAnalysisEnabled()) {
-    console.log("[semantic] gated: SEMANTIC_ANALYSIS_ENABLED =", JSON.stringify(process.env.SEMANTIC_ANALYSIS_ENABLED));
-    return [];
-  }
-
   const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) {
-    console.log("[semantic] gated: ANTHROPIC_API_KEY is empty or missing");
-    return [];
-  }
+  if (!apiKey) throw new Error("ANTHROPIC_API_KEY is not configured");
 
   const profile = resolveScoringProfile(contentKind ?? ("post" as ContentKind), context?.channel);
   const contextSummary = buildContextSummary(context);
