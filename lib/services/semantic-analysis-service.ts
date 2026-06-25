@@ -19,13 +19,20 @@ import { resolveScoringProfile } from "@/lib/scoring-profiles";
 
 // High-risk entries eligible for semantic analysis.
 // All must have legalReference !== null (required for auditable findings).
-// Expand this list incrementally after validating accuracy and performance.
+// Only rules where violations appear implicitly/contextually in media content
+// benefit from semantic analysis — explicit pattern violations are caught by Layer 1.
 const SEMANTIC_TARGET_ENTRY_IDS = [
-  "conduct-no-guaranteed-outcomes",        // ق16/3 — ضمان النتائج (implicit guarantees)
-  "conduct-advertising-accuracy",          // ق38/1 — صحة الإعلان (misleading by implication)
-  "conduct-client-solicitation",           // ق37/6 — استقطاب العملاء (indirect targeting)
-  "conduct-confidentiality",               // ق37/2 — السرية (implied disclosure)
-  "regulations-competent-authority-instructions" // ق38/5 — تعليمات الجهة المختصة
+  // ── Layer 1 originals (advertising & media rules) ──────────────────────────
+  "conduct-no-guaranteed-outcomes",              // ق16/3 — ضمان النتائج (implicit guarantees)
+  "conduct-advertising-accuracy",                // ق38/1 — صحة الإعلان (misleading by implication)
+  "conduct-client-solicitation",                 // ق37/6 — استقطاب العملاء (indirect targeting)
+  "conduct-confidentiality",                     // ق37/2 — السرية (implied disclosure)
+  "regulations-competent-authority-instructions",// ق38/5 — تعليمات الجهة المختصة
+
+  // ── New high-value entries added in rule expansion ──────────────────────────
+  "conduct-rule-18-no-deception-exploitation",   // ق18  — الخداع الضمني في الإعلان
+  "conduct-rule-27-no-illegal-advisory",         // ق27  — الاستشارة المعينة على التحايل
+  "conduct-rule-9bis-former-judiciary"           // ق9مكرر — الإيحاء بصلة قضائية في الإعلان
 ] as const;
 
 // SEM- prefix distinguishes semantic findings from pattern findings (FND-) in audit trails.
@@ -73,6 +80,7 @@ function buildPrompt(
 
 المهمة: هل يخالف هذا النص روح هذه القاعدة، سواء بشكل صريح أو ضمني أو سياقي؟
 ابحث تحديداً عن: الوعود الضمنية، الإيحاءات المضللة، والعبارات التي تنتهك روح القاعدة حتى لو لم تتطابق كلياً مع الأنماط المحظورة.
+انتبه بشكل خاص لـ: عروض "الاستشارة المجانية" أو أي إيحاء تجاري في الإعلان القانوني (مخالفة محتملة للقاعدة 38/1)، وعبارات الاستعجال مثل "لا تتركوا حقوقكم تضيع" أو "تواصلوا معنا اليوم" التي توحي بضغط على العميل (مخالفة محتملة للقاعدة 37/6).
 
 أجب بـ JSON فقط — لا تضف أي نص خارجه:
 {
@@ -88,7 +96,7 @@ function buildPrompt(
 قواعد صارمة لا تتجاوزها:
 ١. لا تخترع مخالفات — فقط ما يدعمه النص فعلاً
 ٢. التوصيف المهني المشروع ليس مخالفة
-٣. الشك يكون لصالح عدم المخالفة
+٣. إذا وجدت دليلاً ضمنياً واضحاً على مخالفة، سجّلها بمستوى ثقة "متوسط" بدلاً من تجاهلها
 ٤. إذا كانت confidenceLevel "منخفض"، ضع violationDetected = false
 ٥. evidenceExcerpt يجب أن يكون مقتبساً حرفياً من النص المعطى`;
 }
@@ -222,34 +230,34 @@ export async function runSemanticAnalysis(
 
   console.log("[semantic] starting: entries =", targetEntries.map(e => e.id).join(", "));
   const client = new Anthropic({ apiKey });
-  const findings: ReviewFinding[] = [];
+  const results = await Promise.all(
+    targetEntries.map(async (entry) => {
+      try {
+        const prompt = buildPrompt(text, entry, contextSummary);
+        const message = await client.messages.create({
+          model: "claude-haiku-4-5-20251001",
+          max_tokens: 512,
+          messages: [{ role: "user", content: prompt }]
+        });
 
-  for (const entry of targetEntries) {
-    try {
-      const prompt = buildPrompt(text, entry, contextSummary);
-      const message = await client.messages.create({
-        model: "claude-haiku-4-5-20251001",
-        max_tokens: 512,
-        messages: [{ role: "user", content: prompt }]
-      });
+        const rawText = message.content
+          .filter((block) => block.type === "text")
+          .map((block) => (block as { type: "text"; text: string }).text)
+          .join("");
 
-      const rawText = message.content
-        .filter((block) => block.type === "text")
-        .map((block) => (block as { type: "text"; text: string }).text)
-        .join("");
+        const result = parseSemanticResponse(rawText);
+        console.log(`[semantic] entry=${entry.id} violation=${result?.violationDetected} confidence=${result?.confidenceLevel}`);
+        if (!result || !result.violationDetected) return null;
 
-      const result = parseSemanticResponse(rawText);
-      console.log(`[semantic] entry=${entry.id} violation=${result?.violationDetected} confidence=${result?.confidenceLevel}`);
-      if (!result || !result.violationDetected) continue;
+        return buildSemanticFinding(entry, result, profile);
+      } catch (err) {
+        console.error(`[semantic] circuit-breaker: entry=${entry.id} error=`, err instanceof Error ? err.message : String(err));
+        return null;
+      }
+    })
+  );
 
-      const finding = buildSemanticFinding(entry, result, profile);
-      if (finding) findings.push(finding);
-    } catch (err) {
-      console.error(`[semantic] circuit-breaker: entry=${entry.id} error=`, err instanceof Error ? err.message : String(err));
-      continue;
-    }
-  }
-
+  const findings = results.filter((f): f is ReviewFinding => f !== null);
   console.log("[semantic] done: findings =", findings.length);
   return findings;
 }
