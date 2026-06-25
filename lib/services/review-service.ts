@@ -51,12 +51,12 @@ export async function reviewContent(text: string, kind: ContentKind = "post", co
     }
   });
 
-  const patternCompliance = runLegalComplianceReview(text, context, profile);
-  const patternEntryIds = new Set(patternCompliance.findings.map((f) => f.legalKnowledgeEntryId));
-  const semanticFindings = await runSemanticAnalysis(text, context, patternEntryIds, kind);
-  const compliance = semanticFindings.length > 0
-    ? rebuildComplianceFromFindings([...patternCompliance.findings, ...semanticFindings], profile)
-    : patternCompliance;
+  // Primary engine: semantic analysis via Claude (all eligible rules, context-aware).
+  // Fallback: pattern matching (Layer 1) used only when API key is absent — e.g. CI, local dev.
+  const semanticEnabled = process.env.SEMANTIC_ANALYSIS_ENABLED === "true" && !!process.env.ANTHROPIC_API_KEY;
+  const compliance = semanticEnabled
+    ? rebuildComplianceFromFindings(await runSemanticAnalysis(text, context, kind), profile)
+    : runLegalComplianceReview(text, context, profile);
   const reviewStatus = deriveReviewStatus({
     languageScore: languageQuality.score,
     complianceScore: compliance.complianceScore,
