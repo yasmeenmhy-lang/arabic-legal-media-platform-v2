@@ -1,8 +1,9 @@
 import { ok } from "@/lib/api";
 import { legalKnowledgeEntries, legalSourceDocuments } from "@/lib/legal-knowledge-base";
 import { runLegalComplianceReview } from "@/lib/services/legal-compliance-service";
+import { runSemanticAnalysis } from "@/lib/services/semantic-analysis-service";
 
-// Known-violating text — Layer 1 must detect at least 2 findings
+// نص مضمون الانتهاك — يجب أن يرصده كلا المحركَين
 const TEST_TEXT = "نضمن لك أفضل محامٍ يساعدك على كسب قضيتك";
 
 export async function GET() {
@@ -14,8 +15,44 @@ export async function GET() {
   const anthropicApiKeyPresent = !!process.env.ANTHROPIC_API_KEY;
   const semanticEngineActive = semanticEngineEnabled && anthropicApiKeyPresent;
 
-  // Layer 1 functional test — no API key needed
-  const layer1Test = runLegalComplianceReview(TEST_TEXT, {}, undefined);
+  // اختبار Layer 1 — لا يحتاج API key
+  const layer1Result = runLegalComplianceReview(TEST_TEXT, {}, undefined);
+
+  // اختبار Layer 2 — يستدعي Claude فعلاً (إذا كان المفتاح موجوداً)
+  let layer2Result: {
+    ran: boolean;
+    findingsDetected: number;
+    passed: string;
+    error?: string;
+    durationMs?: number;
+  };
+
+  if (semanticEngineActive) {
+    const start = Date.now();
+    try {
+      const findings = await runSemanticAnalysis(TEST_TEXT, { contentType: "إعلان مهني", channel: "LinkedIn" }, "advertisement");
+      const duration = Date.now() - start;
+      layer2Result = {
+        ran: true,
+        findingsDetected: findings.length,
+        durationMs: duration,
+        passed: findings.length >= 1 ? "✓ Layer 2 (Claude) يعمل ويرصد المخالفات" : "⚠ Layer 2 يعمل لكن لم يرصد مخالفات على النص التجريبي"
+      };
+    } catch (err) {
+      layer2Result = {
+        ran: false,
+        findingsDetected: 0,
+        passed: "✗ Layer 2 فشل",
+        error: err instanceof Error ? err.message : String(err)
+      };
+    }
+  } else {
+    layer2Result = {
+      ran: false,
+      findingsDetected: 0,
+      passed: "✗ Layer 2 معطّل — SEMANTIC_ANALYSIS_ENABLED أو ANTHROPIC_API_KEY غير موجود"
+    };
+  }
 
   const bySource = legalSourceDocuments.map((doc) => {
     const entries = legalKnowledgeEntries.filter((e) => e.sourceDocumentId === doc.id);
@@ -37,18 +74,19 @@ export async function GET() {
       anthropicApiKeyPresent,
       semanticEngineActive
     },
-    layer1FunctionalTest: {
-      testText: TEST_TEXT,
-      findingsDetected: layer1Test.findings.length,
-      complianceScore: layer1Test.complianceScore,
-      passed: layer1Test.findings.length >= 2 ? "✓ Layer 1 يعمل" : "✗ Layer 1 لا يكتشف المخالفات"
+    testText: TEST_TEXT,
+    layer1Test: {
+      findingsDetected: layer1Result.findings.length,
+      complianceScore: layer1Result.complianceScore,
+      passed: layer1Result.findings.length >= 2 ? "✓ يعمل" : "✗ لا يكتشف المخالفات"
     },
+    layer2Test: layer2Result,
     bySource,
     excludedEntries: excluded.map((e) => ({
       id: e.id,
       sourceDocument: e.sourceDocument,
       section: e.section,
-      reason: "legalReference: null — يحتاج مرجع رسمي"
+      reason: "legalReference: null"
     }))
   });
 }
