@@ -47,8 +47,8 @@ function buildHolisticPrompt(
 ): string {
   const rulesList = entries
     .map((entry) => {
-      const shortText = entry.fullText.length > 300
-        ? entry.fullText.slice(0, 300) + "..."
+      const shortText = entry.fullText.length > 500
+        ? entry.fullText.slice(0, 500) + "..."
         : entry.fullText;
       const patterns = entry.prohibitedPatterns.slice(0, 3).join("، ");
       return [
