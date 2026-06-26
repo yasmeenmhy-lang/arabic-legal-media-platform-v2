@@ -321,12 +321,14 @@ function businessScoreExplanation(kind: "compliance" | "risk" | "language", revi
     };
   }
   if (kind === "risk") {
+    const riskExp = review.riskScoreExplanation;
+    const riskParties = riskExp.affectedParties?.join("، ");
     return {
       label: "المخاطر",
       value: review.riskLevel,
       explanation: review.legalRiskAssessment.reason,
-      evidence: review.findings[0]?.evidence ?? "لا توجد عبارة عالية المخاطر مرصودة.",
-      action: review.findings[0]?.suggestedSaferWording ?? "استمر في تجنب الوعود والادعاءات غير المدعومة."
+      evidence: riskExp.explanation ?? (riskParties ? `الجهات المتضررة: ${riskParties}` : review.legalRiskAssessment.reason),
+      action: riskExp.fix ?? "استمر في تجنب الوعود والادعاءات غير المدعومة."
     };
   }
   return {
@@ -337,6 +339,32 @@ function businessScoreExplanation(kind: "compliance" | "risk" | "language", revi
       : "الصياغة واضحة ومناسبة للمراجعة المهنية.",
     evidence: review.languageQuality.issues[0]?.excerpt || "النص الحالي",
     action: review.languageQuality.issues[0]?.suggestion || "لا يلزم تعديل لغوي جوهري."
+  };
+}
+
+function contentQualityExplanation(review: ReviewResult) {
+  const exp = review.contentQualityScoreExplanation;
+  const score = review.contentQualityScore;
+  const factorLabels = exp.factors.map((f) => `${f.label} ${f.sourceScore}%`).join(" | ");
+  if (exp.redLine) {
+    return {
+      label: "جودة المحتوى",
+      value: `${score}%`,
+      explanation: "رُصدت مخالفة جوهرية تحجب تقدم المحتوى في مسار المراجعة.",
+      evidence: review.findings[0]?.evidence ?? review.legalRiskAssessment.reason,
+      action: review.findings[0]?.suggestedSaferWording ?? "عالج الحواجز الجوهرية قبل المضي في مراحل التقييم."
+    };
+  }
+  return {
+    label: "جودة المحتوى",
+    value: `${score}%`,
+    explanation: score >= 80
+      ? `المحتوى يجتاز المؤشرات الأربعة. (${factorLabels})`
+      : score >= 60
+        ? `المحتوى بحاجة إلى تحسين في بعض المؤشرات. (${factorLabels})`
+        : `المحتوى يفتقر إلى معايير جودة في مؤشرات رئيسية. (${factorLabels})`,
+    evidence: review.languageQuality.issues[0]?.excerpt || review.findings[0]?.evidence || "التقييم الشامل للمؤشرات الأربعة.",
+    action: review.languageQuality.issues[0]?.suggestion || review.findings[0]?.suggestedSaferWording || "راجع كل مؤشر على حدة وعالج الضعف الأكبر أولاً."
   };
 }
 
@@ -1054,13 +1082,13 @@ export default function ContentReviewPage() {
             />
             <div className="grid gap-4 xl:grid-cols-2">
               {(["compliance", "language"] as const).map((kindName) => {
-                const metric = businessScoreExplanation(kindName, review);
+                const metric = kindName === "compliance" ? businessScoreExplanation("compliance", review) : contentQualityExplanation(review);
                 const value = kindName === "compliance" ? review.complianceScore : review.contentQualityScore;
                 return (
                   <MetricExplanation
                     key={kindName}
                     id={kindName === "compliance" ? "compliance" : undefined}
-                    label={kindName === "language" ? "جودة المحتوى" : metric.label}
+                    label={metric.label}
                     value={value}
                     displayValue={metric.value}
                     explanation={metric.explanation}
