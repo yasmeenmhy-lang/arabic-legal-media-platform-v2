@@ -46,7 +46,8 @@ function buildValidReferencesList(entries: typeof legalKnowledgeEntries): string
     const baseRef = entry.legalReference.split("،")[0].trim();
     if (seen.has(baseRef)) continue;
     seen.add(baseRef);
-    lines.push(`- ${baseRef} (${entry.articleTitle ?? entry.section})`);
+    const cats = entry.riskCategories?.length ? ` | يشمل: ${entry.riskCategories.join("، ")}` : "";
+    lines.push(`- ${baseRef} (${entry.articleTitle ?? entry.section})${cats}`);
   }
   return lines.join("\n");
 }
@@ -68,6 +69,9 @@ function buildHolisticPrompt(text: string, contextSummary: string, entries: type
 - إظهار الثروة أو المكانة المادية بأي شكل
 - المحتوى الترويجي الذي يستغل المظاهر المادية لجذب العملاء
 - أي محتوى لا علاقة له بالمهنة القانونية
+
+احكم بالمعنى والسياق والغرض — لا بوجود كلمات أو أنماط بعينها.
+المحتوى الخارج عن نطاق المهنة الذي لا يرتبط بقاعدة محددة من القائمة أدناه: صنّفه مؤشر مخاطر مهنية بـ severity="منخفض".
 
 ## النص المراد تحليله
 «${text}»
