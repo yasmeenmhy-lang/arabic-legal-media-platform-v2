@@ -26,7 +26,7 @@ function getDemoReviewReadinessItems(): ReviewReadinessItem[] {
 }
 
 export function runPublishingReadinessReview(
-  review: Pick<ReviewResult, "publishingReadinessScore" | "reviewStatus">
+  review: Pick<ReviewResult, "languageQuality" | "complianceScore" | "riskLevel" | "publishingReadinessScore" | "reviewStatus">
 ) {
   const readyForPublishing =
     review.publishingReadinessScore === 100 &&

@@ -59,7 +59,7 @@ export function buildReadinessDecision({
   const blockers: string[] = [];
   if (!approved) blockers.push("اعتماد الإصدار الحالي");
   if (!languagePassed) blockers.push("معالجة ملاحظات اللغة والصياغة");
-  if (riskLevel === "حرج" || riskLevel === "مرتفع") blockers.push("معالجة المخاطر المرتفعة قبل النشر");
+  if (riskLevel === "بالغ" || riskLevel === "حرج" || riskLevel === "مرتفع") blockers.push("معالجة المخاطر المرتفعة قبل النشر");
   if (findings.some((finding) => finding.businessSeverity === "critical" && !finding.resolved)) {
     blockers.push("إغلاق الملاحظات الحرجة وإعادة التقييم");
   }
@@ -102,7 +102,7 @@ export function buildPublicationDecision({
   riskLevel: RiskLevel;
 }): PublicationDecision {
   const critical = findings.filter((finding) => finding.businessSeverity === "critical" && !finding.resolved);
-  if (critical.length > 0 || riskLevel === "حرج") {
+  if (critical.length > 0 || riskLevel === "بالغ" || riskLevel === "حرج") {
     return {
       outcome: "NOT_RECOMMENDED",
       label: "غير موصى بالنشر",

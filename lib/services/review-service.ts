@@ -1,14 +1,24 @@
-import type { ContentKind, ReviewContext, ReviewResult, ReviewWorkflowStep } from "@/lib/types";
+import type {
+  ContentKind,
+  LanguageIssueCategory,
+  LanguageIssueSeverity,
+  LanguageQualityIssue,
+  LanguageQualityReviewResult,
+  ReviewContext,
+  ReviewResult,
+  ReviewWorkflowStep
+} from "@/lib/types";
 import { advisoryDisclaimer } from "@/lib/governance";
 import { createReviewedContentContext } from "@/lib/review-context";
-import { reviewLanguageQuality, reviewProfessionalism } from "@/lib/services/language-quality-service";
 import { runPublishingReadinessReview } from "@/lib/services/approval-workflow-service";
 import { rebuildComplianceFromFindings } from "@/lib/services/legal-compliance-service";
 import { runSemanticAnalysis } from "@/lib/services/semantic-analysis-service";
+import { evaluateContent } from "@/lib/services/content-evaluation-service";
 import { buildGovernedRewriteSuggestions } from "@/lib/services/recommendation-service";
 import {
   calculateContentQualityScore,
   calculatePublishingReadiness,
+  calculateRiskFromEvaluation,
   deriveReviewStatus,
   SCORING_MODEL_VERSION
 } from "@/lib/services/scoring-service";
@@ -41,42 +51,88 @@ function buildWorkflow(languageQualityPassed: boolean, compliancePassed: boolean
   });
 }
 
+function mapToLanguageQualityResult(
+  aiLang: { score: number; passed: boolean; issues: Array<{ category: LanguageIssueCategory; severity: LanguageIssueSeverity; excerpt: string; message: string; suggestion: string }> }
+): LanguageQualityReviewResult {
+  const weights: Record<LanguageIssueSeverity, number> = { low: 2, medium: 5, high: 9, critical: 16 };
+  const issues: LanguageQualityIssue[] = aiLang.issues.map((issue, index) => ({
+    id: `ai-${issue.category}-${index + 1}`,
+    category: issue.category,
+    severity: issue.severity,
+    message: issue.message || "يوجد خطأ في النص",
+    excerpt: issue.excerpt,
+    suggestion: issue.suggestion
+  }));
+
+  const categoryScores: Record<LanguageIssueCategory, number> = {
+    spelling: 100,
+    grammar: 100,
+    style: 100,
+    readability: 100,
+    "اتساق المصطلحات": 100
+  };
+  for (const issue of issues) {
+    categoryScores[issue.category] = Math.max(0, categoryScores[issue.category] - weights[issue.severity]);
+  }
+
+  return {
+    passed: aiLang.passed,
+    score: aiLang.score,
+    threshold: 75,
+    normalizedText: "",
+    improvedDraft: "",
+    issues,
+    categoryScores,
+    reviewedAt: new Date().toISOString()
+  };
+}
+
 export async function reviewContent(text: string, kind: ContentKind = "post", context: ReviewContext = {}): Promise<ReviewResult> {
   const profile = resolveScoringProfile(kind, context.channel);
-  const languageQuality = reviewLanguageQuality({
-    text,
-    kind,
-    terminologyMap: {
-      المسؤولية: ["المسؤليه", "المسئولية"],
-      الإجراء: ["الاجراء", "اجراءات"]
-    }
-  });
 
-  const professionalism = reviewProfessionalism(text);
-  const compliance = rebuildComplianceFromFindings(await runSemanticAnalysis(text, context, kind), profile);
+  // Run compliance analysis and content evaluation (risk + professionalism + language) in parallel
+  const [semanticFindings, contentEval] = await Promise.all([
+    runSemanticAnalysis(text, context, kind),
+    evaluateContent(text)
+  ]);
+
+  const languageQuality = mapToLanguageQualityResult(contentEval.language);
+  const compliance = rebuildComplianceFromFindings(semanticFindings, profile);
+
+  // Override risk values with AI-based evaluation (affected parties model)
+  const riskScore = contentEval.risks.level === "بالغ" ? 100
+    : contentEval.risks.level === "مرتفع" ? 70
+    : contentEval.risks.level === "متوسط" ? 40
+    : 10;
+  const riskLevel = contentEval.risks.level;
+  const riskScoreExplanation = calculateRiskFromEvaluation(contentEval.risks, compliance.findings.length, profile);
+  const professionalismScore = contentEval.professionalWriting.score;
   const reviewStatus = deriveReviewStatus({
     languageScore: languageQuality.score,
     complianceScore: compliance.complianceScore,
-    riskLevel: compliance.riskLevel,
+    riskLevel,
     requestedStatus: context.reviewStatus
   });
   const approved = ["READY_FOR_PUBLISHING", "EXPORTED", "SHARED"].includes(reviewStatus);
   const contentQualityExplanation = calculateContentQualityScore({
     complianceScore: compliance.complianceScore,
-    riskScore: compliance.riskScore,
-    professionalismScore: professionalism.score,
+    riskScore,
+    professionalismScore,
     languageScore: languageQuality.score
   });
   const publishingReadinessExplanation = calculatePublishingReadiness({
     complianceScore: compliance.complianceScore,
-    riskScore: compliance.riskScore,
-    professionalismScore: professionalism.score,
+    riskScore,
+    professionalismScore,
     languageScore: languageQuality.score,
     context,
     reviewStatus
   });
   const publishingReadinessScore = publishingReadinessExplanation.finalScore;
   const readiness = runPublishingReadinessReview({
+    languageQuality,
+    complianceScore: compliance.complianceScore,
+    riskLevel,
     publishingReadinessScore,
     reviewStatus
   });
@@ -88,15 +144,15 @@ export async function reviewContent(text: string, kind: ContentKind = "post", co
     originalFindings: compliance.findings,
     originalComplianceScore: compliance.complianceScore,
     originalLanguageQuality: languageQuality.score,
-    originalRiskLevel: compliance.riskLevel,
-    originalRiskScore: compliance.riskScore
+    originalRiskLevel: riskLevel,
+    originalRiskScore: riskScore
   });
   const reviewContext = createReviewedContentContext(text, context);
   const calculatedAt = new Date().toISOString();
   const confidence = buildConfidence(compliance.findings, context);
   const readinessDecision = buildReadinessDecision({
     complianceScore: compliance.complianceScore,
-    riskLevel: compliance.riskLevel,
+    riskLevel,
     languagePassed: languageQuality.passed,
     approved,
     findings: compliance.findings
@@ -105,7 +161,7 @@ export async function reviewContent(text: string, kind: ContentKind = "post", co
     confidence,
     readiness: readinessDecision,
     findings: compliance.findings,
-    riskLevel: compliance.riskLevel
+    riskLevel
   });
   const channelRecommendations = buildChannelRecommendations(kind, context, compliance.findings, readinessDecision);
   const decisionWorkflow = buildDecisionWorkflow(publicationDecision, governedRewrites.length > 0, approved);
@@ -113,14 +169,14 @@ export async function reviewContent(text: string, kind: ContentKind = "post", co
   return {
     reviewContext,
     languageQuality,
-    professionalismScore: professionalism.score,
+    professionalismScore,
     contentQualityScore: contentQualityExplanation.finalScore,
     contentQualityScoreExplanation: contentQualityExplanation,
     complianceScore: compliance.complianceScore,
     complianceScoreExplanation: compliance.complianceScoreExplanation,
-    riskLevel: compliance.riskLevel,
-    riskScore: compliance.riskScore,
-    riskScoreExplanation: compliance.riskScoreExplanation,
+    riskLevel,
+    riskScore,
+    riskScoreExplanation,
     publishingReadinessScore,
     publishingReadinessExplanation,
     reviewStatus,

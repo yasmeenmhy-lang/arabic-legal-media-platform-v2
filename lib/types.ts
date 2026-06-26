@@ -1,6 +1,8 @@
 export type RoleName = "LAWYER" | "SUPERVISOR" | "ADMIN" | "DIRECTOR";
 
-export type RiskLevel = "منخفض" | "متوسط" | "مرتفع" | "حرج";
+export type RiskLevel = "منخفض" | "متوسط" | "مرتفع" | "حرج" | "بالغ";
+
+export type RiskAffectedParty = "الموكل" | "المحامي" | "المهنة";
 
 export type BusinessSeverity = "critical" | "high" | "medium" | "low";
 
@@ -256,6 +258,43 @@ export type RiskScoreExplanation = {
   domainContribution: number;
   countContribution: number;
   contributions: ScoreContribution[];
+  affectedParties?: RiskAffectedParty[];
+  explanation?: string;
+  fix?: string;
+};
+
+export type ContentEvaluationRisks = {
+  level: RiskLevel;
+  affectedParties: RiskAffectedParty[];
+  explanation: string;
+  fix: string;
+};
+
+export type ContentEvaluationProfessionalWriting = {
+  score: number;
+  passed: boolean;
+  explanation: string;
+  fix: string;
+};
+
+export type ContentEvaluationLanguageIssue = {
+  category: LanguageIssueCategory;
+  severity: LanguageIssueSeverity;
+  excerpt: string;
+  message: string;
+  suggestion: string;
+};
+
+export type ContentEvaluationLanguage = {
+  score: number;
+  passed: boolean;
+  issues: ContentEvaluationLanguageIssue[];
+};
+
+export type ContentEvaluation = {
+  risks: ContentEvaluationRisks;
+  professionalWriting: ContentEvaluationProfessionalWriting;
+  language: ContentEvaluationLanguage;
 };
 
 export type ContentQualityScoreExplanation = {
@@ -274,7 +313,7 @@ export type PublishingReadinessGate = {
   key: "compliance" | "risk" | "professionalism" | "language";
   label: string;
   passed: boolean;
-  sourceValue: string | number;
+  sourceValue: number;
   threshold: string;
   reason: string;
 };

@@ -16,7 +16,7 @@ describe("reviewContent", () => {
   itWithApi("flags guaranteed outcomes and exaggerated claims", async () => {
     const result = await reviewContent("نضمن لك أفضل محام يساعدك على اكسب قضيتك.");
 
-    expect(["متوسط", "مرتفع", "حرج"]).toContain(result.riskLevel);
+    expect(["متوسط", "مرتفع", "بالغ"]).toContain(result.riskLevel);
     expect(result.findings.length).toBeGreaterThanOrEqual(2);
     expect(result.complianceScore).toBeLessThan(60);
     expect(result.findings[0].legalCitation).toBeTruthy();
@@ -66,7 +66,7 @@ describe("reviewContent", () => {
 
     expect(result.findings.length).toBeGreaterThan(0);
     expect(result.findings.every((finding) => finding.legalExplanation.includes(finding.contentClassification))).toBe(true);
-    expect(["متوسط", "مرتفع", "حرج"]).toContain(result.riskLevel);
+    expect(["متوسط", "مرتفع", "بالغ"]).toContain(result.riskLevel);
   });
 
   itWithApi("keeps neutral educational wording low risk", async () => {
@@ -132,15 +132,17 @@ describe("reviewContent", () => {
     expect(result.complianceScoreExplanation.contributions).toHaveLength(result.findings.length);
   });
 
-  itWithApi("calculates risk independently from configurable finding severity", async () => {
+  itWithApi("calculates risk from AI affected-party model independently of finding severity", async () => {
     const result = await reviewContent("نضمن أفضل النتائج ونمثل الطرفين دون تعارض مصالح.", "advertisement");
     const explanation = result.riskScoreExplanation;
-    const expected = Math.min(100, explanation.contributions.reduce((sum, item) => sum + item.value, 0));
+    const contributionSum = explanation.contributions.reduce((sum, item) => sum + item.value, 0);
 
     expect(result.findings.length).toBeGreaterThan(1);
-    expect(result.riskScore).toBe(expected);
+    expect([10, 40, 70, 100]).toContain(result.riskScore);
+    expect(result.riskScore).toBe(contributionSum);
     expect(explanation.findingCount).toBe(result.findings.length);
     expect(explanation.severityContribution).toBeGreaterThan(0);
+    expect(explanation.contributions.length).toBeGreaterThan(0);
     expect(explanation.contributions.every((item) => item.value > 0)).toBe(true);
   });
 
@@ -276,7 +278,7 @@ describe("reviewContent", () => {
     expect(result.governedRewrites.length).toBeGreaterThan(0);
   });
 
-  it("does not pass language quality when obvious spelling mistakes exist", async () => {
+  itWithApi("does not pass language quality when obvious spelling mistakes exist", async () => {
     const result = await reviewContent("هذا نص عن القضيه والاجراءات في السعوديه", "post");
 
     expect(result.languageQuality.passed).toBe(false);

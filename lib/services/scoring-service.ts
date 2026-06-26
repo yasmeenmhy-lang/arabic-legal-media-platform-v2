@@ -1,6 +1,7 @@
 import type {
   BusinessSeverity,
   ComplianceScoreExplanation,
+  ContentEvaluationRisks,
   ContentQualityScoreExplanation,
   FindingCategory,
   FindingDomain,
@@ -105,6 +106,59 @@ export function calculateComplianceScore(findings: ReviewFinding[], profile?: Sc
   };
 }
 
+export function riskLevelToNumeric(level: RiskLevel): number {
+  if (level === "بالغ") return 100;
+  if (level === "مرتفع") return 70;
+  if (level === "متوسط") return 40;
+  return 10; // منخفض or حرج (mapped to 10 when used in new model context)
+}
+
+export function calculateRiskFromEvaluation(
+  risks: ContentEvaluationRisks,
+  findingCount: number,
+  profile?: ScoringProfile
+): RiskScoreExplanation {
+  const selected = profile ?? resolveScoringProfile("post");
+  const riskNumeric = riskLevelToNumeric(risks.level);
+  const parties = risks.affectedParties;
+  const numParties = parties.length || 1;
+  const baseValue = Math.floor(riskNumeric / numParties);
+  const remainder = riskNumeric - baseValue * numParties;
+
+  const contributions =
+    parties.length > 0
+      ? parties.map((party, i) => ({
+          traceabilityId: `RISK-${party}`,
+          label: party,
+          value: i === 0 ? baseValue + remainder : baseValue,
+          explanation: risks.explanation
+        }))
+      : [
+          {
+            traceabilityId: "RISK-NONE",
+            label: "لا مخاطر محددة",
+            value: riskNumeric,
+            explanation: risks.explanation || "لم يُرصد خطر مباشر على أي جهة."
+          }
+        ];
+
+  return {
+    modelVersion: `${selected.id}-v${selected.version}`,
+    score: riskNumeric,
+    level: risks.level,
+    findingCount,
+    severityContribution: riskNumeric,
+    categoryContribution: 0,
+    impactContribution: 0,
+    domainContribution: 0,
+    countContribution: 0,
+    contributions,
+    affectedParties: risks.affectedParties,
+    explanation: risks.explanation,
+    fix: risks.fix
+  };
+}
+
 export function calculateRiskScore(findings: ReviewFinding[], profile?: ScoringProfile): RiskScoreExplanation {
   const selected = profile ?? resolveScoringProfile("post");
   const unresolved = findings.filter((finding) => !finding.resolved);
@@ -154,7 +208,7 @@ export function deriveReviewStatus({
   requestedStatus?: ReviewReadinessStatus;
 }): ReviewReadinessStatus {
   if (requestedStatus && ["EXPORTED", "SHARED", "READY_FOR_PUBLISHING"].includes(requestedStatus)) return requestedStatus;
-  if (riskLevel === "حرج" || riskLevel === "مرتفع" || complianceScore < 70 || languageScore < 82) return "NEEDS_CORRECTION";
+  if (riskLevel === "بالغ" || riskLevel === "مرتفع" || complianceScore < 70 || languageScore < 82) return "NEEDS_CORRECTION";
   return "REVIEW_REQUIRED";
 }
 
@@ -170,7 +224,8 @@ export function calculateContentQualityScore({
   languageScore: number;
 }): ContentQualityScoreExplanation {
   const riskSafetyScore = 100 - riskScore;
-  const redLine = complianceScore === 0 || riskSafetyScore === 0;
+  // Red lines: any violation (compliance < 100) or extreme risk (بالغ = riskScore === 100)
+  const redLine = complianceScore < 100 || riskScore >= 100;
 
   const factors: ContentQualityScoreExplanation["factors"] = [
     {
@@ -178,7 +233,7 @@ export function calculateContentQualityScore({
       label: "الامتثال القانوني",
       sourceScore: complianceScore,
       weight: 40,
-      weightedScore: complianceScore * 0.4
+      weightedScore: 40 // Fixed 40 when compliant; red line prevents reaching this otherwise
     },
     {
       key: "risk",

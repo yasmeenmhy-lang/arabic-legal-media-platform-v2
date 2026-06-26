@@ -7,8 +7,8 @@ import { OfficialLogo, officialEntityFromUrl } from "@/components/official-logos
 import { loadContentRecords, type StoredContentRecord } from "@/lib/content-record-store";
 import type { ReviewFinding, RiskLevel } from "@/lib/types";
 
-const severityRank: Record<RiskLevel, number> = { "حرج": 4, "مرتفع": 3, "متوسط": 2, "منخفض": 1 };
-const severeLevels: RiskLevel[] = ["حرج", "مرتفع"];
+const severityRank: Record<RiskLevel, number> = { "بالغ": 5, "حرج": 4, "مرتفع": 3, "متوسط": 2, "منخفض": 1 };
+const severeLevels: RiskLevel[] = ["بالغ", "حرج", "مرتفع"];
 
 type FindingAlert = {
   recordTitle: string;

@@ -49,7 +49,7 @@ export default function DashboardPage() {
     const pendingReviews = records.filter((record) => record.status !== "معتمد" && record.versions.some((version) => version.analysis)).length;
     const publishableContent = approved.length;
     const exportsRequiringAttention = records.filter((record) => record.sharingStatus !== "تمت المشاركة" && record.approvedVersion).length;
-    const highRiskContent = analyzed.filter((item) => ["حرج", "مرتفع"].includes(item.version.analysis?.riskLevel ?? "")).length;
+    const highRiskContent = analyzed.filter((item) => ["بالغ", "حرج", "مرتفع"].includes(item.version.analysis?.riskLevel ?? "")).length;
     const avgCompliance = analyzed.length ? Math.round(analyzed.reduce((sum, item) => sum + (item.version.analysis?.complianceScore ?? 0), 0) / analyzed.length) : 0;
     const avgReadiness = analyzed.length ? Math.round(analyzed.reduce((sum, item) => sum + (item.version.analysis?.publishingReadinessScore ?? 0), 0) / analyzed.length) : 0;
     const avgRisk = analyzed.length ? Math.round(analyzed.reduce((sum, item) => sum + (item.version.analysis?.riskScore ?? 0), 0) / analyzed.length) : 0;
