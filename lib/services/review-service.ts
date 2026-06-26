@@ -1,7 +1,7 @@
 import type { ContentKind, ReviewContext, ReviewResult, ReviewWorkflowStep } from "@/lib/types";
 import { advisoryDisclaimer } from "@/lib/governance";
 import { createReviewedContentContext } from "@/lib/review-context";
-import { reviewLanguageQuality } from "@/lib/services/language-quality-service";
+import { reviewLanguageQuality, reviewProfessionalism } from "@/lib/services/language-quality-service";
 import { runPublishingReadinessReview } from "@/lib/services/approval-workflow-service";
 import { rebuildComplianceFromFindings } from "@/lib/services/legal-compliance-service";
 import { runSemanticAnalysis } from "@/lib/services/semantic-analysis-service";
@@ -51,6 +51,7 @@ export async function reviewContent(text: string, kind: ContentKind = "post", co
     }
   });
 
+  const professionalism = reviewProfessionalism(text);
   const compliance = rebuildComplianceFromFindings(await runSemanticAnalysis(text, context, kind), profile);
   const reviewStatus = deriveReviewStatus({
     languageScore: languageQuality.score,
@@ -62,6 +63,7 @@ export async function reviewContent(text: string, kind: ContentKind = "post", co
     complianceScore: compliance.complianceScore,
     riskScore: compliance.riskScore,
     languageScore: languageQuality.score,
+    professionalismScore: professionalism.score,
     context,
     reviewStatus,
     profile
@@ -108,6 +110,7 @@ export async function reviewContent(text: string, kind: ContentKind = "post", co
   return {
     reviewContext,
     languageQuality,
+    professionalismScore: professionalism.score,
     complianceScore: compliance.complianceScore,
     complianceScoreExplanation: compliance.complianceScoreExplanation,
     riskLevel: compliance.riskLevel,

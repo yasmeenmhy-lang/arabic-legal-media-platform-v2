@@ -160,6 +160,7 @@ export function calculatePublishingReadiness({
   complianceScore,
   riskScore,
   languageScore,
+  professionalismScore,
   context,
   reviewStatus,
   profile
@@ -167,29 +168,42 @@ export function calculatePublishingReadiness({
   complianceScore: number;
   riskScore: number;
   languageScore: number;
+  professionalismScore: number;
   context: ReviewContext;
   reviewStatus: ReviewReadinessStatus;
   profile?: ScoringProfile;
 }): PublishingReadinessExplanation {
   const selected = profile ?? resolveScoringProfile("post", context.channel);
-  const approvalScore = ["READY_FOR_PUBLISHING", "EXPORTED", "SHARED"].includes(reviewStatus) ? 100 : 0;
   const weights = selected.readinessWeights;
+  const riskSafetyScore = 100 - riskScore;
+
+  // خط أحمر: امتثال صفر أو مخاطر قصوى → النتيجة الكلية صفر فوراً
+  const redLine = complianceScore === 0 || riskSafetyScore === 0;
+
   const factors: PublishingReadinessExplanation["factors"] = [
     {
       key: "compliance",
-      label: "نتيجة الامتثال",
+      label: "الامتثال القانوني",
       sourceScore: complianceScore,
       weight: weights.compliance,
       weightedScore: complianceScore * (weights.compliance / 100),
-      explanation: "يعكس الملاحظات المهنية والتنظيمية غير المعالجة."
+      explanation: "يعكس مدى خلو المحتوى من المخالفات المهنية والتنظيمية المسجلة."
     },
     {
       key: "risk",
       label: "السلامة من المخاطر",
-      sourceScore: 100 - riskScore,
+      sourceScore: riskSafetyScore,
       weight: weights.risk,
-      weightedScore: (100 - riskScore) * (weights.risk / 100),
-      explanation: "يعكس مستوى المخاطر القانونية والمهنية والاتصالية عند النشر."
+      weightedScore: riskSafetyScore * (weights.risk / 100),
+      explanation: "يعكس مستوى الأمان القانوني والمهني والاتصالي عند النشر (100 − درجة المخاطر)."
+    },
+    {
+      key: "professionalism",
+      label: "المهنية",
+      sourceScore: professionalismScore,
+      weight: weights.professionalism,
+      weightedScore: professionalismScore * (weights.professionalism / 100),
+      explanation: "يعكس رسمية الأسلوب وخلوّه من العامية والعبارات الانفعالية والادعاءات المبالغ فيها."
     },
     {
       key: "language",
@@ -197,23 +211,18 @@ export function calculatePublishingReadiness({
       sourceScore: languageScore,
       weight: weights.language,
       weightedScore: languageScore * (weights.language / 100),
-      explanation: "يعكس وضوح الصياغة وسلامتها وملاءمتها المهنية."
-    },
-    {
-      key: "approval",
-      label: "اعتماد الإصدار",
-      sourceScore: approvalScore,
-      weight: weights.approval,
-      weightedScore: approvalScore * (weights.approval / 100),
-      explanation: "لا تكتمل الجاهزية قبل اعتماد الإصدار نفسه."
+      explanation: "يعكس سلامة الإملاء والنحو والأسلوب ووضوح الصياغة."
     }
   ];
 
+  const rawScore = boundedScore(factors.reduce((sum, factor) => sum + factor.weightedScore, 0));
+
   return {
     modelVersion: `${selected.id}-v${selected.version}`,
-    finalScore: boundedScore(factors.reduce((sum, factor) => sum + factor.weightedScore, 0)),
+    finalScore: redLine ? 0 : rawScore,
     metadataCompletenessScore: calculateMetadataCompleteness(context),
     reviewStatus,
+    redLine,
     factors
   };
 }
