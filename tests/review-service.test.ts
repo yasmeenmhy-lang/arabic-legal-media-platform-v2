@@ -144,7 +144,7 @@ describe("reviewContent", () => {
     expect(explanation.contributions.every((item) => item.value > 0)).toBe(true);
   });
 
-  itWithApi("calculates publishing readiness from four gates: content quality, violations, risk, and red line", async () => {
+  itWithApi("calculates publishing readiness from four strict gates", async () => {
     const result = await reviewContent(
       "يقدم المكتب خدمات قانونية للأفراد والمنشآت وفق الأنظمة والتعليمات ذات العلاقة.",
       "post",
@@ -158,15 +158,25 @@ describe("reviewContent", () => {
     const explanation = result.publishingReadinessExplanation;
 
     expect(explanation.gates.map((gate) => gate.key)).toEqual([
-      "content_quality",
-      "no_serious_violations",
-      "low_risk",
-      "no_red_line"
+      "compliance",
+      "risk",
+      "professionalism",
+      "language"
     ]);
     expect(explanation.metadataCompletenessScore).toBe(100);
     expect([0, 100]).toContain(result.publishingReadinessScore);
     expect(result.publishingReadinessScore).toBe(explanation.finalScore);
     expect(explanation.allPassed).toBe(explanation.gates.every((gate) => gate.passed));
+
+    const complianceGate = explanation.gates.find((gate) => gate.key === "compliance")!;
+    const riskGate = explanation.gates.find((gate) => gate.key === "risk")!;
+    const professionalismGate = explanation.gates.find((gate) => gate.key === "professionalism")!;
+    const languageGate = explanation.gates.find((gate) => gate.key === "language")!;
+
+    expect(complianceGate.passed).toBe(result.complianceScore === 100);
+    expect(riskGate.passed).toBe(result.riskScore < 20);
+    expect(professionalismGate.passed).toBe(result.professionalismScore >= 80);
+    expect(languageGate.passed).toBe(result.languageQuality.score >= 75);
   });
 
   itWithApi("uses context completeness for confidence rather than an undocumented readiness weight", async () => {

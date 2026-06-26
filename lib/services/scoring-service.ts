@@ -213,74 +213,61 @@ export function calculateContentQualityScore({
 }
 
 export function calculatePublishingReadiness({
-  contentQualityScore,
-  findings,
-  riskLevel,
   complianceScore,
   riskScore,
+  professionalismScore,
+  languageScore,
   context,
   reviewStatus
 }: {
-  contentQualityScore: number;
-  findings: ReviewFinding[];
-  riskLevel: RiskLevel;
   complianceScore: number;
   riskScore: number;
+  professionalismScore: number;
+  languageScore: number;
   context: ReviewContext;
   reviewStatus: ReviewReadinessStatus;
   profile?: ScoringProfile;
 }): PublishingReadinessExplanation {
-  const unresolvedFindings = findings.filter((f) => !f.resolved);
-  const hasSeriousViolations = unresolvedFindings.some(
-    (f) => f.businessSeverity === "critical" || f.businessSeverity === "high" || f.severity === "حرج" || f.severity === "مرتفع"
-  );
-  const isRedLine = complianceScore === 0 || riskScore >= 100;
-  const seriousCount = unresolvedFindings.filter(
-    (f) => f.businessSeverity === "critical" || f.businessSeverity === "high"
-  ).length;
-
   const gates: PublishingReadinessGate[] = [
     {
-      key: "content_quality",
-      label: "جودة المحتوى",
-      passed: contentQualityScore >= 70,
-      sourceValue: contentQualityScore,
-      threshold: "70%",
-      reason: contentQualityScore >= 70
-        ? "جودة المحتوى مقبولة وفق المعادلة المعتمدة."
-        : `جودة المحتوى ${contentQualityScore}% أقل من الحد الأدنى المطلوب 70%.`
+      key: "compliance",
+      label: "الامتثال القانوني",
+      passed: complianceScore === 100,
+      sourceValue: complianceScore,
+      threshold: "100%",
+      reason: complianceScore === 100
+        ? "لا توجد مخالفات قانونية — النص ملتزم بالكامل."
+        : "يوجد مخالفات قانونية يجب إصلاحها قبل النشر."
     },
     {
-      key: "no_serious_violations",
-      label: "لا مخالفات خطيرة",
-      passed: !hasSeriousViolations,
-      sourceValue: seriousCount,
-      threshold: "0",
-      reason: !hasSeriousViolations
-        ? "لا توجد مخالفات خطيرة أو بالغة مرصودة."
-        : `توجد ${seriousCount} مخالفة خطيرة تمنع النشر حتى معالجتها.`
+      key: "risk",
+      label: "مستوى المخاطر",
+      passed: riskScore < 20,
+      sourceValue: riskScore,
+      threshold: "أقل من 20",
+      reason: riskScore < 20
+        ? "مستوى المخاطر منخفض جداً ومناسب للنشر."
+        : "المحتوى يحتوي على مخاطر عالية."
     },
     {
-      key: "low_risk",
-      label: "مستوى المخاطر منخفض",
-      passed: riskLevel === "منخفض",
-      sourceValue: riskLevel,
-      threshold: "منخفض",
-      reason: riskLevel === "منخفض"
-        ? "مستوى المخاطر منخفض ومناسب للنشر."
-        : `مستوى المخاطر ${riskLevel} يستوجب المعالجة قبل النشر.`
+      key: "professionalism",
+      label: "المهنية",
+      passed: professionalismScore >= 80,
+      sourceValue: professionalismScore,
+      threshold: "80%",
+      reason: professionalismScore >= 80
+        ? "الأسلوب يليق بمحامٍ مهني."
+        : "الأسلوب لا يليق بمحامٍ."
     },
     {
-      key: "no_red_line",
-      label: "لا خط أحمر",
-      passed: !isRedLine,
-      sourceValue: `امتثال: ${complianceScore}%، مخاطر: ${riskScore}%`,
-      threshold: "امتثال > 0% ومخاطر < 100%",
-      reason: !isRedLine
-        ? "المحتوى لا يقع في نطاق الخط الأحمر."
-        : complianceScore === 0
-          ? "الامتثال صفر: المحتوى ينتهك جميع معايير الامتثال المسجلة."
-          : "درجة المخاطر بلغت الحد الأقصى: لا يجوز نشر هذا المحتوى."
+      key: "language",
+      label: "جودة اللغة",
+      passed: languageScore >= 75,
+      sourceValue: languageScore,
+      threshold: "75%",
+      reason: languageScore >= 75
+        ? "اللغة سليمة ومناسبة للنشر."
+        : "يوجد أخطاء لغوية يجب تصحيحها."
     }
   ];
 

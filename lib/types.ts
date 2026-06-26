@@ -271,7 +271,7 @@ export type ContentQualityScoreExplanation = {
 };
 
 export type PublishingReadinessGate = {
-  key: "content_quality" | "no_serious_violations" | "low_risk" | "no_red_line";
+  key: "compliance" | "risk" | "professionalism" | "language";
   label: string;
   passed: boolean;
   sourceValue: string | number;
