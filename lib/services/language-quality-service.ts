@@ -259,3 +259,66 @@ export function reviewLanguageQuality(input: LanguageQualityReviewInput, thresho
 export function reviewManyLanguageQuality(items: Array<{ text: string; kind: ContentKind }>) {
   return items.map((item) => reviewLanguageQuality(item));
 }
+
+// ─── Professionalism Review ───────────────────────────────────────────────────
+
+export type ProfessionalismIssue = {
+  excerpt: string;
+  suggestion: string;
+  severity: "high" | "medium" | "low";
+};
+
+const PROFESSIONALISM_DEDUCTIONS: Record<ProfessionalismIssue["severity"], number> = { high: 15, medium: 8, low: 4 };
+
+const informalArabicPatterns: Array<{ pattern: RegExp; severity: ProfessionalismIssue["severity"]; suggestion: string }> = [
+  { pattern: wordPattern("والله"), severity: "high", suggestion: "تجنب العبارات العامية والانفعالية في المحتوى المهني وحافظ على نبرة رسمية هادئة." },
+  { pattern: wordPattern("يسلمو"), severity: "medium", suggestion: "استخدم: شكراً، أو نقدّر تواصلكم." },
+  { pattern: wordPattern("ياخوي"), severity: "high", suggestion: "تجنب مخاطبة الجمهور بصيغة عامية في المحتوى القانوني." },
+  { pattern: wordPattern("ياخي"), severity: "high", suggestion: "تجنب مخاطبة الجمهور بصيغة عامية في المحتوى القانوني." },
+  { pattern: wordPattern("ابشر"), severity: "medium", suggestion: "استخدم: يسعدنا إعلامكم، أو سيتم التواصل معكم." },
+  { pattern: wordPattern("ماشي"), severity: "high", suggestion: "استخدم: سيتم التنفيذ وفق ما تم الاتفاق عليه." },
+  { pattern: wordPattern("حياك"), severity: "medium", suggestion: "استخدم: نرحب بتواصلكم، أو أهلاً بكم." },
+  { pattern: wordPattern("إيش"), severity: "high", suggestion: "استخدم: ما، أو ماذا بالفصحى." },
+  { pattern: wordPattern("وين"), severity: "high", suggestion: "استخدم: أين بالفصحى." },
+  { pattern: wordPattern("ليش"), severity: "high", suggestion: "استخدم: لماذا بالفصحى." },
+  { pattern: wordPattern("شو"), severity: "high", suggestion: "استخدم: ما، أو ماذا بالفصحى." },
+  { pattern: wordPattern("كيفك"), severity: "medium", suggestion: "تجنب المخاطبات الودية العامية في النصوص المهنية." },
+  { pattern: wordPattern("يا ربي"), severity: "medium", suggestion: "تجنب العبارات الانفعالية في المحتوى المهني القانوني." },
+];
+
+const boastfulPatterns: Array<{ pattern: RegExp; severity: ProfessionalismIssue["severity"]; suggestion: string }> = [
+  { pattern: /أنا\s+الأفضل/g, severity: "high", suggestion: "تجنب ادعاءات التفوق الشخصي المطلق التي لا يمكن التحقق منها." },
+  { pattern: /لا\s+مثيل\s+لنا/g, severity: "high", suggestion: "تجنب ادعاءات التفرد غير القابلة للتحقق واستخدم وصفاً مهنياً محدداً." },
+  { pattern: /لا\s+يقاربنا/g, severity: "high", suggestion: "تجنب المقارنات المطلقة مع الآخرين في المحتوى المهني." },
+  { pattern: /أحسن\s+من\s+غيرنا/g, severity: "high", suggestion: "تجنب التفاخر بالمقارنة مع المنافسين." },
+  { pattern: /لا\s+نظير\s+لنا/g, severity: "high", suggestion: "تجنب ادعاءات التفرد غير الموثقة." },
+  { pattern: /لا\s+أحد\s+يقدر\s+غيرنا/g, severity: "high", suggestion: "تجنب الادعاءات المطلقة بالتفوق." },
+];
+
+const aggressivePatterns: Array<{ pattern: RegExp; severity: ProfessionalismIssue["severity"]; suggestion: string }> = [
+  { pattern: wordPattern("اسحق"), severity: "high", suggestion: "تجنب اللغة العدوانية واستخدم نبرة قانونية موضوعية تركّز على الحقوق." },
+  { pattern: wordPattern("انتقم"), severity: "high", suggestion: "تجنب الدعوة للانتقام وركّز على المطالبة بالحقوق القانونية." },
+  { pattern: wordPattern("اهزم"), severity: "high", suggestion: "تجنب اللغة المواجهاتية وركّز على تحقيق النتائج القانونية." },
+  { pattern: wordPattern("اضرب"), severity: "high", suggestion: "تجنب اللغة العدوانية واستخدم: دافع عن حقوقك بالطرق القانونية." },
+  { pattern: wordPattern("يخذل"), severity: "medium", suggestion: "تجنب التشهير بالخصم أو التقليل منه في المحتوى العام." },
+  { pattern: wordPattern("تصغير"), severity: "low", suggestion: "تجنب التعبيرات التي تنم عن الاستهزاء في النصوص المهنية القانونية." },
+];
+
+export function reviewProfessionalism(text: string): { score: number; issues: ProfessionalismIssue[] } {
+  const issues: ProfessionalismIssue[] = [];
+
+  function detect(rules: typeof informalArabicPatterns) {
+    for (const rule of rules) {
+      for (const match of matches(text, rule.pattern)) {
+        issues.push({ excerpt: match[0], suggestion: rule.suggestion, severity: rule.severity });
+      }
+    }
+  }
+
+  detect(informalArabicPatterns);
+  detect(boastfulPatterns);
+  detect(aggressivePatterns);
+
+  const totalDeduction = issues.reduce((sum, issue) => sum + PROFESSIONALISM_DEDUCTIONS[issue.severity], 0);
+  return { score: Math.max(0, 100 - totalDeduction), issues };
+}

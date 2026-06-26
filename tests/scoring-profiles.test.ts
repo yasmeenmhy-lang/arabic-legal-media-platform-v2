@@ -10,7 +10,7 @@ describe("scoring profiles", () => {
 
   it("requires readiness weights to total 100 before activation", () => {
     const invalid = structuredClone(initialScoringProfiles[0]);
-    invalid.readinessWeights.approval = 5;
+    invalid.readinessWeights.professionalism = 5;
     expect(validateScoringProfile(invalid)).toContain("يجب أن يكون مجموع أوزان جاهزية النشر 100%.");
   });
 });

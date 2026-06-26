@@ -65,7 +65,7 @@ export default function AlertsPage() {
           action: review.findings[0]?.suggestedSaferWording
         });
       }
-      if (review.publishingReadinessScore < 82 || review.readinessDecision.blockers.length > 0) {
+      if (review.publishingReadinessScore < 70 || review.readinessDecision.blockers.length > 0) {
         alerts.push({
           title: record.title,
           label: review.readinessDecision.level,

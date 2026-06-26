@@ -263,8 +263,9 @@ export type PublishingReadinessExplanation = {
   finalScore: number;
   metadataCompletenessScore: number;
   reviewStatus: ReviewReadinessStatus;
+  redLine: boolean;
   factors: Array<{
-    key: "compliance" | "risk" | "language" | "approval";
+    key: "compliance" | "risk" | "professionalism" | "language";
     label: string;
     sourceScore: number;
     weight: number;
@@ -307,6 +308,7 @@ export type LegalRiskAssessment = {
 export type ReviewResult = {
   reviewContext: ReviewedContentContext;
   languageQuality: LanguageQualityReviewResult;
+  professionalismScore: number;
   complianceScore: number;
   complianceScoreExplanation: ComplianceScoreExplanation;
   riskLevel: RiskLevel;
