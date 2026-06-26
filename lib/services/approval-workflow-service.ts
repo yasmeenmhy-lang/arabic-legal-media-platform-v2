@@ -29,10 +29,7 @@ export function runPublishingReadinessReview(
   review: Pick<ReviewResult, "languageQuality" | "complianceScore" | "riskLevel" | "publishingReadinessScore" | "reviewStatus">
 ) {
   const readyForPublishing =
-    review.languageQuality.passed &&
-    review.complianceScore >= 82 &&
-    review.riskLevel !== "مرتفع" &&
-    review.publishingReadinessScore >= 82 &&
+    review.publishingReadinessScore === 100 &&
     ["READY_FOR_PUBLISHING", "EXPORTED", "SHARED"].includes(review.reviewStatus);
 
   return {

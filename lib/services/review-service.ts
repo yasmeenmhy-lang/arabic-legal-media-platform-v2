@@ -126,8 +126,7 @@ export async function reviewContent(text: string, kind: ContentKind = "post", co
     professionalismScore,
     languageScore: languageQuality.score,
     context,
-    reviewStatus,
-    profile
+    reviewStatus
   });
   const publishingReadinessScore = publishingReadinessExplanation.finalScore;
   const readiness = runPublishingReadinessReview({

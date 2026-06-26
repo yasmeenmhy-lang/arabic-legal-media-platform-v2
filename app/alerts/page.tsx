@@ -65,11 +65,11 @@ export default function AlertsPage() {
           action: review.findings[0]?.suggestedSaferWording
         });
       }
-      if (review.publishingReadinessScore < 82 || review.readinessDecision.blockers.length > 0) {
+      if (review.publishingReadinessScore < 100 || review.readinessDecision.blockers.length > 0) {
         alerts.push({
           title: record.title,
           label: review.readinessDecision.level,
-          tone: review.publishingReadinessScore < 60 ? "danger" : "gold",
+          tone: review.publishingReadinessScore === 0 ? "danger" : "gold",
           reason: review.readinessDecision.reasons[0] ?? "جاهزية النشر أقل من المستوى المطلوب.",
           action: review.readinessDecision.blockers[0] ?? review.readinessDecision.actions[0]
         });

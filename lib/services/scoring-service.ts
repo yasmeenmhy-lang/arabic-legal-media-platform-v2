@@ -244,7 +244,7 @@ export function calculateContentQualityScore({
     },
     {
       key: "professionalism",
-      label: "المهنية",
+      label: "الالتزام بمعايير الكتابة المهنية",
       sourceScore: professionalismScore,
       weight: 20,
       weightedScore: professionalismScore * 0.2
