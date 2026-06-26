@@ -38,7 +38,21 @@ function buildContextSummary(context?: ReviewContext): string {
   return parts.length > 0 ? parts.join(" | ") : "غير محدد";
 }
 
-function buildHolisticPrompt(text: string, contextSummary: string): string {
+function buildValidReferencesList(entries: typeof legalKnowledgeEntries): string {
+  const seen = new Set<string>();
+  const lines: string[] = [];
+  for (const entry of entries) {
+    if (!entry.legalReference) continue;
+    const baseRef = entry.legalReference.split("،")[0].trim();
+    if (seen.has(baseRef)) continue;
+    seen.add(baseRef);
+    lines.push(`- ${baseRef} (${entry.articleTitle ?? entry.section})`);
+  }
+  return lines.join("\n");
+}
+
+function buildHolisticPrompt(text: string, contextSummary: string, entries: typeof legalKnowledgeEntries): string {
+  const validRefs = buildValidReferencesList(entries);
   return `أنت متخصص في قواعد السلوك المهني للمحامين في المملكة العربية السعودية (46 قاعدة، 1447هـ).
 
 ## السياق الثابت
@@ -97,6 +111,10 @@ evidenceExcerpt يجب أن يكون نصاً حرفياً مقتبساً من �
 - إذا تداخلت زاويتان في نفس المخالفة: تُدمجان في نتيجة واحدة لتجنب التكرار
 - إذا وُجدت مؤشرات مهنية دون سند نظامي كافٍ: تُصنف severity="منخفض" مع إشارة في الـ explanation أنه مؤشر مخاطر مهني يحتاج مراجعة
 - لا يجوز خفض مستوى الحساسية أو الرصد الحالي
+
+## القواعد المرجعية المعتمدة
+استشهد في ruleReference فقط بالقواعد الواردة في القائمة التالية — لا تستشهد بقاعدة غير موجودة فيها:
+${validRefs}
 
 أجب بـ JSON array فقط — لا تضف أي نص خارجه:
 [
@@ -229,10 +247,11 @@ export async function runSemanticAnalysis(
   const profile = resolveScoringProfile(contentKind ?? ("post" as ContentKind), context?.channel);
   const contextSummary = buildContextSummary(context);
 
-  console.log("[semantic] starting holistic analysis (full Claude judgment — no rule list)");
+  const eligibleEntries = legalKnowledgeEntries.filter((e) => e.legalReference);
+  console.log("[semantic] starting holistic analysis: anchored to", eligibleEntries.length, "KB entries");
 
   const client = new Anthropic({ apiKey });
-  const prompt = buildHolisticPrompt(text, contextSummary);
+  const prompt = buildHolisticPrompt(text, contextSummary, eligibleEntries);
 
   const message = await client.messages.create({
     model: "claude-haiku-4-5-20251001",
