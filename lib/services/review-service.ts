@@ -68,19 +68,16 @@ export async function reviewContent(text: string, kind: ContentKind = "post", co
     languageScore: languageQuality.score
   });
   const publishingReadinessExplanation = calculatePublishingReadiness({
+    contentQualityScore: contentQualityExplanation.finalScore,
+    findings: compliance.findings,
+    riskLevel: compliance.riskLevel,
     complianceScore: compliance.complianceScore,
     riskScore: compliance.riskScore,
-    languageScore: languageQuality.score,
-    approvalScore: approved ? 100 : 0,
     context,
-    reviewStatus,
-    profile
+    reviewStatus
   });
   const publishingReadinessScore = publishingReadinessExplanation.finalScore;
   const readiness = runPublishingReadinessReview({
-    languageQuality,
-    complianceScore: compliance.complianceScore,
-    riskLevel: compliance.riskLevel,
     publishingReadinessScore,
     reviewStatus
   });

@@ -144,7 +144,7 @@ describe("reviewContent", () => {
     expect(explanation.contributions.every((item) => item.value > 0)).toBe(true);
   });
 
-  itWithApi("calculates publishing readiness from compliance, risk, language, and approval", async () => {
+  itWithApi("calculates publishing readiness from four gates: content quality, violations, risk, and red line", async () => {
     const result = await reviewContent(
       "يقدم المكتب خدمات قانونية للأفراد والمنشآت وفق الأنظمة والتعليمات ذات العلاقة.",
       "post",
@@ -156,16 +156,17 @@ describe("reviewContent", () => {
       }
     );
     const explanation = result.publishingReadinessExplanation;
-    const expected = Math.round(explanation.factors.reduce((sum, factor) => sum + factor.weightedScore, 0));
 
-    expect(explanation.factors.map((factor) => factor.key)).toEqual([
-      "compliance",
-      "risk",
-      "professionalism",
-      "language"
+    expect(explanation.gates.map((gate) => gate.key)).toEqual([
+      "content_quality",
+      "no_serious_violations",
+      "low_risk",
+      "no_red_line"
     ]);
     expect(explanation.metadataCompletenessScore).toBe(100);
-    expect(result.publishingReadinessScore).toBe(expected);
+    expect([0, 100]).toContain(result.publishingReadinessScore);
+    expect(result.publishingReadinessScore).toBe(explanation.finalScore);
+    expect(explanation.allPassed).toBe(explanation.gates.every((gate) => gate.passed));
   });
 
   itWithApi("uses context completeness for confidence rather than an undocumented readiness weight", async () => {

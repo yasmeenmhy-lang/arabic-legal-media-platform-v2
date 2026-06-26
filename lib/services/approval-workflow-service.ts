@@ -26,13 +26,10 @@ function getDemoReviewReadinessItems(): ReviewReadinessItem[] {
 }
 
 export function runPublishingReadinessReview(
-  review: Pick<ReviewResult, "languageQuality" | "complianceScore" | "riskLevel" | "publishingReadinessScore" | "reviewStatus">
+  review: Pick<ReviewResult, "publishingReadinessScore" | "reviewStatus">
 ) {
   const readyForPublishing =
-    review.languageQuality.passed &&
-    review.complianceScore >= 70 &&
-    review.riskLevel !== "مرتفع" &&
-    review.publishingReadinessScore >= 70 &&
+    review.publishingReadinessScore === 100 &&
     ["READY_FOR_PUBLISHING", "EXPORTED", "SHARED"].includes(review.reviewStatus);
 
   return {

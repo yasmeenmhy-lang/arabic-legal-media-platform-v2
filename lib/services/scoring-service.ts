@@ -6,6 +6,7 @@ import type {
   FindingDomain,
   LegalKnowledgeEntry,
   PublishingReadinessExplanation,
+  PublishingReadinessGate,
   ReviewContext,
   ReviewFinding,
   ReviewReadinessStatus,
@@ -212,71 +213,85 @@ export function calculateContentQualityScore({
 }
 
 export function calculatePublishingReadiness({
+  contentQualityScore,
+  findings,
+  riskLevel,
   complianceScore,
   riskScore,
-  languageScore,
-  approvalScore,
   context,
-  reviewStatus,
-  profile
+  reviewStatus
 }: {
+  contentQualityScore: number;
+  findings: ReviewFinding[];
+  riskLevel: RiskLevel;
   complianceScore: number;
   riskScore: number;
-  languageScore: number;
-  approvalScore: number;
   context: ReviewContext;
   reviewStatus: ReviewReadinessStatus;
   profile?: ScoringProfile;
 }): PublishingReadinessExplanation {
-  const selected = profile ?? resolveScoringProfile("post", context.channel);
-  const weights = selected.readinessWeights;
-  const riskSafetyScore = 100 - riskScore;
+  const unresolvedFindings = findings.filter((f) => !f.resolved);
+  const hasSeriousViolations = unresolvedFindings.some(
+    (f) => f.businessSeverity === "critical" || f.businessSeverity === "high" || f.severity === "حرج" || f.severity === "مرتفع"
+  );
+  const isRedLine = complianceScore === 0 || riskScore >= 100;
+  const seriousCount = unresolvedFindings.filter(
+    (f) => f.businessSeverity === "critical" || f.businessSeverity === "high"
+  ).length;
 
-  const redLine = complianceScore === 0 || riskSafetyScore === 0;
-
-  const factors: PublishingReadinessExplanation["factors"] = [
+  const gates: PublishingReadinessGate[] = [
     {
-      key: "compliance",
-      label: "الامتثال القانوني",
-      sourceScore: complianceScore,
-      weight: weights.compliance,
-      weightedScore: complianceScore * (weights.compliance / 100),
-      explanation: "يعكس مدى خلو المحتوى من المخالفات المهنية والتنظيمية المسجلة."
+      key: "content_quality",
+      label: "جودة المحتوى",
+      passed: contentQualityScore >= 70,
+      sourceValue: contentQualityScore,
+      threshold: "70%",
+      reason: contentQualityScore >= 70
+        ? "جودة المحتوى مقبولة وفق المعادلة المعتمدة."
+        : `جودة المحتوى ${contentQualityScore}% أقل من الحد الأدنى المطلوب 70%.`
     },
     {
-      key: "risk",
-      label: "السلامة من المخاطر",
-      sourceScore: riskSafetyScore,
-      weight: weights.risk,
-      weightedScore: riskSafetyScore * (weights.risk / 100),
-      explanation: "يعكس مستوى الأمان القانوني والمهني والاتصالي عند النشر (100 − درجة المخاطر)."
+      key: "no_serious_violations",
+      label: "لا مخالفات خطيرة",
+      passed: !hasSeriousViolations,
+      sourceValue: seriousCount,
+      threshold: "0",
+      reason: !hasSeriousViolations
+        ? "لا توجد مخالفات خطيرة أو بالغة مرصودة."
+        : `توجد ${seriousCount} مخالفة خطيرة تمنع النشر حتى معالجتها.`
     },
     {
-      key: "language",
-      label: "جودة اللغة",
-      sourceScore: languageScore,
-      weight: weights.language,
-      weightedScore: languageScore * (weights.language / 100),
-      explanation: "يعكس سلامة الإملاء والنحو والأسلوب ووضوح الصياغة."
+      key: "low_risk",
+      label: "مستوى المخاطر منخفض",
+      passed: riskLevel === "منخفض",
+      sourceValue: riskLevel,
+      threshold: "منخفض",
+      reason: riskLevel === "منخفض"
+        ? "مستوى المخاطر منخفض ومناسب للنشر."
+        : `مستوى المخاطر ${riskLevel} يستوجب المعالجة قبل النشر.`
     },
     {
-      key: "approval",
-      label: "حالة الاعتماد",
-      sourceScore: approvalScore,
-      weight: weights.approval,
-      weightedScore: approvalScore * (weights.approval / 100),
-      explanation: "يعكس ما إذا كان المحتوى قد اجتاز مراحل المراجعة والاعتماد المطلوبة."
+      key: "no_red_line",
+      label: "لا خط أحمر",
+      passed: !isRedLine,
+      sourceValue: `امتثال: ${complianceScore}%، مخاطر: ${riskScore}%`,
+      threshold: "امتثال > 0% ومخاطر < 100%",
+      reason: !isRedLine
+        ? "المحتوى لا يقع في نطاق الخط الأحمر."
+        : complianceScore === 0
+          ? "الامتثال صفر: المحتوى ينتهك جميع معايير الامتثال المسجلة."
+          : "درجة المخاطر بلغت الحد الأقصى: لا يجوز نشر هذا المحتوى."
     }
   ];
 
-  const rawScore = boundedScore(factors.reduce((sum, factor) => sum + factor.weightedScore, 0));
+  const allPassed = gates.every((gate) => gate.passed);
 
   return {
-    modelVersion: `${selected.id}-v${selected.version}`,
-    finalScore: redLine ? 0 : rawScore,
+    modelVersion: SCORING_MODEL_VERSION,
+    finalScore: allPassed ? 100 : 0,
     metadataCompletenessScore: calculateMetadataCompleteness(context),
     reviewStatus,
-    redLine,
-    factors
+    allPassed,
+    gates
   };
 }

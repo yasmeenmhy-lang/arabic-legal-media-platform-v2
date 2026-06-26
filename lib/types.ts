@@ -270,20 +270,22 @@ export type ContentQualityScoreExplanation = {
   }>;
 };
 
+export type PublishingReadinessGate = {
+  key: "content_quality" | "no_serious_violations" | "low_risk" | "no_red_line";
+  label: string;
+  passed: boolean;
+  sourceValue: string | number;
+  threshold: string;
+  reason: string;
+};
+
 export type PublishingReadinessExplanation = {
   modelVersion: string;
   finalScore: number;
   metadataCompletenessScore: number;
   reviewStatus: ReviewReadinessStatus;
-  redLine: boolean;
-  factors: Array<{
-    key: "compliance" | "risk" | "language" | "approval";
-    label: string;
-    sourceScore: number;
-    weight: number;
-    weightedScore: number;
-    explanation: string;
-  }>;
+  allPassed: boolean;
+  gates: PublishingReadinessGate[];
 };
 
 export type ReviewTraceability = {
