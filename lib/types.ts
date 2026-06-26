@@ -258,6 +258,18 @@ export type RiskScoreExplanation = {
   contributions: ScoreContribution[];
 };
 
+export type ContentQualityScoreExplanation = {
+  finalScore: number;
+  redLine: boolean;
+  factors: Array<{
+    key: "compliance" | "risk" | "professionalism" | "language";
+    label: string;
+    sourceScore: number;
+    weight: number;
+    weightedScore: number;
+  }>;
+};
+
 export type PublishingReadinessExplanation = {
   modelVersion: string;
   finalScore: number;
@@ -265,7 +277,7 @@ export type PublishingReadinessExplanation = {
   reviewStatus: ReviewReadinessStatus;
   redLine: boolean;
   factors: Array<{
-    key: "compliance" | "risk" | "professionalism" | "language";
+    key: "compliance" | "risk" | "language" | "approval";
     label: string;
     sourceScore: number;
     weight: number;
@@ -309,6 +321,8 @@ export type ReviewResult = {
   reviewContext: ReviewedContentContext;
   languageQuality: LanguageQualityReviewResult;
   professionalismScore: number;
+  contentQualityScore: number;
+  contentQualityScoreExplanation: ContentQualityScoreExplanation;
   complianceScore: number;
   complianceScoreExplanation: ComplianceScoreExplanation;
   riskLevel: RiskLevel;

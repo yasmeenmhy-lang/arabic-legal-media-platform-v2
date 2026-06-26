@@ -7,6 +7,7 @@ import { rebuildComplianceFromFindings } from "@/lib/services/legal-compliance-s
 import { runSemanticAnalysis } from "@/lib/services/semantic-analysis-service";
 import { buildGovernedRewriteSuggestions } from "@/lib/services/recommendation-service";
 import {
+  calculateContentQualityScore,
   calculatePublishingReadiness,
   deriveReviewStatus,
   SCORING_MODEL_VERSION
@@ -59,11 +60,18 @@ export async function reviewContent(text: string, kind: ContentKind = "post", co
     riskLevel: compliance.riskLevel,
     requestedStatus: context.reviewStatus
   });
+  const approved = ["READY_FOR_PUBLISHING", "EXPORTED", "SHARED"].includes(reviewStatus);
+  const contentQualityExplanation = calculateContentQualityScore({
+    complianceScore: compliance.complianceScore,
+    riskScore: compliance.riskScore,
+    professionalismScore: professionalism.score,
+    languageScore: languageQuality.score
+  });
   const publishingReadinessExplanation = calculatePublishingReadiness({
     complianceScore: compliance.complianceScore,
     riskScore: compliance.riskScore,
     languageScore: languageQuality.score,
-    professionalismScore: professionalism.score,
+    approvalScore: approved ? 100 : 0,
     context,
     reviewStatus,
     profile
@@ -89,7 +97,6 @@ export async function reviewContent(text: string, kind: ContentKind = "post", co
   });
   const reviewContext = createReviewedContentContext(text, context);
   const calculatedAt = new Date().toISOString();
-  const approved = ["READY_FOR_PUBLISHING", "EXPORTED", "SHARED"].includes(reviewStatus);
   const confidence = buildConfidence(compliance.findings, context);
   const readinessDecision = buildReadinessDecision({
     complianceScore: compliance.complianceScore,
@@ -111,6 +118,8 @@ export async function reviewContent(text: string, kind: ContentKind = "post", co
     reviewContext,
     languageQuality,
     professionalismScore: professionalism.score,
+    contentQualityScore: contentQualityExplanation.finalScore,
+    contentQualityScoreExplanation: contentQualityExplanation,
     complianceScore: compliance.complianceScore,
     complianceScoreExplanation: compliance.complianceScoreExplanation,
     riskLevel: compliance.riskLevel,

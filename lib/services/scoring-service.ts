@@ -1,6 +1,7 @@
 import type {
   BusinessSeverity,
   ComplianceScoreExplanation,
+  ContentQualityScoreExplanation,
   FindingCategory,
   FindingDomain,
   LegalKnowledgeEntry,
@@ -156,11 +157,65 @@ export function deriveReviewStatus({
   return "REVIEW_REQUIRED";
 }
 
+export function calculateContentQualityScore({
+  complianceScore,
+  riskScore,
+  professionalismScore,
+  languageScore
+}: {
+  complianceScore: number;
+  riskScore: number;
+  professionalismScore: number;
+  languageScore: number;
+}): ContentQualityScoreExplanation {
+  const riskSafetyScore = 100 - riskScore;
+  const redLine = complianceScore === 0 || riskSafetyScore === 0;
+
+  const factors: ContentQualityScoreExplanation["factors"] = [
+    {
+      key: "compliance",
+      label: "الامتثال القانوني",
+      sourceScore: complianceScore,
+      weight: 40,
+      weightedScore: complianceScore * 0.4
+    },
+    {
+      key: "risk",
+      label: "السلامة من المخاطر",
+      sourceScore: riskSafetyScore,
+      weight: 30,
+      weightedScore: riskSafetyScore * 0.3
+    },
+    {
+      key: "professionalism",
+      label: "المهنية",
+      sourceScore: professionalismScore,
+      weight: 20,
+      weightedScore: professionalismScore * 0.2
+    },
+    {
+      key: "language",
+      label: "جودة اللغة",
+      sourceScore: languageScore,
+      weight: 10,
+      weightedScore: languageScore * 0.1
+    }
+  ];
+
+  const rawScore = boundedScore(factors.reduce((sum, factor) => sum + factor.weightedScore, 0));
+
+  return {
+    finalScore: redLine ? 0 : rawScore,
+    redLine,
+    factors
+  };
+}
+
 export function calculatePublishingReadiness({
   complianceScore,
   riskScore,
   languageScore,
-  professionalismScore,
+  approvalScore,
   context,
   reviewStatus,
   profile
@@ -168,7 +223,7 @@ export function calculatePublishingReadiness({
   complianceScore: number;
   riskScore: number;
   languageScore: number;
-  professionalismScore: number;
+  approvalScore: number;
   context: ReviewContext;
   reviewStatus: ReviewReadinessStatus;
   profile?: ScoringProfile;
@@ -177,7 +232,6 @@ export function calculatePublishingReadiness({
   const weights = selected.readinessWeights;
   const riskSafetyScore = 100 - riskScore;
 
-  // خط أحمر: امتثال صفر أو مخاطر قصوى → النتيجة الكلية صفر فوراً
   const redLine = complianceScore === 0 || riskSafetyScore === 0;
 
   const factors: PublishingReadinessExplanation["factors"] = [
@@ -198,20 +252,20 @@ export function calculatePublishingReadiness({
       explanation: "يعكس مستوى الأمان القانوني والمهني والاتصالي عند النشر (100 − درجة المخاطر)."
     },
     {
-      key: "professionalism",
-      label: "المهنية",
-      sourceScore: professionalismScore,
-      weight: weights.professionalism,
-      weightedScore: professionalismScore * (weights.professionalism / 100),
-      explanation: "يعكس رسمية الأسلوب وخلوّه من العامية والعبارات الانفعالية والادعاءات المبالغ فيها."
-    },
-    {
       key: "language",
       label: "جودة اللغة",
       sourceScore: languageScore,
       weight: weights.language,
       weightedScore: languageScore * (weights.language / 100),
       explanation: "يعكس سلامة الإملاء والنحو والأسلوب ووضوح الصياغة."
+    },
+    {
+      key: "approval",
+      label: "حالة الاعتماد",
+      sourceScore: approvalScore,
+      weight: weights.approval,
+      weightedScore: approvalScore * (weights.approval / 100),
+      explanation: "يعكس ما إذا كان المحتوى قد اجتاز مراحل المراجعة والاعتماد المطلوبة."
     }
   ];
 
