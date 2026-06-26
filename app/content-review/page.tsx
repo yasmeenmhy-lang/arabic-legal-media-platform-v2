@@ -296,6 +296,18 @@ function readinessKpiTone(review: ReviewResult) {
   return "gold" as const;
 }
 
+function professionalismKpiTone(score: number): "good" | "gold" | "danger" {
+  if (score >= 80) return "good";
+  if (score >= 60) return "gold";
+  return "danger";
+}
+
+function professionalismExplanation(score: number) {
+  if (score >= 80) return { explanation: "الأسلوب رصين ويليق بمحامٍ مرخص.", action: "حافظ على هذا المستوى من الرصانة في جميع منشوراتك." };
+  if (score >= 60) return { explanation: "الأسلوب بحاجة لتحسين ليعكس الرصانة المهنية المتوقعة من محامٍ.", action: "أعد صياغة النص بأسلوب أكاديمي رسمي يليق بالمهنة القانونية." };
+  return { explanation: "الأسلوب لا يليق بمحامٍ مرخص — يحتاج إعادة كتابة كاملة.", action: "اكتب النص من جديد بلغة فصحى رصينة تخدم هدفاً مهنياً أو تثقيفياً واضحاً." };
+}
+
 function businessScoreExplanation(kind: "compliance" | "risk" | "language", review: ReviewResult) {
   if (kind === "compliance") {
     return {
@@ -1071,6 +1083,20 @@ export default function ContentReviewPage() {
                     action={metric.action}
                     tone={riskKpiTone(review.riskLevel)}
                     inverse
+                  />
+                );
+              })()}
+              {(() => {
+                const prof = professionalismExplanation(review.professionalismScore);
+                return (
+                  <MetricExplanation
+                    label="الالتزام بمعايير الكتابة المهنية"
+                    value={review.professionalismScore}
+                    displayValue={`${review.professionalismScore}%`}
+                    explanation={prof.explanation}
+                    evidence="تقييم شامل لأسلوب الكتابة وملاءمته للمهنة القانونية"
+                    action={prof.action}
+                    tone={professionalismKpiTone(review.professionalismScore)}
                   />
                 );
               })()}
