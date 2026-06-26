@@ -354,7 +354,7 @@ export function approveContentVersion(contentId: string, versionNumber: number) 
     !version?.analysis ||
     version.analysis.findings.some((finding) => !finding.resolved) ||
     !version.analysis.languageQuality.passed ||
-    ["حرج", "مرتفع"].includes(version.analysis.riskLevel)
+    ["بالغ", "حرج", "مرتفع"].includes(version.analysis.riskLevel)
   ) return null;
   const timestamp = now();
   version.status = "معتمد";

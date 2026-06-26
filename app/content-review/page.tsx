@@ -208,10 +208,10 @@ function buildAssistantIssues(review: ReviewResult, liveSpellingIssues: Language
     source: "قواعد لغوية عربية معيارية للتدقيق الإملائي والتحريري"
   }));
 
-  const riskIssue: AssistantIssue[] = ["حرج", "مرتفع"].includes(review.riskLevel)
+  const riskIssue: AssistantIssue[] = ["بالغ", "حرج", "مرتفع"].includes(review.riskLevel)
     ? [{
         id: "risk-summary",
-        severity: review.riskLevel === "حرج" ? "critical" : "high",
+        severity: (review.riskLevel === "بالغ" || review.riskLevel === "حرج") ? "critical" : "high",
         label: `مستوى مخاطر ${review.riskLevel}`,
         evidence: review.findings[0]?.evidence ?? review.legalRiskAssessment.reason,
         reason: review.legalRiskAssessment.reason,
@@ -258,7 +258,7 @@ function buildInternalAssistantSummary(review: ReviewResult, assistantIssues: As
 }
 
 function riskTone(risk: RiskLevel) {
-  if (risk === "حرج" || risk === "مرتفع") return "gold" as const;
+  if (risk === "بالغ" || risk === "حرج" || risk === "مرتفع") return "gold" as const;
   if (risk === "متوسط") return "neutral" as const;
   return "good" as const;
 }
@@ -284,7 +284,7 @@ function languageKpiTone(value: number) {
 }
 
 function riskKpiTone(risk: RiskLevel) {
-  if (risk === "حرج" || risk === "مرتفع") return "danger" as const;
+  if (risk === "بالغ" || risk === "حرج" || risk === "مرتفع") return "danger" as const;
   if (risk === "متوسط") return "gold" as const;
   return "good" as const;
 }
@@ -1167,7 +1167,7 @@ export default function ContentReviewPage() {
 
           <Panel id="approval">
             <SectionTitle title="7. اعتماد النسخة" subtitle="لا تتاح المشاركة أو التصدير إلا للنسخة النهائية التي تمت مراجعتها واعتمادها." />
-            <button type="button" onClick={approveCurrentVersion} disabled={approved || approving || review.findings.some((finding) => !finding.resolved) || !review.languageQuality.passed || ["حرج", "مرتفع"].includes(review.riskLevel)} className="inline-flex items-center gap-2 rounded-md bg-palm px-5 py-2.5 text-white disabled:cursor-not-allowed disabled:opacity-50"><Save size={16} />{approved ? "تم اعتماد النسخة" : approving ? "جار الاعتماد..." : "اعتماد النسخة الحالية"}</button>
+            <button type="button" onClick={approveCurrentVersion} disabled={approved || approving || review.findings.some((finding) => !finding.resolved) || !review.languageQuality.passed || ["بالغ", "حرج", "مرتفع"].includes(review.riskLevel)} className="inline-flex items-center gap-2 rounded-md bg-palm px-5 py-2.5 text-white disabled:cursor-not-allowed disabled:opacity-50"><Save size={16} />{approved ? "تم اعتماد النسخة" : approving ? "جار الاعتماد..." : "اعتماد النسخة الحالية"}</button>
             {!approved ? <p className="mt-3 text-sm text-ink/65">عالج الحواجز الظاهرة أولاً. لن يؤدي الاعتماد إلى إخفاء ملاحظة حرجة أو تجاوزها.</p> : null}
           </Panel>
 

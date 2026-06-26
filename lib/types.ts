@@ -1,6 +1,8 @@
 export type RoleName = "LAWYER" | "SUPERVISOR" | "ADMIN" | "DIRECTOR";
 
-export type RiskLevel = "منخفض" | "متوسط" | "مرتفع" | "حرج";
+export type RiskLevel = "منخفض" | "متوسط" | "مرتفع" | "حرج" | "بالغ";
+
+export type RiskAffectedParty = "الموكل" | "المحامي" | "المهنة";
 
 export type BusinessSeverity = "critical" | "high" | "medium" | "low";
 
@@ -256,6 +258,43 @@ export type RiskScoreExplanation = {
   domainContribution: number;
   countContribution: number;
   contributions: ScoreContribution[];
+  affectedParties?: RiskAffectedParty[];
+  explanation?: string;
+  fix?: string;
+};
+
+export type ContentEvaluationRisks = {
+  level: RiskLevel;
+  affectedParties: RiskAffectedParty[];
+  explanation: string;
+  fix: string;
+};
+
+export type ContentEvaluationProfessionalWriting = {
+  score: number;
+  passed: boolean;
+  explanation: string;
+  fix: string;
+};
+
+export type ContentEvaluationLanguageIssue = {
+  category: LanguageIssueCategory;
+  severity: LanguageIssueSeverity;
+  excerpt: string;
+  message: string;
+  suggestion: string;
+};
+
+export type ContentEvaluationLanguage = {
+  score: number;
+  passed: boolean;
+  issues: ContentEvaluationLanguageIssue[];
+};
+
+export type ContentEvaluation = {
+  risks: ContentEvaluationRisks;
+  professionalWriting: ContentEvaluationProfessionalWriting;
+  language: ContentEvaluationLanguage;
 };
 
 export type ContentQualityScoreExplanation = {
@@ -270,20 +309,22 @@ export type ContentQualityScoreExplanation = {
   }>;
 };
 
+export type PublishingReadinessGate = {
+  key: "compliance" | "risk" | "professionalism" | "language";
+  label: string;
+  passed: boolean;
+  sourceValue: number;
+  threshold: string;
+  reason: string;
+};
+
 export type PublishingReadinessExplanation = {
   modelVersion: string;
   finalScore: number;
   metadataCompletenessScore: number;
   reviewStatus: ReviewReadinessStatus;
-  redLine: boolean;
-  factors: Array<{
-    key: "compliance" | "risk" | "language" | "approval";
-    label: string;
-    sourceScore: number;
-    weight: number;
-    weightedScore: number;
-    explanation: string;
-  }>;
+  allPassed: boolean;
+  gates: PublishingReadinessGate[];
 };
 
 export type ReviewTraceability = {

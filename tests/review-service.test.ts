@@ -16,7 +16,7 @@ describe("reviewContent", () => {
   itWithApi("flags guaranteed outcomes and exaggerated claims", async () => {
     const result = await reviewContent("نضمن لك أفضل محام يساعدك على اكسب قضيتك.");
 
-    expect(["متوسط", "مرتفع", "حرج"]).toContain(result.riskLevel);
+    expect(["متوسط", "مرتفع", "بالغ"]).toContain(result.riskLevel);
     expect(result.findings.length).toBeGreaterThanOrEqual(2);
     expect(result.complianceScore).toBeLessThan(60);
     expect(result.findings[0].legalCitation).toBeTruthy();
@@ -66,7 +66,7 @@ describe("reviewContent", () => {
 
     expect(result.findings.length).toBeGreaterThan(0);
     expect(result.findings.every((finding) => finding.legalExplanation.includes(finding.contentClassification))).toBe(true);
-    expect(["متوسط", "مرتفع", "حرج"]).toContain(result.riskLevel);
+    expect(["متوسط", "مرتفع", "بالغ"]).toContain(result.riskLevel);
   });
 
   itWithApi("keeps neutral educational wording low risk", async () => {
@@ -132,19 +132,21 @@ describe("reviewContent", () => {
     expect(result.complianceScoreExplanation.contributions).toHaveLength(result.findings.length);
   });
 
-  itWithApi("calculates risk independently from configurable finding severity", async () => {
+  itWithApi("calculates risk from AI affected-party model independently of finding severity", async () => {
     const result = await reviewContent("نضمن أفضل النتائج ونمثل الطرفين دون تعارض مصالح.", "advertisement");
     const explanation = result.riskScoreExplanation;
-    const expected = Math.min(100, explanation.contributions.reduce((sum, item) => sum + item.value, 0));
+    const contributionSum = explanation.contributions.reduce((sum, item) => sum + item.value, 0);
 
     expect(result.findings.length).toBeGreaterThan(1);
-    expect(result.riskScore).toBe(expected);
+    expect([10, 40, 70, 100]).toContain(result.riskScore);
+    expect(result.riskScore).toBe(contributionSum);
     expect(explanation.findingCount).toBe(result.findings.length);
     expect(explanation.severityContribution).toBeGreaterThan(0);
+    expect(explanation.contributions.length).toBeGreaterThan(0);
     expect(explanation.contributions.every((item) => item.value > 0)).toBe(true);
   });
 
-  itWithApi("calculates publishing readiness from compliance, risk, language, and approval", async () => {
+  itWithApi("calculates publishing readiness from four strict gates", async () => {
     const result = await reviewContent(
       "يقدم المكتب خدمات قانونية للأفراد والمنشآت وفق الأنظمة والتعليمات ذات العلاقة.",
       "post",
@@ -156,16 +158,27 @@ describe("reviewContent", () => {
       }
     );
     const explanation = result.publishingReadinessExplanation;
-    const expected = Math.round(explanation.factors.reduce((sum, factor) => sum + factor.weightedScore, 0));
 
-    expect(explanation.factors.map((factor) => factor.key)).toEqual([
+    expect(explanation.gates.map((gate) => gate.key)).toEqual([
       "compliance",
       "risk",
-      "language",
-      "approval"
+      "professionalism",
+      "language"
     ]);
     expect(explanation.metadataCompletenessScore).toBe(100);
-    expect(result.publishingReadinessScore).toBe(expected);
+    expect([0, 100]).toContain(result.publishingReadinessScore);
+    expect(result.publishingReadinessScore).toBe(explanation.finalScore);
+    expect(explanation.allPassed).toBe(explanation.gates.every((gate) => gate.passed));
+
+    const complianceGate = explanation.gates.find((gate) => gate.key === "compliance")!;
+    const riskGate = explanation.gates.find((gate) => gate.key === "risk")!;
+    const professionalismGate = explanation.gates.find((gate) => gate.key === "professionalism")!;
+    const languageGate = explanation.gates.find((gate) => gate.key === "language")!;
+
+    expect(complianceGate.passed).toBe(result.complianceScore === 100);
+    expect(riskGate.passed).toBe(result.riskScore < 20);
+    expect(professionalismGate.passed).toBe(result.professionalismScore >= 80);
+    expect(languageGate.passed).toBe(result.languageQuality.score >= 75);
   });
 
   itWithApi("uses context completeness for confidence rather than an undocumented readiness weight", async () => {
@@ -265,7 +278,7 @@ describe("reviewContent", () => {
     expect(result.governedRewrites.length).toBeGreaterThan(0);
   });
 
-  it("does not pass language quality when obvious spelling mistakes exist", async () => {
+  itWithApi("does not pass language quality when obvious spelling mistakes exist", async () => {
     const result = await reviewContent("هذا نص عن القضيه والاجراءات في السعوديه", "post");
 
     expect(result.languageQuality.passed).toBe(false);
