@@ -1043,7 +1043,7 @@ export default function ContentReviewPage() {
             <div className="grid gap-4 xl:grid-cols-2">
               {(["compliance", "language"] as const).map((kindName) => {
                 const metric = businessScoreExplanation(kindName, review);
-                const value = kindName === "compliance" ? review.complianceScore : review.languageQuality.score;
+                const value = kindName === "compliance" ? review.complianceScore : review.contentQualityScore;
                 return (
                   <MetricExplanation
                     key={kindName}

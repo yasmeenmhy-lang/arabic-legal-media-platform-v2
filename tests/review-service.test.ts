@@ -161,8 +161,8 @@ describe("reviewContent", () => {
     expect(explanation.factors.map((factor) => factor.key)).toEqual([
       "compliance",
       "risk",
-      "professionalism",
-      "language"
+      "language",
+      "approval"
     ]);
     expect(explanation.metadataCompletenessScore).toBe(100);
     expect(result.publishingReadinessScore).toBe(expected);

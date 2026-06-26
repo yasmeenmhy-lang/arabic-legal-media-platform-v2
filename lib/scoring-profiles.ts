@@ -17,8 +17,8 @@ export type ScoringProfile = {
   readinessWeights: {
     compliance: number;
     risk: number;
-    professionalism: number;
     language: number;
+    approval: number;
   };
   thresholds: {
     compliance: { veryHigh: number; high: number; medium: number; low: number };
@@ -52,7 +52,7 @@ export const initialScoringProfiles: ScoringProfile[] = [
     contentKinds: ["advertisement"],
     priority: 100,
     isDefault: false,
-    readinessWeights: { compliance: 40, risk: 30, professionalism: 20, language: 10 }
+    readinessWeights: { compliance: 45, risk: 35, language: 10, approval: 10 }
   },
   {
     ...baseProfile,
@@ -61,7 +61,7 @@ export const initialScoringProfiles: ScoringProfile[] = [
     contentKinds: ["post", "infographic", "caption"],
     priority: 80,
     isDefault: false,
-    readinessWeights: { compliance: 40, risk: 30, professionalism: 20, language: 10 }
+    readinessWeights: { compliance: 40, risk: 25, language: 25, approval: 10 }
   },
   {
     ...baseProfile,
@@ -70,7 +70,7 @@ export const initialScoringProfiles: ScoringProfile[] = [
     contentKinds: ["campaign", "publishing_plan"],
     priority: 90,
     isDefault: false,
-    readinessWeights: { compliance: 40, risk: 30, professionalism: 20, language: 10 }
+    readinessWeights: { compliance: 40, risk: 30, language: 20, approval: 10 }
   },
   {
     ...baseProfile,
@@ -80,7 +80,7 @@ export const initialScoringProfiles: ScoringProfile[] = [
     channels: ["TikTok", "Snapchat", "YouTube", "YouTube Shorts"],
     priority: 95,
     isDefault: false,
-    readinessWeights: { compliance: 40, risk: 30, professionalism: 20, language: 10 }
+    readinessWeights: { compliance: 35, risk: 30, language: 25, approval: 10 }
   },
   {
     ...baseProfile,
@@ -89,7 +89,7 @@ export const initialScoringProfiles: ScoringProfile[] = [
     contentKinds: ["article"],
     priority: 85,
     isDefault: false,
-    readinessWeights: { compliance: 40, risk: 30, professionalism: 20, language: 10 }
+    readinessWeights: { compliance: 40, risk: 25, language: 25, approval: 10 }
   },
   {
     ...baseProfile,
@@ -98,7 +98,7 @@ export const initialScoringProfiles: ScoringProfile[] = [
     contentKinds: [],
     priority: 1,
     isDefault: true,
-    readinessWeights: { compliance: 40, risk: 30, professionalism: 20, language: 10 }
+    readinessWeights: { compliance: 40, risk: 30, language: 20, approval: 10 }
   }
 ];
 
