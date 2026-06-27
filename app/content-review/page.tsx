@@ -413,12 +413,7 @@ function FindingCard({ finding, index }: { finding: ReviewFinding; index: number
         </div>
         <div className="rounded-lg bg-paper p-4">
           <p className="text-xs text-ink/55">الأثر والمخاطر</p>
-          <p className="mt-2 leading-8">قد ينشئ أثراً {finding.potentialImpact} ضمن {finding.riskDimensions?.map((item) => ({
-            legal: "المخاطر القانونية",
-            reputational: "مخاطر السمعة",
-            confidentiality: "مخاطر السرية",
-            misleadingCommunication: "مخاطر التواصل المضلل"
-          }[item])).join("، ")}.</p>
+          <p className="mt-2 leading-8">{finding.explanation}</p>
         </div>
         <div className="rounded-lg border border-palm/20 bg-mint/50 p-4">
           <p className="text-xs text-palm">الإجراء الموصى به</p>
