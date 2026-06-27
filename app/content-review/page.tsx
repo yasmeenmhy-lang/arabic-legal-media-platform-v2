@@ -388,8 +388,43 @@ function downloadBlob(name: string, type: string, body: string) {
   URL.revokeObjectURL(url);
 }
 
-function FindingCard({ finding, index }: { finding: ReviewFinding; index: number }) {
+function FindingCard({ finding, index, compact = false }: { finding: ReviewFinding; index: number; compact?: boolean }) {
   const severity = finding.businessSeverity ?? "low";
+
+  if (compact) {
+    return (
+      <article className="rounded-xl border border-red-200 bg-white p-4 ring-2 ring-red-50 shadow-sm">
+        <div className="mb-3 flex flex-wrap items-start justify-between gap-2">
+          <div>
+            <p className="text-xs text-ink/50">القاعدة المتأثرة</p>
+            <h3 className="mt-1 text-sm font-semibold leading-7 text-ink">🔴 {finding.title}</h3>
+            <p className="mt-0.5 text-xs text-palm">{finding.category} — {finding.domain}</p>
+          </div>
+          <StatusBadge tone={severity === "critical" || severity === "high" ? "danger" : severity === "medium" ? "gold" : "good"}>
+            {severityLabel[severity]}
+          </StatusBadge>
+        </div>
+        <div className="grid gap-2">
+          <div className="rounded-lg bg-paper p-3">
+            <p className="text-xs text-ink/55">الدليل</p>
+            <p className="mt-1 text-sm font-medium leading-7">&ldquo;{finding.evidence}&rdquo;</p>
+          </div>
+          <div className="rounded-lg border border-palm/20 bg-mint/50 p-3">
+            <p className="text-xs text-palm">✅ الإجراء الموصى به</p>
+            <p className="mt-1 text-sm leading-7">{finding.suggestedSaferWording}</p>
+          </div>
+          <div className="rounded-lg bg-paper p-3">
+            <p className="text-xs text-ink/55">المرجع الرسمي</p>
+            <p className="mt-1 text-sm">{finding.sourceDocument} — {finding.legalReference}</p>
+            <a href={finding.sourceUrl} target="_blank" rel="noopener noreferrer" className="mt-1 inline-flex items-center gap-1.5 text-xs text-palm underline">
+              📄 فتح المرجع الرسمي <ExternalLink size={12} aria-hidden="true" />
+            </a>
+          </div>
+        </div>
+      </article>
+    );
+  }
+
   return (
     <article className={`rounded-xl border bg-white p-5 shadow-sm ${severity === "critical" ? "border-red-300 ring-2 ring-red-100" : "border-line"}`}>
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -408,7 +443,7 @@ function FindingCard({ finding, index }: { finding: ReviewFinding; index: number
         </div>
         <div className="rounded-lg bg-paper p-4">
           <p className="text-xs text-ink/55">الدليل من المحتوى</p>
-          <p className="mt-2 leading-8 font-medium">“{finding.evidence}”</p>
+          <p className="mt-2 leading-8 font-medium">&ldquo;{finding.evidence}&rdquo;</p>
         </div>
         <div className="rounded-lg bg-paper p-4">
           <p className="text-xs text-ink/55">لماذا يمثل مشكلة؟</p>
@@ -1088,56 +1123,59 @@ export default function ContentReviewPage() {
           <section id="analysis-summary" aria-labelledby="supporting-indicators-title" className="space-y-4 scroll-mt-24">
             <SectionTitle
               title="المؤشرات المساندة للقرار"
-              subtitle="توضح الرسوم مستوى كل جانب، بينما تبقى الملاحظات والأدلة والأثر والإجراء الموصى به هي أساس القرار."
+              subtitle="الملاحظات والأدلة والإجراء الموصى به هي أساس القرار."
             />
+
+            {/* ── الامتثال القانوني — الملاحظات مختصرة ── */}
+            <Panel id="compliance" className="scroll-mt-24">
+              <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                <p className="text-sm font-semibold text-ink">⚖️ الامتثال القانوني</p>
+                <StatusBadge tone={complianceKpiTone(review.complianceScore)}>
+                  {review.complianceScore}%
+                </StatusBadge>
+              </div>
+              {review.findings.length ? (
+                <div className="flex flex-col gap-3">
+                  {review.findings.map((finding, i) => (
+                    <FindingCard key={`compact-${finding.title}-${finding.evidence}`} finding={finding} index={i} compact />
+                  ))}
+                </div>
+              ) : (
+                <div className="flex items-start gap-3 rounded-lg bg-paper p-4">
+                  <CheckCircle2 className="mt-1 shrink-0 text-palm" size={18} aria-hidden="true" />
+                  <p className="text-sm leading-7">لم ترصد مخالفات — المحتوى متسق مع المراجع المسجلة.</p>
+                </div>
+              )}
+            </Panel>
+
+            {/* ── المخاطر + جاهزية النشر ── */}
             <div className="grid gap-4 xl:grid-cols-2">
-              {(["compliance", "language"] as const).map((kindName) => {
-                const metric = kindName === "compliance" ? businessScoreExplanation("compliance", review) : contentQualityExplanation(review);
-                const value = kindName === "compliance" ? review.complianceScore : review.contentQualityScore;
-                return (
-                  <MetricExplanation
-                    key={kindName}
-                    id={kindName === "compliance" ? "compliance" : undefined}
-                    label={metric.label}
-                    value={value}
-                    displayValue={metric.value}
-                    explanation={metric.explanation}
-                    evidence={metric.evidence}
-                    action={metric.action}
-                    tone={kindName === "language" ? languageKpiTone(value) : complianceKpiTone(value)}
-                  />
-                );
-              })}
-              {(() => {
-                const metric = businessScoreExplanation("risk", review);
-                return (
-                  <MetricExplanation
-                    id="risk"
-                    label={metric.label}
-                    value={review.riskScore}
-                    displayValue={`${metric.value} — ${review.riskScore}%`}
-                    explanation={metric.explanation}
-                    evidence={metric.evidence}
-                    action={metric.action}
-                    tone={riskKpiTone(review.riskLevel)}
-                    inverse
-                  />
-                );
-              })()}
-              {(() => {
-                const prof = professionalismExplanation(review.professionalismScore, review);
-                return (
-                  <MetricExplanation
-                    label="الالتزام بمعايير الكتابة المهنية"
-                    value={review.professionalismScore}
-                    displayValue={`${review.professionalismScore}%`}
-                    explanation={prof.explanation}
-                    evidence="تقييم شامل لأسلوب الكتابة وملاءمته للمهنة القانونية"
-                    action={prof.action}
-                    tone={professionalismKpiTone(review.professionalismScore)}
-                  />
-                );
-              })()}
+              <Panel id="risk" className="scroll-mt-24">
+                <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+                  <p className="text-sm font-semibold text-ink">⚠️ المخاطر</p>
+                  <StatusBadge tone={riskKpiTone(review.riskLevel)}>{review.riskLevel}</StatusBadge>
+                </div>
+                {!!review.riskScoreExplanation.affectedParties?.length && (
+                  <div className="mb-3 flex flex-wrap items-center gap-2">
+                    <p className="text-xs text-ink/65">الجهات المتضررة:</p>
+                    {review.riskScoreExplanation.affectedParties.map((p) => (
+                      <StatusBadge key={p} tone={riskKpiTone(review.riskLevel)}>{p}</StatusBadge>
+                    ))}
+                  </div>
+                )}
+                <div className="grid gap-2 sm:grid-cols-2">
+                  <div className="rounded-lg bg-paper p-3">
+                    <p className="text-xs text-ink/55">الدليل</p>
+                    <p className="mt-1 text-sm leading-7">{review.legalRiskAssessment.reason}</p>
+                  </div>
+                  <div className="rounded-lg border border-palm/20 bg-mint/50 p-3">
+                    <p className="text-xs text-palm">الإجراء</p>
+                    <p className="mt-1 text-sm leading-7">
+                      {review.riskScoreExplanation.fix ?? review.readinessDecision.actions[0] ?? "عالج مصادر الخطر قبل النشر."}
+                    </p>
+                  </div>
+                </div>
+              </Panel>
               <MetricExplanation
                 label="جاهزية النشر"
                 value={review.publishingReadinessScore}
@@ -1148,6 +1186,63 @@ export default function ContentReviewPage() {
                 tone={readinessKpiTone(review)}
               />
             </div>
+
+            {/* ── الكتابة المهنية + اللغة والإملاء ── */}
+            <div className="grid gap-4 sm:grid-cols-2">
+              {(() => {
+                const prof = professionalismExplanation(review.professionalismScore, review);
+                const tone = professionalismKpiTone(review.professionalismScore);
+                return (
+                  <Panel>
+                    <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                      <p className="text-sm font-semibold text-ink">✍️ الكتابة المهنية</p>
+                      <StatusBadge tone={tone}>{review.professionalismScore}%</StatusBadge>
+                    </div>
+                    <ProgressBar value={review.professionalismScore} tone={tone} />
+                    <p className="mt-2 text-xs leading-6 text-ink/65">{prof.explanation}</p>
+                  </Panel>
+                );
+              })()}
+              {(() => {
+                const tone = languageKpiTone(review.languageQuality.score);
+                const firstIssue = review.languageQuality.issues[0];
+                return (
+                  <Panel>
+                    <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                      <p className="text-sm font-semibold text-ink">🔤 اللغة والإملاء</p>
+                      <StatusBadge tone={tone}>{review.languageQuality.score}%</StatusBadge>
+                    </div>
+                    <ProgressBar value={review.languageQuality.score} tone={tone} />
+                    {firstIssue && (
+                      <p className="mt-2 text-xs leading-6 text-ink/65">
+                        ⚠️ ملاحظة: &quot;{firstIssue.excerpt}&quot; — {firstIssue.suggestion}
+                      </p>
+                    )}
+                  </Panel>
+                );
+              })()}
+            </div>
+
+            {/* ── جودة المحتوى — قائمة العوامل بدون أرقام ── */}
+            <Panel>
+              <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+                <p className="text-sm font-semibold text-ink">📊 جودة المحتوى</p>
+                <StatusBadge tone={complianceKpiTone(review.contentQualityScore)}>{review.contentQualityScore}%</StatusBadge>
+              </div>
+              <ProgressBar value={review.contentQualityScore} tone={complianceKpiTone(review.contentQualityScore)} />
+              <div className="mt-4 divide-y divide-line/50 border-t border-line">
+                {review.contentQualityScoreExplanation.factors.map((factor) => {
+                  const factorTone = factor.sourceScore >= 80 ? "good" as const : factor.sourceScore >= 60 ? "gold" as const : "danger" as const;
+                  const factorBadge = factor.sourceScore >= 80 ? "ممتاز" : factor.sourceScore >= 60 ? "متوسط" : "يحتاج تحسيناً";
+                  return (
+                    <div key={factor.key} className="flex items-center justify-between py-2.5">
+                      <span className="text-sm text-ink">{factor.label}</span>
+                      <StatusBadge tone={factorTone}>{factorBadge}</StatusBadge>
+                    </div>
+                  );
+                })}
+              </div>
+            </Panel>
           </section>
 
           <>
