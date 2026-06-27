@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { NextResponse } from "next/server";
 import { badRequest, ok } from "@/lib/api";
 import { enhanceReviewOutput } from "@/lib/services/ai-enhancement-service";
 import { reviewContent } from "@/lib/services/review-service";
@@ -28,15 +29,25 @@ export async function POST(request: Request) {
     purpose: parsed.data.purpose,
     reviewStatus: parsed.data.reviewStatus
   };
-  const baseReview = await reviewContent(parsed.data.text, parsed.data.kind, context);
-  const review = await enhanceReviewOutput({
-    text: parsed.data.text,
-    kind: parsed.data.kind,
-    context,
-    review: baseReview
-  });
 
-  if (parsed.data.contentId) await persistReviewResult(parsed.data.contentId, review);
+  try {
+    const baseReview = await reviewContent(parsed.data.text, parsed.data.kind, context);
+    const review = await enhanceReviewOutput({
+      text: parsed.data.text,
+      kind: parsed.data.kind,
+      context,
+      review: baseReview
+    });
 
-  return ok(review);
+    if (parsed.data.contentId) await persistReviewResult(parsed.data.contentId, review);
+
+    return ok(review);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "خطأ غير متوقع في معالجة المراجعة";
+    const isConfigError = message.includes("ANTHROPIC_API_KEY") || message.includes("غير مهيأ");
+    return NextResponse.json(
+      { error: isConfigError ? "خدمة التحليل غير مهيأة — تأكد من ضبط متغيرات البيئة." : message },
+      { status: 503 }
+    );
+  }
 }

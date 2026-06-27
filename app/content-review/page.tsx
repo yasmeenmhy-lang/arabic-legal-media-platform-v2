@@ -783,7 +783,10 @@ export default function ContentReviewPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ text, kind, contentType: contentTypeLabel, channel, audience, purpose, reviewStatus })
     });
-    if (!response.ok) throw new Error("تعذر إكمال المراجعة.");
+    if (!response.ok) {
+      const payload = await response.json().catch(() => ({})) as { error?: string };
+      throw new Error(payload.error ?? "تعذر إكمال المراجعة.");
+    }
     return (await response.json()).data as ReviewResult;
   }
 
