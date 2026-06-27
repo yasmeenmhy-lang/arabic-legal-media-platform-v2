@@ -302,20 +302,10 @@ function professionalismKpiTone(score: number): "good" | "gold" | "danger" {
   return "danger";
 }
 
-function professionalismExplanation(score: number, review: ReviewResult) {
-  const specificAction = review.findings[0]?.advice || review.readinessDecision.actions[0];
-  if (score >= 80) return {
-    explanation: "الأسلوب رصين ويليق بمحامٍ مرخص.",
-    action: specificAction ?? "حافظ على هذا المستوى من الرصانة في جميع منشوراتك."
-  };
-  if (score >= 60) return {
-    explanation: "الأسلوب بحاجة لتحسين ليعكس الرصانة المهنية المتوقعة من محامٍ.",
-    action: specificAction ?? "أعد صياغة النص بأسلوب رصين يليق بالمهنة القانونية."
-  };
-  return {
-    explanation: "الأسلوب لا يليق بمحامٍ مرخص — يحتاج إعادة كتابة كاملة.",
-    action: specificAction ?? "اكتب النص من جديد بلغة فصحى رصينة تخدم هدفاً مهنياً أو تثقيفياً واضحاً."
-  };
+function professionalismExplanation(score: number) {
+  if (score >= 80) return { explanation: "الأسلوب رصين ويليق بمحامٍ مرخص.", action: "حافظ على هذا المستوى من الرصانة في جميع منشوراتك." };
+  if (score >= 60) return { explanation: "الأسلوب بحاجة لتحسين ليعكس الرصانة المهنية المتوقعة من محامٍ.", action: "أعد صياغة النص بأسلوب أكاديمي رسمي يليق بالمهنة القانونية." };
+  return { explanation: "الأسلوب لا يليق بمحامٍ مرخص — يحتاج إعادة كتابة كاملة.", action: "اكتب النص من جديد بلغة فصحى رصينة تخدم هدفاً مهنياً أو تثقيفياً واضحاً." };
 }
 
 function businessScoreExplanation(kind: "compliance" | "risk" | "language", review: ReviewResult) {
@@ -338,7 +328,7 @@ function businessScoreExplanation(kind: "compliance" | "risk" | "language", revi
       value: review.riskLevel,
       explanation: review.legalRiskAssessment.reason,
       evidence: riskExp.explanation ?? (riskParties ? `الجهات المتضررة: ${riskParties}` : review.legalRiskAssessment.reason),
-      action: riskExp.fix ?? review.readinessDecision.actions[0] ?? "عالج مصادر الخطر الموضحة في الملاحظات قبل النشر."
+      action: riskExp.fix ?? "استمر في تجنب الوعود والادعاءات غير المدعومة."
     };
   }
   return {
@@ -355,7 +345,7 @@ function businessScoreExplanation(kind: "compliance" | "risk" | "language", revi
 function contentQualityExplanation(review: ReviewResult) {
   const exp = review.contentQualityScoreExplanation;
   const score = review.contentQualityScore;
-  const weakFactors = exp.factors.filter((f) => f.sourceScore < 80).map((f) => f.label);
+  const factorLabels = exp.factors.map((f) => `${f.label} ${f.sourceScore}%`).join(" | ");
   if (exp.redLine) {
     return {
       label: "جودة المحتوى",
@@ -368,11 +358,11 @@ function contentQualityExplanation(review: ReviewResult) {
   return {
     label: "جودة المحتوى",
     value: `${score}%`,
-    explanation: weakFactors.length === 0
-      ? "المحتوى يجتاز جميع مؤشرات الجودة الأربعة."
-      : weakFactors.length <= 2
-        ? `يحتاج تحسيناً في: ${weakFactors.join("، ")}.`
-        : `يفتقر إلى معايير الجودة في: ${weakFactors.join("، ")}.`,
+    explanation: score >= 80
+      ? `المحتوى يجتاز المؤشرات الأربعة. (${factorLabels})`
+      : score >= 60
+        ? `المحتوى بحاجة إلى تحسين في بعض المؤشرات. (${factorLabels})`
+        : `المحتوى يفتقر إلى معايير جودة في مؤشرات رئيسية. (${factorLabels})`,
     evidence: review.languageQuality.issues[0]?.excerpt || review.findings[0]?.evidence || "التقييم الشامل للمؤشرات الأربعة.",
     action: review.languageQuality.issues[0]?.suggestion || review.findings[0]?.suggestedSaferWording || "راجع كل مؤشر على حدة وعالج الضعف الأكبر أولاً."
   };
@@ -423,12 +413,7 @@ function FindingCard({ finding, index }: { finding: ReviewFinding; index: number
         </div>
         <div className="rounded-lg bg-paper p-4">
           <p className="text-xs text-ink/55">الأثر والمخاطر</p>
-          <p className="mt-2 leading-8">قد ينشئ أثراً {finding.potentialImpact} ضمن {finding.riskDimensions?.map((item) => ({
-            legal: "المخاطر القانونية",
-            reputational: "مخاطر السمعة",
-            confidentiality: "مخاطر السرية",
-            misleadingCommunication: "مخاطر التواصل المضلل"
-          }[item])).join("، ")}.</p>
+          <p className="mt-2 leading-8">{finding.explanation}</p>
         </div>
         <div className="rounded-lg border border-palm/20 bg-mint/50 p-4">
           <p className="text-xs text-palm">الإجراء الموصى به</p>
@@ -748,7 +733,10 @@ export default function ContentReviewPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ text, kind, contentType: contentTypeLabel, channel, audience, purpose, reviewStatus })
     });
-    if (!response.ok) throw new Error("تعذر إكمال المراجعة.");
+    if (!response.ok) {
+      const payload = await response.json().catch(() => ({})) as { error?: string };
+      throw new Error(payload.error ?? "تعذر إكمال المراجعة.");
+    }
     return (await response.json()).data as ReviewResult;
   }
 
@@ -1125,7 +1113,7 @@ export default function ContentReviewPage() {
                 );
               })()}
               {(() => {
-                const prof = professionalismExplanation(review.professionalismScore, review);
+                const prof = professionalismExplanation(review.professionalismScore);
                 return (
                   <MetricExplanation
                     label="الالتزام بمعايير الكتابة المهنية"
