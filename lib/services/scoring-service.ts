@@ -230,7 +230,7 @@ export function calculateContentQualityScore({
   const factors: ContentQualityScoreExplanation["factors"] = [
     {
       key: "compliance",
-      label: "الامتثال القانوني",
+      label: "الامتثال",
       sourceScore: complianceScore,
       weight: 40,
       weightedScore: 40 // Fixed 40 when compliant; red line prevents reaching this otherwise
@@ -286,7 +286,7 @@ export function calculatePublishingReadiness({
   const gates: PublishingReadinessGate[] = [
     {
       key: "compliance",
-      label: "الامتثال القانوني",
+      label: "الامتثال",
       passed: complianceScore === 100,
       sourceValue: complianceScore,
       threshold: "100%",
