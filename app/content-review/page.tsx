@@ -484,6 +484,7 @@ function qualLabel(score: number) {
   return { label: "ضعيف", cls: "bg-red-100 text-red-800" };
 }
 
+
 const categoryLabel: Record<string, string> = {
   spelling: "إملاء",
   grammar: "نحو",
@@ -503,9 +504,9 @@ function ComplianceIndicatorCard({ review }: { review: ReviewResult }) {
   const isCompliant = review.findings.length === 0;
   return (
     <Panel id="compliance" className={`scroll-mt-24 border-t-4 shadow-md ${toneBorder(isCompliant ? "good" : "danger")}`}>
-      <p className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-400">الامتثال القانوني</p>
+      <p className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-400">الامتثال</p>
       <StatusBadge tone={isCompliant ? "good" : "danger"}>
-        {isCompliant ? "ملتزم — لا مخالفات" : `${review.findings.length} ${review.findings.length === 1 ? "مخالفة" : "مخالفات"} مرصودة`}
+        {isCompliant ? "ملتزم" : "غير ملتزم"}
       </StatusBadge>
       {review.findings.length > 0 ? (
         <div className="mt-4 space-y-2">
@@ -625,7 +626,12 @@ function ContentQualityIndicatorCard({ review }: { review: ReviewResult }) {
       <StatusBadge tone={statusTone}>{statusLabel}</StatusBadge>
       <div className="mt-4 space-y-2.5">
         {exp.factors.map((factor) => {
-          const q = qualLabel(factor.sourceScore);
+          const isCompliance = factor.key === "compliance";
+          const q = isCompliance
+            ? (review.findings.length === 0
+                ? { label: "ملتزم", cls: "bg-green-100 text-green-800" }
+                : { label: "غير ملتزم", cls: "bg-red-100 text-red-800" })
+            : qualLabel(factor.sourceScore);
           return (
             <div key={factor.key} className="flex items-center justify-between gap-3">
               <span className="text-sm text-slate-600">{factor.label}</span>
@@ -1325,8 +1331,8 @@ export default function ContentReviewPage() {
                 <p className="leading-8">{enhancedRewrite?.suggestedText ?? rewrite.suggestedText}</p>
                 <p className="mt-3 rounded-lg bg-paper p-3 text-xs leading-6 text-ink/65">النص المقترح لغرض التعليم والمساعدة فقط، وتظل مسؤولية النشر والمشاركة والاعتماد على المستخدم.</p>
                 <div className="mt-4 grid gap-3 md:grid-cols-2">
-                  <div className="rounded-lg bg-paper p-4"><p className="text-xs text-ink/55">قبل التوصية</p><p className="mt-2">الامتثال {rewrite.originalComplianceScore}% — المخاطر {rewrite.originalRiskLevel}</p></div>
-                  <div className="rounded-lg bg-mint p-4"><p className="text-xs text-palm">الأثر المتوقع بعد التطبيق</p><p className="mt-2">الامتثال المتوقع {rewrite.proposedComplianceScore}% — المخاطر المتوقعة {rewrite.proposedRiskLevel}</p></div>
+                  <div className="rounded-lg bg-paper p-4"><p className="text-xs text-ink/55">قبل التوصية</p><p className="mt-2">المخاطر {rewrite.originalRiskLevel}</p></div>
+                  <div className="rounded-lg bg-mint p-4"><p className="text-xs text-palm">الأثر المتوقع بعد التطبيق</p><p className="mt-2">المخاطر المتوقعة {rewrite.proposedRiskLevel}</p></div>
                 </div>
                 <button type="button" onClick={applyRewrite} disabled={loading} className="mt-4 inline-flex items-center gap-2 rounded-md bg-palm px-4 py-2.5 text-white"><Sparkles size={16} />تطبيق الصياغة وإعادة التقييم</button>
               </div>
