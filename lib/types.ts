@@ -395,6 +395,9 @@ export type ReviewResult = {
   channelRecommendations: ChannelRecommendation[];
   decisionWorkflow: DecisionWorkflowStage[];
   aiEnhancement?: AIEnhancement;
+  analysisMode: "full" | "pattern-only";
+  semanticAvailable: boolean;
+  degradedReason?: "missing-key" | "api-error" | "timeout";
 };
 
 export type AIEnhancement = {

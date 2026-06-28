@@ -293,6 +293,8 @@ const MOCK_REVIEW: ReviewResult = {
     { key: "correction",  label: "المعالجة",        status: "الحالي",      reason: "يُنتظر تعديل المحتوى", action: "عدّل المحتوى وأعد التحليل" },
     { key: "publishing",  label: "النشر",           status: "قيد الانتظار", reason: "مُعلَّق حتى معالجة المخالفات", action: "" },
   ],
+  analysisMode: "full",
+  semanticAvailable: true,
 };
 
 export default function PreviewSeed() {

@@ -262,13 +262,20 @@ function buildSemanticFinding(
   };
 }
 
+export type SemanticAnalysisResult =
+  | { mode: "full"; findings: ReviewFinding[] }
+  | { mode: "pattern-only"; findings: ReviewFinding[]; degradedReason: "missing-key" | "api-error" | "timeout" };
+
 export async function runSemanticAnalysis(
   text: string,
   context: ReviewContext | undefined,
   contentKind?: ContentKind
-): Promise<ReviewFinding[]> {
+): Promise<SemanticAnalysisResult> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) throw new Error("ANTHROPIC_API_KEY is not configured");
+  if (!apiKey) {
+    console.warn("[semantic] ANTHROPIC_API_KEY missing — falling back to pattern-only");
+    return { mode: "pattern-only", findings: [], degradedReason: "missing-key" };
+  }
 
   const profile = resolveScoringProfile(contentKind ?? ("post" as ContentKind), context?.channel);
   const contextSummary = buildContextSummary(context);
@@ -279,11 +286,24 @@ export async function runSemanticAnalysis(
   const client = new Anthropic({ apiKey });
   const prompt = buildHolisticPrompt(text, contextSummary, eligibleEntries);
 
-  const message = await client.messages.create({
-    model: "claude-haiku-4-5-20251001",
-    max_tokens: 4096,
-    messages: [{ role: "user", content: prompt }]
-  });
+  let message: Awaited<ReturnType<typeof client.messages.create>>;
+  try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 25_000);
+    try {
+      message = await client.messages.create(
+        { model: "claude-haiku-4-5-20251001", max_tokens: 4096, messages: [{ role: "user", content: prompt }] },
+        { signal: controller.signal }
+      );
+    } finally {
+      clearTimeout(timer);
+    }
+  } catch (err) {
+    const isTimeout = err instanceof Error && (err.name === "AbortError" || err.message.includes("abort"));
+    const degradedReason = isTimeout ? "timeout" : "api-error";
+    console.warn("[semantic] API call failed — falling back to pattern-only, reason:", degradedReason, err instanceof Error ? err.message : "");
+    return { mode: "pattern-only", findings: [], degradedReason };
+  }
 
   const rawText = message.content
     .filter((block) => block.type === "text")
@@ -302,5 +322,5 @@ export async function runSemanticAnalysis(
     .filter((f): f is ReviewFinding => f !== null);
 
   console.log("[semantic] done: findings =", findings.length);
-  return findings;
+  return { mode: "full", findings };
 }

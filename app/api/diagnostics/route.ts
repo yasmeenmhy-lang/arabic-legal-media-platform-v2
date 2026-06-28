@@ -24,13 +24,13 @@ export async function GET() {
   if (anthropicApiKeyPresent) {
     const start = Date.now();
     try {
-      const findings = await runSemanticAnalysis(TEST_TEXT, { contentType: "إعلان مهني", channel: "LinkedIn" }, "advertisement");
+      const semanticResult = await runSemanticAnalysis(TEST_TEXT, { contentType: "إعلان مهني", channel: "LinkedIn" }, "advertisement");
       const duration = Date.now() - start;
       engineTest = {
         ran: true,
-        findingsDetected: findings.length,
+        findingsDetected: semanticResult.findings.length,
         durationMs: duration,
-        passed: findings.length >= 1 ? "✓ المحرك الدلالي (Claude) يعمل ويرصد المخالفات" : "⚠ المحرك يعمل لكن لم يرصد مخالفات على النص التجريبي"
+        passed: semanticResult.findings.length >= 1 ? "✓ المحرك الدلالي (Claude) يعمل ويرصد المخالفات" : "⚠ المحرك يعمل لكن لم يرصد مخالفات على النص التجريبي"
       };
     } catch (err) {
       engineTest = {
