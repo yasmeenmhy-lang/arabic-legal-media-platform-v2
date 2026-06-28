@@ -484,6 +484,12 @@ function qualLabel(score: number) {
   return { label: "ضعيف", cls: "bg-red-100 text-red-800" };
 }
 
+function qualLabelCompliance(score: number) {
+  if (score >= 100) return { label: "ممتاز", cls: "bg-green-100 text-green-800" };
+  if (score >= 80) return { label: "متوسط", cls: "bg-amber-100 text-amber-800" };
+  return { label: "ضعيف", cls: "bg-red-100 text-red-800" };
+}
+
 const categoryLabel: Record<string, string> = {
   spelling: "إملاء",
   grammar: "نحو",
@@ -503,7 +509,7 @@ function ComplianceIndicatorCard({ review }: { review: ReviewResult }) {
   const isCompliant = review.findings.length === 0;
   return (
     <Panel id="compliance" className={`scroll-mt-24 border-t-4 shadow-md ${toneBorder(isCompliant ? "good" : "danger")}`}>
-      <p className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-400">الامتثال القانوني</p>
+      <p className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-400">الامتثال</p>
       <StatusBadge tone={isCompliant ? "good" : "danger"}>
         {isCompliant ? "ملتزم — لا مخالفات" : `${review.findings.length} ${review.findings.length === 1 ? "مخالفة" : "مخالفات"} مرصودة`}
       </StatusBadge>
@@ -625,7 +631,9 @@ function ContentQualityIndicatorCard({ review }: { review: ReviewResult }) {
       <StatusBadge tone={statusTone}>{statusLabel}</StatusBadge>
       <div className="mt-4 space-y-2.5">
         {exp.factors.map((factor) => {
-          const q = qualLabel(factor.sourceScore);
+          const q = factor.key === "compliance"
+            ? qualLabelCompliance(factor.sourceScore)
+            : qualLabel(factor.sourceScore);
           return (
             <div key={factor.key} className="flex items-center justify-between gap-3">
               <span className="text-sm text-slate-600">{factor.label}</span>
