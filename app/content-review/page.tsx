@@ -492,10 +492,17 @@ const categoryLabel: Record<string, string> = {
   "اتساق المصطلحات": "مصطلحات"
 };
 
+function toneBorder(tone: "good" | "gold" | "danger" | "neutral") {
+  if (tone === "good") return "border-t-green-400";
+  if (tone === "gold") return "border-t-amber-400";
+  if (tone === "danger") return "border-t-red-400";
+  return "border-t-slate-300";
+}
+
 function ComplianceIndicatorCard({ review }: { review: ReviewResult }) {
   const isCompliant = review.findings.length === 0;
   return (
-    <Panel id="compliance" className="scroll-mt-24">
+    <Panel id="compliance" className={`scroll-mt-24 border-t-4 shadow-md ${toneBorder(isCompliant ? "good" : "danger")}`}>
       <p className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-400">الامتثال القانوني</p>
       <StatusBadge tone={isCompliant ? "good" : "danger"}>
         {isCompliant ? "ملتزم — لا مخالفات" : `${review.findings.length} ${review.findings.length === 1 ? "مخالفة" : "مخالفات"} مرصودة`}
@@ -531,7 +538,7 @@ function RiskIndicatorCard({ review }: { review: ReviewResult }) {
     return <Award size={13} aria-hidden="true" />;
   };
   return (
-    <Panel id="risk" className="scroll-mt-24">
+    <Panel id="risk" className={`scroll-mt-24 border-t-4 shadow-md ${toneBorder(tone)}`}>
       <p className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-400">المخاطر</p>
       <div className="flex items-center justify-between gap-3">
         <StatusBadge tone={tone}>{review.riskLevel}</StatusBadge>
@@ -565,7 +572,7 @@ function ProfessionalismIndicatorCard({ review }: { review: ReviewResult }) {
   const passed = review.professionalismScore >= 80;
   const { explanation, action } = professionalismExplanation(review.professionalismScore);
   return (
-    <Panel className="scroll-mt-24">
+    <Panel className={`scroll-mt-24 border-t-4 shadow-md ${toneBorder(tone)}`}>
       <p className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-400">الكتابة المهنية</p>
       <StatusBadge tone={tone}>{passed ? "ناجح" : "يحتاج تحسين"}</StatusBadge>
       <p className="mt-4 rounded-lg border-r-2 border-amber-300 bg-amber-50 p-3 text-sm leading-6">{explanation}</p>
@@ -582,7 +589,7 @@ function LanguageIndicatorCard({ review }: { review: ReviewResult }) {
   const tone = languageKpiTone(review.languageQuality.score);
   const issues = review.languageQuality.issues;
   return (
-    <Panel className="scroll-mt-24">
+    <Panel className={`scroll-mt-24 border-t-4 shadow-md ${toneBorder(passed ? "good" : tone)}`}>
       <p className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-400">اللغة والإملاء</p>
       <StatusBadge tone={passed ? "good" : tone}>
         {passed
@@ -612,7 +619,7 @@ function ContentQualityIndicatorCard({ review }: { review: ReviewResult }) {
   const statusTone = exp.redLine ? "danger" as const : review.contentQualityScore >= 80 ? "good" as const : "gold" as const;
   const statusLabel = exp.redLine ? "خط أحمر مُفعَّل" : review.contentQualityScore >= 80 ? "متوازن" : "يحتاج تحسين";
   return (
-    <Panel className="scroll-mt-24">
+    <Panel className={`scroll-mt-24 border-t-4 shadow-md ${toneBorder(statusTone)}`}>
       <p className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-400">جودة المحتوى</p>
       <StatusBadge tone={statusTone}>{statusLabel}</StatusBadge>
       <div className="mt-4 space-y-2.5">
@@ -639,7 +646,7 @@ function ReadinessIndicatorCard({ review }: { review: ReviewResult }) {
   const tone = readinessKpiTone(review);
   const gates = review.publishingReadinessExplanation.gates;
   return (
-    <Panel className="scroll-mt-24">
+    <Panel className={`scroll-mt-24 border-t-4 shadow-md ${toneBorder(tone)}`}>
       <p className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-400">جاهزية النشر</p>
       <StatusBadge tone={tone}>{review.readinessDecision.level}</StatusBadge>
       <div className="mt-4 space-y-3">
