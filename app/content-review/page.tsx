@@ -616,8 +616,9 @@ function LanguageIndicatorCard({ review }: { review: ReviewResult }) {
 
 function ContentQualityIndicatorCard({ review }: { review: ReviewResult }) {
   const exp = review.contentQualityScoreExplanation;
-  const statusTone = exp.redLine ? "danger" as const : review.contentQualityScore >= 80 ? "good" as const : "gold" as const;
-  const statusLabel = exp.redLine ? "خط أحمر مُفعَّل" : review.contentQualityScore >= 80 ? "متوازن" : "يحتاج تحسين";
+  const hasViolations = review.findings.length > 0;
+  const statusTone = (exp.redLine || hasViolations) ? "danger" as const : review.contentQualityScore >= 80 ? "good" as const : "gold" as const;
+  const statusLabel = (exp.redLine || hasViolations) ? "خط أحمر مُفعَّل" : review.contentQualityScore >= 80 ? "متوازن" : "يحتاج تحسين";
   return (
     <Panel className={`scroll-mt-24 border-t-4 shadow-md ${toneBorder(statusTone)}`}>
       <p className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-400">جودة المحتوى</p>
