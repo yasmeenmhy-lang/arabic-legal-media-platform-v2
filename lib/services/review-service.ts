@@ -13,6 +13,7 @@ import { createReviewedContentContext } from "@/lib/review-context";
 import { runPublishingReadinessReview } from "@/lib/services/approval-workflow-service";
 import { rebuildComplianceFromFindings } from "@/lib/services/legal-compliance-service";
 import { runSemanticAnalysis } from "@/lib/services/semantic-analysis-service";
+import type { SemanticAnalysisResult } from "@/lib/services/semantic-analysis-service";
 import { evaluateContent } from "@/lib/services/content-evaluation-service";
 import { buildGovernedRewriteSuggestions } from "@/lib/services/recommendation-service";
 import {
@@ -91,10 +92,18 @@ export async function reviewContent(text: string, kind: ContentKind = "post", co
   const profile = resolveScoringProfile(kind, context.channel);
 
   // Run compliance analysis and content evaluation (risk + professionalism + language) in parallel
-  const [semanticFindings, contentEval] = await Promise.all([
+  const [semanticResult, contentEval] = await Promise.all([
     runSemanticAnalysis(text, context, kind),
     evaluateContent(text)
   ]);
+
+  const semanticFindings = semanticResult.findings;
+  const analysisMode: ReviewResult["analysisMode"] = semanticResult.mode;
+  const degradedReason: ReviewResult["degradedReason"] =
+    semanticResult.mode === "pattern-only" ? (semanticResult as Extract<SemanticAnalysisResult, { mode: "pattern-only" }>).degradedReason : undefined;
+  if (analysisMode === "pattern-only") {
+    console.warn("[review-service] degraded to pattern-only, reason:", degradedReason);
+  }
 
   const languageQuality = mapToLanguageQualityResult(contentEval.language);
   const compliance = rebuildComplianceFromFindings(semanticFindings, profile);
@@ -205,7 +214,10 @@ export async function reviewContent(text: string, kind: ContentKind = "post", co
     confidence,
     readinessDecision,
     channelRecommendations,
-    decisionWorkflow
+    decisionWorkflow,
+    analysisMode,
+    semanticAvailable: analysisMode === "full",
+    degradedReason
   };
 }
 

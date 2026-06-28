@@ -264,6 +264,7 @@ function riskTone(risk: RiskLevel) {
 }
 
 function decisionTone(review: ReviewResult) {
+  if (review.analysisMode === "pattern-only") return "neutral" as const;
   return review.publicationDecision.outcome === "RECOMMENDED"
     ? "good" as const
     : review.publicationDecision.outcome === "RECOMMENDED_AFTER_FINDINGS"
@@ -290,6 +291,7 @@ function riskKpiTone(risk: RiskLevel) {
 }
 
 function readinessKpiTone(review: ReviewResult) {
+  if (review.analysisMode === "pattern-only") return "neutral" as const;
   if (review.publicationDecision.outcome === "RECOMMENDED") return "good" as const;
   if (review.publicationDecision.outcome === "NOT_RECOMMENDED") return "danger" as const;
   if (review.publishingReadinessScore < 60) return "danger" as const;
@@ -1041,6 +1043,16 @@ export default function ContentReviewPage() {
 
       {review ? (
         <>
+          {review.analysisMode === "pattern-only" ? (
+            <div
+              dir="rtl"
+              role="alert"
+              className="sticky top-0 z-20 flex items-start gap-3 rounded-b-lg border border-amber-300 bg-amber-50 px-5 py-3 text-sm text-amber-900 shadow-sm"
+            >
+              <span aria-hidden="true" className="mt-0.5 shrink-0">⚠️</span>
+              <span>{"تنبيه: يوجد عطل، والتحليل غير مكتمل حالياً، وقد لا تشمل النتيجة كل المخالفات."}</span>
+            </div>
+          ) : null}
           <Panel id="decision" className="border-2 border-palm/20">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
               <div>
