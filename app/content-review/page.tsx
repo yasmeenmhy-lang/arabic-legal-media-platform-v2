@@ -58,7 +58,7 @@ import {
   upsertAnalyzedVersion
 } from "@/lib/content-record-store";
 import { saveLatestReviewSnapshot } from "@/components/review-context-summary";
-import type { ContentKind, LanguageQualityIssue, ReviewFinding, ReviewResult, RiskLevel } from "@/lib/types";
+import type { ContentKind, LanguageQualityIssue, ReviewFinding, ReviewResult, RiskAffectedParty, RiskLevel } from "@/lib/types";
 
 const contentTypes = contentKindOptions.filter((item) =>
   (["post", "advertisement", "campaign", "article", "script", "caption", "visual_content", "infographic", "publishing_plan"] as ContentKind[]).includes(item.value)
@@ -465,6 +465,166 @@ function MetricExplanation({
       <div className="mt-4 grid gap-3 lg:grid-cols-2">
         <div className="rounded-md bg-paper p-3 text-sm leading-7"><b>الدليل:</b> {evidence}</div>
         <div className="rounded-md bg-mint/50 p-3 text-sm leading-7"><b>الإجراء الموصى به:</b> {action}</div>
+      </div>
+    </Panel>
+  );
+}
+
+function toneDot(tone: "good" | "gold" | "danger" | "neutral") {
+  if (tone === "good") return <span className="inline-block h-2.5 w-2.5 rounded-full bg-green-500" />;
+  if (tone === "gold") return <span className="inline-block h-2.5 w-2.5 rounded-full bg-amber-400" />;
+  if (tone === "danger") return <span className="inline-block h-2.5 w-2.5 rounded-full bg-red-500" />;
+  return <span className="inline-block h-2.5 w-2.5 rounded-full bg-gray-300" />;
+}
+
+function ComplianceIndicatorCard({ review }: { review: ReviewResult }) {
+  const isCompliant = review.findings.length === 0;
+  return (
+    <Panel id="compliance" className="scroll-mt-24">
+      <div className="flex items-center justify-between gap-3">
+        <h3 className="font-semibold">⚖️ الامتثال القانوني</h3>
+        <StatusBadge tone={isCompliant ? "good" : "danger"}>
+          {isCompliant ? "ملتزم" : "غير ملتزم"}
+        </StatusBadge>
+      </div>
+      {review.findings.length > 0 ? (
+        <ul className="mt-4 space-y-2">
+          {review.findings.map((f) => (
+            <li key={f.traceabilityId} className="flex items-start gap-2 text-sm leading-7">
+              <span className="mt-2 inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-red-500" />
+              {f.title}
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="mt-4 text-sm leading-7 text-ink/65">{"لم ترصد مخالفات مرتبطة بالمراجع المسجلة."}</p>
+      )}
+    </Panel>
+  );
+}
+
+function ReadinessIndicatorCard({ review }: { review: ReviewResult }) {
+  const isReady = review.readinessDecision.level === "جاهز للنشر";
+  const tone = readinessKpiTone(review);
+  return (
+    <Panel className="scroll-mt-24">
+      <div className="flex items-center gap-3">
+        <StatusBadge tone={tone}>{review.readinessDecision.level}</StatusBadge>
+      </div>
+      {review.readinessDecision.blockers.length > 0 && (
+        <ul className="mt-4 space-y-2">
+          {review.readinessDecision.blockers.map((b, i) => (
+            <li key={i} className="flex items-start gap-2 text-sm leading-7">
+              <span className="mt-2 inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-amber-400" />
+              {b}
+            </li>
+          ))}
+        </ul>
+      )}
+      {review.readinessDecision.actions.length > 0 && (
+        <div className="mt-4 rounded-md bg-mint/50 p-3 text-sm leading-7">
+          {review.readinessDecision.actions.join("، ")}
+        </div>
+      )}
+    </Panel>
+  );
+}
+
+function RiskIndicatorCard({ review }: { review: ReviewResult }) {
+  const tone = riskKpiTone(review.riskLevel);
+  const parties = review.riskScoreExplanation.affectedParties ?? [];
+  const partyIcon = (p: RiskAffectedParty) => {
+    if (p === "الموكل") return <User size={14} aria-hidden="true" />;
+    if (p === "المحامي") return <Scale size={14} aria-hidden="true" />;
+    return <Award size={14} aria-hidden="true" />;
+  };
+  return (
+    <Panel id="risk" className="scroll-mt-24">
+      <div className="flex items-center justify-between gap-3">
+        <h3 className="font-semibold">{"⚠️ المخاطر"}</h3>
+        <div className="flex items-center gap-3">
+          <StatusBadge tone={tone}>{review.riskLevel}</StatusBadge>
+          <span className="text-sm font-medium text-ink/70">{review.riskScore}%</span>
+        </div>
+      </div>
+      <div className="mt-3">
+        <ProgressBar value={review.riskScore} tone={tone} />
+      </div>
+      {parties.length > 0 && (
+        <div className="mt-4 flex flex-wrap gap-2">
+          {parties.map((p) => (
+            <span key={p} className="inline-flex items-center gap-1.5 rounded-full border border-line bg-paper px-3 py-1 text-xs">
+              {partyIcon(p)}{p}
+            </span>
+          ))}
+        </div>
+      )}
+    </Panel>
+  );
+}
+
+function ProfessionalismIndicatorCard({ review }: { review: ReviewResult }) {
+  const tone = professionalismKpiTone(review.professionalismScore);
+  const { explanation } = professionalismExplanation(review.professionalismScore);
+  return (
+    <Panel className="scroll-mt-24">
+      <div className="flex items-center justify-between gap-3">
+        <h3 className="font-semibold">{"✍️ الكتابة المهنية"}</h3>
+        <span className="text-sm font-medium text-ink/70">{review.professionalismScore}%</span>
+      </div>
+      <div className="mt-3">
+        <ProgressBar value={review.professionalismScore} tone={tone} />
+      </div>
+      <p className="mt-3 text-sm leading-7 text-ink/70">{explanation}</p>
+    </Panel>
+  );
+}
+
+function LanguageIndicatorCard({ review }: { review: ReviewResult }) {
+  const score = review.languageQuality.score;
+  const tone = languageKpiTone(score);
+  const note = review.languageQuality.issues.length > 0
+    ? `توجد ${review.languageQuality.issues.length} ملاحظة لغوية أو إملائية.`
+    : "لم ترصد ملاحظات لغوية أو إملائية.";
+  return (
+    <Panel className="scroll-mt-24">
+      <div className="flex items-center justify-between gap-3">
+        <h3 className="font-semibold">{"🔤 اللغة والإملاء"}</h3>
+        <span className="text-sm font-medium text-ink/70">{score}%</span>
+      </div>
+      <div className="mt-3">
+        <ProgressBar value={score} tone={tone} />
+      </div>
+      <p className="mt-3 text-sm leading-7 text-ink/70">{note}</p>
+    </Panel>
+  );
+}
+
+function ContentQualityIndicatorCard({ review }: { review: ReviewResult }) {
+  const score = review.contentQualityScore;
+  const scoreTone = score >= 80 ? "good" as const : score >= 60 ? "gold" as const : "danger" as const;
+  const subIndicators: Array<{ label: string; tone: "good" | "gold" | "danger" | "neutral" }> = [
+    { label: "امتثال", tone: complianceKpiTone(review.complianceScore) },
+    { label: "مخاطر", tone: riskKpiTone(review.riskLevel) },
+    { label: "كتابة", tone: professionalismKpiTone(review.professionalismScore) },
+    { label: "لغة", tone: languageKpiTone(review.languageQuality.score) }
+  ];
+  return (
+    <Panel className="scroll-mt-24">
+      <div className="flex items-center justify-between gap-3">
+        <h3 className="font-semibold">{"📊 جودة المحتوى"}</h3>
+        <span className="text-sm font-medium text-ink/70">{score}%</span>
+      </div>
+      <div className="mt-3">
+        <ProgressBar value={score} tone={scoreTone} />
+      </div>
+      <div className="mt-4 flex flex-wrap gap-4">
+        {subIndicators.map(({ label, tone }) => (
+          <span key={label} className="inline-flex items-center gap-1.5 text-sm">
+            {toneDot(tone)}
+            <span>{label}</span>
+          </span>
+        ))}
       </div>
     </Panel>
   );
@@ -1091,62 +1251,12 @@ export default function ContentReviewPage() {
               subtitle="توضح الرسوم مستوى كل جانب، بينما تبقى الملاحظات والأدلة والأثر والإجراء الموصى به هي أساس القرار."
             />
             <div className="grid gap-4 xl:grid-cols-2">
-              {(["compliance", "language"] as const).map((kindName) => {
-                const metric = kindName === "compliance" ? businessScoreExplanation("compliance", review) : contentQualityExplanation(review);
-                const value = kindName === "compliance" ? review.complianceScore : review.contentQualityScore;
-                return (
-                  <MetricExplanation
-                    key={kindName}
-                    id={kindName === "compliance" ? "compliance" : undefined}
-                    label={metric.label}
-                    value={value}
-                    displayValue={metric.value}
-                    explanation={metric.explanation}
-                    evidence={metric.evidence}
-                    action={metric.action}
-                    tone={kindName === "language" ? languageKpiTone(value) : complianceKpiTone(value)}
-                  />
-                );
-              })}
-              {(() => {
-                const metric = businessScoreExplanation("risk", review);
-                return (
-                  <MetricExplanation
-                    id="risk"
-                    label={metric.label}
-                    value={review.riskScore}
-                    displayValue={`${metric.value} — ${review.riskScore}%`}
-                    explanation={metric.explanation}
-                    evidence={metric.evidence}
-                    action={metric.action}
-                    tone={riskKpiTone(review.riskLevel)}
-                    inverse
-                  />
-                );
-              })()}
-              {(() => {
-                const prof = professionalismExplanation(review.professionalismScore);
-                return (
-                  <MetricExplanation
-                    label="الالتزام بمعايير الكتابة المهنية"
-                    value={review.professionalismScore}
-                    displayValue={`${review.professionalismScore}%`}
-                    explanation={prof.explanation}
-                    evidence="تقييم شامل لأسلوب الكتابة وملاءمته للمهنة القانونية"
-                    action={prof.action}
-                    tone={professionalismKpiTone(review.professionalismScore)}
-                  />
-                );
-              })()}
-              <MetricExplanation
-                label="جاهزية النشر"
-                value={review.publishingReadinessScore}
-                displayValue={`${review.readinessDecision.level} — ${review.publishingReadinessScore}%`}
-                explanation={review.readinessDecision.reasons.join(" ")}
-                evidence={review.readinessDecision.blockers.join("، ") || "لا توجد حواجز مانعة متبقية وفق نتائج المراجعة الحالية."}
-                action={review.readinessDecision.actions.join("، ") || "راجع النسخة النهائية واعتمدها قبل تجهيز المشاركة."}
-                tone={readinessKpiTone(review)}
-              />
+              <ComplianceIndicatorCard review={review} />
+              <ReadinessIndicatorCard review={review} />
+              <RiskIndicatorCard review={review} />
+              <ProfessionalismIndicatorCard review={review} />
+              <LanguageIndicatorCard review={review} />
+              <ContentQualityIndicatorCard review={review} />
             </div>
           </section>
 
