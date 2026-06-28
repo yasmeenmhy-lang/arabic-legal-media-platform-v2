@@ -506,7 +506,7 @@ function ComplianceIndicatorCard({ review }: { review: ReviewResult }) {
     <Panel id="compliance" className={`scroll-mt-24 border-t-4 shadow-md ${toneBorder(isCompliant ? "good" : "danger")}`}>
       <p className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-400">الامتثال</p>
       <StatusBadge tone={isCompliant ? "good" : "danger"}>
-        {isCompliant ? "ملتزم — لا مخالفات" : `${review.findings.length} ${review.findings.length === 1 ? "مخالفة" : "مخالفات"} مرصودة`}
+        {isCompliant ? "ملتزم" : "غير ملتزم"}
       </StatusBadge>
       {review.findings.length > 0 ? (
         <div className="mt-4 space-y-2">
