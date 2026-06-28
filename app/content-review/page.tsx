@@ -1250,6 +1250,22 @@ export default function ContentReviewPage() {
               <span>{"تنبيه: يوجد عطل، والتحليل غير مكتمل حالياً، وقد لا تشمل النتيجة كل المخالفات."}</span>
             </div>
           ) : null}
+
+          <section id="analysis-summary" aria-labelledby="supporting-indicators-title" className="space-y-4 scroll-mt-24">
+            <SectionTitle
+              title="المؤشرات المساندة للقرار"
+              subtitle="توضح الرسوم مستوى كل جانب، بينما تبقى الملاحظات والأدلة والأثر والإجراء الموصى به هي أساس القرار."
+            />
+            <div className="grid gap-4 xl:grid-cols-2">
+              <ComplianceIndicatorCard review={review} />
+              <RiskIndicatorCard review={review} />
+              <ProfessionalismIndicatorCard review={review} />
+              <LanguageIndicatorCard review={review} />
+              <ContentQualityIndicatorCard review={review} />
+              <ReadinessIndicatorCard review={review} />
+            </div>
+          </section>
+
           <Panel id="decision" className="border-2 border-palm/20">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
               <div>
@@ -1281,21 +1297,6 @@ export default function ContentReviewPage() {
               </button>
             ))}
           </nav>
-
-          <section id="analysis-summary" aria-labelledby="supporting-indicators-title" className="space-y-4 scroll-mt-24">
-            <SectionTitle
-              title="المؤشرات المساندة للقرار"
-              subtitle="توضح الرسوم مستوى كل جانب، بينما تبقى الملاحظات والأدلة والأثر والإجراء الموصى به هي أساس القرار."
-            />
-            <div className="grid gap-4 xl:grid-cols-2">
-              <ComplianceIndicatorCard review={review} />
-              <RiskIndicatorCard review={review} />
-              <ProfessionalismIndicatorCard review={review} />
-              <LanguageIndicatorCard review={review} />
-              <ContentQualityIndicatorCard review={review} />
-              <ReadinessIndicatorCard review={review} />
-            </div>
-          </section>
 
           <>
           {sortedFindings.some((item) => item.businessSeverity === "critical") ? (
