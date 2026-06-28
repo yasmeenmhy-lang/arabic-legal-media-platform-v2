@@ -470,61 +470,58 @@ function MetricExplanation({
   );
 }
 
-function toneDot(tone: "good" | "gold" | "danger" | "neutral") {
-  if (tone === "good") return <span className="inline-block h-2.5 w-2.5 rounded-full bg-green-500" />;
-  if (tone === "gold") return <span className="inline-block h-2.5 w-2.5 rounded-full bg-amber-400" />;
-  if (tone === "danger") return <span className="inline-block h-2.5 w-2.5 rounded-full bg-red-500" />;
-  return <span className="inline-block h-2.5 w-2.5 rounded-full bg-gray-300" />;
+function sevTag(severity: "critical" | "high" | "medium" | "low") {
+  if (severity === "critical") return { label: "حرج", cls: "bg-red-100 text-red-800" };
+  if (severity === "high") return { label: "مرتفع", cls: "bg-orange-100 text-orange-800" };
+  if (severity === "medium") return { label: "متوسط", cls: "bg-amber-100 text-amber-800" };
+  return { label: "منخفض", cls: "bg-slate-100 text-slate-600" };
+}
+
+function qualLabel(score: number) {
+  if (score >= 85) return { label: "ممتاز", cls: "bg-green-100 text-green-800" };
+  if (score >= 70) return { label: "جيد", cls: "bg-blue-100 text-blue-800" };
+  if (score >= 50) return { label: "متوسط", cls: "bg-amber-100 text-amber-800" };
+  return { label: "ضعيف", cls: "bg-red-100 text-red-800" };
+}
+
+const categoryLabel: Record<string, string> = {
+  spelling: "إملاء",
+  grammar: "نحو",
+  style: "أسلوب",
+  readability: "وضوح",
+  "اتساق المصطلحات": "مصطلحات"
+};
+
+function toneBorder(tone: "good" | "gold" | "danger" | "neutral") {
+  if (tone === "good") return "border-t-green-400";
+  if (tone === "gold") return "border-t-amber-400";
+  if (tone === "danger") return "border-t-red-400";
+  return "border-t-slate-300";
 }
 
 function ComplianceIndicatorCard({ review }: { review: ReviewResult }) {
   const isCompliant = review.findings.length === 0;
   return (
-    <Panel id="compliance" className="scroll-mt-24">
-      <div className="flex items-center justify-between gap-3">
-        <h3 className="font-semibold">⚖️ الامتثال القانوني</h3>
-        <StatusBadge tone={isCompliant ? "good" : "danger"}>
-          {isCompliant ? "ملتزم" : "غير ملتزم"}
-        </StatusBadge>
-      </div>
+    <Panel id="compliance" className={`scroll-mt-24 border-t-4 shadow-md ${toneBorder(isCompliant ? "good" : "danger")}`}>
+      <p className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-400">الامتثال القانوني</p>
+      <StatusBadge tone={isCompliant ? "good" : "danger"}>
+        {isCompliant ? "ملتزم — لا مخالفات" : `${review.findings.length} ${review.findings.length === 1 ? "مخالفة" : "مخالفات"} مرصودة`}
+      </StatusBadge>
       {review.findings.length > 0 ? (
-        <ul className="mt-4 space-y-2">
-          {review.findings.map((f) => (
-            <li key={f.traceabilityId} className="flex items-start gap-2 text-sm leading-7">
-              <span className="mt-2 inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-red-500" />
-              {f.title}
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <p className="mt-4 text-sm leading-7 text-ink/65">{"لم ترصد مخالفات مرتبطة بالمراجع المسجلة."}</p>
-      )}
-    </Panel>
-  );
-}
-
-function ReadinessIndicatorCard({ review }: { review: ReviewResult }) {
-  const isReady = review.readinessDecision.level === "جاهز للنشر";
-  const tone = readinessKpiTone(review);
-  return (
-    <Panel className="scroll-mt-24">
-      <div className="flex items-center gap-3">
-        <StatusBadge tone={tone}>{review.readinessDecision.level}</StatusBadge>
-      </div>
-      {review.readinessDecision.blockers.length > 0 && (
-        <ul className="mt-4 space-y-2">
-          {review.readinessDecision.blockers.map((b, i) => (
-            <li key={i} className="flex items-start gap-2 text-sm leading-7">
-              <span className="mt-2 inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-amber-400" />
-              {b}
-            </li>
-          ))}
-        </ul>
-      )}
-      {review.readinessDecision.actions.length > 0 && (
-        <div className="mt-4 rounded-md bg-mint/50 p-3 text-sm leading-7">
-          {review.readinessDecision.actions.join("، ")}
+        <div className="mt-4 space-y-2">
+          {review.findings.map((f) => {
+            const sev = f.businessSeverity ?? "low";
+            const tag = sevTag(sev);
+            return (
+              <div key={f.traceabilityId} className={`flex items-start gap-2.5 rounded-lg p-3 ${sev === "critical" || sev === "high" ? "border border-red-200 bg-red-50" : "border border-amber-200 bg-amber-50"}`}>
+                <span className={`shrink-0 rounded px-1.5 py-0.5 text-xs font-bold ${tag.cls}`}>{tag.label}</span>
+                <span className="text-sm leading-6">{f.title}</span>
+              </div>
+            );
+          })}
         </div>
+      ) : (
+        <p className="mt-4 text-sm leading-7 text-slate-500">{"لم ترصد مخالفات مرتبطة بالمراجع المسجلة."}</p>
       )}
     </Panel>
   );
@@ -533,97 +530,137 @@ function ReadinessIndicatorCard({ review }: { review: ReviewResult }) {
 function RiskIndicatorCard({ review }: { review: ReviewResult }) {
   const tone = riskKpiTone(review.riskLevel);
   const parties = review.riskScoreExplanation.affectedParties ?? [];
+  const riskLevels = ["منخفض", "متوسط", "مرتفع", "بالغ"];
+  const activeCount = riskLevels.indexOf(review.riskLevel) + 1;
   const partyIcon = (p: RiskAffectedParty) => {
-    if (p === "الموكل") return <User size={14} aria-hidden="true" />;
-    if (p === "المحامي") return <Scale size={14} aria-hidden="true" />;
-    return <Award size={14} aria-hidden="true" />;
+    if (p === "الموكل") return <User size={13} aria-hidden="true" />;
+    if (p === "المحامي") return <Scale size={13} aria-hidden="true" />;
+    return <Award size={13} aria-hidden="true" />;
   };
   return (
-    <Panel id="risk" className="scroll-mt-24">
+    <Panel id="risk" className={`scroll-mt-24 border-t-4 shadow-md ${toneBorder(tone)}`}>
+      <p className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-400">المخاطر</p>
       <div className="flex items-center justify-between gap-3">
-        <h3 className="font-semibold">{"⚠️ المخاطر"}</h3>
-        <div className="flex items-center gap-3">
-          <StatusBadge tone={tone}>{review.riskLevel}</StatusBadge>
-          <span className="text-sm font-medium text-ink/70">{review.riskScore}%</span>
-        </div>
-      </div>
-      <div className="mt-3">
-        <ProgressBar value={review.riskScore} tone={tone} />
-      </div>
-      {parties.length > 0 && (
-        <div className="mt-4 flex flex-wrap gap-2">
-          {parties.map((p) => (
-            <span key={p} className="inline-flex items-center gap-1.5 rounded-full border border-line bg-paper px-3 py-1 text-xs">
-              {partyIcon(p)}{p}
-            </span>
+        <StatusBadge tone={tone}>{review.riskLevel}</StatusBadge>
+        <div className="flex gap-1.5">
+          {riskLevels.map((_, i) => (
+            <span key={i} className={`inline-block h-2.5 w-2.5 rounded-full ${i < activeCount ? (tone === "good" ? "bg-green-400" : tone === "gold" ? "bg-amber-400" : "bg-red-500") : "bg-slate-200"}`} />
           ))}
         </div>
+      </div>
+      {parties.length > 0 && (
+        <div className="mt-4">
+          <p className="mb-2 text-xs text-slate-400">الجهات المتضررة</p>
+          <div className="flex flex-wrap gap-2">
+            {parties.map((p) => (
+              <span key={p} className="inline-flex items-center gap-1.5 rounded-full border border-red-200 bg-red-50 px-3 py-1 text-xs font-semibold text-red-700">
+                {partyIcon(p)}{p}
+              </span>
+            ))}
+          </div>
+        </div>
       )}
+      {review.riskScoreExplanation.explanation ? (
+        <p className="mt-4 rounded-lg bg-slate-50 p-3 text-sm leading-6 text-slate-600">{review.riskScoreExplanation.explanation}</p>
+      ) : null}
     </Panel>
   );
 }
 
 function ProfessionalismIndicatorCard({ review }: { review: ReviewResult }) {
   const tone = professionalismKpiTone(review.professionalismScore);
-  const { explanation } = professionalismExplanation(review.professionalismScore);
+  const passed = review.professionalismScore >= 80;
+  const { explanation, action } = professionalismExplanation(review.professionalismScore);
   return (
-    <Panel className="scroll-mt-24">
-      <div className="flex items-center justify-between gap-3">
-        <h3 className="font-semibold">{"✍️ الكتابة المهنية"}</h3>
-        <span className="text-sm font-medium text-ink/70">{review.professionalismScore}%</span>
+    <Panel className={`scroll-mt-24 border-t-4 shadow-md ${toneBorder(tone)}`}>
+      <p className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-400">الكتابة المهنية</p>
+      <StatusBadge tone={tone}>{passed ? "ناجح" : "يحتاج تحسين"}</StatusBadge>
+      <p className="mt-4 rounded-lg border-r-2 border-amber-300 bg-amber-50 p-3 text-sm leading-6">{explanation}</p>
+      <div className="mt-3 rounded-lg bg-slate-50 p-3 text-sm leading-6">
+        <span className="mb-1 block text-xs font-bold uppercase tracking-wider text-slate-400">الإصلاح المقترح</span>
+        {action}
       </div>
-      <div className="mt-3">
-        <ProgressBar value={review.professionalismScore} tone={tone} />
-      </div>
-      <p className="mt-3 text-sm leading-7 text-ink/70">{explanation}</p>
     </Panel>
   );
 }
 
 function LanguageIndicatorCard({ review }: { review: ReviewResult }) {
-  const score = review.languageQuality.score;
-  const tone = languageKpiTone(score);
-  const note = review.languageQuality.issues.length > 0
-    ? `توجد ${review.languageQuality.issues.length} ملاحظة لغوية أو إملائية.`
-    : "لم ترصد ملاحظات لغوية أو إملائية.";
+  const passed = review.languageQuality.passed;
+  const tone = languageKpiTone(review.languageQuality.score);
+  const issues = review.languageQuality.issues;
   return (
-    <Panel className="scroll-mt-24">
-      <div className="flex items-center justify-between gap-3">
-        <h3 className="font-semibold">{"🔤 اللغة والإملاء"}</h3>
-        <span className="text-sm font-medium text-ink/70">{score}%</span>
-      </div>
-      <div className="mt-3">
-        <ProgressBar value={score} tone={tone} />
-      </div>
-      <p className="mt-3 text-sm leading-7 text-ink/70">{note}</p>
+    <Panel className={`scroll-mt-24 border-t-4 shadow-md ${toneBorder(passed ? "good" : tone)}`}>
+      <p className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-400">اللغة والإملاء</p>
+      <StatusBadge tone={passed ? "good" : tone}>
+        {passed
+          ? issues.length === 0 ? "ناجح — لا ملاحظات" : `ناجح — ${issues.length} ملاحظة`
+          : `يحتاج تصحيح — ${issues.length} ملاحظة`}
+      </StatusBadge>
+      {issues.length > 0 ? (
+        <div className="mt-4 space-y-2">
+          {issues.map((issue, i) => (
+            <div key={issue.id ?? i} className="flex items-start gap-2.5 rounded-lg border border-line bg-paper p-3">
+              <span className="shrink-0 rounded bg-red-100 px-1.5 py-0.5 text-xs font-bold text-red-800">
+                {categoryLabel[issue.category] ?? issue.category}
+              </span>
+              <span className="text-sm leading-6">{issue.message}</span>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p className="mt-4 text-sm leading-7 text-slate-500">{"لم ترصد ملاحظات لغوية أو إملائية."}</p>
+      )}
     </Panel>
   );
 }
 
 function ContentQualityIndicatorCard({ review }: { review: ReviewResult }) {
-  const score = review.contentQualityScore;
-  const scoreTone = score >= 80 ? "good" as const : score >= 60 ? "gold" as const : "danger" as const;
-  const subIndicators: Array<{ label: string; tone: "good" | "gold" | "danger" | "neutral" }> = [
-    { label: "امتثال", tone: complianceKpiTone(review.complianceScore) },
-    { label: "مخاطر", tone: riskKpiTone(review.riskLevel) },
-    { label: "كتابة", tone: professionalismKpiTone(review.professionalismScore) },
-    { label: "لغة", tone: languageKpiTone(review.languageQuality.score) }
-  ];
+  const exp = review.contentQualityScoreExplanation;
+  const hasViolations = review.findings.length > 0;
+  const statusTone = (exp.redLine || hasViolations) ? "danger" as const : review.contentQualityScore >= 80 ? "good" as const : "gold" as const;
+  const statusLabel = (exp.redLine || hasViolations) ? "خط أحمر مُفعَّل" : review.contentQualityScore >= 80 ? "متوازن" : "يحتاج تحسين";
   return (
-    <Panel className="scroll-mt-24">
-      <div className="flex items-center justify-between gap-3">
-        <h3 className="font-semibold">{"📊 جودة المحتوى"}</h3>
-        <span className="text-sm font-medium text-ink/70">{score}%</span>
+    <Panel className={`scroll-mt-24 border-t-4 shadow-md ${toneBorder(statusTone)}`}>
+      <p className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-400">جودة المحتوى</p>
+      <StatusBadge tone={statusTone}>{statusLabel}</StatusBadge>
+      <div className="mt-4 space-y-2.5">
+        {exp.factors.map((factor) => {
+          const q = qualLabel(factor.sourceScore);
+          return (
+            <div key={factor.key} className="flex items-center justify-between gap-3">
+              <span className="text-sm text-slate-600">{factor.label}</span>
+              <span className={`rounded px-2 py-0.5 text-xs font-bold ${q.cls}`}>{q.label}</span>
+            </div>
+          );
+        })}
       </div>
-      <div className="mt-3">
-        <ProgressBar value={score} tone={scoreTone} />
-      </div>
-      <div className="mt-4 flex flex-wrap gap-4">
-        {subIndicators.map(({ label, tone }) => (
-          <span key={label} className="inline-flex items-center gap-1.5 text-sm">
-            {toneDot(tone)}
-            <span>{label}</span>
-          </span>
+      {exp.redLine && (
+        <p className="mt-4 rounded-lg bg-red-50 p-3 text-xs font-medium leading-6 text-red-700">
+          يوجد مخالفة قانونية — النشر غير متاح حتى المعالجة
+        </p>
+      )}
+    </Panel>
+  );
+}
+
+function ReadinessIndicatorCard({ review }: { review: ReviewResult }) {
+  const tone = readinessKpiTone(review);
+  const gates = review.publishingReadinessExplanation.gates;
+  return (
+    <Panel className={`scroll-mt-24 border-t-4 shadow-md ${toneBorder(tone)}`}>
+      <p className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-400">جاهزية النشر</p>
+      <StatusBadge tone={tone}>{review.readinessDecision.level}</StatusBadge>
+      <div className="mt-4 space-y-3">
+        {gates.map((gate) => (
+          <div key={gate.key} className="flex items-start gap-3">
+            <span className={`mt-0.5 shrink-0 text-sm font-bold ${gate.passed ? "text-green-600" : "text-red-500"}`}>
+              {gate.passed ? "✓" : "✗"}
+            </span>
+            <div>
+              <p className="text-sm font-medium leading-6">{gate.label}</p>
+              <p className="text-xs leading-5 text-slate-400">{gate.reason}</p>
+            </div>
+          </div>
         ))}
       </div>
     </Panel>
@@ -1252,11 +1289,11 @@ export default function ContentReviewPage() {
             />
             <div className="grid gap-4 xl:grid-cols-2">
               <ComplianceIndicatorCard review={review} />
-              <ReadinessIndicatorCard review={review} />
               <RiskIndicatorCard review={review} />
               <ProfessionalismIndicatorCard review={review} />
               <LanguageIndicatorCard review={review} />
               <ContentQualityIndicatorCard review={review} />
+              <ReadinessIndicatorCard review={review} />
             </div>
           </section>
 
