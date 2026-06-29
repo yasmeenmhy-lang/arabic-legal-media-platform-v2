@@ -153,17 +153,21 @@ function escapeInlinePattern(value: string) {
 
 function detectInlineWritingIssues(value: string): LanguageQualityIssue[] {
   return inlineSpellingRules.flatMap((rule, ruleIndex) => {
-    const pattern = new RegExp(`(?<![\\u0600-\\u06FF])${escapeInlinePattern(rule.wrong)}(?![\\u0600-\\u06FF])`, "g");
-    return Array.from(value.matchAll(pattern)).map((match, matchIndex) => ({
-      id: `inline-spelling-${ruleIndex}-${matchIndex}`,
-      category: "spelling" as const,
-      severity: "medium" as const,
-      message: rule.message,
-      excerpt: match[0],
-      suggestion: `استبدل "${match[0]}" بـ "${rule.correction}".`,
-      start: match.index,
-      end: (match.index ?? 0) + match[0].length
-    }));
+    try {
+      const pattern = new RegExp(`(?<![\\u0600-\\u06FF])${escapeInlinePattern(rule.wrong)}(?![\\u0600-\\u06FF])`, "g");
+      return Array.from(value.matchAll(pattern)).map((match, matchIndex) => ({
+        id: `inline-spelling-${ruleIndex}-${matchIndex}`,
+        category: "spelling" as const,
+        severity: "medium" as const,
+        message: rule.message,
+        excerpt: match[0],
+        suggestion: `استبدل "${match[0]}" بـ "${rule.correction}".`,
+        start: match.index,
+        end: (match.index ?? 0) + match[0].length
+      }));
+    } catch {
+      return [];
+    }
   });
 }
 
