@@ -573,9 +573,9 @@ export default function ContentStudioPage() {
             <button
               type="button"
               onClick={() => setPath("create")}
-              className="flex flex-col items-start gap-3 rounded-xl border-2 border-line bg-white p-6 text-right transition hover:border-palm hover:shadow-md focus-ring"
+              className="flex flex-col items-start gap-3 rounded-xl border-2 border-line bg-white p-6 text-right transition hover:border-violet hover:shadow-md focus-ring"
             >
-              <span className="rounded-lg bg-mint p-2.5 text-palm">
+              <span className="rounded-lg bg-violetSoft p-2.5 text-violet">
                 <Sparkles size={22} />
               </span>
               <span className="text-lg font-semibold text-ink">إنشاء محتوى</span>
@@ -686,9 +686,15 @@ export default function ContentStudioPage() {
             />
           </div>
 
-          <Button onClick={generateContent} disabled={!source || topic.trim().length < 3} leadingIcon={<Sparkles size={17} />}>
+          <button
+            type="button"
+            onClick={generateContent}
+            disabled={!source || topic.trim().length < 3}
+            className="inline-flex items-center gap-2 rounded-lg bg-violet px-[11px] py-[9px] text-sm font-medium text-white transition hover:bg-violetDark focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <Sparkles size={17} />
             إنشاء المحتوى
-          </Button>
+          </button>
           {generateError && <p className="mt-3 text-sm text-red-600">{generateError}</p>}
         </Panel>
       )}
@@ -697,10 +703,10 @@ export default function ContentStudioPage() {
       {generating && (
         <Panel>
           <div className="flex flex-col items-center gap-4 py-8">
-            <Bot size={32} className="animate-pulse text-palm" />
+            <Bot size={32} className="animate-pulse text-violet" />
             <p className="text-sm text-ink/65">الذكاء الاصطناعي يُنشئ المحتوى...</p>
             <div className="h-2 w-48 overflow-hidden rounded-full bg-paper">
-              <div className="h-full w-full rounded-full bg-gradient-to-r from-mint via-palm/40 to-mint bg-[length:200%] animate-[pulse_1.5s_ease-in-out_infinite]" />
+              <div className="h-full w-full rounded-full bg-gradient-to-r from-violetSoft via-violet/40 to-violetSoft bg-[length:200%] animate-[pulse_1.5s_ease-in-out_infinite]" />
             </div>
           </div>
         </Panel>

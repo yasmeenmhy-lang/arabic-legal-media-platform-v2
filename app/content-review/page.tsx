@@ -835,10 +835,10 @@ function InlineContentGuidance({
       </div>
 
       {rewrite ? (
-        <div className="rounded-md border border-palm/20 bg-paper p-3 text-xs leading-6">
+        <div className="rounded-md border border-violetBorder bg-violetSoft p-3 text-xs leading-6">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <b>مسار التعديل المقترح</b>
-            <Button size="sm" onClick={onApplyRewrite} disabled={loading} leadingIcon={<Sparkles size={14} />}>استخدام الصياغة المقترحة</Button>
+            <b className="text-violet">مسار التعديل المقترح</b>
+            <button type="button" onClick={onApplyRewrite} disabled={loading} className="inline-flex items-center gap-1.5 rounded-md bg-violet px-2 py-0.5 text-xs font-medium text-white transition hover:bg-violetDark disabled:opacity-50 min-h-[32px]"><Sparkles size={14} />استخدام الصياغة المقترحة</button>
           </div>
           {enhancedRewrite?.explanation ? <p className="mt-2 text-ink/70">{enhancedRewrite.explanation}</p> : null}
           <p className="mt-2 text-ink/70">{enhancedRewrite?.suggestedText ?? rewrite.suggestedText}</p>
@@ -1418,9 +1418,9 @@ export default function ContentReviewPage() {
             <SectionTitle title="4. الصياغة المقترحة وأثر التحسين" subtitle="الذكاء الاصطناعي يولّد صياغة معالِجة لجميع الملاحظات الامتثالية واللغوية. تُعاد المراجعة فعلياً بعد التطبيق." />
 
             {/* كتلة الصياغة الذكية */}
-            <div className="mb-5 rounded-xl border border-palm/25 bg-mint/20 p-5">
+            <div className="mb-5 rounded-xl border border-violetBorder bg-violetSoft p-5">
               <div className="flex flex-wrap items-center justify-between gap-3">
-                <div className="flex items-center gap-2 text-palm">
+                <div className="flex items-center gap-2 text-violet">
                   <Sparkles size={18} aria-hidden="true" />
                   <h3 className="font-semibold">صياغة مقترحة</h3>
                 </div>
@@ -1428,7 +1428,7 @@ export default function ContentReviewPage() {
                   type="button"
                   onClick={requestAISuggestion}
                   disabled={suggestingAI || loading}
-                  className="inline-flex items-center gap-2 rounded-md bg-palm px-4 py-2 text-sm text-white disabled:opacity-50"
+                  className="inline-flex items-center gap-2 rounded-lg bg-violet px-[11px] py-[9px] text-sm font-medium text-white transition hover:bg-violetDark disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   <Sparkles size={15} aria-hidden="true" />
                   {suggestingAI ? "جار الإنشاء..." : aiSuggestion ? "إنشاء صياغة جديدة" : "صياغة مقترحة"}
@@ -1462,7 +1462,7 @@ export default function ContentReviewPage() {
                       type="button"
                       onClick={applyAISuggestion}
                       disabled={loading}
-                      className="inline-flex items-center gap-2 rounded-md bg-palm px-4 py-2.5 text-sm text-white disabled:opacity-50"
+                      className="inline-flex items-center gap-2 rounded-lg bg-violet px-[11px] py-[9px] text-sm font-medium text-white transition hover:bg-violetDark disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       <Sparkles size={16} aria-hidden="true" />
                       تطبيق الصياغة واستبدال المحتوى
