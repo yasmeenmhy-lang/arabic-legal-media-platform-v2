@@ -17,7 +17,13 @@ const config: Config = {
         warmGrayBorder: "#e2ddd5",
         warmGrayText: "#5b5347",
         paper: "#f4f7f6",
-        line: "#d8e1de"
+        line: "#d8e1de",
+        // DGA كود المنصات — لون البنفسجي مستوحى من زهرة الخزامى
+        violet: "#6B3D99",
+        violetDark: "#4E2D72",
+        violetSoft: "#F7F0FF",
+        violetBorder: "#DCC8F5",
+        violetText: "#5B2D8E"
       },
       fontFamily: {
         sans: ["Najiz Muhameen", "IBM Plex Sans Arabic", "Tahoma", "Arial", "sans-serif"]
