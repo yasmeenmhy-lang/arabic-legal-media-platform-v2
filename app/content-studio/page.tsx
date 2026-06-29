@@ -9,6 +9,7 @@ import {
   Building2,
   CalendarDays,
   CheckCircle2,
+  ChevronDown,
   Edit3,
   FileCheck2,
   FileText,
@@ -559,7 +560,7 @@ export default function ContentStudioPage() {
       {path === "create" && !generatedText && !generating && !review && (
         <Panel>
           <div className="mb-4 flex items-center justify-between">
-            <SectionTitle title="2. موضوع المحتوى" />
+            <SectionTitle title="2. مصدر المحتوى" />
             <button
               type="button"
               onClick={resetPath}
@@ -569,24 +570,27 @@ export default function ContentStudioPage() {
             </button>
           </div>
 
-          {/* Source dropdown */}
-          <div className="mb-4">
-            <p className="mb-2 text-sm text-ink/65">مصدر الإلهام</p>
-            <select
-              value={source}
-              onChange={(e) => {
-                setSource(e.target.value);
-                if (e.target.value !== "global-news") setGlobalSub("");
-              }}
-              className="w-full rounded-lg border border-line bg-white px-4 py-2.5 text-sm text-ink focus-ring"
-            >
-              <option value="">— اختر المصدر —</option>
-              {contentSources.map((s) => (
-                <option key={s.key} value={s.key}>
-                  {s.icon} {s.label}
-                </option>
-              ))}
-            </select>
+          {/* Source grid */}
+          <div className="mb-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            {contentSources.map((s) => (
+              <button
+                key={s.key}
+                type="button"
+                onClick={() => {
+                  setSource(s.key);
+                  if (s.key !== "global-news") setGlobalSub("");
+                }}
+                className={`flex items-center gap-2.5 rounded-lg border px-3 py-2.5 text-sm transition ${
+                  source === s.key
+                    ? "border-palm bg-mint text-palm shadow-[0_0_0_1px_theme(colors.palm)]"
+                    : "border-line bg-white text-ink/70 hover:border-palm hover:bg-mint hover:text-palm"
+                }`}
+              >
+                <span className="text-base">{s.icon}</span>
+                <span className="flex-1 text-right">{s.label}</span>
+                {s.subs && <ChevronDown size={13} className="shrink-0 opacity-40" />}
+              </button>
+            ))}
           </div>
 
           {/* Global news sub-categories */}
