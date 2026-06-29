@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { ChevronLeft, Clock3, Save, Target, Users } from "lucide-react";
-import { PageHeader, Panel, SectionTitle, StatusBadge } from "@/components/ui";
+import { Button, PageHeader, Panel, SectionTitle, StatusBadge } from "@/components/ui";
 import { socialBrandIcons, socialBrandStyles } from "@/components/social-icons";
 import { loadContentRecords, type StoredContentRecord } from "@/lib/content-record-store";
 
@@ -166,7 +166,7 @@ export default function CalendarPage() {
           <SectionTitle title="الجدول الزمني" subtitle="موعد مستهدف يساعد على ترتيب العمل ولا يمثل نشراً تلقائياً." />
           <label className="text-sm">تاريخ النشر المستهدف<input type="date" value={targetDate} onChange={(event) => setTargetDate(event.target.value)} disabled={!selected} className="mt-2 w-full rounded-md border border-line px-3 py-2.5 disabled:bg-paper disabled:text-ink/45" /></label>
           {!selected ? <p className="mt-2 rounded-lg bg-paper p-3 text-xs leading-6 text-ink/65">اختر محتوى قبل تحديد موعد النشر حتى لا يرتبط الجدول الزمني بمحتوى سابق.</p> : null}
-          <button type="button" onClick={saveSchedule} disabled={!selected || !targetDate} className="mt-3 inline-flex items-center gap-2 rounded-md bg-palm px-3 py-2 text-sm text-white disabled:opacity-40"><Save size={15} />حفظ الموعد</button>
+          <Button onClick={saveSchedule} disabled={!selected || !targetDate} className="mt-3" leadingIcon={<Save size={15} />}>حفظ الموعد</Button>
           <div className="mt-3 rounded-lg bg-paper p-3"><p className="text-xs text-ink/55">تقدم الخطة</p><p className="mt-1 text-lg font-semibold">{completed} من {stages.length} مراحل</p><p className="mt-1 text-xs leading-6 text-ink/65">يوضح المؤشر المرحلة الحالية وما يلزم تنفيذه تالياً.</p></div>
         </Panel>
       </div>

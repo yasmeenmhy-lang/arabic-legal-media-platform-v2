@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { KeyRound } from "lucide-react";
+import { Button } from "@/components/ui";
 
 export function AdminLoginForm() {
   const router = useRouter();
@@ -44,14 +45,9 @@ export function AdminLoginForm() {
         />
       </label>
       {error ? <p className="text-sm font-normal text-gold">{error}</p> : null}
-      <button
-        type="submit"
-        disabled={loading}
-        className="inline-flex items-center gap-2 rounded-md bg-palm px-4 py-2.5 text-sm font-normal text-white shadow-sm transition hover:bg-palmDark focus-ring disabled:cursor-not-allowed disabled:opacity-60"
-      >
-        <KeyRound size={16} />
+      <Button type="submit" disabled={loading} leadingIcon={<KeyRound size={16} />}>
         {loading ? "جاري التحقق..." : "دخول لوحة الإدارة"}
-      </button>
+      </Button>
     </form>
   );
 }

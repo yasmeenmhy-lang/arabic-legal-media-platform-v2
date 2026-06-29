@@ -135,19 +135,29 @@ export function PageHeader({
   );
 }
 
-export function ButtonLink({ href, children, variant = "primary" }: { href: string; children: React.ReactNode; variant?: ButtonVariant }) {
+export function ButtonLink({
+  href,
+  children,
+  variant = "primary",
+  className,
+}: {
+  href: string;
+  children: React.ReactNode;
+  variant?: ButtonVariant;
+  className?: string;
+}) {
   return (
     <Link
       href={href}
       className={clsx(
-        "inline-flex max-w-full items-center gap-2 text-sm font-medium transition",
+        "inline-flex cursor-pointer items-center justify-center gap-2 font-medium transition",
         "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-palm",
-        "min-h-[44px] rounded-lg px-4 py-3",
-        btnVariant[variant]
+        btnVariant[variant],
+        btnSize["md"],
+        className
       )}
     >
-      <span className="min-w-0">{children}</span>
-      <ArrowLeft size={16} className="shrink-0" />
+      {children}
     </Link>
   );
 }

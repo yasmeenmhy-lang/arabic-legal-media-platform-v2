@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { ExternalLink, FileClock, FolderOpen, History, RotateCcw, Trash2 } from "lucide-react";
-import { ButtonLink, PageHeader, Panel, SectionTitle, StatusBadge } from "@/components/ui";
+import { Button, ButtonLink, PageHeader, Panel, SectionTitle, StatusBadge } from "@/components/ui";
 import {
   loadContentRecords,
   saveContentRecords,
@@ -64,7 +64,7 @@ export default function ContentManagementPage() {
           ["drafts", `المسودات والحالية (${counts.drafts})`],
           ["approved", `المعتمدة (${counts.approved})`]
         ] as const).map(([key, label]) => (
-          <button key={key} type="button" onClick={() => setFilter(key)} aria-pressed={filter === key} className={`shrink-0 rounded-md px-4 py-2.5 text-sm transition focus-ring ${filter === key ? "bg-mint text-palm" : "text-ink/70 hover:bg-paper hover:text-ink"}`}>
+          <button key={key} type="button" onClick={() => setFilter(key)} aria-pressed={filter === key} className={`shrink-0 rounded-lg px-4 py-2.5 text-sm font-medium transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-palm ${filter === key ? "bg-mint text-palm" : "text-ink/70 hover:bg-paper hover:text-ink"}`}>
             {label}
           </button>
         ))}
@@ -97,27 +97,21 @@ export default function ContentManagementPage() {
                     </div>
                     <div className="flex flex-wrap gap-2">
                       {current ? (
-                        <Link onClick={() => openVersion(record.id, current.version)} href="/content-review" className="inline-flex items-center gap-2 rounded-md bg-palm px-3 py-2 text-sm text-white focus-ring">
-                          <FolderOpen size={15} /> فتح الإصدار الحالي
-                        </Link>
+                        <Button size="sm" onClick={() => { openVersion(record.id, current.version); }} leadingIcon={<FolderOpen size={15} />}>
+                          فتح الإصدار الحالي
+                        </Button>
                       ) : null}
-                      <button type="button" onClick={() => setExpanded(expanded === record.id ? undefined : record.id)} className="inline-flex items-center gap-2 rounded-md border border-line px-3 py-2 text-sm focus-ring">
-                        <History size={15} /> {expanded === record.id ? "إخفاء التفاصيل" : "كل التفاصيل"}
-                      </button>
+                      <Button size="sm" variant="secondary-gray" onClick={() => setExpanded(expanded === record.id ? undefined : record.id)} leadingIcon={<History size={15} />}>
+                        {expanded === record.id ? "إخفاء التفاصيل" : "كل التفاصيل"}
+                      </Button>
                       {confirmDelete === record.id ? (
                         <div className="flex items-center gap-2">
                           <span className="text-xs text-red-600">تأكيد الحذف؟</span>
-                          <button type="button" onClick={() => deleteRecord(record.id)} className="inline-flex items-center gap-1.5 rounded-md bg-red-600 px-3 py-2 text-sm text-white focus-ring">
-                            <Trash2 size={14} /> نعم، احذف
-                          </button>
-                          <button type="button" onClick={() => setConfirmDelete(undefined)} className="rounded-md border border-line px-3 py-2 text-sm focus-ring">
-                            إلغاء
-                          </button>
+                          <Button size="sm" variant="destructive" onClick={() => deleteRecord(record.id)} leadingIcon={<Trash2 size={14} />}>نعم، احذف</Button>
+                          <Button size="sm" variant="secondary-gray" onClick={() => setConfirmDelete(undefined)}>إلغاء</Button>
                         </div>
                       ) : (
-                        <button type="button" onClick={() => setConfirmDelete(record.id)} className="inline-flex items-center gap-2 rounded-md border border-red-200 px-3 py-2 text-sm text-red-600 hover:bg-red-50 focus-ring">
-                          <Trash2 size={15} /> حذف
-                        </button>
+                        <Button size="sm" variant="ghost" onClick={() => setConfirmDelete(record.id)} className="text-red-600 hover:bg-red-50 hover:text-red-700" leadingIcon={<Trash2 size={15} />}>حذف</Button>
                       )}
                     </div>
                   </div>

@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import Link from "next/link";
 import { AlertTriangle, RefreshCw } from "lucide-react";
+import { Button, ButtonLink } from "@/components/ui";
 
 export default function ContentReviewError({
   error,
@@ -27,20 +28,8 @@ export default function ContentReviewError({
         </p>
       </div>
       <div className="flex flex-wrap justify-center gap-3">
-        <button
-          type="button"
-          onClick={reset}
-          className="inline-flex items-center gap-2 rounded-md bg-palm px-5 py-2.5 text-sm text-white"
-        >
-          <RefreshCw size={16} />
-          إعادة المحاولة
-        </button>
-        <Link
-          href="/dashboard"
-          className="inline-flex items-center gap-2 rounded-md border border-slate-300 px-5 py-2.5 text-sm text-slate-700"
-        >
-          الرئيسية
-        </Link>
+        <Button onClick={reset} leadingIcon={<RefreshCw size={16} />}>إعادة المحاولة</Button>
+        <ButtonLink href="/dashboard" variant="secondary-gray">الرئيسية</ButtonLink>
       </div>
     </div>
   );
