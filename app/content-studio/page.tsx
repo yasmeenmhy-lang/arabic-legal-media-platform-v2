@@ -27,7 +27,7 @@ import {
   Video,
   XCircle,
 } from "lucide-react";
-import { PageHeader, Panel, SectionTitle } from "@/components/ui";
+import { PageHeader, Panel, SectionTitle, StatusBadge } from "@/components/ui";
 import {
   InstagramIcon,
   LinkedInIcon,
@@ -169,11 +169,18 @@ const purposeIcons: Record<string, React.ReactNode> = {
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
-function scoreLabel(n: number): string {
-  if (n >= 80) return "ممتاز";
-  if (n >= 60) return "جيد";
-  if (n >= 40) return "مقبول";
-  return "ضعيف";
+function qualLabel(score: number) {
+  if (score >= 85) return { label: "ممتاز", cls: "bg-green-100 text-green-800" };
+  if (score >= 70) return { label: "جيد", cls: "bg-blue-100 text-blue-800" };
+  if (score >= 50) return { label: "متوسط", cls: "bg-amber-100 text-amber-800" };
+  return { label: "ضعيف", cls: "bg-red-100 text-red-800" };
+}
+
+function toneBorder(tone: "good" | "gold" | "danger" | "neutral") {
+  if (tone === "good") return "border-t-green-400";
+  if (tone === "gold") return "border-t-amber-400";
+  if (tone === "danger") return "border-t-red-400";
+  return "border-t-slate-300";
 }
 
 function createDraftRecord(
@@ -711,12 +718,11 @@ export default function ContentStudioPage() {
       {/* ── 5. Results ── */}
       {review && !reviewing && (
         <>
+          {/* قرار النشر */}
           <Panel>
             <SectionTitle title="نتائج التحليل" />
-
-            {/* قرار النشر */}
             <div
-              className={`mb-4 flex items-start gap-3 rounded-lg border p-3 ${
+              className={`flex items-start gap-3 rounded-lg border p-3 ${
                 review.publicationDecision.recommended
                   ? "border-green-200 bg-green-50"
                   : "border-red-200 bg-red-50"
@@ -746,41 +752,73 @@ export default function ContentStudioPage() {
                 </p>
               </div>
             </div>
-
-            {/* شبكة المؤشرات */}
-            <div className="grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-5">
-              <div className="rounded-md bg-paper p-3">
-                <p className="mb-1 text-xs text-ink/50">الامتثال</p>
-                <p className="font-semibold">
-                  {review.findings.length === 0 ? "ملتزم" : "غير ملتزم"}
-                </p>
-              </div>
-              <div className="rounded-md bg-paper p-3">
-                <p className="mb-1 text-xs text-ink/50">المخاطر</p>
-                <p className="font-semibold">{review.riskLevel}</p>
-              </div>
-              <div className="rounded-md bg-paper p-3">
-                <p className="mb-1 text-xs text-ink/50">الكتابة المهنية</p>
-                <p className="font-semibold">{scoreLabel(review.professionalismScore)}</p>
-              </div>
-              <div className="rounded-md bg-paper p-3">
-                <p className="mb-1 text-xs text-ink/50">اللغة</p>
-                <p className="font-semibold">{scoreLabel(review.languageQuality.score)}</p>
-              </div>
-              <div className="rounded-md bg-paper p-3">
-                <p className="mb-1 text-xs text-ink/50">جودة المحتوى</p>
-                <p className="font-semibold">{scoreLabel(review.contentQualityScore)}</p>
-              </div>
-            </div>
-
-            {review.findings.length > 0 && (
-              <p className="mt-3 text-xs text-red-600">
-                {review.findings.length}{" "}
-                {review.findings.length === 1 ? "مخالفة قانونية" : "مخالفات قانونية"} — للتفاصيل
-                الكاملة افتح صفحة المراجعة.
-              </p>
-            )}
           </Panel>
+
+          {/* بطاقة جودة المحتوى */}
+          {(() => {
+            const exp = review.contentQualityScoreExplanation;
+            const hasViolations = review.findings.length > 0;
+            const statusTone = (exp.redLine || hasViolations) ? "danger" as const : review.contentQualityScore >= 80 ? "good" as const : "gold" as const;
+            const statusLabel = (exp.redLine || hasViolations) ? "خط أحمر مُفعَّل" : review.contentQualityScore >= 80 ? "متوازن" : "يحتاج تحسين";
+            return (
+              <Panel className={`border-t-4 shadow-md ${toneBorder(statusTone)}`}>
+                <p className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-400">جودة المحتوى</p>
+                <StatusBadge tone={statusTone}>{statusLabel}</StatusBadge>
+                <div className="mt-4 space-y-2.5">
+                  {exp.factors.map((factor) => {
+                    const isCompliance = factor.key === "compliance";
+                    const q = isCompliance
+                      ? (review.findings.length === 0
+                          ? { label: "ملتزم", cls: "bg-green-100 text-green-800" }
+                          : { label: "غير ملتزم", cls: "bg-red-100 text-red-800" })
+                      : qualLabel(factor.sourceScore);
+                    return (
+                      <div key={factor.key} className="flex items-center justify-between gap-3">
+                        <span className="text-sm text-slate-600">{factor.label}</span>
+                        <span className={`rounded px-2 py-0.5 text-xs font-bold ${q.cls}`}>{q.label}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+                {exp.redLine && (
+                  <p className="mt-4 rounded-lg bg-red-50 p-3 text-xs font-medium leading-6 text-red-700">
+                    يوجد مخالفة قانونية — النشر غير متاح حتى المعالجة
+                  </p>
+                )}
+                {!exp.redLine && hasViolations && (
+                  <p className="mt-3 text-xs text-red-600">
+                    {review.findings.length}{" "}
+                    {review.findings.length === 1 ? "مخالفة قانونية" : "مخالفات قانونية"} — للتفاصيل الكاملة افتح صفحة المراجعة.
+                  </p>
+                )}
+              </Panel>
+            );
+          })()}
+
+          {/* بطاقة جاهزية النشر */}
+          {(() => {
+            const tone = review.publicationDecision.recommended ? "good" as const : review.publishingReadinessScore < 60 ? "danger" as const : "gold" as const;
+            const gates = review.publishingReadinessExplanation.gates;
+            return (
+              <Panel className={`border-t-4 shadow-md ${toneBorder(tone)}`}>
+                <p className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-400">جاهزية النشر</p>
+                <StatusBadge tone={tone}>{review.readinessDecision.level}</StatusBadge>
+                <div className="mt-4 space-y-3">
+                  {gates.map((gate) => (
+                    <div key={gate.key} className="flex items-start gap-3">
+                      <span className={`mt-0.5 shrink-0 text-sm font-bold ${gate.passed ? "text-green-600" : "text-red-500"}`}>
+                        {gate.passed ? "✓" : "✗"}
+                      </span>
+                      <div>
+                        <p className="text-sm font-medium leading-6">{gate.label}</p>
+                        <p className="text-xs leading-5 text-slate-400">{gate.reason}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </Panel>
+            );
+          })()}
 
           <Panel>
             <p className="mb-4 text-sm font-semibold text-ink">ماذا تريد؟</p>
