@@ -72,7 +72,9 @@ export function isCompatibleReviewResult(value: unknown): value is ReviewResult 
     Array.isArray(review.decisionWorkflow) &&
     Array.isArray(review.findings) &&
     review.languageQuality &&
-    Array.isArray(review.languageQuality.issues)
+    Array.isArray(review.languageQuality.issues) &&
+    review.contentQualityScoreExplanation &&
+    Array.isArray((review.contentQualityScoreExplanation as { factors?: unknown }).factors)
   );
 }
 
