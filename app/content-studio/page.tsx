@@ -352,6 +352,10 @@ export default function ContentStudioPage() {
   async function runReview() {
     const text = path === "create" ? generatedText : reviewText;
     if (text.trim().length < 5) return;
+    if (!kind || !channel || !audience || !purpose) {
+      setReviewError("اختر نوع المحتوى والقناة والجمهور والهدف قبل التحليل حتى ترتبط النتائج بالسياق الصحيح.");
+      return;
+    }
     setReviewing(true);
     setReviewError("");
     setReview(null);
@@ -361,11 +365,11 @@ export default function ContentStudioPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           text: text.trim(),
-          kind: kind ?? undefined,
-          contentType: kind ? contentKindLabels[kind] : undefined,
-          channel: channel || undefined,
-          audience: audience || undefined,
-          purpose: purpose || undefined,
+          kind,
+          contentType: contentKindLabels[kind],
+          channel,
+          audience,
+          purpose,
         }),
       });
       const payload = (await res.json()) as { data?: ReviewResult; error?: string };
@@ -763,6 +767,21 @@ export default function ContentStudioPage() {
       {/* ── 5. Results ── */}
       {review && !reviewing && (
         <>
+          {/* النص المُحلَّل */}
+          <Panel>
+            <SectionTitle title="النص المُحلَّل" />
+            <div className="whitespace-pre-wrap rounded-lg border border-line bg-paper p-4 text-sm leading-8">
+              {activeText}
+            </div>
+            <button
+              type="button"
+              onClick={() => setReview(null)}
+              className="mt-3 text-xs text-ink/50 transition hover:text-ink"
+            >
+              تعديل النص
+            </button>
+          </Panel>
+
           {/* قرار النشر */}
           <Panel>
             <SectionTitle title="نتائج التحليل" />
