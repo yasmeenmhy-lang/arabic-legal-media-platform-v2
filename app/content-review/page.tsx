@@ -1426,7 +1426,7 @@ export default function ContentReviewPage() {
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div className="flex items-center gap-2 text-palm">
                   <Sparkles size={18} aria-hidden="true" />
-                  <h3 className="font-semibold">صياغة مقترحة من الذكاء الاصطناعي</h3>
+                  <h3 className="font-semibold">صياغة مقترحة</h3>
                 </div>
                 <button
                   type="button"
@@ -1435,13 +1435,13 @@ export default function ContentReviewPage() {
                   className="inline-flex items-center gap-2 rounded-md bg-palm px-4 py-2 text-sm text-white disabled:opacity-50"
                 >
                   <Sparkles size={15} aria-hidden="true" />
-                  {suggestingAI ? "جار التوليد..." : aiSuggestion ? "تجديد الصياغة" : "توليد صياغة مقترحة"}
+                  {suggestingAI ? "جار الإنشاء..." : aiSuggestion ? "إنشاء صياغة جديدة" : "صياغة مقترحة"}
                 </button>
               </div>
 
               {suggestingAI ? (
                 <p className="mt-4 rounded-lg bg-white p-4 text-sm leading-7 text-ink/60">
-                  يقوم الذكاء الاصطناعي بتوليد صياغة تعالج {review.findings.length ? `${review.findings.length} ملاحظة امتثالية` : "الملاحظات"}{review.languageQuality.issues.length ? ` و${review.languageQuality.issues.length} ملاحظة لغوية` : ""}...
+                  جار إنشاء الصياغة المقترحة التي تعالج {review.findings.length ? `${review.findings.length} ملاحظة امتثالية` : "الملاحظات"}{review.languageQuality.issues.length ? ` و${review.languageQuality.issues.length} ملاحظة لغوية` : ""}...
                 </p>
               ) : suggestionError ? (
                 <div className="mt-4 rounded-lg border border-red-200 bg-red-50 p-4 text-sm leading-7 text-red-700">
@@ -1485,10 +1485,10 @@ export default function ContentReviewPage() {
               ) : (
                 <div className="mt-4 space-y-3">
                   <p className="text-sm leading-7 text-ink/65">
-                    اضغط &ldquo;توليد صياغة مقترحة&rdquo; ليُنشئ الذكاء الاصطناعي نصًا محسّنًا يعالج
+                    صياغة مقترحة وفق الضوابط والقواعد المهنية، تعالج
                     {review.findings.length ? ` ${review.findings.length} ملاحظة امتثالية` : " الملاحظات"}
                     {review.languageQuality.issues.length ? ` و${review.languageQuality.issues.length} ملاحظة لغوية` : ""}
-                    ، ويرقى بالدقة الإملائية والأسلوب المهني.
+                    ، مع الحفاظ على الدقة الإملائية والأسلوب المهني.
                   </p>
                   <button
                     type="button"
