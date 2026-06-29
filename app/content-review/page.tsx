@@ -914,6 +914,7 @@ export default function ContentReviewPage() {
   } | null>(null);
   const [aiSuggestion, setAiSuggestion] = useState<string | null>(null);
   const [suggestingAI, setSuggestingAI] = useState(false);
+  const [suggestionError, setSuggestionError] = useState<string | null>(null);
 
   useEffect(() => {
     const selection = getActiveContentSelection();
@@ -985,6 +986,7 @@ export default function ContentReviewPage() {
       setIsEditing(false);
       setEditSnapshot(null);
       setAiSuggestion(null);
+      setSuggestionError(null);
       setMessage("اكتمل التحليل. ابدأ بقرار النشر ثم عالج الملاحظات حسب الأولوية.");
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "تعذر إكمال المراجعة.");
@@ -1155,6 +1157,7 @@ export default function ContentReviewPage() {
     setIsEditing(false);
     setEditSnapshot(null);
     setAiSuggestion(null);
+    setSuggestionError(null);
     setMessage("تم مسح محتوى مربع النص فقط. لم تتغير بقية الحقول أو السجلات المحفوظة.");
   }
 
@@ -1162,6 +1165,7 @@ export default function ContentReviewPage() {
     if (!review || suggestingAI) return;
     setSuggestingAI(true);
     setAiSuggestion(null);
+    setSuggestionError(null);
     try {
       const response = await fetch("/api/reformulate", {
         method: "POST",
@@ -1185,14 +1189,15 @@ export default function ContentReviewPage() {
           }))
         })
       });
-      if (!response.ok) {
-        const payload = await response.json().catch(() => ({})) as { error?: string };
-        throw new Error(payload.error ?? "تعذر إنشاء الصياغة المقترحة.");
+      const payload = await response.json().catch(() => null) as { data?: { suggestedText?: string }; error?: string } | null;
+      if (!response.ok || !payload) {
+        throw new Error(payload?.error ?? "تعذر إنشاء الصياغة المقترحة — تحقق من إعدادات الخدمة.");
       }
-      const payload = await response.json() as { data?: { suggestedText: string } };
-      setAiSuggestion(payload.data?.suggestedText ?? "");
+      const suggested = payload.data?.suggestedText?.trim() ?? "";
+      if (!suggested) throw new Error("أعاد النموذج نصًا فارغًا، حاول مرة أخرى.");
+      setAiSuggestion(suggested);
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "تعذر إنشاء الصياغة المقترحة.");
+      setSuggestionError(error instanceof Error ? error.message : "تعذر إنشاء الصياغة المقترحة.");
     } finally {
       setSuggestingAI(false);
     }
@@ -1203,6 +1208,7 @@ export default function ContentReviewPage() {
     const suggestionText = aiSuggestion;
     setText(suggestionText);
     setAiSuggestion(null);
+    setSuggestionError(null);
     setLoading(true);
     setMessage("تم استبدال المحتوى بالصياغة المقترحة. جار إعادة التقييم...");
     try {
@@ -1437,7 +1443,15 @@ export default function ContentReviewPage() {
                 <p className="mt-4 rounded-lg bg-white p-4 text-sm leading-7 text-ink/60">
                   يقوم الذكاء الاصطناعي بتوليد صياغة تعالج {review.findings.length ? `${review.findings.length} ملاحظة امتثالية` : "الملاحظات"}{review.languageQuality.issues.length ? ` و${review.languageQuality.issues.length} ملاحظة لغوية` : ""}...
                 </p>
-              ) : aiSuggestion ? (
+              ) : suggestionError ? (
+                <div className="mt-4 rounded-lg border border-red-200 bg-red-50 p-4 text-sm leading-7 text-red-700">
+                  <p className="font-semibold">تعذّر توليد الصياغة</p>
+                  <p className="mt-1">{suggestionError}</p>
+                  <button type="button" onClick={requestAISuggestion} className="mt-3 inline-flex items-center gap-2 rounded-md bg-red-600 px-3 py-1.5 text-xs text-white">
+                    <Sparkles size={13} /> إعادة المحاولة
+                  </button>
+                </div>
+              ) : aiSuggestion !== null ? (
                 <div className="mt-4 space-y-3">
                   <textarea
                     value={aiSuggestion}
