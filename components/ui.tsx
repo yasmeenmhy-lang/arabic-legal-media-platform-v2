@@ -3,6 +3,104 @@ import { ArrowLeft, CheckCircle2, Clock3, FileText, ShieldAlert } from "lucide-r
 import { clsx } from "clsx";
 import React from "react";
 
+/* ═══════════════════════════════════════════════════════
+   DGA كود المنصات — نظام الأزرار الموحد
+   المصدر: design.dga.gov.sa/guidelines
+   ═══════════════════════════════════════════════════════ */
+
+type ButtonVariant =
+  | "primary"         // أساسي - الهوية  (أخضر، تركيز عالٍ)
+  | "primary-black"   // أساسي - حيادي   (أسود، تركيز عالٍ)
+  | "secondary"       // ثانوي - لون واحد (إطار أخضر، تركيز متوسط)
+  | "secondary-gray"  // ثانوي - محدد     (إطار رمادي، تركيز متوسط)
+  | "light"           // خفيف             (خلفية خضراء خفيفة، تركيز منخفض)
+  | "ghost"           // شفاف             (بلا خلفية، تركيز منخفض)
+  | "destructive";    // تحذيري           (أحمر)
+
+type ButtonSize = "sm" | "md" | "lg";
+
+const btnVariant: Record<ButtonVariant, string> = {
+  "primary":       "bg-palm text-white border border-transparent hover:bg-palmDark active:bg-palmDark/90 disabled:bg-palm",
+  "primary-black": "bg-ink text-white border border-transparent hover:bg-ink/85 active:bg-ink/75 disabled:bg-ink",
+  "secondary":     "bg-transparent text-palm border border-palm hover:bg-mint active:bg-mint/70 disabled:border-palm/40 disabled:text-palm/40",
+  "secondary-gray":"bg-transparent text-ink border border-warmGrayBorder hover:bg-paper active:bg-warmGraySoft disabled:border-warmGrayBorder/40 disabled:text-ink/40",
+  "light":         "bg-mint text-palm border border-transparent hover:bg-mint/70 active:bg-mint/50 disabled:bg-mint/50",
+  "ghost":         "bg-transparent text-palm border border-transparent hover:bg-mint active:bg-mint/60 disabled:text-palm/40",
+  "destructive":   "bg-red-600 text-white border border-transparent hover:bg-red-700 active:bg-red-800 disabled:bg-red-600",
+};
+
+const btnSize: Record<ButtonSize, string> = {
+  sm: "px-2 py-0.5 text-xs gap-1 rounded-md min-h-[32px]",
+  md: "px-[11px] py-[9px] text-sm gap-2 rounded-lg min-h-[40px]",
+  lg: "px-4 py-3 text-sm gap-2 rounded-lg min-h-[44px] min-w-[44px]",
+};
+
+export function Button({
+  variant = "primary",
+  size = "md",
+  leadingIcon,
+  trailingIcon,
+  children,
+  className,
+  disabled,
+  ...props
+}: React.ButtonHTMLAttributes<HTMLButtonElement> & {
+  variant?: ButtonVariant;
+  size?: ButtonSize;
+  leadingIcon?: React.ReactNode;
+  trailingIcon?: React.ReactNode;
+}) {
+  return (
+    <button
+      disabled={disabled}
+      className={clsx(
+        "inline-flex items-center justify-center font-medium transition-colors",
+        "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-palm",
+        "disabled:opacity-40 disabled:cursor-not-allowed",
+        btnVariant[variant],
+        btnSize[size],
+        className
+      )}
+      {...props}
+    >
+      {leadingIcon && <span className="shrink-0 flex items-center">{leadingIcon}</span>}
+      {children   && <span className="min-w-0">{children}</span>}
+      {trailingIcon && <span className="shrink-0 flex items-center">{trailingIcon}</span>}
+    </button>
+  );
+}
+
+export function IconButton({
+  label,
+  size = "md",
+  variant = "secondary-gray",
+  children,
+  className,
+  ...props
+}: React.ButtonHTMLAttributes<HTMLButtonElement> & {
+  label: string;
+  size?: ButtonSize;
+  variant?: ButtonVariant;
+}) {
+  return (
+    <button
+      aria-label={label}
+      title={label}
+      className={clsx(
+        "inline-flex items-center justify-center font-medium transition-colors rounded-lg",
+        "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-palm",
+        "disabled:opacity-40 disabled:cursor-not-allowed",
+        size === "sm" ? "h-8 w-8" : size === "lg" ? "h-11 w-11" : "h-10 w-10",
+        btnVariant[variant],
+        className
+      )}
+      {...props}
+    >
+      {children}
+    </button>
+  );
+}
+
 type Tone = "neutral" | "good" | "gold" | "danger";
 
 const toneStyles: Record<Tone, { soft: string; text: string; border: string; solid: string }> = {
@@ -37,11 +135,16 @@ export function PageHeader({
   );
 }
 
-export function ButtonLink({ href, children }: { href: string; children: React.ReactNode }) {
+export function ButtonLink({ href, children, variant = "primary" }: { href: string; children: React.ReactNode; variant?: ButtonVariant }) {
   return (
     <Link
       href={href}
-      className="inline-flex max-w-full items-center gap-2 rounded-md bg-palm px-4 py-2.5 text-sm font-normal text-white shadow-sm transition hover:bg-palmDark focus-ring"
+      className={clsx(
+        "inline-flex max-w-full items-center gap-2 text-sm font-medium transition",
+        "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-palm",
+        "min-h-[44px] rounded-lg px-4 py-3",
+        btnVariant[variant]
+      )}
     >
       <span className="min-w-0">{children}</span>
       <ArrowLeft size={16} className="shrink-0" />
