@@ -12,7 +12,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [navOpen, setNavOpen] = useState(true);
   const visibleItems = navItems;
-  const groups = Array.from(new Set(visibleItems.map((item) => item.group)));
 
   useEffect(() => {
     function handleKeydown(event: KeyboardEvent) {
@@ -63,32 +62,25 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </div>
         </div>
         <nav className="min-h-0 flex-1 overflow-y-auto p-4">
-          {groups.map((group) => (
-            <div key={group} className="mb-5">
-              <div className="mb-2 px-2 text-[11px] font-normal text-ink/45">{group}</div>
-              {visibleItems
-                .filter((item) => item.group === group)
-                .map((item) => {
-                  const Icon = item.icon;
-                  const active = pathname === item.href;
-                  return (
-                    <Link
-                      key={item.href}
-                      href={item.href}
-                      className={clsx(
-                        "mb-1.5 flex items-center gap-3 rounded-lg border px-3 py-2.5 text-sm transition focus-ring",
-                        active
-                          ? "border-palm bg-mint font-normal text-palm"
-                          : "border-transparent text-ink/75 hover:border-line hover:bg-paper hover:text-ink"
-                      )}
-                    >
-                      <Icon size={18} className="shrink-0" />
-                      <span className="min-w-0 leading-6">{item.title}</span>
-                    </Link>
-                  );
-                })}
-            </div>
-          ))}
+          {visibleItems.map((item) => {
+            const Icon = item.icon;
+            const active = pathname === item.href;
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={clsx(
+                  "mb-1.5 flex items-center gap-3 rounded-lg border px-3 py-2.5 text-sm transition focus-ring",
+                  active
+                    ? "border-palm bg-mint font-normal text-palm"
+                    : "border-transparent text-ink/75 hover:border-line hover:bg-paper hover:text-ink"
+                )}
+              >
+                <Icon size={18} className="shrink-0" />
+                <span className="min-w-0 leading-6">{item.title}</span>
+              </Link>
+            );
+          })}
         </nav>
       </aside>
 
