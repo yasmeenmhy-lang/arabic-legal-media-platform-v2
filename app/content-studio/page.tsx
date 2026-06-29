@@ -42,9 +42,11 @@ import {
   loadContentRecords,
   saveContentRecords,
   setActiveContentSelection,
+  upsertAnalyzedVersion,
   type StoredContentRecord,
   type StoredContentVersion,
 } from "@/lib/content-record-store";
+import { saveLatestReviewSnapshot } from "@/components/review-context-summary";
 import type { ContentKind, ReviewResult, RiskAffectedParty, RiskLevel } from "@/lib/types";
 
 // ── Constants ──────────────────────────────────────────────────────────────
@@ -304,6 +306,7 @@ export default function ContentStudioPage() {
   const [review, setReview] = useState<ReviewResult | null>(null);
   const [reviewing, setReviewing] = useState(false);
   const [reviewError, setReviewError] = useState("");
+  const [contentId, setContentId] = useState<string | undefined>();
 
   // Action feedback
   const [actionMsg, setActionMsg] = useState("");
@@ -359,25 +362,35 @@ export default function ContentStudioPage() {
     setReviewing(true);
     setReviewError("");
     setReview(null);
+    const contentTypeLabel = contentKindLabels[kind];
     try {
       const res = await fetch("/api/reviews", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          text: text.trim(),
-          kind,
-          contentType: contentKindLabels[kind],
-          channel,
-          audience,
-          purpose,
-        }),
+        body: JSON.stringify({ text: text.trim(), kind, contentType: contentTypeLabel, channel, audience, purpose }),
       });
-      const payload = (await res.json()) as { data?: ReviewResult; error?: string };
-      if (!res.ok || !payload.data) {
-        setReviewError(payload.error ?? "فشل التحليل");
+      if (!res.ok) {
+        const payload = await res.json().catch(() => ({})) as { error?: string };
+        setReviewError(payload.error ?? "تعذر إكمال المراجعة.");
         return;
       }
-      setReview(payload.data);
+      const result = ((await res.json()).data) as ReviewResult;
+      setReview(result);
+      saveLatestReviewSnapshot(result);
+      const saved = upsertAnalyzedVersion({
+        contentId,
+        body: text.trim(),
+        contentType: kind,
+        contentTypeLabel,
+        channel,
+        audience,
+        purpose,
+        review: result,
+      });
+      setContentId(saved.record.id);
+      setReviewError("");
+    } catch (error) {
+      setReviewError(error instanceof Error ? error.message : "تعذر إكمال المراجعة.");
     } finally {
       setReviewing(false);
     }
