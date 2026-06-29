@@ -944,19 +944,17 @@ export default function ContentStudioPage() {
                     يوجد مخالفة قانونية — النشر غير متاح حتى المعالجة
                   </p>
                 )}
-                {!exp.redLine && hasViolations && (
-                  <p className="mt-3 text-xs text-red-600">
-                    {review.findings.length}{" "}
-                    {review.findings.length === 1 ? "مخالفة قانونية" : "مخالفات قانونية"} — للتفاصيل الكاملة افتح صفحة المراجعة.
-                  </p>
-                )}
               </Panel>
             );
           })()}
 
           {/* بطاقة جاهزية النشر */}
           {(() => {
-            const tone = review.publicationDecision.recommended ? "good" as const : review.publishingReadinessScore < 60 ? "danger" as const : "gold" as const;
+            const tone = review.analysisMode === "pattern-only" ? "neutral" as const
+              : review.publicationDecision.outcome === "RECOMMENDED" ? "good" as const
+              : review.publicationDecision.outcome === "NOT_RECOMMENDED" ? "danger" as const
+              : review.publishingReadinessScore < 60 ? "danger" as const
+              : "gold" as const;
             const gates = review.publishingReadinessExplanation.gates;
             return (
               <Panel className={`border-t-4 shadow-md ${toneBorder(tone)}`}>
