@@ -912,6 +912,8 @@ export default function ContentReviewPage() {
     audience: string;
     purpose: string;
   } | null>(null);
+  const [aiSuggestion, setAiSuggestion] = useState<string | null>(null);
+  const [suggestingAI, setSuggestingAI] = useState(false);
 
   useEffect(() => {
     const selection = getActiveContentSelection();
@@ -982,6 +984,7 @@ export default function ContentReviewPage() {
       setApproved(false);
       setIsEditing(false);
       setEditSnapshot(null);
+      setAiSuggestion(null);
       setMessage("اكتمل التحليل. ابدأ بقرار النشر ثم عالج الملاحظات حسب الأولوية.");
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "تعذر إكمال المراجعة.");
@@ -1151,7 +1154,84 @@ export default function ContentReviewPage() {
     setContentId(undefined);
     setIsEditing(false);
     setEditSnapshot(null);
+    setAiSuggestion(null);
     setMessage("تم مسح محتوى مربع النص فقط. لم تتغير بقية الحقول أو السجلات المحفوظة.");
+  }
+
+  async function requestAISuggestion() {
+    if (!review || suggestingAI) return;
+    setSuggestingAI(true);
+    setAiSuggestion(null);
+    try {
+      const response = await fetch("/api/reformulate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          text,
+          contentType: contentTypeLabel,
+          channel,
+          audience,
+          purpose,
+          findings: review.findings.map((f) => ({
+            issue: f.issue,
+            evidence: f.evidence,
+            suggestedSaferWording: f.suggestedSaferWording,
+            legalReference: f.legalReference
+          })),
+          languageIssues: review.languageQuality.issues.map((i) => ({
+            message: i.message,
+            excerpt: i.excerpt ?? "",
+            suggestion: i.suggestion ?? ""
+          }))
+        })
+      });
+      if (!response.ok) {
+        const payload = await response.json().catch(() => ({})) as { error?: string };
+        throw new Error(payload.error ?? "تعذر إنشاء الصياغة المقترحة.");
+      }
+      const payload = await response.json() as { data?: { suggestedText: string } };
+      setAiSuggestion(payload.data?.suggestedText ?? "");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "تعذر إنشاء الصياغة المقترحة.");
+    } finally {
+      setSuggestingAI(false);
+    }
+  }
+
+  async function applyAISuggestion() {
+    if (!aiSuggestion || !kind || !channel || !audience || !purpose) return;
+    const suggestionText = aiSuggestion;
+    setText(suggestionText);
+    setAiSuggestion(null);
+    setLoading(true);
+    setMessage("تم استبدال المحتوى بالصياغة المقترحة. جار إعادة التقييم...");
+    try {
+      const result = await fetch("/api/reviews", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: suggestionText, kind, contentType: contentTypeLabel, channel, audience, purpose })
+      }).then((r) => r.json()).then((p) => p.data as ReviewResult);
+      setReview(result);
+      saveLatestReviewSnapshot(result);
+      const saved = upsertAnalyzedVersion({
+        contentId,
+        body: suggestionText,
+        contentType: kind,
+        contentTypeLabel,
+        channel,
+        audience,
+        purpose,
+        review: result
+      });
+      setContentId(saved.record.id);
+      setVersionNumber(saved.version.version);
+      setApproved(false);
+      setMessage("تم تطبيق الصياغة المقترحة وإعادة تقييمها. راجع النتائج واعتمد عند اكتمال الشروط.");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "تعذر إعادة التقييم بعد تطبيق الصياغة.");
+    } finally {
+      setLoading(false);
+    }
   }
 
   function navigateToReviewSection(tab: ReviewTab) {
@@ -1333,7 +1413,83 @@ export default function ContentReviewPage() {
 
           <section id="improvements" className="space-y-5 scroll-mt-24">
           <Panel id="rewrite">
-            <SectionTitle title="4. الصياغة المقترحة وأثر التحسين" subtitle="الأثر المتوقع توجيهي، وتُعاد المراجعة فعلياً بعد تطبيق الصياغة." />
+            <SectionTitle title="4. الصياغة المقترحة وأثر التحسين" subtitle="الذكاء الاصطناعي يولّد صياغة معالِجة لجميع الملاحظات الامتثالية واللغوية. تُعاد المراجعة فعلياً بعد التطبيق." />
+
+            {/* كتلة الصياغة الذكية */}
+            <div className="mb-5 rounded-xl border border-palm/25 bg-mint/20 p-5">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex items-center gap-2 text-palm">
+                  <Sparkles size={18} aria-hidden="true" />
+                  <h3 className="font-semibold">صياغة مقترحة من الذكاء الاصطناعي</h3>
+                </div>
+                <button
+                  type="button"
+                  onClick={requestAISuggestion}
+                  disabled={suggestingAI || loading}
+                  className="inline-flex items-center gap-2 rounded-md bg-palm px-4 py-2 text-sm text-white disabled:opacity-50"
+                >
+                  <Sparkles size={15} aria-hidden="true" />
+                  {suggestingAI ? "جار التوليد..." : aiSuggestion ? "تجديد الصياغة" : "توليد صياغة مقترحة"}
+                </button>
+              </div>
+
+              {suggestingAI ? (
+                <p className="mt-4 rounded-lg bg-white p-4 text-sm leading-7 text-ink/60">
+                  يقوم الذكاء الاصطناعي بتوليد صياغة تعالج {review.findings.length ? `${review.findings.length} ملاحظة امتثالية` : "الملاحظات"}{review.languageQuality.issues.length ? ` و${review.languageQuality.issues.length} ملاحظة لغوية` : ""}...
+                </p>
+              ) : aiSuggestion ? (
+                <div className="mt-4 space-y-3">
+                  <textarea
+                    value={aiSuggestion}
+                    onChange={(e) => setAiSuggestion(e.target.value)}
+                    className="min-h-36 w-full rounded-lg border border-line p-4 leading-8 text-sm"
+                  />
+                  <p className="text-xs leading-6 text-ink/55">
+                    يمكنك تعديل الصياغة قبل تطبيقها. هذا المقترح استرشادي وتظل مسؤولية الاعتماد والنشر على المستخدم.
+                  </p>
+                  <div className="flex flex-wrap gap-3">
+                    <button
+                      type="button"
+                      onClick={applyAISuggestion}
+                      disabled={loading}
+                      className="inline-flex items-center gap-2 rounded-md bg-palm px-4 py-2.5 text-sm text-white disabled:opacity-50"
+                    >
+                      <Sparkles size={16} aria-hidden="true" />
+                      تطبيق الصياغة واستبدال المحتوى
+                    </button>
+                    <button
+                      type="button"
+                      onClick={approveCurrentVersion}
+                      disabled={approved || approving || review.findings.some((f) => !f.resolved) || !review.languageQuality.passed || ["بالغ", "حرج", "مرتفع"].includes(review.riskLevel)}
+                      className="inline-flex items-center gap-2 rounded-md border border-palm px-4 py-2.5 text-sm text-palm disabled:cursor-not-allowed disabled:opacity-40"
+                    >
+                      <CheckCircle2 size={16} aria-hidden="true" />
+                      {approved ? "تم الاعتماد" : approving ? "جار الاعتماد..." : "اعتماد المحتوى الحالي"}
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="mt-4 space-y-3">
+                  <p className="text-sm leading-7 text-ink/65">
+                    اضغط &ldquo;توليد صياغة مقترحة&rdquo; ليُنشئ الذكاء الاصطناعي نصًا محسّنًا يعالج
+                    {review.findings.length ? ` ${review.findings.length} ملاحظة امتثالية` : " الملاحظات"}
+                    {review.languageQuality.issues.length ? ` و${review.languageQuality.issues.length} ملاحظة لغوية` : ""}
+                    ، ويرقى بالدقة الإملائية والأسلوب المهني.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={approveCurrentVersion}
+                    disabled={approved || approving || review.findings.some((f) => !f.resolved) || !review.languageQuality.passed || ["بالغ", "حرج", "مرتفع"].includes(review.riskLevel)}
+                    className="inline-flex items-center gap-2 rounded-md border border-palm px-4 py-2.5 text-sm text-palm disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    <CheckCircle2 size={16} aria-hidden="true" />
+                    {approved ? "تم اعتماد المحتوى" : approving ? "جار الاعتماد..." : "اعتماد المحتوى الحالي"}
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* الصياغات من نظام المراجعة */}
             {review.governedRewrites.length ? review.governedRewrites.map((rewrite) => {
               const enhancedRewrite = review.aiEnhancement?.rewriteSuggestions.find((item) => item.rewriteId === rewrite.id);
               return (
@@ -1348,7 +1504,7 @@ export default function ContentReviewPage() {
                 <button type="button" onClick={applyRewrite} disabled={loading} className="mt-4 inline-flex items-center gap-2 rounded-md bg-palm px-4 py-2.5 text-white"><Sparkles size={16} />تطبيق الصياغة وإعادة التقييم</button>
               </div>
             );
-            }) : <p className="rounded-lg bg-paper p-4 leading-7">لا توجد صياغة بديلة مطلوبة بعد التقييم الحالي.</p>}
+            }) : null}
           </Panel>
           </section>
 
