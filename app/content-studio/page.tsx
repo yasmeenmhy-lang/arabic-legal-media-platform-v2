@@ -169,6 +169,13 @@ const purposeIcons: Record<string, React.ReactNode> = {
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
+function scoreLabel(n: number): string {
+  if (n >= 80) return "ممتاز";
+  if (n >= 60) return "جيد";
+  if (n >= 40) return "مقبول";
+  return "ضعيف";
+}
+
 function createDraftRecord(
   body: string,
   ctx: { kind: ContentKind | null; channel: string; audience: string; purpose: string }
@@ -750,21 +757,19 @@ export default function ContentStudioPage() {
               </div>
               <div className="rounded-md bg-paper p-3">
                 <p className="mb-1 text-xs text-ink/50">المخاطر</p>
-                <p className="font-semibold">
-                  {review.riskLevel} — {review.riskScore}
-                </p>
+                <p className="font-semibold">{review.riskLevel}</p>
               </div>
               <div className="rounded-md bg-paper p-3">
                 <p className="mb-1 text-xs text-ink/50">الكتابة المهنية</p>
-                <p className="font-semibold">{review.professionalismScore} / 100</p>
+                <p className="font-semibold">{scoreLabel(review.professionalismScore)}</p>
               </div>
               <div className="rounded-md bg-paper p-3">
                 <p className="mb-1 text-xs text-ink/50">اللغة</p>
-                <p className="font-semibold">{review.languageQuality.score} / 100</p>
+                <p className="font-semibold">{scoreLabel(review.languageQuality.score)}</p>
               </div>
               <div className="rounded-md bg-paper p-3">
                 <p className="mb-1 text-xs text-ink/50">جودة المحتوى</p>
-                <p className="font-semibold">{review.contentQualityScore} / 100</p>
+                <p className="font-semibold">{scoreLabel(review.contentQualityScore)}</p>
               </div>
             </div>
 
