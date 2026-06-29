@@ -17,7 +17,6 @@ import {
   TrendingUp
 } from "lucide-react";
 import { ButtonLink, KpiGrid, PageHeader, Panel, ProgressBar, SectionTitle } from "@/components/ui";
-import { formatDualDate } from "@/lib/dates";
 import { legalSourceDocuments } from "@/lib/legal-knowledge-base";
 import { loadContentRecords, type StoredContentRecord } from "@/lib/content-record-store";
 
@@ -205,16 +204,6 @@ export default function DashboardPage() {
               </p>
             </div>
           )}
-          <div className="mt-4 grid grid-cols-2 gap-3">
-            <Link href="/library" className="rounded-lg border border-line p-3 transition hover:border-palm focus-ring">
-              <p className="text-xs text-ink/55">آخر فحص للمراجع</p>
-              <p className="mt-1 break-words font-normal">{formatDualDate(new Date("2026-06-15T00:00:00.000Z").toISOString())}</p>
-            </Link>
-            <div className="rounded-lg border border-line p-3">
-              <p className="text-xs text-ink/55">تحديثات مرجعية</p>
-              <p className="mt-1 font-normal">0</p>
-            </div>
-          </div>
         </Panel>
       </div>
 
@@ -231,9 +220,6 @@ export default function DashboardPage() {
               لا توجد اتجاهات محسوبة قبل توفر مراجعات فعلية محفوظة.
             </div>
           )}
-          <button type="button" onClick={downloadReport} disabled={!records.length} className="mt-4 inline-flex items-center gap-2 rounded-md bg-palm px-4 py-2 text-sm text-white disabled:opacity-40">
-            <Download size={15} /> تنزيل التقرير التفصيلي
-          </button>
         </Panel>
 
         <Panel>
