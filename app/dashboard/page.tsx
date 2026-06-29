@@ -4,11 +4,11 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
   AlertTriangle,
-  BarChart3,
   BookOpen,
   CalendarDays,
   CheckCircle2,
   Clock3,
+  Download,
   ExternalLink,
   FileCheck2,
   Info,
@@ -67,6 +67,44 @@ export default function DashboardPage() {
       recentActions
     };
   }, [records]);
+
+  function downloadReport() {
+    const generatedAt = new Date().toLocaleString("ar-SA");
+    const rows = records.map((record) => {
+      const current = record.versions.find((item) => item.version === record.currentVersion);
+      const approvedVersion = record.approvedVersion ? record.versions.find((item) => item.version === record.approvedVersion) : undefined;
+      const analysis = approvedVersion?.analysis ?? current?.analysis;
+      const findings = analysis?.findings ?? [];
+      const references = approvedVersion?.references ?? current?.references ?? [];
+      return `
+        <section class="record">
+          <h2>${record.title}</h2>
+          <dl>
+            <div><dt>حالة المحتوى</dt><dd>${record.status}</dd></div>
+            <div><dt>النسخة المعتمدة</dt><dd>${record.approvedVersion ? `الإصدار ${record.approvedVersion}` : "لا توجد نسخة معتمدة"}</dd></div>
+            <div><dt>قرار النشر</dt><dd>${analysis?.publicationDecision.label ?? "لم يتم تحليل المحتوى بعد"}</dd></div>
+            <div><dt>جاهزية النشر</dt><dd>${analysis?.readinessDecision.level ?? "غير متاحة"}</dd></div>
+          </dl>
+          <div class="metrics">
+            <p><strong>الامتثال:</strong> ${analysis ? `${analysis.complianceScore}%` : "غير متاح"}</p>
+            <p><strong>المخاطر:</strong> ${analysis ? `${analysis.riskLevel} (${analysis.riskScore}%)` : "غير متاح"}</p>
+            <p><strong>جودة اللغة:</strong> ${analysis ? `${analysis.languageQuality.score}%` : "غير متاح"}</p>
+          </div>
+          <h3>أبرز الملاحظات والإجراءات</h3>
+          ${findings.length ? `<ul>${findings.slice(0, 6).map((f) => `<li><strong>${f.title}</strong><br/>الدليل: ${f.evidence}<br/>الإجراء المقترح: ${f.suggestedSaferWording}</li>`).join("")}</ul>` : "<p>لا توجد ملاحظات مهنية ظاهرة.</p>"}
+          <h3>المراجع المهنية والرسمية</h3>
+          ${references.length ? `<ul>${references.slice(0, 6).map((r) => `<li><strong>${r.referenceName}</strong><br/>${r.articleOrRuleNumber}<br/>سبب الاستناد: ${r.relianceReason}</li>`).join("")}</ul>` : "<p>لا توجد مراجع مرتبطة.</p>"}
+        </section>`;
+    }).join("");
+    const html = `<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"/><title>التقرير التفصيلي للمحتوى والاعتمادات</title><style>body{font-family:"IBM Plex Sans Arabic",Tahoma,Arial,sans-serif;line-height:1.8;color:#1f2933;margin:32px;background:#fff}h1{font-size:22px;margin-bottom:4px}h2{font-size:18px;margin-top:0}h3{font-size:15px;margin:18px 0 8px}.meta{color:#52605a;margin-bottom:24px}.record{border:1px solid #d8e0dc;border-radius:14px;padding:18px;margin-bottom:16px}dl{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:12px 0}dt{font-size:12px;color:#66756f}dd{margin:0;font-weight:600}.metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;background:#f4f7f6;padding:12px;border-radius:10px}li{margin-bottom:10px}</style></head><body><h1>التقرير التفصيلي للمحتوى والاعتمادات</h1><p class="meta">تاريخ الإنشاء: ${generatedAt}</p>${rows || "<p>لا توجد سجلات محتوى محفوظة لإعداد التقرير.</p>"}</body></html>`;
+    const blob = new Blob([html], { type: "text/html;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "التقرير-التفصيلي-للمحتوى-والاعتمادات.html";
+    link.click();
+    URL.revokeObjectURL(url);
+  }
 
   const dashboardKpis = [
     {
@@ -152,10 +190,9 @@ export default function DashboardPage() {
               <p className="rounded-lg bg-paper p-4 text-sm leading-7">
                 توجد {records.length} مادة محفوظة، منها {overview.publishableContent} نسخة معتمدة، و{overview.highRiskContent} نتيجة عالية المخاطر.
               </p>
-              <Link href="/analytics" className="inline-flex items-center gap-2 text-sm font-normal text-palm">
-                <BarChart3 size={16} />
-                عرض التقارير والمؤشرات
-              </Link>
+              <button type="button" onClick={downloadReport} disabled={!records.length} className="inline-flex items-center gap-2 rounded-md bg-palm px-4 py-2 text-sm text-white disabled:opacity-40">
+                <Download size={15} /> تنزيل التقرير التفصيلي
+              </button>
             </div>
           ) : (
             <div className="rounded-lg border border-line bg-paper p-4">
@@ -173,10 +210,10 @@ export default function DashboardPage() {
               <p className="text-xs text-ink/55">آخر فحص للمراجع</p>
               <p className="mt-1 break-words font-normal">{formatDualDate(new Date("2026-06-15T00:00:00.000Z").toISOString())}</p>
             </Link>
-            <Link href="/administration" className="rounded-lg border border-line p-3 transition hover:border-palm focus-ring">
+            <div className="rounded-lg border border-line p-3">
               <p className="text-xs text-ink/55">تحديثات مرجعية</p>
               <p className="mt-1 font-normal">0</p>
-            </Link>
+            </div>
           </div>
         </Panel>
       </div>
@@ -194,10 +231,9 @@ export default function DashboardPage() {
               لا توجد اتجاهات محسوبة قبل توفر مراجعات فعلية محفوظة.
             </div>
           )}
-          <Link href="/analytics" className="mt-4 inline-flex items-center gap-2 text-sm font-normal text-palm">
-            <BarChart3 size={16} />
-            عرض التقارير والمؤشرات
-          </Link>
+          <button type="button" onClick={downloadReport} disabled={!records.length} className="mt-4 inline-flex items-center gap-2 rounded-md bg-palm px-4 py-2 text-sm text-white disabled:opacity-40">
+            <Download size={15} /> تنزيل التقرير التفصيلي
+          </button>
         </Panel>
 
         <Panel>
