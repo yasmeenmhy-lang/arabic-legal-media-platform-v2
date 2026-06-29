@@ -356,7 +356,7 @@ function businessScoreExplanation(kind: "compliance" | "risk" | "language", revi
 }
 
 function contentQualityExplanation(review: ReviewResult) {
-  const exp = review.contentQualityScoreExplanation;
+  const exp = review.contentQualityScoreExplanation ?? { redLine: false, factors: [] };
   const score = review.contentQualityScore;
   const factorLabels = exp.factors.map((f) => `${f.label} ${f.sourceScore}%`).join(" | ");
   if (exp.redLine) {
@@ -627,7 +627,7 @@ function LanguageIndicatorCard({ review }: { review: ReviewResult }) {
 }
 
 function ContentQualityIndicatorCard({ review }: { review: ReviewResult }) {
-  const exp = review.contentQualityScoreExplanation;
+  const exp = review.contentQualityScoreExplanation ?? { redLine: false, factors: [] };
   const hasViolations = review.findings.length > 0;
   const statusTone = (exp.redLine || hasViolations) ? "danger" as const : review.contentQualityScore >= 80 ? "good" as const : "gold" as const;
   const statusLabel = (exp.redLine || hasViolations) ? "خط أحمر مُفعَّل" : review.contentQualityScore >= 80 ? "متوازن" : "يحتاج تحسين";
