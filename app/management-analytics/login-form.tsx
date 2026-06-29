@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Button } from "@/components/ui";
 
 export function DirectorLoginForm() {
   const [password, setPassword] = useState("");
@@ -23,7 +24,7 @@ export function DirectorLoginForm() {
   return (
     <div className="space-y-3">
       <input type="password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="كلمة مرور مدير الإدارة" className="w-full rounded-md border border-line px-3 py-2.5 focus-ring" />
-      <button type="button" onClick={login} className="w-full rounded-md bg-palm px-4 py-2.5 text-white focus-ring">دخول مدير الإدارة</button>
+      <Button type="button" onClick={login} className="w-full justify-center">دخول مدير الإدارة</Button>
       {message ? <p className="text-sm text-gold">{message}</p> : null}
     </div>
   );

@@ -27,7 +27,7 @@ import {
   Video,
   XCircle,
 } from "lucide-react";
-import { PageHeader, Panel, SectionTitle, StatusBadge } from "@/components/ui";
+import { Button, ButtonLink, PageHeader, Panel, SectionTitle, StatusBadge } from "@/components/ui";
 import {
   InstagramIcon,
   LinkedInIcon,
@@ -607,15 +607,9 @@ export default function ContentStudioPage() {
             className="min-h-44 w-full rounded-lg border border-line p-4 leading-8"
           />
           <div className="mt-4 flex gap-3">
-            <button
-              type="button"
-              onClick={runReview}
-              disabled={reviewText.trim().length < 5}
-              className="inline-flex items-center gap-2 rounded-md bg-palm px-5 py-2.5 text-white disabled:opacity-50"
-            >
-              <FileCheck2 size={17} />
+            <Button onClick={runReview} disabled={reviewText.trim().length < 5} leadingIcon={<FileCheck2 size={17} />}>
               مراجعة المحتوى
-            </button>
+            </Button>
           </div>
           {reviewError && <p className="mt-3 text-sm text-red-600">{reviewError}</p>}
         </Panel>
@@ -692,15 +686,9 @@ export default function ContentStudioPage() {
             />
           </div>
 
-          <button
-            type="button"
-            onClick={generateContent}
-            disabled={!source || topic.trim().length < 3}
-            className="inline-flex items-center gap-2 rounded-md bg-palm px-5 py-2.5 text-white disabled:opacity-50"
-          >
-            <Sparkles size={17} />
+          <Button onClick={generateContent} disabled={!source || topic.trim().length < 3} leadingIcon={<Sparkles size={17} />}>
             إنشاء المحتوى
-          </button>
+          </Button>
           {generateError && <p className="mt-3 text-sm text-red-600">{generateError}</p>}
         </Panel>
       )}
@@ -743,26 +731,12 @@ export default function ContentStudioPage() {
             النص المقترح لغرض التعليم والمساعدة فقط — تظل مسؤولية النشر والمشاركة على المستخدم.
           </p>
           <div className="mt-4 flex flex-wrap gap-3">
-            <button
-              type="button"
-              onClick={runReview}
-              disabled={generatedText.trim().length < 5}
-              className="inline-flex items-center gap-2 rounded-md bg-palm px-5 py-2.5 text-white disabled:opacity-50"
-            >
-              <FileCheck2 size={17} />
+            <Button onClick={runReview} disabled={generatedText.trim().length < 5} leadingIcon={<FileCheck2 size={17} />}>
               راجع قانونياً
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setGeneratedText("");
-                setTopic("");
-              }}
-              className="inline-flex items-center gap-2 rounded-md border border-line px-4 py-2.5 text-sm"
-            >
-              <Edit3 size={16} />
+            </Button>
+            <Button variant="secondary-gray" onClick={() => { setGeneratedText(""); setTopic(""); }} leadingIcon={<Edit3 size={16} />}>
               عدّل الطلب
-            </button>
+            </Button>
           </div>
         </Panel>
       )}
@@ -1012,34 +986,14 @@ export default function ContentStudioPage() {
           <Panel>
             <p className="mb-4 text-sm font-semibold text-ink">ماذا تريد؟</p>
             <div className="flex flex-wrap gap-3">
-              <a
-                href="/social-media"
-                className="inline-flex items-center gap-2 rounded-md bg-palm px-4 py-2.5 text-sm text-white"
-              >
-                📤 نشر مباشرة
-              </a>
-              <a
-                href="/calendar"
-                className="inline-flex items-center gap-2 rounded-md border border-palm px-4 py-2.5 text-sm text-palm"
-              >
-                📅 جدولة
-              </a>
-              <button
-                type="button"
-                onClick={saveDraft}
-                className="inline-flex items-center gap-2 rounded-md border border-line px-4 py-2.5 text-sm"
-              >
-                <Save size={16} />
+              <ButtonLink href="/social-media">📤 نشر مباشرة</ButtonLink>
+              <ButtonLink href="/calendar" variant="secondary">📅 جدولة</ButtonLink>
+              <Button variant="secondary-gray" onClick={saveDraft} leadingIcon={<Save size={16} />}>
                 حفظ مسودة
-              </button>
-              <button
-                type="button"
-                onClick={() => setReview(null)}
-                className="inline-flex items-center gap-2 rounded-md border border-line px-4 py-2.5 text-sm"
-              >
-                <Edit3 size={16} />
+              </Button>
+              <Button variant="secondary-gray" onClick={() => setReview(null)} leadingIcon={<Edit3 size={16} />}>
                 تعديل
-              </button>
+              </Button>
             </div>
             {actionMsg && <p className="mt-3 text-sm text-palm">{actionMsg}</p>}
           </Panel>

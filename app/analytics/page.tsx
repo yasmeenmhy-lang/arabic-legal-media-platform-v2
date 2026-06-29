@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { BarChart3, Download, FileCheck2, ShieldAlert } from "lucide-react";
-import { BarList, KpiGrid, PageHeader, Panel, SectionTitle, StatusBadge } from "@/components/ui";
+import { BarList, Button, KpiGrid, PageHeader, Panel, SectionTitle, StatusBadge } from "@/components/ui";
 import { loadContentRecords, type StoredContentRecord } from "@/lib/content-record-store";
 
 export default function AnalyticsPage() {
@@ -118,9 +118,9 @@ export default function AnalyticsPage() {
             <Panel>
               <SectionTitle title="التحركات والتغييرات" subtitle="كل تعديل وتحليل واعتماد ومشاركة مسجل باسم المستخدم والتاريخ والحالة." />
               <p className="text-3xl font-normal text-palm">{actionCount}</p>
-              <button type="button" onClick={downloadReport} className="mt-4 inline-flex items-center gap-2 rounded-md bg-palm px-4 py-2.5 text-sm text-white focus-ring">
-                <Download size={16} /> تنزيل التقرير التفصيلي
-              </button>
+              <Button onClick={downloadReport} className="mt-4" leadingIcon={<Download size={16} />}>
+                تنزيل التقرير التفصيلي
+              </Button>
             </Panel>
           </div>
 

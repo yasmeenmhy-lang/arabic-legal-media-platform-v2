@@ -37,14 +37,120 @@ export function PageHeader({
   );
 }
 
-export function ButtonLink({ href, children }: { href: string; children: React.ReactNode }) {
+// ── DGA Button System (كود المنصات) ──────────────────────────────────────
+
+type ButtonVariant =
+  | "primary"
+  | "primary-black"
+  | "secondary"
+  | "secondary-gray"
+  | "light"
+  | "ghost"
+  | "destructive";
+
+type ButtonSize = "sm" | "md" | "lg";
+
+const btnVariant: Record<ButtonVariant, string> = {
+  "primary":        "bg-palm text-white border border-transparent hover:bg-palmDark active:bg-palmDark/90 disabled:opacity-50",
+  "primary-black":  "bg-ink text-white border border-transparent hover:bg-ink/85 active:bg-ink/75 disabled:opacity-50",
+  "secondary":      "bg-transparent text-palm border border-palm hover:bg-mint active:bg-mint/70 disabled:border-palm/40 disabled:text-palm/40",
+  "secondary-gray": "bg-transparent text-ink border border-warmGrayBorder hover:bg-paper active:bg-warmGraySoft disabled:border-warmGrayBorder/40 disabled:text-ink/40",
+  "light":          "bg-mint text-palm border border-transparent hover:bg-mint/70 active:bg-mint/50 disabled:opacity-50",
+  "ghost":          "bg-transparent text-palm border border-transparent hover:bg-mint active:bg-mint/60 disabled:text-palm/40",
+  "destructive":    "bg-red-600 text-white border border-transparent hover:bg-red-700 active:bg-red-800 disabled:opacity-50",
+};
+
+const btnSize: Record<ButtonSize, string> = {
+  sm: "px-2 py-0.5 text-xs gap-1 rounded-md min-h-[32px]",
+  md: "px-[11px] py-[9px] text-sm gap-2 rounded-lg min-h-[40px]",
+  lg: "px-4 py-3 text-sm gap-2 rounded-lg min-h-[44px] min-w-[44px]",
+};
+
+export function Button({
+  variant = "primary",
+  size = "md",
+  leadingIcon,
+  trailingIcon,
+  children,
+  className,
+  disabled,
+  ...props
+}: React.ButtonHTMLAttributes<HTMLButtonElement> & {
+  variant?: ButtonVariant;
+  size?: ButtonSize;
+  leadingIcon?: React.ReactNode;
+  trailingIcon?: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      disabled={disabled}
+      {...props}
+      className={clsx(
+        "inline-flex cursor-pointer items-center justify-center font-medium transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-palm disabled:cursor-not-allowed",
+        btnVariant[variant],
+        btnSize[size],
+        className
+      )}
+    >
+      {leadingIcon}
+      {children}
+      {trailingIcon}
+    </button>
+  );
+}
+
+export function IconButton({
+  label,
+  size = "md",
+  variant = "secondary-gray",
+  children,
+  className,
+  ...props
+}: React.ButtonHTMLAttributes<HTMLButtonElement> & {
+  label: string;
+  size?: ButtonSize;
+  variant?: ButtonVariant;
+}) {
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      {...props}
+      className={clsx(
+        "inline-flex cursor-pointer items-center justify-center font-medium transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-palm disabled:cursor-not-allowed",
+        btnVariant[variant],
+        btnSize[size],
+        className
+      )}
+    >
+      {children}
+    </button>
+  );
+}
+
+export function ButtonLink({
+  href,
+  children,
+  variant = "primary",
+  className,
+}: {
+  href: string;
+  children: React.ReactNode;
+  variant?: ButtonVariant;
+  className?: string;
+}) {
   return (
     <Link
       href={href}
-      className="inline-flex max-w-full items-center gap-2 rounded-md bg-palm px-4 py-2.5 text-sm font-normal text-white shadow-sm transition hover:bg-palmDark focus-ring"
+      className={clsx(
+        "inline-flex cursor-pointer items-center justify-center gap-2 font-medium transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-palm",
+        btnVariant[variant],
+        btnSize["md"],
+        className
+      )}
     >
-      <span className="min-w-0">{children}</span>
-      <ArrowLeft size={16} className="shrink-0" />
+      {children}
     </Link>
   );
 }

@@ -16,7 +16,7 @@ import {
   ShieldCheck,
   TrendingUp
 } from "lucide-react";
-import { ButtonLink, KpiGrid, PageHeader, Panel, ProgressBar, SectionTitle } from "@/components/ui";
+import { Button, ButtonLink, KpiGrid, PageHeader, Panel, ProgressBar, SectionTitle } from "@/components/ui";
 import { legalSourceDocuments } from "@/lib/legal-knowledge-base";
 import { loadContentRecords, type StoredContentRecord } from "@/lib/content-record-store";
 
@@ -189,9 +189,9 @@ export default function DashboardPage() {
               <p className="rounded-lg bg-paper p-4 text-sm leading-7">
                 توجد {records.length} مادة محفوظة، منها {overview.publishableContent} نسخة معتمدة، و{overview.highRiskContent} نتيجة عالية المخاطر.
               </p>
-              <button type="button" onClick={downloadReport} disabled={!records.length} className="inline-flex items-center gap-2 rounded-md bg-palm px-4 py-2 text-sm text-white disabled:opacity-40">
-                <Download size={15} /> تنزيل التقرير التفصيلي
-              </button>
+              <Button onClick={downloadReport} disabled={!records.length} leadingIcon={<Download size={15} />}>
+                تنزيل التقرير التفصيلي
+              </Button>
             </div>
           ) : (
             <div className="rounded-lg border border-line bg-paper p-4">

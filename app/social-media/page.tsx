@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Clipboard, Download, Edit3, FileDown, Share2 } from "lucide-react";
-import { PageHeader, Panel, SectionTitle, StatusBadge } from "@/components/ui";
+import { Button, PageHeader, Panel, SectionTitle, StatusBadge } from "@/components/ui";
 import { socialBrandIcons, socialBrandStyles } from "@/components/social-icons";
 import { getActiveContentSelection, loadContentRecords, setActiveContentSelection, type StoredContentRecord } from "@/lib/content-record-store";
 
@@ -123,10 +123,10 @@ export default function SocialMediaPage() {
             </select>
             <div className="mt-4 rounded-lg bg-paper p-4 leading-8">{body}</div>
             <div className="mt-4 flex flex-wrap gap-3">
-              <button type="button" onClick={copy} className="inline-flex items-center gap-2 rounded-md border border-line px-4 py-2.5"><Clipboard size={16} />نسخ</button>
-              <button type="button" onClick={downloadPackage} className="inline-flex items-center gap-2 rounded-md border border-line px-4 py-2.5"><Download size={16} />تنزيل الحزمة</button>
-              <Link onClick={edit} href="/content-review#input" className="inline-flex items-center gap-2 rounded-md border border-line px-4 py-2.5"><Edit3 size={16} />تحرير نسخة جديدة</Link>
-              <button type="button" onClick={() => window.print()} className="inline-flex items-center gap-2 rounded-md bg-palm px-4 py-2.5 text-white"><FileDown size={16} />طباعة / حفظ PDF</button>
+              <Button variant="secondary-gray" onClick={copy} leadingIcon={<Clipboard size={16} />}>نسخ</Button>
+              <Button variant="secondary-gray" onClick={downloadPackage} leadingIcon={<Download size={16} />}>تنزيل الحزمة</Button>
+              <Button variant="secondary-gray" onClick={edit} leadingIcon={<Edit3 size={16} />}>تحرير نسخة جديدة</Button>
+              <Button onClick={() => window.print()} leadingIcon={<FileDown size={16} />}>طباعة / حفظ PDF</Button>
             </div>
             {message ? <p className="mt-3 text-sm text-palm">{message}</p> : null}
           </Panel>
@@ -157,13 +157,12 @@ export default function SocialMediaPage() {
                         }))}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="mt-4 inline-flex items-center gap-2 rounded-md bg-palm px-4 py-2.5 text-sm text-white"
-                      >
-                        <Share2 size={15} />فتح المشاركة
-                      </a>
+                        className="mt-4 inline-flex items-center gap-2 rounded-lg bg-palm px-[11px] py-[9px] text-sm font-medium text-white transition hover:bg-palmDark focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-palm"
+                      ><Share2 size={15} />فتح المشاركة</a>
                     ) : (
-                      <button
-                        type="button"
+                      <Button
+                        variant="secondary-gray"
+                        className="mt-4"
                         onClick={async () => {
                           await navigator.clipboard.writeText(prepareChannelCopy({
                             platformLabel: platform.label,
@@ -175,10 +174,8 @@ export default function SocialMediaPage() {
                           }));
                           setMessage(`تم نسخ نسخة مجهزة لقناة ${platform.label}. افتح التطبيق وأكمل المراجعة قبل النشر.`);
                         }}
-                        className="mt-4 inline-flex items-center gap-2 rounded-md border border-line px-4 py-2.5 text-sm"
-                      >
-                        <Clipboard size={15} />نسخ للتجهيز
-                      </button>
+                        leadingIcon={<Clipboard size={15} />}
+                      >نسخ للتجهيز</Button>
                     )}
                   </article>
                 );
