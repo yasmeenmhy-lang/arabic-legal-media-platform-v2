@@ -10,8 +10,12 @@ import { clsx } from "clsx";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const [navOpen, setNavOpen] = useState(true);
+  const [navOpen, setNavOpen] = useState(false);
   const visibleItems = navItems;
+
+  useEffect(() => {
+    if (window.innerWidth >= 1024) setNavOpen(true);
+  }, []);
 
   useEffect(() => {
     function handleKeydown(event: KeyboardEvent) {
