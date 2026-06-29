@@ -27,7 +27,7 @@ import {
   Video,
   XCircle,
 } from "lucide-react";
-import { PageHeader, Panel, SectionTitle, StatusBadge } from "@/components/ui";
+import { PageHeader, Panel, SectionTitle } from "@/components/ui";
 import {
   InstagramIcon,
   LinkedInIcon,
@@ -168,17 +168,6 @@ const purposeIcons: Record<string, React.ReactNode> = {
 };
 
 // ── Helpers ────────────────────────────────────────────────────────────────
-
-function toneBorder(tone: "good" | "gold" | "danger" | "neutral") {
-  if (tone === "good") return "border-t-green-400";
-  if (tone === "gold") return "border-t-amber-400";
-  if (tone === "danger") return "border-t-red-400";
-  return "border-t-slate-300";
-}
-
-function scoreToTone(score: number): "good" | "gold" | "danger" {
-  return score >= 80 ? "good" : score >= 60 ? "gold" : "danger";
-}
 
 function createDraftRecord(
   body: string,
@@ -715,16 +704,78 @@ export default function ContentStudioPage() {
       {/* ── 5. Results ── */}
       {review && !reviewing && (
         <>
-          <DecisionCard review={review} />
+          <Panel>
+            <SectionTitle title="نتائج التحليل" />
 
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <ComplianceMini review={review} />
-            <RiskMini review={review} />
-            <ProfessionalismMini review={review} />
-            <LanguageMini review={review} />
-          </div>
+            {/* قرار النشر */}
+            <div
+              className={`mb-4 flex items-start gap-3 rounded-lg border p-3 ${
+                review.publicationDecision.recommended
+                  ? "border-green-200 bg-green-50"
+                  : "border-red-200 bg-red-50"
+              }`}
+            >
+              <span
+                className={`mt-0.5 shrink-0 ${
+                  review.publicationDecision.recommended ? "text-green-600" : "text-red-600"
+                }`}
+              >
+                {review.publicationDecision.recommended ? (
+                  <CheckCircle2 size={18} />
+                ) : (
+                  <XCircle size={18} />
+                )}
+              </span>
+              <div>
+                <p
+                  className={`text-sm font-semibold ${
+                    review.publicationDecision.recommended ? "text-green-700" : "text-red-700"
+                  }`}
+                >
+                  {review.publicationDecision.label}
+                </p>
+                <p className="mt-0.5 text-xs leading-5 text-ink/65">
+                  {review.publicationDecision.reason}
+                </p>
+              </div>
+            </div>
 
-          <QualityCard review={review} />
+            {/* شبكة المؤشرات */}
+            <div className="grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-5">
+              <div className="rounded-md bg-paper p-3">
+                <p className="mb-1 text-xs text-ink/50">الامتثال</p>
+                <p className="font-semibold">
+                  {review.findings.length === 0 ? "ملتزم" : "غير ملتزم"}
+                </p>
+              </div>
+              <div className="rounded-md bg-paper p-3">
+                <p className="mb-1 text-xs text-ink/50">المخاطر</p>
+                <p className="font-semibold">
+                  {review.riskLevel} — {review.riskScore}
+                </p>
+              </div>
+              <div className="rounded-md bg-paper p-3">
+                <p className="mb-1 text-xs text-ink/50">الكتابة المهنية</p>
+                <p className="font-semibold">{review.professionalismScore} / 100</p>
+              </div>
+              <div className="rounded-md bg-paper p-3">
+                <p className="mb-1 text-xs text-ink/50">اللغة</p>
+                <p className="font-semibold">{review.languageQuality.score} / 100</p>
+              </div>
+              <div className="rounded-md bg-paper p-3">
+                <p className="mb-1 text-xs text-ink/50">جودة المحتوى</p>
+                <p className="font-semibold">{review.contentQualityScore} / 100</p>
+              </div>
+            </div>
+
+            {review.findings.length > 0 && (
+              <p className="mt-3 text-xs text-red-600">
+                {review.findings.length}{" "}
+                {review.findings.length === 1 ? "مخالفة قانونية" : "مخالفات قانونية"} — للتفاصيل
+                الكاملة افتح صفحة المراجعة.
+              </p>
+            )}
+          </Panel>
 
           <Panel>
             <p className="mb-4 text-sm font-semibold text-ink">ماذا تريد؟</p>
@@ -770,160 +821,3 @@ export default function ContentStudioPage() {
   );
 }
 
-// ── Result sub-components ──────────────────────────────────────────────────
-
-function DecisionCard({ review }: { review: ReviewResult }) {
-  const dec = review.publicationDecision;
-  const ready = dec.recommended;
-  return (
-    <Panel
-      className={`border-t-4 shadow-md ${ready ? "border-t-green-400" : "border-t-red-400"}`}
-    >
-      <div className="flex items-start gap-4">
-        <span
-          className={`shrink-0 rounded-xl p-3 ${
-            ready ? "bg-green-50 text-green-600" : "bg-red-50 text-red-600"
-          }`}
-        >
-          {ready ? <CheckCircle2 size={28} /> : <XCircle size={28} />}
-        </span>
-        <div className="min-w-0 flex-1">
-          <p className="mb-1 text-xs font-bold uppercase tracking-wider text-slate-400">
-            قرار النشر
-          </p>
-          <p
-            className={`text-xl font-bold ${ready ? "text-green-700" : "text-red-700"}`}
-          >
-            {dec.label}
-          </p>
-          <p className="mt-1.5 text-sm leading-6 text-ink/70">{dec.reason}</p>
-          {dec.blockers.length > 0 && (
-            <ul className="mt-3 space-y-1">
-              {dec.blockers.map((b, i) => (
-                <li key={i} className="flex items-start gap-2 text-sm text-red-700">
-                  <span className="mt-0.5 shrink-0 text-red-400">•</span>
-                  {b}
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      </div>
-    </Panel>
-  );
-}
-
-function ComplianceMini({ review }: { review: ReviewResult }) {
-  const ok = review.findings.length === 0;
-  return (
-    <Panel className={`border-t-4 shadow-md ${toneBorder(ok ? "good" : "danger")}`}>
-      <p className="mb-2 text-xs font-bold uppercase tracking-wider text-slate-400">الامتثال</p>
-      <StatusBadge tone={ok ? "good" : "danger"}>{ok ? "ملتزم" : "غير ملتزم"}</StatusBadge>
-      {!ok && (
-        <p className="mt-2 text-xs text-ink/60">
-          {review.findings.length}{" "}
-          {review.findings.length === 1 ? "مخالفة" : "مخالفات"}
-        </p>
-      )}
-    </Panel>
-  );
-}
-
-function RiskMini({ review }: { review: ReviewResult }) {
-  const tone =
-    review.riskLevel === "منخفض"
-      ? ("good" as const)
-      : review.riskLevel === "متوسط"
-        ? ("gold" as const)
-        : ("danger" as const);
-  return (
-    <Panel className={`border-t-4 shadow-md ${toneBorder(tone)}`}>
-      <p className="mb-2 text-xs font-bold uppercase tracking-wider text-slate-400">المخاطر</p>
-      <StatusBadge tone={tone}>{review.riskLevel}</StatusBadge>
-      <p className="mt-2 text-sm font-semibold text-ink">
-        {review.riskScore}
-        <span className="text-xs font-normal text-ink/50"> / 100</span>
-      </p>
-    </Panel>
-  );
-}
-
-function ProfessionalismMini({ review }: { review: ReviewResult }) {
-  const score = review.professionalismScore;
-  return (
-    <Panel className={`border-t-4 shadow-md ${toneBorder(scoreToTone(score))}`}>
-      <p className="mb-2 text-xs font-bold uppercase tracking-wider text-slate-400">الكتابة المهنية</p>
-      <p className="text-2xl font-bold text-ink">
-        {score}
-        <span className="text-sm font-normal text-ink/50"> / 100</span>
-      </p>
-    </Panel>
-  );
-}
-
-function LanguageMini({ review }: { review: ReviewResult }) {
-  const score = review.languageQuality.score;
-  return (
-    <Panel className={`border-t-4 shadow-md ${toneBorder(scoreToTone(score))}`}>
-      <p className="mb-2 text-xs font-bold uppercase tracking-wider text-slate-400">اللغة</p>
-      <p className="text-2xl font-bold text-ink">
-        {score}
-        <span className="text-sm font-normal text-ink/50"> / 100</span>
-      </p>
-    </Panel>
-  );
-}
-
-function QualityCard({ review }: { review: ReviewResult }) {
-  const exp = review.contentQualityScoreExplanation;
-  const hasViolations = review.findings.length > 0;
-  const tone =
-    exp.redLine || hasViolations ? ("danger" as const) : scoreToTone(review.contentQualityScore);
-  const label =
-    exp.redLine || hasViolations
-      ? "خط أحمر مُفعَّل"
-      : review.contentQualityScore >= 80
-        ? "متوازن"
-        : "يحتاج تحسين";
-  return (
-    <Panel className={`border-t-4 shadow-md ${toneBorder(tone)}`}>
-      <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <p className="mb-1 text-xs font-bold uppercase tracking-wider text-slate-400">
-            جودة المحتوى
-          </p>
-          <p className="text-3xl font-bold text-ink">
-            {review.contentQualityScore}
-            <span className="text-base font-normal text-ink/50"> / 100</span>
-          </p>
-        </div>
-        <StatusBadge tone={tone}>{label}</StatusBadge>
-      </div>
-      <div className="grid gap-2 sm:grid-cols-2">
-        {exp.factors.map((factor) => {
-          const isCompliance = factor.key === "compliance";
-          const ok = isCompliance ? review.findings.length === 0 : factor.sourceScore >= 70;
-          return (
-            <div
-              key={factor.key}
-              className="flex items-center justify-between gap-2 rounded-lg bg-paper px-3 py-2"
-            >
-              <span className="text-sm text-ink/70">{factor.label}</span>
-              {isCompliance ? (
-                <span
-                  className={`rounded px-2 py-0.5 text-xs font-bold ${
-                    ok ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
-                  }`}
-                >
-                  {ok ? "ملتزم" : "غير ملتزم"}
-                </span>
-              ) : (
-                <span className="text-sm font-semibold text-ink">{factor.sourceScore}</span>
-              )}
-            </div>
-          );
-        })}
-      </div>
-    </Panel>
-  );
-}
