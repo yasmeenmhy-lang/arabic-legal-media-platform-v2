@@ -58,7 +58,7 @@ import {
   upsertAnalyzedVersion
 } from "@/lib/content-record-store";
 import { saveLatestReviewSnapshot } from "@/components/review-context-summary";
-import type { ContentKind, LanguageQualityIssue, ReviewFinding, ReviewResult, RiskAffectedParty, RiskLevel } from "@/lib/types";
+import { riskDisplayLabel, type ContentKind, type LanguageQualityIssue, type ReviewFinding, type ReviewResult, type RiskAffectedParty, type RiskLevel } from "@/lib/types";
 
 const contentTypes = contentKindOptions.filter((item) =>
   (["post", "advertisement", "campaign", "article", "script", "caption", "visual_content", "infographic", "publishing_plan"] as ContentKind[]).includes(item.value)
@@ -223,7 +223,7 @@ function buildAssistantIssues(review: ReviewResult, liveSpellingIssues: Language
     ? [{
         id: "risk-summary",
         severity: (review.riskLevel === "بالغ" || review.riskLevel === "حرج") ? "critical" : "high",
-        label: `مستوى مخاطر ${review.riskLevel}`,
+        label: `مستوى مخاطر ${riskDisplayLabel(review.riskLevel)}`,
         evidence: review.findings[0]?.evidence ?? review.legalRiskAssessment.reason,
         reason: review.legalRiskAssessment.reason,
         action: review.readinessDecision.actions[0] ?? "عالج المخاطر قبل التفكير في النشر.",
@@ -338,7 +338,7 @@ function businessScoreExplanation(kind: "compliance" | "risk" | "language", revi
     const riskParties = riskExp.affectedParties?.join("، ");
     return {
       label: "المخاطر",
-      value: review.riskLevel,
+      value: riskDisplayLabel(review.riskLevel),
       explanation: review.legalRiskAssessment.reason,
       evidence: riskExp.explanation ?? (riskParties ? `الجهات المتضررة: ${riskParties}` : review.legalRiskAssessment.reason),
       action: riskExp.fix ?? "استمر في تجنب الوعود والادعاءات غير المدعومة."
@@ -553,7 +553,7 @@ function RiskIndicatorCard({ review }: { review: ReviewResult }) {
     <Panel id="risk" className={`scroll-mt-24 border-t-4 shadow-md ${toneBorder(tone)}`}>
       <p className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-400">المخاطر</p>
       <div className="flex items-center justify-between gap-3">
-        <StatusBadge tone={tone}>{review.riskLevel}</StatusBadge>
+        <StatusBadge tone={tone}>{riskDisplayLabel(review.riskLevel)}</StatusBadge>
         <div className="flex gap-1.5">
           {riskLevels.map((_, i) => (
             <span key={i} className={`inline-block h-2.5 w-2.5 rounded-full ${i < activeCount ? (tone === "good" ? "bg-green-400" : tone === "gold" ? "bg-amber-400" : "bg-red-500") : "bg-slate-200"}`} />

@@ -5,7 +5,7 @@ import { AlertTriangle, Bell, ExternalLink, FileSearch, Settings } from "lucide-
 import { ButtonLink, PageHeader, Panel, SectionTitle, StatusBadge } from "@/components/ui";
 import { OfficialLogo, officialEntityFromUrl } from "@/components/official-logos";
 import { loadContentRecords, type StoredContentRecord } from "@/lib/content-record-store";
-import type { ReviewFinding, RiskLevel } from "@/lib/types";
+import { riskDisplayLabel, type ReviewFinding, type RiskLevel } from "@/lib/types";
 
 const severityRank: Record<RiskLevel, number> = { "بالغ": 5, "حرج": 4, "مرتفع": 3, "متوسط": 2, "منخفض": 1 };
 const severeLevels: RiskLevel[] = ["بالغ", "حرج", "مرتفع"];
@@ -50,7 +50,7 @@ export default function AlertsPage() {
       if (review.riskLevel !== "منخفض") {
         alerts.push({
           title: record.title,
-          label: `المخاطر ${review.riskLevel}`,
+          label: `المخاطر ${riskDisplayLabel(review.riskLevel)}`,
           tone: severeLevels.includes(review.riskLevel) ? "danger" : "gold",
           reason: review.legalRiskAssessment.reason,
           action: review.riskScoreExplanation.contributions[0]?.explanation

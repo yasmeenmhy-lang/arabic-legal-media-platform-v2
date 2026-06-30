@@ -47,7 +47,7 @@ import {
   type StoredContentVersion,
 } from "@/lib/content-record-store";
 import { saveLatestReviewSnapshot } from "@/components/review-context-summary";
-import type { ContentKind, ReviewResult, RiskAffectedParty, RiskLevel } from "@/lib/types";
+import { riskDisplayLabel, type ContentKind, type ReviewResult, type RiskAffectedParty, type RiskLevel } from "@/lib/types";
 
 // ── Constants ──────────────────────────────────────────────────────────────
 
@@ -931,7 +931,7 @@ export default function ContentStudioPage() {
               <Panel className={`border-t-4 shadow-md ${toneBorder(tone)}`}>
                 <p className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-400">المخاطر</p>
                 <div className="flex items-center justify-between gap-3">
-                  <StatusBadge tone={tone}>{review.riskLevel}</StatusBadge>
+                  <StatusBadge tone={tone}>{riskDisplayLabel(review.riskLevel)}</StatusBadge>
                   <div className="flex gap-1.5">
                     {riskLevels.map((_, i) => (
                       <span key={i} className={`inline-block h-2.5 w-2.5 rounded-full ${i < activeCount ? (tone === "good" ? "bg-green-400" : tone === "gold" ? "bg-amber-400" : "bg-red-500") : "bg-slate-200"}`} />

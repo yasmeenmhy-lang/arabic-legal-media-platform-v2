@@ -10,7 +10,7 @@ import {
   setActiveContentSelection,
   type StoredContentRecord
 } from "@/lib/content-record-store";
-import type { RiskLevel } from "@/lib/types";
+import { riskDisplayLabel, type RiskLevel } from "@/lib/types";
 
 function formatDate(value?: string) {
   if (!value) return "غير متاح";
@@ -115,7 +115,7 @@ export default function ContentManagementPage() {
                       ? <span className={cTone === "good" ? "text-green-700" : "text-red-600"}>{cLabel}</span>
                       : "—"}
                   </div>
-                  <div className="rounded bg-paper p-2">المخاطر: {version.analysis?.riskLevel ?? "—"}</div>
+                  <div className="rounded bg-paper p-2">المخاطر: {riskDisplayLabel(version.analysis?.riskLevel)}</div>
                   <div className="rounded bg-paper p-2">فرص التحسين: {version.analysis?.languageQuality.issues.length ?? 0}</div>
                 </div>
                 {version.approvedAt && (
@@ -248,7 +248,7 @@ export default function ContentManagementPage() {
                           <div>
                             <p className="text-[10px] font-semibold text-ink/40 mb-1">المخاطر</p>
                             {risk
-                              ? <StatusBadge tone={riskTone(risk)}>{risk}</StatusBadge>
+                              ? <StatusBadge tone={riskTone(risk)}>{riskDisplayLabel(risk)}</StatusBadge>
                               : <span className="text-xs text-ink/40">—</span>}
                           </div>
                           <div>

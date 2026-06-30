@@ -2,6 +2,13 @@ export type RoleName = "LAWYER" | "SUPERVISOR" | "ADMIN" | "DIRECTOR";
 
 export type RiskLevel = "منخفض" | "متوسط" | "مرتفع" | "حرج" | "بالغ";
 
+export function riskDisplayLabel(level: RiskLevel | undefined | null): string {
+  if (!level) return "—";
+  if (level === "منخفض") return "منخفض";
+  if (level === "متوسط") return "متوسط";
+  return "مرتفع";
+}
+
 export type RiskAffectedParty = "الموكل" | "المحامي" | "المهنة";
 
 export type BusinessSeverity = "critical" | "high" | "medium" | "low";
