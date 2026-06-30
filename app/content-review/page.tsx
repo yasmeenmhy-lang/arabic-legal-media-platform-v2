@@ -35,7 +35,7 @@ import {
   Video,
   XCircle
 } from "lucide-react";
-import { Button, CircularGauge, DgaBlockquote, DgaSpinner, PageHeader, Panel, ProgressBar, SectionTitle, StatusBadge } from "@/components/ui";
+import { Button, CircularGauge, DgaSpinner, PageHeader, Panel, ProgressBar, SectionTitle, StatusBadge } from "@/components/ui";
 import {
   LinkedInIcon,
   XIcon,
@@ -409,7 +409,10 @@ function FindingCard({ finding, index }: { finding: ReviewFinding; index: number
           <p className="text-xs text-ink/55">ما الخطأ؟</p>
           <p className="mt-2 leading-8">{finding.issue}</p>
         </div>
-        <DgaBlockquote title="الدليل من المحتوى" text={finding.evidence} />
+        <div className="rounded-lg bg-paper p-4">
+          <p className="text-xs text-ink/55">الدليل من المحتوى</p>
+          <p className="mt-2 leading-8">{finding.evidence}</p>
+        </div>
         <div className="rounded-lg bg-paper p-4">
           <p className="text-xs text-ink/55">القاعدة القانونية</p>
           <p className="mt-2 leading-8">{finding.legalExplanation}</p>
@@ -471,7 +474,10 @@ function MetricExplanation({
         </div>
       </div>
       <div className="mt-4 grid gap-3 lg:grid-cols-2">
-        <DgaBlockquote title="الدليل" text={evidence} transparent />
+        <div className="rounded-lg bg-paper p-3 text-sm leading-7">
+          <p className="mb-1 text-xs text-ink/55">الدليل</p>
+          <p>{evidence}</p>
+        </div>
         <div className="rounded-md bg-mint/50 p-3 text-sm leading-7"><b>الإجراء الموصى به:</b> {action}</div>
       </div>
     </Panel>
@@ -819,7 +825,7 @@ function InlineContentGuidance({
                   <span className="text-ink/55">الأولوية: {item.severity === "critical" ? "حرجة" : item.severity === "high" ? "عالية" : item.severity === "medium" ? "متوسطة" : "منخفضة"}</span>
                 </div>
                 <p className="mt-2"><b>المشكلة:</b> {item.label}</p>
-                <DgaBlockquote title="العبارة المرتبطة" text={item.evidence} transparent />
+                <p className="mt-2 leading-7"><b>العبارة المرتبطة:</b> {item.evidence}</p>
                 <p><b>سبب المخالفة أو الملاحظة:</b> {item.reason}</p>
                 {item.source ? <p><b>المرجع:</b> {item.source}</p> : null}
                 <p><b>الإجراء المقترح:</b> {item.action}</p>

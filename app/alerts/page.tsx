@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { AlertTriangle, Bell, ChevronDown, ExternalLink, FileSearch, Settings } from "lucide-react";
-import { ButtonLink, DgaBlockquote, DgaSpinner, PageHeader, Panel, SectionTitle, StatusBadge } from "@/components/ui";
+import { ButtonLink, DgaSpinner, PageHeader, Panel, SectionTitle, StatusBadge } from "@/components/ui";
 import { OfficialLogo, officialEntityFromUrl } from "@/components/official-logos";
 import { loadContentRecords, type StoredContentRecord } from "@/lib/content-record-store";
 import { riskDisplayLabel, type ReviewFinding, type RiskLevel } from "@/lib/types";
@@ -102,7 +102,7 @@ export default function AlertsPage() {
                 <StatusBadge tone={severeLevels.includes(finding.severity) ? "danger" : "gold"}>{riskDisplayLabel(finding.severity)}</StatusBadge>
               </div>
               <p className="mt-1 text-xs text-ink/60">{recordTitle}</p>
-              <DgaBlockquote title="الدليل" text={finding.evidence} transparent />
+              <p className="mt-1 text-sm leading-7 text-ink/70">{finding.evidence}</p>
               <p className="mt-1 text-sm leading-7 text-ink/70">{finding.suggestedSaferWording}</p>
             </article>
           ))}
