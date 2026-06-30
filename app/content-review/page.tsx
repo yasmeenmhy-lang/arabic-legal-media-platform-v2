@@ -405,10 +405,7 @@ function FindingCard({ finding, index }: { finding: ReviewFinding; index: number
         </StatusBadge>
       </div>
       <div className="mt-5 grid gap-4 lg:grid-cols-2">
-        <div className="rounded-lg bg-paper p-4">
-          <p className="text-xs text-ink/55">ما الخطأ؟</p>
-          <p className="mt-2 leading-8">{finding.issue}</p>
-        </div>
+        <DgaBlockquote title="ما الخطأ؟" text={finding.issue} />
         <DgaBlockquote title="الدليل من المحتوى" text={finding.evidence} />
         <DgaBlockquote title="القاعدة القانونية" text={finding.legalExplanation} />
         <div className="rounded-lg bg-paper p-4">
@@ -418,14 +415,8 @@ function FindingCard({ finding, index }: { finding: ReviewFinding; index: number
             فتح المرجع الرسمي <ExternalLink size={14} aria-hidden="true" />
           </a>
         </div>
-        <div className="rounded-lg bg-paper p-4">
-          <p className="text-xs text-ink/55">الأثر والمخاطر</p>
-          <p className="mt-2 leading-8">{finding.explanation}</p>
-        </div>
-        <div className="rounded-lg border border-palm/20 bg-mint/50 p-4">
-          <p className="text-xs text-palm">الإجراء الموصى به</p>
-          <p className="mt-2 leading-8">{finding.suggestedSaferWording}</p>
-        </div>
+        <DgaBlockquote title="الأثر والمخاطر" text={finding.explanation} />
+        <DgaBlockquote title="الإجراء الموصى به" text={finding.suggestedSaferWording} />
       </div>
     </article>
   );
@@ -469,7 +460,7 @@ function MetricExplanation({
       </div>
       <div className="mt-4 grid gap-3 lg:grid-cols-2">
         <DgaBlockquote title="الدليل" text={evidence} transparent />
-        <div className="rounded-md bg-mint/50 p-3 text-sm leading-7"><b>الإجراء الموصى به:</b> {action}</div>
+        <DgaBlockquote title="الإجراء الموصى به" text={action} transparent />
       </div>
     </Panel>
   );
@@ -816,10 +807,10 @@ function InlineContentGuidance({
                   <span className="text-ink/55">الأولوية: {item.severity === "critical" ? "حرجة" : item.severity === "high" ? "عالية" : item.severity === "medium" ? "متوسطة" : "منخفضة"}</span>
                 </div>
                 <p className="mt-2"><b>المشكلة:</b> {item.label}</p>
-                <p><b>العبارة المرتبطة:</b> {item.evidence}</p>
-                <p><b>سبب المخالفة أو الملاحظة:</b> {item.reason}</p>
-                {item.source ? <p><b>المرجع:</b> {item.source}</p> : null}
-                <p><b>الإجراء المقترح:</b> {item.action}</p>
+                <DgaBlockquote title="العبارة المرتبطة" text={item.evidence} transparent />
+                <DgaBlockquote title="سبب المخالفة أو الملاحظة" text={item.reason} transparent />
+                {item.source ? <p className="mt-1"><b>المرجع:</b> {item.source}</p> : null}
+                <DgaBlockquote title="الإجراء المقترح" text={item.action} transparent />
               </li>
             ))}
           </ol>
@@ -1521,7 +1512,7 @@ export default function ContentReviewPage() {
                     <article key={`${finding.sourceUrl}-${finding.legalReference}`} className="rounded-lg border border-line bg-paper p-4">
                       <div className="flex items-start gap-3"><OfficialLogo entity={officialEntityFromUrl(finding.sourceUrl)} /><h3 className="pt-1 font-semibold">{finding.sourceDocument}</h3></div>
                       <p className="mt-2 text-sm leading-7">{finding.legalReference}</p>
-                      <p className="mt-2 text-sm leading-7 text-ink/65">{finding.legalExplanation}</p>
+                      <DgaBlockquote title="القاعدة القانونية" text={finding.legalExplanation} transparent />
                       <a href={finding.sourceUrl} target="_blank" rel="noopener noreferrer" className="mt-3 inline-flex items-center gap-2 text-sm text-palm underline">
                         فتح المرجع الرسمي <ExternalLink size={14} aria-hidden="true" />
                       </a>
