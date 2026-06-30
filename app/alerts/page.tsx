@@ -25,7 +25,7 @@ type AssessmentAlert = {
 
 export default function AlertsPage() {
   const [records, setRecords] = useState<StoredContentRecord[]>([]);
-  const [openSection, setOpenSection] = useState<"findings" | "assessments" | "references">("findings");
+  const [openSection, setOpenSection] = useState<"findings" | "assessments" | "references" | null>("findings");
 
   useEffect(() => {
     setRecords(loadContentRecords());
@@ -193,7 +193,7 @@ export default function AlertsPage() {
                 type="button"
                 aria-expanded={isOpen}
                 aria-controls={`alerts-panel-${section.key}`}
-                onClick={() => setOpenSection(section.key)}
+                onClick={() => setOpenSection(isOpen ? null : section.key)}
                 className={`flex w-full items-center justify-between gap-3 px-5 py-4 text-right transition focus-ring ${isOpen ? "bg-paper" : "hover:bg-paper/60"}`}
               >
                 <div className="flex min-w-0 flex-1 items-center gap-3">
