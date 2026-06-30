@@ -428,6 +428,52 @@ export function CircularGauge({ value, label, tone = "good" }: { value: number; 
 }
 
 /* ═══════════════════════════════════════════════════════
+   DGA كود المنصات — مكوّن الاقتباس
+   المصدر: design.dga.gov.sa/guidelines → الاقتباس
+   ═══════════════════════════════════════════════════════ */
+
+export function DgaBlockquote({
+  title,
+  text,
+  author,
+  authorDescription,
+  transparent = false,
+}: {
+  title?: string;
+  text: string;
+  author?: string;
+  authorDescription?: string;
+  transparent?: boolean;
+}) {
+  const closeMarks = '\u201d\u201d';
+  const openMarks = '\u201c\u201c';
+  return (
+    <figure
+      className={clsx(
+        "relative rounded-lg p-4",
+        transparent ? "" : "border border-line bg-white"
+      )}
+    >
+      {title && (
+        <div className="mb-3 flex items-center justify-between gap-2">
+          <p className="text-sm font-semibold text-ink">{title}</p>
+          <span aria-hidden="true" className="shrink-0 select-none text-2xl leading-none text-palm">{closeMarks}</span>
+        </div>
+      )}
+      <blockquote className="text-sm leading-8 text-ink/80">{text}</blockquote>
+      <figcaption className="mt-3 flex items-end justify-between gap-3">
+        <span aria-hidden="true" className="shrink-0 select-none text-2xl leading-none text-palm">{openMarks}</span>
+        {author && (
+          <div className="text-right">
+            <p className="text-sm font-semibold text-ink">{author}</p>
+            {authorDescription && <p className="text-xs text-ink/55">{authorDescription}</p>}
+          </div>
+        )}
+      </figcaption>
+    </figure>
+  );
+}
+/* ═══════════════════════════════════════════════════════
    DGA كود المنصات — مؤشر التحميل الدوّار
    المصدر: design.dga.gov.sa/guidelines → مؤشر التحميل
    ═══════════════════════════════════════════════════════ */

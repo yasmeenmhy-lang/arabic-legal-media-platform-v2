@@ -35,7 +35,7 @@ import {
   Video,
   XCircle
 } from "lucide-react";
-import { Button, CircularGauge, DgaSpinner, PageHeader, Panel, ProgressBar, SectionTitle, StatusBadge } from "@/components/ui";
+import { Button, CircularGauge, DgaBlockquote, DgaSpinner, PageHeader, Panel, ProgressBar, SectionTitle, StatusBadge } from "@/components/ui";
 import {
   LinkedInIcon,
   XIcon,
@@ -409,14 +409,8 @@ function FindingCard({ finding, index }: { finding: ReviewFinding; index: number
           <p className="text-xs text-ink/55">ما الخطأ؟</p>
           <p className="mt-2 leading-8">{finding.issue}</p>
         </div>
-        <div className="rounded-lg bg-paper p-4">
-          <p className="text-xs text-ink/55">الدليل من المحتوى</p>
-          <p className="mt-2 leading-8 font-medium">“{finding.evidence}”</p>
-        </div>
-        <div className="rounded-lg bg-paper p-4">
-          <p className="text-xs text-ink/55">لماذا يمثل مشكلة؟</p>
-          <p className="mt-2 leading-8">{finding.legalExplanation}</p>
-        </div>
+        <DgaBlockquote title="الدليل من المحتوى" text={finding.evidence} />
+        <DgaBlockquote title="القاعدة القانونية" text={finding.legalExplanation} />
         <div className="rounded-lg bg-paper p-4">
           <p className="text-xs text-ink/55">المرجع المتأثر</p>
           <div className="mt-2 flex items-start gap-3 leading-7"><OfficialLogo entity={officialEntityFromUrl(finding.sourceUrl)} /><span className="pt-1">{finding.sourceDocument} — {finding.legalReference}</span></div>
@@ -474,7 +468,7 @@ function MetricExplanation({
         </div>
       </div>
       <div className="mt-4 grid gap-3 lg:grid-cols-2">
-        <div className="rounded-md bg-paper p-3 text-sm leading-7"><b>الدليل:</b> {evidence}</div>
+        <DgaBlockquote title="الدليل" text={evidence} transparent />
         <div className="rounded-md bg-mint/50 p-3 text-sm leading-7"><b>الإجراء الموصى به:</b> {action}</div>
       </div>
     </Panel>
@@ -841,7 +835,7 @@ function InlineContentGuidance({
             <button type="button" onClick={onApplyRewrite} disabled={loading} className="inline-flex items-center gap-1.5 rounded-md bg-violet px-2 py-0.5 text-xs font-medium text-white transition hover:bg-violetDark disabled:opacity-50 min-h-[32px]"><Sparkles size={14} />استخدام الصياغة المقترحة</button>
           </div>
           {enhancedRewrite?.explanation ? <p className="mt-2 text-ink/70">{enhancedRewrite.explanation}</p> : null}
-          <p className="mt-2 text-ink/70">{enhancedRewrite?.suggestedText ?? rewrite.suggestedText}</p>
+          <DgaBlockquote text={enhancedRewrite?.suggestedText ?? rewrite.suggestedText} transparent />
         </div>
       ) : null}
     </div>
