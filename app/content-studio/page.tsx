@@ -562,7 +562,7 @@ export default function ContentStudioPage() {
               className="flex flex-col items-start gap-3 rounded-xl border-2 border-line bg-white p-6 text-right transition hover:border-palm hover:shadow-md focus-ring"
             >
               <span className="rounded-lg bg-mint p-2.5 text-palm">
-                <FileCheck2 size={22} />
+                <FileCheck2 size={24} aria-hidden="true" />
               </span>
               <span className="text-lg font-semibold text-ink">مراجعة محتوى</span>
               <span className="text-sm leading-6 text-ink/60">
@@ -576,7 +576,7 @@ export default function ContentStudioPage() {
               className="flex flex-col items-start gap-3 rounded-xl border-2 border-line bg-white p-6 text-right transition hover:border-violet hover:shadow-md focus-ring"
             >
               <span className="rounded-lg bg-violetSoft p-2.5 text-violet">
-                <Sparkles size={22} />
+                <Sparkles size={24} aria-hidden="true" />
               </span>
               <span className="text-lg font-semibold text-ink">إنشاء محتوى</span>
               <span className="text-sm leading-6 text-ink/60">
@@ -607,7 +607,7 @@ export default function ContentStudioPage() {
             className="min-h-44 w-full rounded-lg border border-line p-4 leading-8"
           />
           <div className="mt-4 flex gap-3">
-            <Button onClick={runReview} disabled={reviewText.trim().length < 5} leadingIcon={<FileCheck2 size={17} />}>
+            <Button onClick={runReview} disabled={reviewText.trim().length < 5} leadingIcon={<FileCheck2 size={16} aria-hidden="true" />}>
               مراجعة المحتوى
             </Button>
           </div>
@@ -692,7 +692,7 @@ export default function ContentStudioPage() {
             disabled={!source || topic.trim().length < 3}
             className="inline-flex items-center gap-2 rounded-lg bg-violet px-[11px] py-[9px] text-sm font-medium text-white transition hover:bg-violetDark focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet disabled:cursor-not-allowed disabled:opacity-50"
           >
-            <Sparkles size={17} />
+            <Sparkles size={16} aria-hidden="true" />
             إنشاء المحتوى
           </button>
           {generateError && <p className="mt-3 text-sm text-red-600">{generateError}</p>}
@@ -737,7 +737,7 @@ export default function ContentStudioPage() {
             النص المقترح لغرض التعليم والمساعدة فقط — تظل مسؤولية النشر والمشاركة على المستخدم.
           </p>
           <div className="mt-4 flex flex-wrap gap-3">
-            <Button onClick={runReview} disabled={generatedText.trim().length < 5} leadingIcon={<FileCheck2 size={17} />}>
+            <Button onClick={runReview} disabled={generatedText.trim().length < 5} leadingIcon={<FileCheck2 size={16} aria-hidden="true" />}>
               راجع قانونياً
             </Button>
             <Button variant="secondary-gray" onClick={() => { setGeneratedText(""); setTopic(""); }} leadingIcon={<Edit3 size={16} />}>

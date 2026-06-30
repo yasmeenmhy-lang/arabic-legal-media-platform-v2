@@ -93,7 +93,7 @@ export default function AlertsPage() {
       <div className="grid gap-5 lg:grid-cols-3">
         <Panel>
           <div className="mb-3 flex items-center justify-between gap-3">
-            <Bell className="text-palm" size={22} />
+            <Bell className="text-palm" size={24} aria-hidden="true" />
             <StatusBadge tone={findingAlerts.length ? "gold" : "good"}>{findingAlerts.length ? `${findingAlerts.length} ملاحظة` : "حالي"}</StatusBadge>
           </div>
           <SectionTitle title="تنبيهات المراجعة" subtitle="مرتبطة بنتائج مراجعة فعلية محفوظة في الجلسة." />
@@ -113,7 +113,7 @@ export default function AlertsPage() {
             </div>
           ) : (
             <div className="flex flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-line bg-paper py-6 text-center">
-              <Bell size={18} className="text-ink/30" />
+              <Bell size={18} className="text-ink/30" aria-hidden="true" />
               <span className="text-sm text-ink/50">لا تنبيهات مراجعة حالياً</span>
             </div>
           )}
@@ -121,7 +121,7 @@ export default function AlertsPage() {
 
         <Panel>
           <div className="mb-3 flex items-center justify-between gap-3">
-            <AlertTriangle className="text-gold" size={22} />
+            <AlertTriangle className="text-gold" size={24} aria-hidden="true" />
             <StatusBadge tone={assessmentAlerts.some((alert) => alert.tone === "danger") ? "danger" : assessmentAlerts.length ? "gold" : "neutral"}>{assessmentAlerts.length ? "متابعة مطلوبة" : "متابعة"}</StatusBadge>
           </div>
           <SectionTitle title="تنبيهات المخاطر والامتثال والجاهزية" subtitle="تظهر تلقائياً عند وجود مخالفة أو ملاحظة خطرة أو انخفاض في الامتثال أو جاهزية النشر." />
@@ -140,7 +140,7 @@ export default function AlertsPage() {
             </div>
           ) : (
             <div className="flex flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-line bg-paper py-6 text-center">
-              <AlertTriangle size={18} className="text-ink/30" />
+              <AlertTriangle size={18} className="text-ink/30" aria-hidden="true" />
               <span className="text-sm text-ink/50">لا مخاطر تحتاج متابعة</span>
             </div>
           )}
@@ -148,7 +148,7 @@ export default function AlertsPage() {
 
         <Panel>
           <div className="mb-3 flex items-center justify-between gap-3">
-            <Settings className="text-palm" size={22} />
+            <Settings className="text-palm" size={24} aria-hidden="true" />
             <StatusBadge tone={referenceAlerts.length ? "neutral" : "good"}>المراجع</StatusBadge>
           </div>
           <SectionTitle title="تنبيهات المراجع" subtitle="روابط رسمية مباشرة للمراجع المهنية والنظامية المرتبطة بالملاحظات." />
@@ -172,7 +172,7 @@ export default function AlertsPage() {
             </div>
           ) : (
             <div className="flex flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-line bg-paper py-6 text-center">
-              <Settings size={18} className="text-ink/30" />
+              <Settings size={18} className="text-ink/30" aria-hidden="true" />
               <span className="text-sm text-ink/50">لا تحديثات مرجعية معلقة</span>
             </div>
           )}
