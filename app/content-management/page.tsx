@@ -68,8 +68,8 @@ export default function ContentManagementPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="سجل المحتوى الإعلامي والإعلاني"
-        title="سجل المحتوى الإعلامي والإعلاني"
+        eyebrow="سجل المحتوى المهني"
+        title="سجل المحتوى المهني"
         description="السجل الدائم لكل محتوى وإصداراته وتحليلاته ومراجعه واعتماداته وتحركاته."
         action={<ButtonLink href="/content-review">إعداد محتوى جديد</ButtonLink>}
       />

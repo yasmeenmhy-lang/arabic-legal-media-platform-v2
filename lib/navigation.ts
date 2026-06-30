@@ -18,7 +18,7 @@ export const navItems = [
   { title: "استوديو المحتوى المهني", href: "/content-studio", icon: Sparkles, group: "الرئيسية" },
   { title: "التحليل التفصيلي للمحتوى المهني", href: "/content-review", icon: FileCheck2, group: "الرئيسية" },
   { title: "التخطيط والنشر", href: "/calendar", icon: CalendarRange, group: "الرئيسية" },
-  { title: "سجل المحتوى الإعلامي والإعلاني", href: "/content-management", icon: FileClock, group: "الرئيسية" },
+  { title: "سجل المحتوى المهني", href: "/content-management", icon: FileClock, group: "الرئيسية" },
   { title: "التنبيهات", href: "/alerts", icon: Bell, group: "المتابعة" },
   { title: "الوصول السريع", href: "/library", icon: Link2, group: "الحوكمة" }
 ];
