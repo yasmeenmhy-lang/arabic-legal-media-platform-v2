@@ -14,10 +14,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const visibleItems = navItems;
 
   useEffect(() => {
-    if (window.innerWidth >= 960) setNavOpen(true);
-  }, []);
-
-  useEffect(() => {
     function handleKeydown(event: KeyboardEvent) {
       if (event.key === "Escape") setNavOpen(false);
     }
