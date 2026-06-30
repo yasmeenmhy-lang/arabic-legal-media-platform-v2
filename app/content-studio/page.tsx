@@ -1089,33 +1089,6 @@ export default function ContentStudioPage() {
             );
           })()}
 
-          {/* ── صيغة مقترحة لتحسين المحتوى ── */}
-          <Panel className="border-violetBorder bg-violetSoft">
-            <div className="mb-3 flex items-center gap-2">
-              <Sparkles size={16} className="text-violet" aria-hidden="true" />
-              <p className="text-sm font-semibold text-violetText">صيغة مقترحة لتحسين المحتوى</p>
-            </div>
-            <p className="mb-3 text-xs leading-6 text-violetText/70">
-              اختر قالباً احترافياً وأعد كتابة المحتوى من البداية وفق صيغة قانونية سليمة.
-            </p>
-            <div className="flex flex-wrap gap-2">
-              {suggestedFormats.map((fmt) => (
-                <button
-                  key={fmt.key}
-                  type="button"
-                  onClick={() => {
-                    setReviewText(fmt.template);
-                    setPath("review");
-                    setReview(null);
-                  }}
-                  className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-violetBorder bg-white px-3 py-1.5 text-xs text-violetText transition hover:border-violet hover:bg-white/80 focus-ring"
-                >
-                  {fmt.label}
-                </button>
-              ))}
-            </div>
-          </Panel>
-
           <Panel>
             <p className="mb-4 text-sm font-semibold text-ink">ماذا تريد؟</p>
             <div className="flex flex-wrap gap-3">
