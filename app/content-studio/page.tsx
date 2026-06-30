@@ -680,25 +680,6 @@ export default function ContentStudioPage() {
               تغيير المسار
             </button>
           </div>
-          {/* Suggested formats */}
-          <div className="mb-4 rounded-lg border border-line bg-paper p-3">
-            <p className="mb-2.5 flex items-center gap-2 text-xs font-medium text-ink/60">
-              <Edit3 size={13} aria-hidden="true" />
-              صيغة مقترحة — اختر قالباً جاهزاً للبدء
-            </p>
-            <div className="flex flex-wrap gap-2">
-              {suggestedFormats.map((fmt) => (
-                <button
-                  key={fmt.key}
-                  type="button"
-                  onClick={() => setReviewText(fmt.template)}
-                  className={`${chipBase} ${reviewText === fmt.template ? chipSelected : chipIdle} text-xs`}
-                >
-                  {fmt.label}
-                </button>
-              ))}
-            </div>
-          </div>
 
           <textarea
             value={reviewText}
