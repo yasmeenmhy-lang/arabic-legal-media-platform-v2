@@ -122,6 +122,86 @@ const contentSources: SourceEntry[] = [
   { key: "other", label: "أخرى", icon: "🔍" },
 ];
 
+// ── Suggested formats for review path ────────────────────────────────────
+
+const suggestedFormats = [
+  {
+    key: "post-awareness",
+    label: "منشور توعوي",
+    template: `🔹 [عنوان الموضوع القانوني]
+
+في إطار تعزيز الوعي القانوني، أشاركم اليوم حول [الموضوع]:
+
+[اشرح المفهوم أو الإجراء القانوني بوضوح وإيجاز]
+
+أبرز النقاط:
+• [النقطة الأولى]
+• [النقطة الثانية]
+• [النقطة الثالثة]
+
+📌 المرجع: [النظام أو اللائحة ذات الصلة]
+
+للاستفسار أو الاستشارة المهنية، تواصلوا معنا.
+
+#قانون #محاماة #السعودية`,
+  },
+  {
+    key: "regulation-update",
+    label: "تحديث نظامي",
+    template: `📋 تحديث نظامي مهم
+
+صدر مؤخراً [اسم النظام أو اللائحة] الذي يتضمن:
+
+✅ [المستجد الأول]
+✅ [المستجد الثاني]
+✅ [المستجد الثالث]
+
+⚠️ التأثير العملي: [كيف يؤثر هذا على الأفراد والمنشآت]
+
+📅 تاريخ النفاذ: [التاريخ]
+
+يُنصح بالاطلاع على النص الكامل والتواصل مع مستشار قانوني للتقييم.
+
+#تشريع #نظام #المملكة_العربية_السعودية`,
+  },
+  {
+    key: "professional-tip",
+    label: "نصيحة مهنية",
+    template: `💡 [العنوان: ما يجب أن يعرفه الجمهور]
+
+كثيراً ما يغفل الناس عن [الموضوع]، وهذا قد يُعرّضهم لـ [العواقب القانونية].
+
+الإجراء الصحيح:
+[وضّح الخطوة أو الإجراء القانوني السليم]
+
+الأساس القانوني: [النظام أو المادة ذات الصلة]
+
+📌 هذه المعلومات للتوعية العامة ولا تُغني عن الاستشارة المتخصصة.
+
+#نصيحة_قانونية #توعية_قانونية`,
+  },
+  {
+    key: "case-summary",
+    label: "خلاصة قضائية",
+    template: `⚖️ خلاصة قضائية
+
+موضوع القضية: [وصف موجز للنزاع أو الموضوع]
+
+الوقائع الجوهرية:
+[لخّص الوقائع الأساسية بموضوعية]
+
+الحكم / الموقف القانوني:
+[ما قررته المحكمة أو الجهة المختصة]
+
+الدلالة القانونية:
+[ما يمكن استخلاصه لصالح الممارسة القانونية]
+
+📚 المصدر: [المحكمة — مع تجنب الكشف عن هوية الأطراف]
+
+#قضاء #حكم_قضائي #قانون`,
+  },
+];
+
 // ── Chip styles (mirror content-review) ───────────────────────────────────
 
 const chipBase =
@@ -600,10 +680,30 @@ export default function ContentStudioPage() {
               تغيير المسار
             </button>
           </div>
+          {/* Suggested formats */}
+          <div className="mb-4 rounded-lg border border-line bg-paper p-3">
+            <p className="mb-2.5 flex items-center gap-2 text-xs font-medium text-ink/60">
+              <Edit3 size={13} aria-hidden="true" />
+              صيغة مقترحة — اختر قالباً جاهزاً للبدء
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {suggestedFormats.map((fmt) => (
+                <button
+                  key={fmt.key}
+                  type="button"
+                  onClick={() => setReviewText(fmt.template)}
+                  className={`${chipBase} ${reviewText === fmt.template ? chipSelected : chipIdle} text-xs`}
+                >
+                  {fmt.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
           <textarea
             value={reviewText}
             onChange={(e) => setReviewText(e.target.value)}
-            placeholder="أدخل النص هنا..."
+            placeholder="أدخل النص هنا أو اختر صيغة مقترحة أعلاه..."
             className="min-h-44 w-full rounded-lg border border-line p-4 leading-8"
           />
           <div className="mt-4 flex gap-3">
