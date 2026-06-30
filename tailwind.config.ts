@@ -3,6 +3,14 @@ import type { Config } from "tailwindcss";
 const config: Config = {
   content: ["./app/**/*.{ts,tsx}", "./components/**/*.{ts,tsx}", "./lib/**/*.{ts,tsx}"],
   theme: {
+    // ── DGA كود المنصات — نقاط التوقف الرسمية ─────────────────────────
+    screens: {
+      'sm':  '600px',   // صغيرة؛ جوال → لوحي
+      'md':  '960px',   // متوسطة؛ لوحي → مكتب
+      'lg':  '1280px',  // كبيرة؛ سطح المكتب
+      'xl':  '1440px',  // X كبيرة؛ سطح المكتب
+      '2xl': '1920px',  // width-6xl
+    },
     extend: {
       colors: {
         // ── DGA كود المنصات — نظام الألوان الرسمي ─────────────────────────
@@ -66,6 +74,21 @@ const config: Config = {
       },
       fontFamily: {
         sans: ["IBM Plex Sans Arabic", "Tahoma", "Arial", "sans-serif"]
+      },
+      // ── DGA كود المنصات — العرض الرسمي ─────────────────────────────
+      maxWidth: {
+        'width-xxs': '320px',
+        'width-xs':  '384px',
+        'width-sm':  '480px',
+        'width-md':  '560px',
+        'width-lg':  '640px',
+        'width-xl':  '768px',
+        'width-2xl': '1024px',
+        'width-3xl': '1280px',  // container-max-width-desktop
+        'width-4xl': '1440px',
+        'width-5xl': '1600px',
+        'width-6xl': '1920px',
+        'paragraph': '720px',   // paragraph-max-width
       },
       boxShadow: {
         // ── DGA كود المنصات — نظام الظلال الرسمي ─────────────────────────

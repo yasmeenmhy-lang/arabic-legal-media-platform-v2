@@ -14,7 +14,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const visibleItems = navItems;
 
   useEffect(() => {
-    if (window.innerWidth >= 1024) setNavOpen(true);
+    if (window.innerWidth >= 960) setNavOpen(true);
   }, []);
 
   useEffect(() => {
@@ -31,13 +31,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <div
           aria-hidden="true"
           onClick={() => setNavOpen(false)}
-          className="fixed inset-0 z-20 bg-ink/30 lg:hidden"
+          className="fixed inset-0 z-20 bg-ink/30 md:hidden"
         />
       ) : null}
 
       <aside
         className={clsx(
-          "fixed bottom-0 right-0 top-0 z-30 flex w-[min(20rem,100vw)] max-w-full flex-col border-l border-line bg-white transition-transform duration-200 ease-out lg:top-16",
+          "fixed bottom-0 right-0 top-0 z-30 flex w-[min(20rem,100vw)] max-w-full flex-col border-l border-line bg-white transition-transform duration-200 ease-out md:top-16",
           navOpen ? "translate-x-0" : "translate-x-full"
         )}
       >
@@ -88,9 +88,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </nav>
       </aside>
 
-      <div className={clsx("w-full max-w-full overflow-x-hidden transition-[padding] duration-200", navOpen && "lg:pr-80")}>
+      <div className={clsx("w-full max-w-full overflow-x-hidden transition-[padding] duration-200", navOpen && "md:pr-80")}>
         <header className="sticky top-0 z-40 border-b border-line bg-white/95 backdrop-blur">
-          <div className="flex min-h-16 max-w-full items-center justify-between gap-3 px-3 sm:gap-4 sm:px-6">
+          <div className="flex min-h-16 max-w-full items-center justify-between gap-3 px-4 sm:gap-4 sm:px-8">
             <div className="flex min-w-0 items-center gap-3">
               <button
                 type="button"
@@ -115,7 +115,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </div>
           </div>
         </header>
-        <main className="min-w-0 max-w-full overflow-x-hidden px-3 py-5 sm:px-6 sm:py-6">{children}</main>
+        <main className="min-w-0 max-w-full overflow-x-hidden px-4 py-5 sm:px-8 sm:py-6">{children}</main>
       </div>
     </div>
   );
