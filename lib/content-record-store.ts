@@ -101,13 +101,20 @@ function normalizeStoredRecords(value: unknown): StoredContentRecord[] {
         typeof version.contentType !== "string"
       ) return [];
 
+      const analysis = isCompatibleReviewResult(version.analysis) ? version.analysis : undefined;
+      if (analysis) {
+        analysis.findings = analysis.findings.map((f) => ({
+          ...f,
+          legalExplanation: f.legalExplanation?.replace("رصد التحليل الدلالي عبارة", "رصد التحليل عبارة") ?? f.legalExplanation
+        }));
+      }
       return [{
         ...version,
         channel: typeof version.channel === "string" ? version.channel : "LinkedIn",
         audience: typeof version.audience === "string" ? version.audience : "الجمهور العام",
         purpose: typeof version.purpose === "string" ? version.purpose : "التثقيف",
         references: Array.isArray(version.references) ? version.references : [],
-        analysis: isCompatibleReviewResult(version.analysis) ? version.analysis : undefined
+        analysis
       } as StoredContentVersion];
     });
 
