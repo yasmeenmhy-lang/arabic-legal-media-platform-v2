@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { AlertTriangle, Bell, ExternalLink, FileSearch, Settings } from "lucide-react";
+import { AlertTriangle, Bell, ChevronDown, ExternalLink, FileSearch, Settings } from "lucide-react";
 import { ButtonLink, PageHeader, Panel, SectionTitle, StatusBadge } from "@/components/ui";
 import { OfficialLogo, officialEntityFromUrl } from "@/components/official-logos";
 import { loadContentRecords, type StoredContentRecord } from "@/lib/content-record-store";
@@ -25,6 +25,7 @@ type AssessmentAlert = {
 
 export default function AlertsPage() {
   const [records, setRecords] = useState<StoredContentRecord[]>([]);
+  const [openSection, setOpenSection] = useState<"findings" | "assessments" | "references">("findings");
 
   useEffect(() => {
     setRecords(loadContentRecords());
@@ -81,6 +82,99 @@ export default function AlertsPage() {
     .filter(({ finding }) => finding.sourceUrl)
     .slice(0, 6), [findingAlerts]);
 
+  const sections = [
+    {
+      key: "findings" as const,
+      icon: <Bell size={18} aria-hidden="true" />,
+      title: "تنبيهات المراجعة",
+      subtitle: "مرتبطة بنتائج مراجعة فعلية محفوظة في الجلسة.",
+      badge: findingAlerts.length ? `${findingAlerts.length} ملاحظة` : "حالي",
+      badgeTone: (findingAlerts.length ? "gold" : "good") as "good" | "gold" | "danger" | "neutral",
+      dotColor: findingAlerts.length ? "bg-gold" : "bg-palm",
+      content: findingAlerts.length ? (
+        <div className="space-y-3">
+          {findingAlerts.slice(0, 4).map(({ recordTitle, finding }) => (
+            <article key={`${recordTitle}-${finding.traceabilityId}`} className="rounded-lg border border-line bg-white p-3 text-sm leading-7">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <b>{finding.title}</b>
+                <StatusBadge tone={severeLevels.includes(finding.severity) ? "danger" : "gold"}>{riskDisplayLabel(finding.severity)}</StatusBadge>
+              </div>
+              <p className="mt-1 text-xs text-ink/60">{recordTitle}</p>
+              <p className="mt-2 text-ink/75">الدليل: {finding.evidence}</p>
+              <p className="mt-1 text-palm">الإجراء: {finding.suggestedSaferWording}</p>
+            </article>
+          ))}
+        </div>
+      ) : (
+        <div className="flex flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-line bg-white py-6 text-center">
+          <Bell size={18} className="text-ink/30" aria-hidden="true" />
+          <span className="text-sm text-ink/50">لا تنبيهات مراجعة حالياً</span>
+        </div>
+      )
+    },
+    {
+      key: "assessments" as const,
+      icon: <AlertTriangle size={18} aria-hidden="true" />,
+      title: "تنبيهات المخاطر والامتثال والجاهزية",
+      subtitle: "تظهر تلقائياً عند وجود مخالفة أو ملاحظة خطرة أو انخفاض في الامتثال أو جاهزية النشر.",
+      badge: assessmentAlerts.some((a) => a.tone === "danger") ? "متابعة عاجلة" : assessmentAlerts.length ? "متابعة مطلوبة" : "متابعة",
+      badgeTone: (assessmentAlerts.some((a) => a.tone === "danger") ? "danger" : assessmentAlerts.length ? "gold" : "neutral") as "good" | "gold" | "danger" | "neutral",
+      dotColor: assessmentAlerts.some((a) => a.tone === "danger") ? "bg-red-400" : assessmentAlerts.length ? "bg-gold" : "bg-line",
+      content: assessmentAlerts.length ? (
+        <div className="space-y-3">
+          {assessmentAlerts.slice(0, 5).map((alert, index) => (
+            <article key={`${alert.title}-${alert.label}-${index}`} className={`rounded-lg border p-3 text-sm leading-7 ${alert.tone === "danger" ? "border-red-100 bg-red-50 text-red-900" : "border-amber-100 bg-amber-50 text-amber-900"}`}>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <b>{alert.title}</b>
+                <StatusBadge tone={alert.tone}>{alert.label}</StatusBadge>
+              </div>
+              <p className="mt-2">{alert.reason}</p>
+              {alert.action ? <p className="mt-1 text-xs">الإجراء: {alert.action}</p> : null}
+            </article>
+          ))}
+        </div>
+      ) : (
+        <div className="flex flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-line bg-white py-6 text-center">
+          <AlertTriangle size={18} className="text-ink/30" aria-hidden="true" />
+          <span className="text-sm text-ink/50">لا مخاطر تحتاج متابعة</span>
+        </div>
+      )
+    },
+    {
+      key: "references" as const,
+      icon: <Settings size={18} aria-hidden="true" />,
+      title: "تنبيهات المراجع",
+      subtitle: "روابط رسمية مباشرة للمراجع المهنية والنظامية المرتبطة بالملاحظات.",
+      badge: "المراجع",
+      badgeTone: (referenceAlerts.length ? "neutral" : "good") as "good" | "gold" | "danger" | "neutral",
+      dotColor: referenceAlerts.length ? "bg-ink/30" : "bg-palm",
+      content: referenceAlerts.length ? (
+        <div className="space-y-3">
+          {referenceAlerts.map(({ recordTitle, finding }) => (
+            <article key={`${recordTitle}-${finding.traceabilityId}-reference`} className="rounded-lg border border-line bg-white p-3 text-sm leading-7 transition-shadow hover:shadow-md">
+              <div className="flex items-start gap-3">
+                <OfficialLogo entity={officialEntityFromUrl(finding.sourceUrl)} />
+                <div className="pt-1">
+                  <b>{finding.sourceDocument}</b>
+                  <p className="text-xs text-ink/60">{finding.legalReference}</p>
+                </div>
+              </div>
+              <p className="mt-1 text-ink/70">{finding.legalExplanation}</p>
+              <a href={finding.sourceUrl} target="_blank" rel="noreferrer" className="mt-2 inline-flex items-center gap-1 text-palm underline">
+                فتح المصدر الرسمي <ExternalLink size={13} />
+              </a>
+            </article>
+          ))}
+        </div>
+      ) : (
+        <div className="flex flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-line bg-white py-6 text-center">
+          <Settings size={18} className="text-ink/30" aria-hidden="true" />
+          <span className="text-sm text-ink/50">لا تحديثات مرجعية معلقة</span>
+        </div>
+      )
+    }
+  ];
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -90,93 +184,39 @@ export default function AlertsPage() {
         action={<ButtonLink href="/content-review">فتح المراجعة</ButtonLink>}
       />
 
-      <div className="grid gap-5 lg:grid-cols-3">
-        <Panel>
-          <div className="mb-3 flex items-center justify-between gap-3">
-            <Bell className="text-palm" size={24} aria-hidden="true" />
-            <StatusBadge tone={findingAlerts.length ? "gold" : "good"}>{findingAlerts.length ? `${findingAlerts.length} ملاحظة` : "حالي"}</StatusBadge>
-          </div>
-          <SectionTitle title="تنبيهات المراجعة" subtitle="مرتبطة بنتائج مراجعة فعلية محفوظة في الجلسة." />
-          {findingAlerts.length ? (
-            <div className="space-y-3">
-              {findingAlerts.slice(0, 4).map(({ recordTitle, finding }) => (
-                <article key={`${recordTitle}-${finding.traceabilityId}`} className="rounded-lg border border-line bg-paper p-3 text-sm leading-7">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <b>{finding.title}</b>
-                    <StatusBadge tone={severeLevels.includes(finding.severity) ? "danger" : "gold"}>{finding.severity}</StatusBadge>
-                  </div>
-                  <p className="mt-1 text-xs text-ink/60">{recordTitle}</p>
-                  <p className="mt-2 text-ink/75">الدليل: {finding.evidence}</p>
-                  <p className="mt-1 text-palm">الإجراء: {finding.suggestedSaferWording}</p>
-                </article>
-              ))}
-            </div>
-          ) : (
-            <div className="flex flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-line bg-paper py-6 text-center">
-              <Bell size={18} className="text-ink/30" aria-hidden="true" />
-              <span className="text-sm text-ink/50">لا تنبيهات مراجعة حالياً</span>
-            </div>
-          )}
-        </Panel>
+      <div className="overflow-hidden rounded-xl border border-line bg-white shadow-sm">
+        {sections.map((section, i) => {
+          const isOpen = openSection === section.key;
+          return (
+            <div key={section.key} className="border-b border-line last:border-none">
+              <button
+                type="button"
+                aria-expanded={isOpen}
+                aria-controls={`alerts-panel-${section.key}`}
+                onClick={() => setOpenSection(section.key)}
+                className={`flex w-full items-center justify-between gap-3 px-5 py-4 text-right transition focus-ring ${isOpen ? "bg-paper" : "hover:bg-paper/60"}`}
+              >
+                <div className="flex min-w-0 flex-1 items-center gap-3">
+                  <span className={`shrink-0 h-2 w-2 rounded-full ${section.dotColor}`} aria-hidden="true" />
+                  <span className="text-sm font-semibold text-ink">{section.title}</span>
+                </div>
+                <div className="flex shrink-0 items-center gap-2">
+                  <StatusBadge tone={section.badgeTone}>{section.badge}</StatusBadge>
+                  <ChevronDown size={16} className={`text-ink/40 transition-transform ${isOpen ? "rotate-180" : ""}`} />
+                </div>
+              </button>
 
-        <Panel>
-          <div className="mb-3 flex items-center justify-between gap-3">
-            <AlertTriangle className="text-gold" size={24} aria-hidden="true" />
-            <StatusBadge tone={assessmentAlerts.some((alert) => alert.tone === "danger") ? "danger" : assessmentAlerts.length ? "gold" : "neutral"}>{assessmentAlerts.length ? "متابعة مطلوبة" : "متابعة"}</StatusBadge>
-          </div>
-          <SectionTitle title="تنبيهات المخاطر والامتثال والجاهزية" subtitle="تظهر تلقائياً عند وجود مخالفة أو ملاحظة خطرة أو انخفاض في الامتثال أو جاهزية النشر." />
-          {assessmentAlerts.length ? (
-            <div className="space-y-3">
-              {assessmentAlerts.slice(0, 5).map((alert, index) => (
-                <article key={`${alert.title}-${alert.label}-${index}`} className={`rounded-lg border p-3 text-sm leading-7 ${alert.tone === "danger" ? "border-red-100 bg-red-50 text-red-900" : "border-amber-100 bg-amber-50 text-amber-900"}`}>
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <b>{alert.title}</b>
-                    <StatusBadge tone={alert.tone}>{alert.label}</StatusBadge>
+              {isOpen && (
+                <div id={`alerts-panel-${section.key}`} role="region">
+                  <div className="border-t border-line/60 px-5 py-4 bg-paper/40">
+                    <p className="mb-4 text-xs text-ink/50">{section.subtitle}</p>
+                    {section.content}
                   </div>
-                  <p className="mt-2">{alert.reason}</p>
-                  {alert.action ? <p className="mt-1 text-xs">الإجراء: {alert.action}</p> : null}
-                </article>
-              ))}
+                </div>
+              )}
             </div>
-          ) : (
-            <div className="flex flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-line bg-paper py-6 text-center">
-              <AlertTriangle size={18} className="text-ink/30" aria-hidden="true" />
-              <span className="text-sm text-ink/50">لا مخاطر تحتاج متابعة</span>
-            </div>
-          )}
-        </Panel>
-
-        <Panel>
-          <div className="mb-3 flex items-center justify-between gap-3">
-            <Settings className="text-palm" size={24} aria-hidden="true" />
-            <StatusBadge tone={referenceAlerts.length ? "neutral" : "good"}>المراجع</StatusBadge>
-          </div>
-          <SectionTitle title="تنبيهات المراجع" subtitle="روابط رسمية مباشرة للمراجع المهنية والنظامية المرتبطة بالملاحظات." />
-          {referenceAlerts.length ? (
-            <div className="space-y-3">
-              {referenceAlerts.map(({ recordTitle, finding }) => (
-                <article key={`${recordTitle}-${finding.traceabilityId}-reference`} className="rounded-lg border border-line p-3 text-sm leading-7 transition-shadow hover:shadow-md">
-                  <div className="flex items-start gap-3">
-                    <OfficialLogo entity={officialEntityFromUrl(finding.sourceUrl)} />
-                    <div className="pt-1">
-                      <b>{finding.sourceDocument}</b>
-                      <p className="text-xs text-ink/60">{finding.legalReference}</p>
-                    </div>
-                  </div>
-                  <p className="mt-1 text-ink/70">{finding.legalExplanation}</p>
-                  <a href={finding.sourceUrl} target="_blank" rel="noreferrer" className="mt-2 inline-flex items-center gap-1 text-palm underline">
-                    فتح المصدر الرسمي <ExternalLink size={13} />
-                  </a>
-                </article>
-              ))}
-            </div>
-          ) : (
-            <div className="flex flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-line bg-paper py-6 text-center">
-              <Settings size={18} className="text-ink/30" aria-hidden="true" />
-              <span className="text-sm text-ink/50">لا تحديثات مرجعية معلقة</span>
-            </div>
-          )}
-        </Panel>
+          );
+        })}
       </div>
 
       <Panel>
