@@ -14,14 +14,20 @@ import type { RiskLevel } from "@/lib/types";
 
 function formatDate(value?: string) {
   if (!value) return "غير متاح";
-  return new Intl.DateTimeFormat("ar-SA", { dateStyle: "medium" }).format(new Date(value));
+  const d = new Date(value);
+  const hijri = new Intl.DateTimeFormat("ar-SA-u-ca-islamic", { dateStyle: "medium" }).format(d);
+  const gregorian = new Intl.DateTimeFormat("ar-EG", { dateStyle: "medium" }).format(d);
+  return `${hijri} / ${gregorian}`;
 }
 
-function complianceTone(score?: number): "good" | "gold" | "danger" | "neutral" {
-  if (score == null) return "neutral";
-  if (score >= 80) return "good";
-  if (score >= 60) return "gold";
-  return "danger";
+function complianceLabel(findings?: { resolved?: boolean }[]): "ملتزم" | "غير ملتزم" | null {
+  if (!findings) return null;
+  return findings.length === 0 ? "ملتزم" : "غير ملتزم";
+}
+
+function complianceTone(findings?: { resolved?: boolean }[]): "good" | "danger" | "neutral" {
+  if (!findings) return "neutral";
+  return findings.length === 0 ? "good" : "danger";
 }
 
 function riskTone(level?: RiskLevel): "good" | "gold" | "danger" | "neutral" {
@@ -34,6 +40,7 @@ function riskTone(level?: RiskLevel): "good" | "gold" | "danger" | "neutral" {
 export default function ContentManagementPage() {
   const [records, setRecords] = useState<StoredContentRecord[]>([]);
   const [expanded, setExpanded] = useState<string>();
+  const [detailsId, setDetailsId] = useState<string>();
   const [filter, setFilter] = useState<"all" | "drafts" | "approved">("all");
   const [confirmDelete, setConfirmDelete] = useState<string>();
 
@@ -59,6 +66,7 @@ export default function ContentManagementPage() {
     saveContentRecords(next);
     setConfirmDelete(undefined);
     if (expanded === id) setExpanded(undefined);
+    if (detailsId === id) setDetailsId(undefined);
   }
 
   function openVersion(contentId: string, version: number) {
@@ -80,49 +88,58 @@ export default function ContentManagementPage() {
           <History size={14} className="text-palm" /> الإصدارات المحفوظة
         </h3>
         <div className="space-y-2">
-          {[...record.versions].sort((a, b) => b.version - a.version).map((version) => (
-            <div key={version.id} className="rounded-lg border border-line bg-white p-4">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div>
-                  <p className="text-sm font-medium">
-                    الإصدار {version.version}
-                    {record.approvedVersion === version.version && <span className="mr-2 text-palm">— المعتمد</span>}
-                  </p>
-                  <p className="mt-1 text-xs text-ink/55">{formatDate(version.updatedAt)} — {version.contentTypeLabel} — {version.channel}</p>
+          {[...record.versions].sort((a, b) => b.version - a.version).map((version) => {
+            const findings = version.analysis?.findings;
+            const cLabel = complianceLabel(findings);
+            const cTone = complianceTone(findings);
+            return (
+              <div key={version.id} className="rounded-lg border border-line bg-white p-4">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-medium">
+                      الإصدار {version.version}
+                      {record.approvedVersion === version.version && <span className="mr-2 text-palm">— المعتمد</span>}
+                    </p>
+                    <p className="mt-1 text-xs text-ink/55">{formatDate(version.updatedAt)} — {version.contentTypeLabel} — {version.channel}</p>
+                  </div>
+                  <Link onClick={() => openVersion(record.id, version.version)} href="/content-review"
+                    className="inline-flex items-center gap-2 rounded-md border border-palm px-3 py-2 text-sm text-palm focus-ring">
+                    <RotateCcw size={14} /> فتح
+                  </Link>
                 </div>
-                <Link onClick={() => openVersion(record.id, version.version)} href="/content-review"
-                  className="inline-flex items-center gap-2 rounded-md border border-palm px-3 py-2 text-sm text-palm focus-ring">
-                  <RotateCcw size={14} /> فتح
-                </Link>
-              </div>
-              <p className="mt-3 whitespace-pre-wrap text-sm leading-7 text-ink/80">{version.body}</p>
-              <div className="mt-3 grid gap-2 text-xs sm:grid-cols-4">
-                <div className="rounded bg-paper p-2">الحالة: {version.status}</div>
-                <div className="rounded bg-paper p-2">الامتثال: {version.analysis?.complianceScore ?? "—"}</div>
-                <div className="rounded bg-paper p-2">المخاطر: {version.analysis?.riskLevel ?? "—"}</div>
-                <div className="rounded bg-paper p-2">فرص التحسين: {version.analysis?.languageQuality.issues.length ?? 0}</div>
-              </div>
-              {version.approvedAt && (
-                <p className="mt-3 text-xs text-palm">اعتمده {version.approvedBy} في {formatDate(version.approvedAt)}</p>
-              )}
-              <details className="mt-3">
-                <summary className="cursor-pointer text-sm text-palm">التحليل والمراجع المهنية والرسمية ({version.references.length})</summary>
-                <div className="mt-3 space-y-3">
-                  <p className="text-sm leading-7">{version.analysis?.summary ?? "لا يوجد تحليل محفوظ."}</p>
-                  {version.references.map((reference) => (
-                    <div key={reference.id} className="rounded-md bg-white p-3 text-sm leading-7">
-                      <p className="font-medium">{reference.referenceName} — {reference.articleOrRuleNumber}</p>
-                      <p>{reference.relatedContentPhrase}</p>
-                      <a href={reference.officialUrl} target="_blank" rel="noopener noreferrer"
-                        className="inline-flex items-center gap-2 text-palm underline">
-                        الوصول المباشر إلى المرجع الرسمي <ExternalLink size={14} aria-hidden="true" />
-                      </a>
-                    </div>
-                  ))}
+                <p className="mt-3 whitespace-pre-wrap text-sm leading-7 text-ink/80">{version.body}</p>
+                <div className="mt-3 grid gap-2 text-xs sm:grid-cols-4">
+                  <div className="rounded bg-paper p-2">الحالة: {version.status}</div>
+                  <div className="rounded bg-paper p-2">
+                    الامتثال: {cLabel
+                      ? <span className={cTone === "good" ? "text-green-700" : "text-red-600"}>{cLabel}</span>
+                      : "—"}
+                  </div>
+                  <div className="rounded bg-paper p-2">المخاطر: {version.analysis?.riskLevel ?? "—"}</div>
+                  <div className="rounded bg-paper p-2">فرص التحسين: {version.analysis?.languageQuality.issues.length ?? 0}</div>
                 </div>
-              </details>
-            </div>
-          ))}
+                {version.approvedAt && (
+                  <p className="mt-3 text-xs text-palm">اعتمده {version.approvedBy} في {formatDate(version.approvedAt)}</p>
+                )}
+                <details className="mt-3">
+                  <summary className="cursor-pointer text-sm text-palm">التحليل والمراجع المهنية والرسمية ({version.references.length})</summary>
+                  <div className="mt-3 space-y-3">
+                    <p className="text-sm leading-7">{version.analysis?.summary ?? "لا يوجد تحليل محفوظ."}</p>
+                    {version.references.map((reference) => (
+                      <div key={reference.id} className="rounded-md bg-white p-3 text-sm leading-7">
+                        <p className="font-medium">{reference.referenceName} — {reference.articleOrRuleNumber}</p>
+                        <p>{reference.relatedContentPhrase}</p>
+                        <a href={reference.officialUrl} target="_blank" rel="noopener noreferrer"
+                          className="inline-flex items-center gap-2 text-palm underline">
+                          الوصول المباشر إلى المرجع الرسمي <ExternalLink size={14} aria-hidden="true" />
+                        </a>
+                      </div>
+                    ))}
+                  </div>
+                </details>
+              </div>
+            );
+          })}
         </div>
       </div>
       <div>
@@ -183,11 +200,14 @@ export default function ContentManagementPage() {
         <>
           {/* ── موبايل: أكورديون DGA (< md) ── */}
           <div className="md:hidden rounded-xl border border-line bg-white overflow-hidden">
-            {filteredRecords.map((record) => {
+            {filteredRecords.map((record, index) => {
               const current = record.versions.find((v) => v.version === record.currentVersion);
-              const compliance = current?.analysis?.complianceScore;
+              const findings = current?.analysis?.findings;
+              const cLabel = complianceLabel(findings);
+              const cTone = complianceTone(findings);
               const risk = current?.analysis?.riskLevel;
               const isOpen = expanded === record.id;
+              const showDetails = detailsId === record.id;
 
               return (
                 <div key={record.id} className="border-b border-line last:border-none">
@@ -195,12 +215,18 @@ export default function ContentManagementPage() {
                     type="button"
                     aria-expanded={isOpen}
                     aria-controls={`acc-panel-${record.id}`}
-                    onClick={() => setExpanded(isOpen ? undefined : record.id)}
+                    onClick={() => {
+                      setExpanded(isOpen ? undefined : record.id);
+                      if (isOpen) setDetailsId(undefined);
+                    }}
                     className={`w-full flex items-center justify-between gap-3 px-4 py-4 text-right transition focus-ring ${isOpen ? "bg-paper" : "hover:bg-paper/60"}`}
                   >
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-medium text-ink leading-6">{record.title}</p>
-                      {current && <p className="mt-0.5 text-xs text-ink/50">{current.contentTypeLabel} · {current.channel}</p>}
+                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                      <span className="shrink-0 flex h-6 w-6 items-center justify-center rounded-full bg-mint text-xs font-bold text-palm">{index + 1}</span>
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-ink leading-6">{record.title}</p>
+                        {current && <p className="mt-0.5 text-xs text-ink/50">{current.contentTypeLabel} · {current.channel}</p>}
+                      </div>
                     </div>
                     <ChevronDown size={16} className={`shrink-0 text-ink/40 transition-transform ${isOpen ? "rotate-180" : ""}`} />
                   </button>
@@ -215,8 +241,8 @@ export default function ContentManagementPage() {
                           </div>
                           <div>
                             <p className="text-[10px] font-semibold text-ink/40 mb-1">الامتثال</p>
-                            {compliance != null
-                              ? <StatusBadge tone={complianceTone(compliance)}>{compliance}%</StatusBadge>
+                            {cLabel
+                              ? <StatusBadge tone={cTone}>{cLabel}</StatusBadge>
                               : <span className="text-xs text-ink/40">—</span>}
                           </div>
                           <div>
@@ -236,19 +262,25 @@ export default function ContentManagementPage() {
                         </div>
                         <div className="flex flex-wrap gap-2">
                           {current && (
-                            <Button size="sm" onClick={() => openVersion(record.id, current.version)} leadingIcon={<FolderOpen size={14} />}>فتح</Button>
+                            <Link
+                              href="/content-review"
+                              onClick={() => openVersion(record.id, current.version)}
+                              className="inline-flex items-center gap-1.5 rounded-lg bg-palm px-3 py-1.5 text-xs font-medium text-white transition hover:bg-palmDark focus-ring"
+                            >
+                              <FolderOpen size={14} /> فتح
+                            </Link>
                           )}
                           <button
                             type="button"
-                            onClick={() => setExpanded(`details-${record.id}`)}
+                            onClick={() => setDetailsId(showDetails ? undefined : record.id)}
                             className="inline-flex items-center gap-1.5 rounded-lg border border-line px-3 py-1.5 text-xs text-ink/60 hover:border-palm hover:text-palm transition focus-ring"
                           >
-                            <History size={13} /> التفاصيل
+                            <History size={13} /> {showDetails ? "إخفاء التفاصيل" : "التفاصيل"}
                           </button>
                           {deleteControls(record)}
                         </div>
                       </div>
-                      {expanded === `details-${record.id}` && expandedDetails(record)}
+                      {showDetails && expandedDetails(record)}
                     </div>
                   )}
                 </div>
@@ -261,6 +293,7 @@ export default function ContentManagementPage() {
             <table className="w-full border-collapse text-sm">
               <thead>
                 <tr className="border-b border-line bg-paper text-right text-xs text-inkTertiary">
+                  <th className="px-4 py-3 font-semibold w-10">#</th>
                   <th className="px-4 py-3 font-semibold">العنوان</th>
                   <th className="px-4 py-3 font-semibold">
                     <span className="inline-flex items-center gap-1">الحالة <Filter size={11} className="opacity-40" /></span>
@@ -275,15 +308,18 @@ export default function ContentManagementPage() {
                 </tr>
               </thead>
               <tbody>
-                {filteredRecords.map((record) => {
+                {filteredRecords.map((record, index) => {
                   const current = record.versions.find((v) => v.version === record.currentVersion);
                   const isExpanded = expanded === record.id;
-                  const compliance = current?.analysis?.complianceScore;
+                  const findings = current?.analysis?.findings;
+                  const cLabel = complianceLabel(findings);
+                  const cTone = complianceTone(findings);
                   const risk = current?.analysis?.riskLevel;
 
                   return (
                     <>
                       <tr key={record.id} className="border-b border-line/60 transition hover:bg-paper last:border-none">
+                        <td className="px-4 py-4 text-xs font-bold text-ink/40">{index + 1}</td>
                         <td className="px-4 py-4">
                           <p className="font-medium text-ink">{record.title}</p>
                           {current && <p className="mt-0.5 text-xs text-ink/50">{current.contentTypeLabel} · {current.channel}</p>}
@@ -292,8 +328,8 @@ export default function ContentManagementPage() {
                           <StatusBadge tone={record.status === "معتمد" ? "good" : "neutral"}>{record.status}</StatusBadge>
                         </td>
                         <td className="px-4 py-4">
-                          {compliance != null
-                            ? <StatusBadge tone={complianceTone(compliance)}>{compliance}%</StatusBadge>
+                          {cLabel
+                            ? <StatusBadge tone={cTone}>{cLabel}</StatusBadge>
                             : <span className="text-ink/40">—</span>}
                         </td>
                         <td className="px-4 py-4">
@@ -302,11 +338,17 @@ export default function ContentManagementPage() {
                             : <span className="text-ink/40">—</span>}
                         </td>
                         <td className="px-4 py-4 text-ink/70">{record.versions.length}</td>
-                        <td className="px-4 py-4 text-xs text-ink/50 whitespace-nowrap">{formatDate(record.updatedAt)}</td>
+                        <td className="px-4 py-4 text-xs text-ink/50">{formatDate(record.updatedAt)}</td>
                         <td className="px-4 py-4">
                           <div className="flex items-center gap-2">
                             {current && (
-                              <Button size="sm" onClick={() => openVersion(record.id, current.version)} leadingIcon={<FolderOpen size={14} />}>فتح</Button>
+                              <Link
+                                href="/content-review"
+                                onClick={() => openVersion(record.id, current.version)}
+                                className="inline-flex items-center gap-1.5 rounded-lg bg-palm px-3 py-1.5 text-xs font-medium text-white transition hover:bg-palmDark focus-ring"
+                              >
+                                <FolderOpen size={14} /> فتح
+                              </Link>
                             )}
                             <button
                               type="button"
@@ -323,7 +365,7 @@ export default function ContentManagementPage() {
                       </tr>
                       {isExpanded && (
                         <tr key={`${record.id}-expanded`}>
-                          <td colSpan={7} className="p-0">
+                          <td colSpan={8} className="p-0">
                             {expandedDetails(record)}
                           </td>
                         </tr>
