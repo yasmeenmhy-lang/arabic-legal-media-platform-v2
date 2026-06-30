@@ -427,6 +427,31 @@ export function CircularGauge({ value, label, tone = "good" }: { value: number; 
   );
 }
 
+/* ═══════════════════════════════════════════════════════
+   DGA كود المنصات — مؤشر التحميل الدوّار
+   المصدر: design.dga.gov.sa/guidelines → مؤشر التحميل
+   ═══════════════════════════════════════════════════════ */
+
+const spinnerSize: Record<"xs" | "sm" | "md" | "lg" | "xl", string> = {
+  xs: "h-3 w-3 border-[1.5px]",
+  sm: "h-4 w-4 border-2",
+  md: "h-5 w-5 border-2",
+  lg: "h-6 w-6 border-[2.5px]",
+  xl: "h-8 w-8 border-[3px]",
+};
+
+export function DgaSpinner({ size = "md", label = "جاري التحميل..." }: { size?: keyof typeof spinnerSize; label?: string }) {
+  return (
+    <span role="status" aria-live="polite" aria-label={label} className="inline-flex items-center justify-center">
+      <span
+        className={clsx("animate-spin rounded-full border-palm border-t-transparent motion-reduce:animate-none", spinnerSize[size])}
+        aria-hidden="true"
+      />
+      <span className="sr-only">{label}</span>
+    </span>
+  );
+}
+
 export function NeedleGauge({ value, label, tone = "gold" }: { value: number; label?: string; tone?: Tone }) {
   const bounded = Math.max(0, Math.min(100, value));
   const angle = -90 + (bounded / 100) * 180;

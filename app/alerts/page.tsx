@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { AlertTriangle, Bell, ChevronDown, ExternalLink, FileSearch, Settings } from "lucide-react";
-import { ButtonLink, PageHeader, Panel, SectionTitle, StatusBadge } from "@/components/ui";
+import { ButtonLink, DgaSpinner, PageHeader, Panel, SectionTitle, StatusBadge } from "@/components/ui";
 import { OfficialLogo, officialEntityFromUrl } from "@/components/official-logos";
 import { loadContentRecords, type StoredContentRecord } from "@/lib/content-record-store";
 import { riskDisplayLabel, type ReviewFinding, type RiskLevel } from "@/lib/types";
@@ -26,9 +26,11 @@ type AssessmentAlert = {
 export default function AlertsPage() {
   const [records, setRecords] = useState<StoredContentRecord[]>([]);
   const [openSection, setOpenSection] = useState<"findings" | "assessments" | "references" | null>("findings");
+  const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
     setRecords(loadContentRecords());
+    setLoaded(true);
   }, []);
 
   const latestReviews = useMemo(() => records
@@ -174,6 +176,23 @@ export default function AlertsPage() {
       )
     }
   ];
+
+  if (!loaded) {
+    return (
+      <div className="space-y-6">
+        <PageHeader
+          eyebrow="التنبيهات"
+          title="التنبيهات"
+          description="متابعة الملاحظات المهنية والتنظيمية الفعلية المرتبطة بالمحتوى المحفوظ والمراجع الرسمية المستخدمة في التقييم."
+          action={<ButtonLink href="/content-review">فتح المراجعة</ButtonLink>}
+        />
+        <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-line bg-white py-16 shadow-sm">
+          <DgaSpinner size="lg" />
+          <span className="text-sm text-ink/50">جاري تحميل التنبيهات...</span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

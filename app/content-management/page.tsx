@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { ChevronDown, ChevronLeft, ExternalLink, FileClock, Filter, FolderOpen, History, RotateCcw, Trash2 } from "lucide-react";
-import { Button, ButtonLink, PageHeader, StatusBadge } from "@/components/ui";
+import { Button, ButtonLink, DgaSpinner, PageHeader, StatusBadge } from "@/components/ui";
 import {
   loadContentRecords,
   saveContentRecords,
@@ -43,9 +43,11 @@ export default function ContentManagementPage() {
   const [detailsId, setDetailsId] = useState<string>();
   const [filter, setFilter] = useState<"all" | "drafts" | "approved">("all");
   const [confirmDelete, setConfirmDelete] = useState<string>();
+  const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
     setRecords(loadContentRecords());
+    setLoaded(true);
   }, []);
 
   const counts = useMemo(() => ({
@@ -173,6 +175,23 @@ export default function ContentManagementPage() {
         <Trash2 size={14} />
       </button>
     );
+
+  if (!loaded) {
+    return (
+      <div className="space-y-6">
+        <PageHeader
+          eyebrow="سجل المحتوى المهني"
+          title="سجل المحتوى المهني"
+          description="السجل الدائم لكل محتوى وإصداراته وتحليلاته ومراجعه واعتماداته وتحركاته."
+          action={<ButtonLink href="/content-review">إعداد محتوى جديد</ButtonLink>}
+        />
+        <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-line bg-white py-16 shadow-sm">
+          <DgaSpinner size="lg" />
+          <span className="text-sm text-ink/50">جاري تحميل السجل...</span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
