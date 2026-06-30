@@ -802,8 +802,8 @@ function InlineContentGuidance({
         <p className="text-xs leading-6 text-ink/60">لم يرصد المدقق أخطاء إملائية واضحة داخل النص الحالي.</p>
       )}
 
-      <div className="rounded-md bg-mint/50 p-3 text-xs leading-6">
-        <div className="mb-1 flex items-center gap-2 text-palm"><Bot size={16} aria-hidden="true" /><b>المساعد الذكي</b></div>
+      <div className="rounded-md border border-violetBorder bg-violetSoft p-3 text-xs leading-6">
+        <div className="mb-1 flex items-center gap-2 text-violet"><Bot size={16} aria-hidden="true" /><b>المساعد الذكي</b></div>
         <p>
           {review.aiEnhancement?.assistantSummary
             ? review.aiEnhancement.assistantSummary
@@ -811,8 +811,8 @@ function InlineContentGuidance({
         </p>
       </div>
 
-      <div className="rounded-md border border-palm/20 bg-mint/30 p-3 text-xs leading-6">
-        <div className="mb-2 flex items-center gap-2 text-palm"><Bot size={16} aria-hidden="true" /><b>توجيه المساعد حسب نتيجة التحليل</b></div>
+      <div className="rounded-md border border-violetBorder bg-violetSoft p-3 text-xs leading-6">
+        <div className="mb-2 flex items-center gap-2 text-violet"><Bot size={16} aria-hidden="true" /><b>توجيه المساعد حسب نتيجة التحليل</b></div>
         {assistantIssues.length ? (
           <ol className="space-y-2 pr-5">
             {assistantIssues.map((item, index) => (
@@ -877,8 +877,8 @@ function SmartAssistantPanel({ review }: { review: ReviewResult }) {
         title="المساعد الذكي داخل النافذة"
         subtitle="يساعدك على فهم الملاحظة وسببها والقاعدة المرتبطة بها وطريقة تعديل النص، دون أن يحل محل مسؤولية المستخدم في النشر."
       />
-      <div className="rounded-xl border border-palm/20 bg-mint/40 p-4">
-        <div className="flex items-center gap-2 text-palm"><Bot size={20} aria-hidden="true" /><h3 className="font-semibold">توجيه عملي للمراجعة الحالية</h3></div>
+      <div className="rounded-xl border border-violetBorder bg-violetSoft p-4">
+        <div className="flex items-center gap-2 text-violet"><Bot size={20} aria-hidden="true" /><h3 className="font-semibold">توجيه عملي للمراجعة الحالية</h3></div>
         <ul className="mt-3 list-disc space-y-2 pr-5 text-sm leading-7">
           {guidance.map((item) => <li key={item}>{item}</li>)}
         </ul>
@@ -1329,7 +1329,7 @@ export default function ContentReviewPage() {
           <InlineContentGuidance review={review} draftText={text} onApplyRewrite={applyRewrite} loading={loading} />
         </div>
         <div className="mt-4 flex flex-wrap gap-3">
-          {!review || isEditing ? <Button size="lg" onClick={runReview} disabled={loading || text.trim().length < 5 || !hasReviewContext} leadingIcon={loading ? <DgaSpinner size="sm" /> : <FileText size={17} />}>{loading ? "جار التحليل..." : contentId ? "إعادة التحليل" : "تحليل المحتوى"}</Button> : null}
+          {!review || isEditing ? <Button size="lg" onClick={runReview} disabled={loading || text.trim().length < 5 || !hasReviewContext} leadingIcon={loading ? <DgaSpinner size="sm" tone="violet" /> : <FileText size={17} />}>{loading ? "جار التحليل..." : contentId ? "إعادة التحليل" : "تحليل المحتوى"}</Button> : null}
           {review && !isEditing ? <Button variant="secondary" onClick={beginEditing} leadingIcon={<Edit3 size={16} />}>تعديل</Button> : null}
           {isEditing && contentId ? <Button variant="secondary" onClick={saveEdits} disabled={loading || text.trim().length < 5 || !hasReviewContext} leadingIcon={<Save size={16} />}>حفظ التعديلات</Button> : null}
           {isEditing ? <Button variant="secondary-gray" onClick={cancelEditing} disabled={loading} leadingIcon={<AlertTriangle size={16} />}>إلغاء</Button> : null}
@@ -1436,9 +1436,10 @@ export default function ContentReviewPage() {
               </div>
 
               {suggestingAI ? (
-                <p className="mt-4 rounded-lg bg-white p-4 text-sm leading-7 text-ink/60">
-                  جار إنشاء الصياغة المقترحة التي تعالج {review.findings.length ? `${review.findings.length} ملاحظة امتثالية` : "الملاحظات"}{review.languageQuality.issues.length ? ` و${review.languageQuality.issues.length} ملاحظة لغوية` : ""}...
-                </p>
+                <div className="mt-4 flex items-center gap-3 rounded-lg bg-white p-4 text-sm leading-7 text-ink/60">
+                  <DgaSpinner size="sm" tone="violet" label="جار إنشاء الصياغة..." />
+                  <span>جار إنشاء الصياغة المقترحة التي تعالج {review.findings.length ? `${review.findings.length} ملاحظة امتثالية` : "الملاحظات"}{review.languageQuality.issues.length ? ` و${review.languageQuality.issues.length} ملاحظة لغوية` : ""}...</span>
+                </div>
               ) : suggestionError ? (
                 <div className="mt-4 rounded-lg border border-red-200 bg-red-50 p-4 text-sm leading-7 text-red-700">
                   <p className="font-semibold">تعذّر توليد الصياغة</p>

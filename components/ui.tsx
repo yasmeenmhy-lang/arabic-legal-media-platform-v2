@@ -440,11 +440,16 @@ const spinnerSize: Record<"xs" | "sm" | "md" | "lg" | "xl", string> = {
   xl: "h-8 w-8 border-[3px]",
 };
 
-export function DgaSpinner({ size = "md", label = "جاري التحميل..." }: { size?: keyof typeof spinnerSize; label?: string }) {
+const spinnerTone: Record<"palm" | "violet", string> = {
+  palm:   "border-palm border-t-transparent",
+  violet: "border-violet border-t-transparent",
+};
+
+export function DgaSpinner({ size = "md", tone = "palm", label = "جاري التحميل..." }: { size?: keyof typeof spinnerSize; tone?: keyof typeof spinnerTone; label?: string }) {
   return (
     <span role="status" aria-live="polite" aria-label={label} className="inline-flex items-center justify-center">
       <span
-        className={clsx("animate-spin rounded-full border-palm border-t-transparent motion-reduce:animate-none", spinnerSize[size])}
+        className={clsx("animate-spin rounded-full motion-reduce:animate-none", spinnerSize[size], spinnerTone[tone])}
         aria-hidden="true"
       />
       <span className="sr-only">{label}</span>
