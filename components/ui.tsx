@@ -175,7 +175,7 @@ export function ModuleTabs({
           href={item.href}
           className={clsx(
             "shrink-0 rounded-md px-4 py-2.5 text-sm font-normal transition focus-ring",
-            item.active ? "bg-mint text-palm" : "text-ink/70 hover:bg-paper hover:text-ink"
+            item.active ? "bg-palm text-white" : "text-ink/70 hover:bg-paper hover:text-ink"
           )}
         >
           {item.label}
@@ -254,7 +254,7 @@ export function KpiGrid({ items }: { items: { label: string; value: string; hint
 
 export function StatusBadge({ children, tone = "neutral" }: { children: React.ReactNode; tone?: Tone }) {
   const toneStyle = toneStyles[tone];
-  return <span className={clsx("inline-flex max-w-full rounded-md border px-2.5 py-1 text-xs font-normal leading-5", toneStyle.soft, toneStyle.text, toneStyle.border)}>{children}</span>;
+  return <span className={clsx("inline-flex max-w-full rounded-full border px-2.5 py-1 text-xs font-normal leading-5", toneStyle.soft, toneStyle.text, toneStyle.border)}>{children}</span>;
 }
 
 export function ProgressBar({ value, tone = "good" }: { value: number; tone?: Tone }) {
