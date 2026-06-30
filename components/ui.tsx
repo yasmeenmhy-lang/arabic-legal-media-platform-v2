@@ -236,7 +236,7 @@ export function KpiCard({
   if (!href) return content;
 
   return (
-    <Link href={href} className="block w-full max-w-full rounded-lg transition hover:-translate-y-0.5 hover:shadow-md focus-ring">
+    <Link href={href} aria-label={label} className="block w-full max-w-full rounded-lg transition hover:-translate-y-0.5 hover:shadow-md focus-ring">
       {content}
     </Link>
   );

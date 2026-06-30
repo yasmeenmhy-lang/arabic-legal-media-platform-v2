@@ -155,7 +155,7 @@ export default function AlertsPage() {
           {referenceAlerts.length ? (
             <div className="space-y-3">
               {referenceAlerts.map(({ recordTitle, finding }) => (
-                <article key={`${recordTitle}-${finding.traceabilityId}-reference`} className="rounded-lg border border-line p-3 text-sm leading-7">
+                <article key={`${recordTitle}-${finding.traceabilityId}-reference`} className="rounded-lg border border-line p-3 text-sm leading-7 transition-shadow hover:shadow-md">
                   <div className="flex items-start gap-3">
                     <OfficialLogo entity={officialEntityFromUrl(finding.sourceUrl)} />
                     <div className="pt-1">
