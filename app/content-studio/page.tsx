@@ -1089,24 +1089,33 @@ export default function ContentStudioPage() {
             );
           })()}
 
-          {/* ── صيغة مقترحة لتحسين المحتوى ── */}
-          <Panel className="border-violetBorder bg-violetSoft">
-            <div className="mb-3 flex items-center gap-2">
-              <Sparkles size={16} className="text-violet" aria-hidden="true" />
-              <p className="text-sm font-semibold text-violetText">صيغة مقترحة لتحسين المحتوى</p>
-            </div>
-            <p className="mb-4 text-xs leading-6 text-violetText/70">
-              اختر قالباً احترافياً وأعد كتابة المحتوى من البداية وفق صيغة قانونية سليمة.
-            </p>
-            <button
-              type="button"
-              onClick={() => { setReview(null); setPath("review"); }}
-              className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-violetBorder bg-white px-4 py-2 text-sm font-medium text-violetText transition hover:border-violet hover:bg-white/80 focus-ring"
-            >
-              <Edit3 size={14} aria-hidden="true" />
-              أعد الكتابة بصيغة مقترحة
-            </button>
-          </Panel>
+          {/* ── نص مقترح محسّن ── */}
+          {(() => {
+            const improvedText = review.governedRewrites?.[0]?.suggestedText ?? review.languageQuality?.improvedDraft;
+            if (!improvedText) return null;
+            return (
+              <Panel className="border-violetBorder bg-violetSoft">
+                <div className="mb-3 flex items-center gap-2">
+                  <Sparkles size={16} className="text-violet" aria-hidden="true" />
+                  <p className="text-sm font-semibold text-violetText">نص مقترح محسّن</p>
+                </div>
+                <p className="mb-3 text-xs leading-6 text-violetText/70">
+                  نص معاد صياغته وفق قواعد السلوك المهني للمحامي — يمكنك استخدامه مباشرة أو تعديله.
+                </p>
+                <pre className="mb-4 whitespace-pre-wrap rounded-lg border border-violetBorder bg-white/70 p-3 text-xs leading-7 text-ink/80 font-sans">
+                  {improvedText}
+                </pre>
+                <button
+                  type="button"
+                  onClick={() => { setReviewText(improvedText); setReview(null); setPath("review"); }}
+                  className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-violetBorder bg-white px-4 py-2 text-sm font-medium text-violetText transition hover:border-violet hover:bg-white/80 focus-ring"
+                >
+                  <Edit3 size={14} aria-hidden="true" />
+                  استخدم هذا النص
+                </button>
+              </Panel>
+            );
+          })()}
 
           <Panel>
             <p className="mb-4 text-sm font-semibold text-ink">ماذا تريد؟</p>
