@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { AlertTriangle, Bell, ChevronDown, ExternalLink, FileSearch, Settings } from "lucide-react";
-import { ButtonLink, DgaSpinner, PageHeader, Panel, SectionTitle, StatusBadge } from "@/components/ui";
+import { ButtonLink, DgaBlockquote, DgaSpinner, PageHeader, Panel, SectionTitle, StatusBadge } from "@/components/ui";
 import { OfficialLogo, officialEntityFromUrl } from "@/components/official-logos";
 import { loadContentRecords, type StoredContentRecord } from "@/lib/content-record-store";
 import { riskDisplayLabel, type ReviewFinding, type RiskLevel } from "@/lib/types";
@@ -102,8 +102,8 @@ export default function AlertsPage() {
                 <StatusBadge tone={severeLevels.includes(finding.severity) ? "danger" : "gold"}>{riskDisplayLabel(finding.severity)}</StatusBadge>
               </div>
               <p className="mt-1 text-xs text-ink/60">{recordTitle}</p>
-              <p className="mt-2 text-ink/75">الدليل: {finding.evidence}</p>
-              <p className="mt-1 text-palm">الإجراء: {finding.suggestedSaferWording}</p>
+              <DgaBlockquote title="الدليل" text={finding.evidence} transparent />
+              <DgaBlockquote title="الإجراء" text={finding.suggestedSaferWording} transparent />
             </article>
           ))}
         </div>
@@ -130,8 +130,8 @@ export default function AlertsPage() {
                 <b>{alert.title}</b>
                 <StatusBadge tone={alert.tone}>{alert.label}</StatusBadge>
               </div>
-              <p className="mt-2">{alert.reason}</p>
-              {alert.action ? <p className="mt-1 text-xs">الإجراء: {alert.action}</p> : null}
+              <DgaBlockquote text={alert.reason} transparent />
+              {alert.action ? <DgaBlockquote title="الإجراء" text={alert.action} transparent /> : null}
             </article>
           ))}
         </div>
@@ -161,7 +161,7 @@ export default function AlertsPage() {
                   <p className="text-xs text-ink/60">{finding.legalReference}</p>
                 </div>
               </div>
-              <p className="mt-1 text-ink/70">{finding.legalExplanation}</p>
+              <DgaBlockquote title="القاعدة القانونية" text={finding.legalExplanation} transparent />
               <a href={finding.sourceUrl} target="_blank" rel="noreferrer" className="mt-2 inline-flex items-center gap-1 text-palm underline">
                 فتح المصدر الرسمي <ExternalLink size={13} />
               </a>

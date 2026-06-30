@@ -27,7 +27,7 @@ import {
   Video,
   XCircle,
 } from "lucide-react";
-import { Button, ButtonLink, PageHeader, Panel, SectionTitle, StatusBadge } from "@/components/ui";
+import { Button, ButtonLink, DgaBlockquote, PageHeader, Panel, SectionTitle, StatusBadge } from "@/components/ui";
 import {
   InstagramIcon,
   LinkedInIcon,
@@ -951,7 +951,7 @@ export default function ContentStudioPage() {
                   </div>
                 )}
                 {review.riskScoreExplanation.explanation ? (
-                  <p className="mt-4 rounded-lg bg-slate-50 p-3 text-sm leading-6 text-slate-600">{review.riskScoreExplanation.explanation}</p>
+                  <DgaBlockquote text={review.riskScoreExplanation.explanation} transparent />
                 ) : null}
               </Panel>
             );
@@ -966,11 +966,8 @@ export default function ContentStudioPage() {
               <Panel className={`border-t-4 shadow-md ${toneBorder(tone)}`}>
                 <p className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-400">الكتابة المهنية</p>
                 <StatusBadge tone={tone}>{passed ? "ناجح" : "يحتاج تحسين"}</StatusBadge>
-                <p className="mt-4 rounded-lg border-r-2 border-amber-300 bg-amber-50 p-3 text-sm leading-6">{explanation}</p>
-                <div className="mt-3 rounded-lg bg-slate-50 p-3 text-sm leading-6">
-                  <span className="mb-1 block text-xs font-bold uppercase tracking-wider text-slate-400">الإصلاح المقترح</span>
-                  {action}
-                </div>
+                <DgaBlockquote title="التقييم" text={explanation} transparent />
+                <DgaBlockquote title="الإصلاح المقترح" text={action} transparent />
               </Panel>
             );
           })()}
@@ -1083,9 +1080,7 @@ export default function ContentStudioPage() {
                 <p className="mb-3 text-xs leading-6 text-violetText/70">
                   نص معاد صياغته وفق قواعد السلوك المهني للمحامي — يمكنك استخدامه مباشرة أو تعديله.
                 </p>
-                <pre className="mb-4 whitespace-pre-wrap rounded-lg border border-violetBorder bg-white/70 p-3 text-xs leading-7 text-ink/80 font-sans">
-                  {improvedText}
-                </pre>
+                <DgaBlockquote title="النص المقترح" text={improvedText} transparent />
                 <button
                   type="button"
                   onClick={() => { setReviewText(improvedText); setReview(null); setPath("review"); }}
