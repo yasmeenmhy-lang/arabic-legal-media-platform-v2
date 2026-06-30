@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { ArrowDownUp, ChevronDown, ChevronLeft, ExternalLink, FileClock, Filter, FolderOpen, History, RotateCcw, Trash2 } from "lucide-react";
+import { ChevronDown, ChevronLeft, ExternalLink, FileClock, Filter, FolderOpen, History, RotateCcw, Trash2 } from "lucide-react";
 import { Button, ButtonLink, PageHeader, StatusBadge } from "@/components/ui";
 import {
   loadContentRecords,
@@ -42,7 +42,6 @@ export default function ContentManagementPage() {
   const [expanded, setExpanded] = useState<string>();
   const [detailsId, setDetailsId] = useState<string>();
   const [filter, setFilter] = useState<"all" | "drafts" | "approved">("all");
-  const [sortOrder, setSortOrder] = useState<"newest" | "oldest">("newest");
   const [confirmDelete, setConfirmDelete] = useState<string>();
 
   useEffect(() => {
@@ -55,17 +54,11 @@ export default function ContentManagementPage() {
     drafts: records.filter((item) => item.status !== "معتمد").length
   }), [records]);
 
-  const filteredRecords = useMemo(() => {
-    const filtered = records.filter((record) => {
-      if (filter === "approved") return Boolean(record.approvedVersion);
-      if (filter === "drafts") return record.status !== "معتمد";
-      return true;
-    });
-    return [...filtered].sort((a, b) => {
-      const diff = new Date(a.updatedAt).getTime() - new Date(b.updatedAt).getTime();
-      return sortOrder === "newest" ? -diff : diff;
-    });
-  }, [filter, sortOrder, records]);
+  const filteredRecords = useMemo(() => records.filter((record) => {
+    if (filter === "approved") return Boolean(record.approvedVersion);
+    if (filter === "drafts") return record.status !== "معتمد";
+    return true;
+  }), [filter, records]);
 
   function deleteRecord(id: string) {
     const next = records.filter((item) => item.id !== id);
@@ -190,29 +183,18 @@ export default function ContentManagementPage() {
         action={<ButtonLink href="/content-review">إعداد محتوى جديد</ButtonLink>}
       />
 
-      <div className="flex flex-wrap items-center gap-2">
-        <nav aria-label="تصفية سجل المحتوى" className="flex flex-1 gap-2 overflow-x-auto rounded-lg border border-line bg-white p-2 shadow-sm">
-          {([
-            ["all", `الكل (${counts.all})`],
-            ["drafts", `المسودات والحالية (${counts.drafts})`],
-            ["approved", `المعتمدة (${counts.approved})`]
-          ] as const).map(([key, label]) => (
-            <button key={key} type="button" onClick={() => setFilter(key)} aria-pressed={filter === key}
-              className={`shrink-0 rounded-lg px-4 py-2.5 text-sm font-medium transition focus-ring ${filter === key ? "bg-mint text-palm" : "text-ink/70 hover:bg-paper hover:text-ink"}`}>
-              {label}
-            </button>
-          ))}
-        </nav>
-        <button
-          type="button"
-          onClick={() => setSortOrder(sortOrder === "newest" ? "oldest" : "newest")}
-          className="inline-flex shrink-0 items-center gap-2 rounded-lg border border-line bg-white px-4 py-2.5 text-sm font-medium text-ink/70 shadow-sm transition hover:border-palm hover:text-palm focus-ring"
-          title={sortOrder === "newest" ? "عرض الأقدم أولاً" : "عرض الأحدث أولاً"}
-        >
-          <ArrowDownUp size={15} />
-          {sortOrder === "newest" ? "الأحدث أولاً" : "الأقدم أولاً"}
-        </button>
-      </div>
+      <nav aria-label="تصفية سجل المحتوى" className="flex w-full gap-2 overflow-x-auto rounded-lg border border-line bg-white p-2 shadow-sm">
+        {([
+          ["all", `الكل (${counts.all})`],
+          ["drafts", `المسودات والحالية (${counts.drafts})`],
+          ["approved", `المعتمدة (${counts.approved})`]
+        ] as const).map(([key, label]) => (
+          <button key={key} type="button" onClick={() => setFilter(key)} aria-pressed={filter === key}
+            className={`shrink-0 rounded-lg px-4 py-2.5 text-sm font-medium transition focus-ring ${filter === key ? "bg-mint text-palm" : "text-ink/70 hover:bg-paper hover:text-ink"}`}>
+            {label}
+          </button>
+        ))}
+      </nav>
 
       {filteredRecords.length === 0 ? empty : (
         <>
