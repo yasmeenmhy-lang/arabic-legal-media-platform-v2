@@ -103,7 +103,7 @@ export default function AlertsPage() {
               </div>
               <p className="mt-1 text-xs text-ink/60">{recordTitle}</p>
               <DgaBlockquote title="الدليل" text={finding.evidence} transparent />
-              <DgaBlockquote title="الإجراء" text={finding.suggestedSaferWording} transparent />
+              <p className="mt-1 text-sm leading-7 text-ink/70">{finding.suggestedSaferWording}</p>
             </article>
           ))}
         </div>
@@ -130,8 +130,8 @@ export default function AlertsPage() {
                 <b>{alert.title}</b>
                 <StatusBadge tone={alert.tone}>{alert.label}</StatusBadge>
               </div>
-              <DgaBlockquote text={alert.reason} transparent />
-              {alert.action ? <DgaBlockquote title="الإجراء" text={alert.action} transparent /> : null}
+              <p className="mt-1 text-sm leading-7">{alert.reason}</p>
+              {alert.action ? <p className="mt-1 text-sm leading-7 text-ink/70">{alert.action}</p> : null}
             </article>
           ))}
         </div>
@@ -161,7 +161,7 @@ export default function AlertsPage() {
                   <p className="text-xs text-ink/60">{finding.legalReference}</p>
                 </div>
               </div>
-              <DgaBlockquote title="القاعدة القانونية" text={finding.legalExplanation} transparent />
+              <p className="mt-2 text-sm leading-7 text-ink/65">{finding.legalExplanation}</p>
               <a href={finding.sourceUrl} target="_blank" rel="noreferrer" className="mt-2 inline-flex items-center gap-1 text-palm underline">
                 فتح المصدر الرسمي <ExternalLink size={13} />
               </a>

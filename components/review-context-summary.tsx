@@ -252,8 +252,8 @@ export function ReviewFindingsSection() {
                 <a href={finding.sourceUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 font-normal text-palm underline underline-offset-4">{finding.sourceDocument}<ExternalLink size={14} aria-hidden="true" /></a>
               </FieldBlock>
               <DgaBlockquote title="مقتطف المرجع النظامي" text={finding.articleTextExcerpt} transparent />
-              <DgaBlockquote title="الشرح القانوني" text={finding.legalExplanation} transparent />
-              <DgaBlockquote title="التوصية" text={finding.suggestedSaferWording} transparent />
+              <FieldBlock label="الشرح القانوني">{finding.legalExplanation}</FieldBlock>
+              <FieldBlock label="التوصية">{finding.suggestedSaferWording}</FieldBlock>
               <FieldBlock label="مستوى الثقة">{finding.confidenceLevel}</FieldBlock>
             </div>
           </article>
@@ -284,7 +284,7 @@ export function ReviewOpportunitiesSection() {
             </div>
             <div className="space-y-4">
               <DgaBlockquote title="الموضع" text={item.excerpt || "-"} transparent />
-              <DgaBlockquote title="اتجاه التحسين" text={item.suggestion} transparent />
+              <FieldBlock label="اتجاه التحسين">{item.suggestion}</FieldBlock>
             </div>
           </article>
         )) : (
@@ -314,7 +314,7 @@ export function ReviewRiskSection() {
         <FieldBlock label="عدد الملاحظات">{snapshot.findings.length}</FieldBlock>
       </div>
       <div className="mt-4">
-        <DgaBlockquote title="سبب التصنيف" text={snapshot.risk.reason} transparent />
+        <FieldBlock label="سبب التصنيف">{snapshot.risk.reason}</FieldBlock>
       </div>
     </Panel>
   );
@@ -341,9 +341,9 @@ export function ReviewReferencesSection() {
                 <FieldBlock label="رقم المادة أو القاعدة">{reference.legalReference}</FieldBlock>
                 <DgaBlockquote title="النص أو المضمون المرتبط بالمحتوى" text={reference.articleTextExcerpt} transparent />
                 <DgaBlockquote title="العبارة المرتبطة من المحتوى" text={finding?.evidence ?? snapshot.context.shortExcerpt} transparent />
-                <DgaBlockquote title="سبب الاستناد إلى المرجع" text={finding?.legalExplanation ?? "ارتباط التحليل بالنص الرسمي ذي الصلة."} transparent />
-                <DgaBlockquote title="أثره على المحتوى" text={finding ? `${finding.issue} — ${finding.potentialImpact}` : "توثيق نتيجة التحليل."} transparent />
-                <DgaBlockquote title="التوجيه التطبيقي" text={finding?.suggestedSaferWording ?? "مراجعة الصياغة وفق المرجع الرسمي قبل النشر."} transparent />
+                <FieldBlock label="سبب الاستناد إلى المرجع">{finding?.legalExplanation ?? "ارتباط التحليل بالنص الرسمي ذي الصلة."}</FieldBlock>
+                <FieldBlock label="أثره على المحتوى">{finding ? `${finding.issue} — ${finding.potentialImpact}` : "توثيق نتيجة التحليل."}</FieldBlock>
+                <FieldBlock label="التوجيه التطبيقي">{finding?.suggestedSaferWording ?? "مراجعة الصياغة وفق المرجع الرسمي قبل النشر."}</FieldBlock>
                 <FieldBlock label="الرابط الرسمي المباشر">
                   <a href={reference.sourceUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 rounded-md bg-palm px-4 py-2.5 font-normal text-white focus-ring">الوصول المباشر إلى المرجع الرسمي<ExternalLink size={14} aria-hidden="true" /></a>
                 </FieldBlock>
