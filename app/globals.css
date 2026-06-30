@@ -2,10 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
-/*
- * Use the project's existing Arabic system-font stack. The licensed Najiz
- * files are not bundled, so no unavailable font URL is requested at runtime.
- */
+/* IBM Plex Sans Arabic — الخط الرسمي لـ DGA كود المنصات */
 
 :root {
   color-scheme: light;
@@ -25,7 +22,7 @@ body {
   overflow-x: hidden;
   background: #f4f7f6;
   color: #1f2933;
-  font-family: "IBM Plex Sans Arabic", "Noto Sans Arabic", "Segoe UI", Tahoma, Arial, sans-serif;
+  font-family: "IBM Plex Sans Arabic", Tahoma, Arial, sans-serif;
   font-size: 14px;
   line-height: 1.7;
   font-weight: 400;
@@ -77,7 +74,7 @@ textarea {
 }
 
 .content-review-window {
-  font-family: "IBM Plex Sans Arabic", "Noto Sans Arabic", "Segoe UI", Tahoma, Arial, sans-serif;
+  font-family: "IBM Plex Sans Arabic", Tahoma, Arial, sans-serif;
   font-size: 14px;
   line-height: 1.7;
 }

@@ -65,7 +65,7 @@ const config: Config = {
         successBorder: "#ABEFC6",  // Success 200
       },
       fontFamily: {
-        sans: ["Najiz Muhameen", "IBM Plex Sans Arabic", "Tahoma", "Arial", "sans-serif"]
+        sans: ["IBM Plex Sans Arabic", "Tahoma", "Arial", "sans-serif"]
       }
     }
   },
