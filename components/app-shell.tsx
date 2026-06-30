@@ -31,7 +31,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <div
           aria-hidden="true"
           onClick={() => setNavOpen(false)}
-          className="fixed inset-0 z-20 bg-ink/30 md:hidden"
+          className="fixed inset-0 z-20 bg-ink/30"
         />
       ) : null}
 
