@@ -102,12 +102,12 @@ export default function ContentManagementPage() {
                 <th className="px-4 py-3 font-semibold">
                   <span className="inline-flex items-center gap-1">الحالة <Filter size={11} className="opacity-40" /></span>
                 </th>
-                <th className="px-4 py-3 font-semibold">الامتثال</th>
-                <th className="px-4 py-3 font-semibold">
+                <th className="hidden md:table-cell px-4 py-3 font-semibold">الامتثال</th>
+                <th className="hidden md:table-cell px-4 py-3 font-semibold">
                   <span className="inline-flex items-center gap-1">المخاطر <Filter size={11} className="opacity-40" /></span>
                 </th>
-                <th className="px-4 py-3 font-semibold">الإصدارات</th>
-                <th className="px-4 py-3 font-semibold">آخر تحديث</th>
+                <th className="hidden md:table-cell px-4 py-3 font-semibold">الإصدارات</th>
+                <th className="hidden md:table-cell px-4 py-3 font-semibold">آخر تحديث</th>
                 <th className="px-4 py-3 font-semibold">الإجراءات</th>
               </tr>
             </thead>
@@ -130,18 +130,18 @@ export default function ContentManagementPage() {
                       <td className="px-4 py-4">
                         <StatusBadge tone={record.status === "معتمد" ? "good" : "neutral"}>{record.status}</StatusBadge>
                       </td>
-                      <td className="px-4 py-4">
+                      <td className="hidden md:table-cell px-4 py-4">
                         {compliance != null
                           ? <StatusBadge tone={complianceTone(compliance)}>{compliance}%</StatusBadge>
                           : <span className="text-ink/40">—</span>}
                       </td>
-                      <td className="px-4 py-4">
+                      <td className="hidden md:table-cell px-4 py-4">
                         {risk
                           ? <StatusBadge tone={riskTone(risk)}>{risk}</StatusBadge>
                           : <span className="text-ink/40">—</span>}
                       </td>
-                      <td className="px-4 py-4 text-ink/70">{record.versions.length}</td>
-                      <td className="px-4 py-4 text-xs text-ink/50 whitespace-nowrap">{formatDate(record.updatedAt)}</td>
+                      <td className="hidden md:table-cell px-4 py-4 text-ink/70">{record.versions.length}</td>
+                      <td className="hidden md:table-cell px-4 py-4 text-xs text-ink/50 whitespace-nowrap">{formatDate(record.updatedAt)}</td>
                       <td className="px-4 py-4">
                         <div className="flex items-center gap-2">
                           {current && (
