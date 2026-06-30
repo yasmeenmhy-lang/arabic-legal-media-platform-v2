@@ -410,7 +410,10 @@ function FindingCard({ finding, index }: { finding: ReviewFinding; index: number
           <p className="mt-2 leading-8">{finding.issue}</p>
         </div>
         <DgaBlockquote title="الدليل من المحتوى" text={finding.evidence} />
-        <DgaBlockquote title="القاعدة القانونية" text={finding.legalExplanation} />
+        <div className="rounded-lg bg-paper p-4">
+          <p className="text-xs text-ink/55">القاعدة القانونية</p>
+          <p className="mt-2 leading-8">{finding.legalExplanation}</p>
+        </div>
         <div className="rounded-lg bg-paper p-4">
           <p className="text-xs text-ink/55">المرجع المتأثر</p>
           <div className="mt-2 flex items-start gap-3 leading-7"><OfficialLogo entity={officialEntityFromUrl(finding.sourceUrl)} /><span className="pt-1">{finding.sourceDocument} — {finding.legalReference}</span></div>
@@ -816,7 +819,7 @@ function InlineContentGuidance({
                   <span className="text-ink/55">الأولوية: {item.severity === "critical" ? "حرجة" : item.severity === "high" ? "عالية" : item.severity === "medium" ? "متوسطة" : "منخفضة"}</span>
                 </div>
                 <p className="mt-2"><b>المشكلة:</b> {item.label}</p>
-                <p><b>العبارة المرتبطة:</b> {item.evidence}</p>
+                <DgaBlockquote title="العبارة المرتبطة" text={item.evidence} transparent />
                 <p><b>سبب المخالفة أو الملاحظة:</b> {item.reason}</p>
                 {item.source ? <p><b>المرجع:</b> {item.source}</p> : null}
                 <p><b>الإجراء المقترح:</b> {item.action}</p>
@@ -835,7 +838,7 @@ function InlineContentGuidance({
             <button type="button" onClick={onApplyRewrite} disabled={loading} className="inline-flex items-center gap-1.5 rounded-md bg-violet px-2 py-0.5 text-xs font-medium text-white transition hover:bg-violetDark disabled:opacity-50 min-h-[32px]"><Sparkles size={14} />استخدام الصياغة المقترحة</button>
           </div>
           {enhancedRewrite?.explanation ? <p className="mt-2 text-ink/70">{enhancedRewrite.explanation}</p> : null}
-          <DgaBlockquote text={enhancedRewrite?.suggestedText ?? rewrite.suggestedText} transparent />
+          <p className="mt-2 leading-6">{enhancedRewrite?.suggestedText ?? rewrite.suggestedText}</p>
         </div>
       ) : null}
     </div>

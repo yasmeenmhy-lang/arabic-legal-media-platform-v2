@@ -237,7 +237,7 @@ function buildSemanticFinding(
     articleTitle,
     articleTextExcerpt: entry?.fullText ?? "",
     explanation: violation.explanation,
-    legalExplanation: `رصد التحليل الدلالي عبارة «${evidence}» بوصفها مخالفة ${violation.violationType} لـ${legalReference} من ${sourceDocument}. ${violation.explanation}`,
+    legalExplanation: `رصد التحليل عبارة «${evidence}» بوصفها مخالفة ${violation.violationType} لـ${legalReference} من ${sourceDocument}. ${violation.explanation}`,
     reviewOutcome: "رصدت ملاحظة" as const,
     confidenceLevel: violation.confidenceLevel,
     sourceUrl,

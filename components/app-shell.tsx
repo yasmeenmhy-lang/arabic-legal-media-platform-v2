@@ -41,7 +41,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           navOpen ? "translate-x-0" : "translate-x-full"
         )}
       >
-        <div className="border-b border-line bg-paper p-4 sm:p-6">
+        <div className="border-b border-line bg-paper p-4 sm:p-6 md:hidden">
           <div className="flex items-start justify-between gap-3">
             <div className="flex items-start gap-3">
               <div className="grid h-12 w-12 place-items-center rounded-lg bg-palm text-white shadow-sm">

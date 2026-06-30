@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ExternalLink } from "lucide-react";
-import { Panel, StatusBadge } from "@/components/ui";
+import { DgaBlockquote, Panel, StatusBadge } from "@/components/ui";
 import type { ReviewFinding, ReviewResult } from "@/lib/types";
 
 export type StoredReviewContext = {
@@ -247,11 +247,11 @@ export function ReviewFindingsSection() {
             <div className="grid gap-4 lg:grid-cols-2">
               <FieldBlock label="الفئة والمجال">{finding.category} - {finding.domain}</FieldBlock>
               <FieldBlock label="الشدة والأثر المحتمل">{finding.severity} - {finding.potentialImpact}</FieldBlock>
-              <FieldBlock label="العبارة محل المراجعة">{finding.evidence}</FieldBlock>
+              <DgaBlockquote title="العبارة محل المراجعة" text={finding.evidence} transparent />
               <FieldBlock label="المصدر الرسمي">
                 <a href={finding.sourceUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 font-normal text-palm underline underline-offset-4">{finding.sourceDocument}<ExternalLink size={14} aria-hidden="true" /></a>
               </FieldBlock>
-              <FieldBlock label="مقتطف المرجع النظامي">{finding.articleTextExcerpt}</FieldBlock>
+              <DgaBlockquote title="مقتطف المرجع النظامي" text={finding.articleTextExcerpt} transparent />
               <FieldBlock label="الشرح القانوني">{finding.legalExplanation}</FieldBlock>
               <FieldBlock label="التوصية">{finding.suggestedSaferWording}</FieldBlock>
               <FieldBlock label="مستوى الثقة">{finding.confidenceLevel}</FieldBlock>
@@ -283,7 +283,7 @@ export function ReviewOpportunitiesSection() {
               <StatusBadge tone={item.severity === "high" || item.severity === "critical" ? "gold" : "neutral"}>{item.severity}</StatusBadge>
             </div>
             <div className="space-y-4">
-              <FieldBlock label="الموضع">{item.excerpt || "-"}</FieldBlock>
+              <DgaBlockquote title="الموضع" text={item.excerpt || "-"} transparent />
               <FieldBlock label="اتجاه التحسين">{item.suggestion}</FieldBlock>
             </div>
           </article>
@@ -339,8 +339,8 @@ export function ReviewReferencesSection() {
                 <FieldBlock label="اسم المرجع">{reference.sourceDocument}</FieldBlock>
                 <FieldBlock label="اسم القاعدة أو اللائحة">{reference.sourceDocument}</FieldBlock>
                 <FieldBlock label="رقم المادة أو القاعدة">{reference.legalReference}</FieldBlock>
-                <FieldBlock label="النص أو المضمون المرتبط بالمحتوى">{reference.articleTextExcerpt}</FieldBlock>
-                <FieldBlock label="العبارة المرتبطة من المحتوى">{finding?.evidence ?? snapshot.context.shortExcerpt}</FieldBlock>
+                <DgaBlockquote title="النص أو المضمون المرتبط بالمحتوى" text={reference.articleTextExcerpt} transparent />
+                <DgaBlockquote title="العبارة المرتبطة من المحتوى" text={finding?.evidence ?? snapshot.context.shortExcerpt} transparent />
                 <FieldBlock label="سبب الاستناد إلى المرجع">{finding?.legalExplanation ?? "ارتباط التحليل بالنص الرسمي ذي الصلة."}</FieldBlock>
                 <FieldBlock label="أثره على المحتوى">{finding ? `${finding.issue} — ${finding.potentialImpact}` : "توثيق نتيجة التحليل."}</FieldBlock>
                 <FieldBlock label="التوجيه التطبيقي">{finding?.suggestedSaferWording ?? "مراجعة الصياغة وفق المرجع الرسمي قبل النشر."}</FieldBlock>
