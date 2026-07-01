@@ -796,7 +796,7 @@ export default function ContentStudioPage() {
 
       {/* ── 4. Generated content preview ── */}
       {path === "create" && generatedText && !review && !reviewing && (
-        <Panel className="bg-violetSoft/30">
+        <Panel className="bg-violetSoft">
           <div className="mb-4 flex items-center justify-between">
             <SectionTitle title="3. المحتوى المقترح" subtitle="راجع وعدّل قبل التحليل القانوني." />
             <button
@@ -849,9 +849,7 @@ export default function ContentStudioPage() {
           {/* النص المُحلَّل */}
           <Panel>
             <SectionTitle title="النص المُحلَّل" />
-            <div className="whitespace-pre-wrap rounded-lg border border-line bg-paper p-4 text-sm leading-8">
-              {activeText}
-            </div>
+            <p className="whitespace-pre-wrap text-sm leading-8">{activeText}</p>
             <button
               type="button"
               onClick={() => setReview(null)}
