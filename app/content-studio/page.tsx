@@ -812,7 +812,7 @@ export default function ContentStudioPage() {
           <textarea
             value={generatedText}
             onChange={(e) => setGeneratedText(e.target.value)}
-            className="min-h-44 w-full rounded-lg border border-violetBorder bg-white p-4 leading-8"
+            className="min-h-44 w-full rounded-lg border border-line p-4 leading-8"
           />
           <p className="mt-2 rounded-lg bg-paper p-3 text-xs leading-6 text-ink/55">
             النص المقترح لغرض التعليم والمساعدة فقط — تظل مسؤولية النشر والمشاركة على المستخدم.
