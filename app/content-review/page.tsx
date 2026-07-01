@@ -787,38 +787,6 @@ function InlineContentGuidance({
         <p className="text-xs leading-6 text-ink/60">لم يرصد المدقق أخطاء إملائية واضحة داخل النص الحالي.</p>
       )}
 
-      <div className="rounded-md border border-violetBorder bg-violetSoft p-3 text-xs leading-6">
-        <div className="mb-1 flex items-center gap-2 text-violet"><Bot size={16} aria-hidden="true" /><b>المساعد الذكي</b></div>
-        <p>
-          {review.aiEnhancement?.assistantSummary
-            ? review.aiEnhancement.assistantSummary
-            : internalAssistantSummary}
-        </p>
-      </div>
-
-      <div className="rounded-md border border-violetBorder bg-violetSoft p-3 text-xs leading-6">
-        <div className="mb-2 flex items-center gap-2 text-violet"><Bot size={16} aria-hidden="true" /><b>توجيه المساعد حسب نتيجة التحليل</b></div>
-        {assistantIssues.length ? (
-          <ol className="space-y-2 pr-5">
-            {assistantIssues.map((item, index) => (
-              <li key={item.id} className="rounded-md border border-line bg-white p-2">
-                <div className="flex flex-wrap items-center gap-2">
-                  <StatusBadge tone={item.severity === "critical" || item.severity === "high" ? "gold" : "neutral"}>{index + 1}. {item.label}</StatusBadge>
-                  <span className="text-ink/55">الأولوية: {item.severity === "critical" ? "حرجة" : item.severity === "high" ? "عالية" : item.severity === "medium" ? "متوسطة" : "منخفضة"}</span>
-                </div>
-                <p className="mt-2"><b>المشكلة:</b> {item.label}</p>
-                <DgaBlockquote title="العبارة المرتبطة" text={item.evidence} transparent />
-                <DgaBlockquote title="سبب المخالفة أو الملاحظة" text={item.reason} transparent />
-                {item.source ? <p className="mt-1"><b>المرجع:</b> {item.source}</p> : null}
-                <DgaBlockquote title="الإجراء المقترح" text={item.action} transparent />
-              </li>
-            ))}
-          </ol>
-        ) : (
-          <p>{review.publicationDecision.reason}</p>
-        )}
-      </div>
-
       {rewrite ? (
         <div className="rounded-md border border-violetBorder bg-violetSoft p-3 text-xs leading-6">
           <div className="flex flex-wrap items-center justify-between gap-2">
@@ -1351,24 +1319,6 @@ export default function ContentReviewPage() {
             </div>
           </section>
 
-          <Panel id="decision" className="border-2 border-palm/20">
-            <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-              <div>
-                <p className="text-xs text-palm">2. قرار النشر</p>
-                <h2 className="mt-2 text-lg font-semibold">{review.publicationDecision.label}</h2>
-                <p className="mt-3 max-w-4xl leading-8 text-ink/75">{review.publicationDecision.reason}</p>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                <StatusBadge tone={decisionTone(review)}>{review.publicationDecision.label}</StatusBadge>
-                <StatusBadge tone={review.confidence.level === "High" ? "good" : review.confidence.level === "Medium" ? "neutral" : "gold"}>الثقة {review.confidence.label}</StatusBadge>
-              </div>
-            </div>
-            <div className="mt-5 grid gap-4 lg:grid-cols-2">
-              <div className="rounded-lg bg-paper p-4"><p className="text-xs text-ink/55">لماذا هذه التوصية؟</p><p className="mt-2 leading-8">{review.confidence.reason}</p></div>
-              <div className="rounded-lg bg-paper p-4"><p className="text-xs text-ink/55">ما المطلوب قبل النشر؟</p><ul className="mt-2 list-disc space-y-2 pr-5 leading-7">{review.readinessDecision.blockers.length ? review.readinessDecision.blockers.map((item) => <li key={item}>{item}</li>) : <li>لا توجد متطلبات مانعة متبقية.</li>}</ul></div>
-            </div>
-          </Panel>
-
           <nav aria-label="أقسام نتيجة مراجعة المحتوى" className="sticky top-2 z-10 flex gap-2 overflow-x-auto rounded-lg border border-line bg-white/95 p-2 shadow-sm backdrop-blur">
             {reviewTabs.map((tab) => (
               <button
@@ -1398,6 +1348,26 @@ export default function ContentReviewPage() {
             )}
           </section>
           </>
+
+          <Panel id="decision" className="border-2 border-palm/20">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+              <div>
+                <p className="text-xs text-palm">2. قرار النشر</p>
+                <h2 className="mt-2 text-lg font-semibold">{review.publicationDecision.label}</h2>
+                <p className="mt-3 max-w-4xl leading-8 text-ink/75">{review.publicationDecision.reason}</p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <StatusBadge tone={decisionTone(review)}>{review.publicationDecision.label}</StatusBadge>
+                <StatusBadge tone={review.confidence.level === "High" ? "good" : review.confidence.level === "Medium" ? "neutral" : "gold"}>الثقة {review.confidence.label}</StatusBadge>
+              </div>
+            </div>
+            <div className="mt-5 grid gap-4 lg:grid-cols-2">
+              <div className="rounded-lg bg-paper p-4"><p className="text-xs text-ink/55">لماذا هذه التوصية؟</p><p className="mt-2 leading-8">{review.confidence.reason}</p></div>
+              <div className="rounded-lg bg-paper p-4"><p className="text-xs text-ink/55">ما المطلوب قبل النشر؟</p><ul className="mt-2 list-disc space-y-2 pr-5 leading-7">{review.readinessDecision.blockers.length ? review.readinessDecision.blockers.map((item) => <li key={item}>{item}</li>) : <li>لا توجد متطلبات مانعة متبقية.</li>}</ul></div>
+            </div>
+          </Panel>
+
+          <SmartAssistantPanel review={review} />
 
           <section id="improvements" className="space-y-5 scroll-mt-24">
           <Panel id="rewrite">
