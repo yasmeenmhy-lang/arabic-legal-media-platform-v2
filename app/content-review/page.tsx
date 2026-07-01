@@ -920,6 +920,7 @@ export default function ContentReviewPage() {
   }, []);
 
   const hasReviewContext = Boolean(kind && channel && audience && purpose);
+  const contextScore = [kind, channel, audience, purpose].filter(Boolean).length;
   const contentTypeLabel = kind ? contentTypes.find((item) => item.value === kind)?.label ?? "محتوى مهني" : "";
   const sortedFindings = useMemo(
     () => [...(review?.findings ?? [])].sort((a, b) => severityOrder[a.businessSeverity ?? "low"] - severityOrder[b.businessSeverity ?? "low"]),
@@ -1246,10 +1247,10 @@ export default function ContentReviewPage() {
         <div className="mb-5">
           <div className="mb-1.5 flex items-center justify-between text-xs">
             <span className="text-ink/55">اكتمال السياق</span>
-            <span className="font-semibold text-palm">4 من 4</span>
+            <span className="font-semibold text-palm">{contextScore} من 4</span>
           </div>
           <div className="h-1.5 overflow-hidden rounded-full bg-paper">
-            <div className="h-full rounded-full bg-palm opacity-80" style={{ width: "100%" }} />
+            <div className="h-full rounded-full bg-palm opacity-80" style={{ width: `${contextScore * 25}%` }} />
           </div>
         </div>
 
