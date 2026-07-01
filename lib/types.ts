@@ -6,7 +6,9 @@ export function riskDisplayLabel(level: RiskLevel | undefined | null): string {
   if (!level) return "—";
   if (level === "منخفض") return "منخفض";
   if (level === "متوسط") return "متوسط";
-  return "مرتفع";
+  if (level === "مرتفع") return "مرتفع";
+  if (level === "حرج") return "حرج";
+  return "بالغ";
 }
 
 export type RiskAffectedParty = "الموكل" | "المحامي" | "المهنة";

@@ -19,6 +19,7 @@ import {
 import { Button, ButtonLink, KpiGrid, PageHeader, Panel, ProgressBar, SectionTitle } from "@/components/ui";
 import { legalSourceDocuments } from "@/lib/legal-knowledge-base";
 import { loadContentRecords, type StoredContentRecord } from "@/lib/content-record-store";
+import { riskDisplayLabel, type RiskLevel } from "@/lib/types";
 
 const quickLinks = [
   ["وزارة العدل", "https://www.moj.gov.sa"],
@@ -86,7 +87,7 @@ export default function DashboardPage() {
           </dl>
           <div class="metrics">
             <p><strong>الامتثال:</strong> ${analysis ? `${analysis.complianceScore}%` : "غير متاح"}</p>
-            <p><strong>المخاطر:</strong> ${analysis ? `${analysis.riskLevel} (${analysis.riskScore}%)` : "غير متاح"}</p>
+            <p><strong>المخاطر:</strong> ${analysis ? `${riskDisplayLabel(analysis.riskLevel as RiskLevel)} (${analysis.riskScore}%)` : "غير متاح"}</p>
             <p><strong>جودة اللغة:</strong> ${analysis ? `${analysis.languageQuality.score}%` : "غير متاح"}</p>
           </div>
           <h3>أبرز الملاحظات والإجراءات</h3>
