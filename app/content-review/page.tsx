@@ -31,7 +31,7 @@ import {
   Video,
   XCircle
 } from "lucide-react";
-import { Button, DgaBlockquote, DgaSpinner, PageHeader, Panel, SectionTitle, StatusBadge } from "@/components/ui";
+import { Button, DgaSpinner, PageHeader, Panel, SectionTitle, StatusBadge } from "@/components/ui";
 import {
   LinkedInIcon,
   XIcon,
@@ -120,7 +120,6 @@ const reviewTabs = [
   { key: "compliance", label: "الامتثال" },
   { key: "risk", label: "المخاطر" },
   { key: "improvements", label: "فرص التحسين" },
-  { key: "references", label: "المراجع المهنية والرسمية" },
   { key: "sharing", label: "المشاركة" }
 ] as const;
 type ReviewTab = (typeof reviewTabs)[number]["key"];
@@ -813,25 +812,7 @@ export default function ContentReviewPage() {
           </Panel>
           </section>
 
-          <Panel id="references" className="scroll-mt-24">
-            <SectionTitle title="المراجع المهنية والرسمية" subtitle="المصادر الرسمية المرتبطة مباشرة بالملاحظات، مع بيان القاعدة المتأثرة." />
-            {sortedFindings.length ? (
-              <div className="grid gap-3">
-                {sortedFindings.map((finding) => (
-                  <article key={`${finding.sourceUrl}-${finding.legalReference}`} className="rounded-lg border border-line bg-paper p-4">
-                    <div className="flex items-start gap-3"><OfficialLogo entity={officialEntityFromUrl(finding.sourceUrl)} /><h3 className="pt-1 font-semibold">{finding.sourceDocument}</h3></div>
-                    <p className="mt-2 text-sm leading-7">{finding.legalReference}</p>
-                    <DgaBlockquote title="القاعدة القانونية" text={finding.legalExplanation} transparent />
-                    <a href={finding.sourceUrl} target="_blank" rel="noopener noreferrer" className="mt-3 inline-flex items-center gap-2 text-sm text-palm underline">
-                      فتح المرجع الرسمي <ExternalLink size={14} aria-hidden="true" />
-                    </a>
-                  </article>
-                ))}
-              </div>
-            ) : <p className="rounded-lg bg-paper p-4 leading-7">لم تُرصد ملاحظة تستدعي إظهار مرجع متأثر في هذه المراجعة.</p>}
-          </Panel>
-
-          <>
+<>
           <Panel id="channels">
             <SectionTitle title="5. القنوات المقترحة" subtitle="كل توصية مبنية على نوع المحتوى والجمهور والهدف ونتائج المراجعة." />
             <div className="flex flex-wrap gap-3">
