@@ -35,7 +35,7 @@ import {
   Video,
   XCircle
 } from "lucide-react";
-import { Button, CircularGauge, DgaSpinner, PageHeader, Panel, ProgressBar, SectionTitle, StatusBadge } from "@/components/ui";
+import { Button, CircularGauge, DgaBlockquote, DgaSpinner, PageHeader, Panel, ProgressBar, SectionTitle, StatusBadge } from "@/components/ui";
 import {
   LinkedInIcon,
   XIcon,
