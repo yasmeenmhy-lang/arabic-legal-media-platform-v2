@@ -204,7 +204,7 @@ export function ReviewContextSummary({ focus }: { focus: "findings" | "opportuni
         </div>
       </div>
       <div className="mt-4 flex flex-wrap gap-2 text-xs">
-        <StatusBadge tone={["بالغ", "حرج"].includes(context.riskLevel ?? "") ? "danger" : context.riskLevel === "مرتفع" ? "gold" : context.riskLevel === "متوسط" ? "neutral" : "good"}>{focusLabels[focus]}</StatusBadge>
+        <StatusBadge tone={["بالغ", "حرج", "مرتفع"].includes(context.riskLevel ?? "") ? "gold" : context.riskLevel === "متوسط" ? "neutral" : "good"}>{focusLabels[focus]}</StatusBadge>
         <Link href="/content-review#decision" className="rounded-md border border-line bg-paper px-3 py-2 text-ink/70 transition hover:border-palm hover:text-palm focus-ring">
           العودة إلى المراجعة
         </Link>
@@ -307,7 +307,7 @@ export function ReviewRiskSection() {
           <p className="text-base font-normal text-ink">مؤشرات المخاطر لهذه المراجعة</p>
           <p className="mt-1 text-xs leading-6 text-ink/55">تعرض هذه الشاشة مستوى المخاطر وسبب التصنيف فقط.</p>
         </div>
-        <StatusBadge tone={["بالغ", "حرج"].includes(snapshot.risk.level) ? "danger" : snapshot.risk.level === "مرتفع" ? "gold" : snapshot.risk.level === "متوسط" ? "neutral" : "good"}>{riskDisplayLabel(snapshot.risk.level as RiskLevel)}</StatusBadge>
+        <StatusBadge tone={["بالغ", "حرج", "مرتفع"].includes(snapshot.risk.level) ? "gold" : snapshot.risk.level === "متوسط" ? "neutral" : "good"}>{riskDisplayLabel(snapshot.risk.level as RiskLevel)}</StatusBadge>
       </div>
       <div className="grid gap-4 lg:grid-cols-3">
         <FieldBlock label="مستوى المخاطر">{riskDisplayLabel(snapshot.risk.level as RiskLevel)}</FieldBlock>
