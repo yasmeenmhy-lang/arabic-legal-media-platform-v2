@@ -1,7 +1,7 @@
 "use client";
 
-import { Bot, SpellCheck, Sparkles } from "lucide-react";
-import { DgaBlockquote, StatusBadge } from "@/components/ui";
+import { SpellCheck, Sparkles } from "lucide-react";
+import { StatusBadge } from "@/components/ui";
 import { riskDisplayLabel, type LanguageQualityIssue, type ReviewResult } from "@/lib/types";
 
 const severityOrder = { critical: 0, high: 1, medium: 2, low: 3 } as const;
@@ -226,34 +226,6 @@ export function InlineContentGuidance({
         <p className="text-xs leading-6 text-ink/60">لم يرصد المدقق أخطاء إملائية واضحة داخل النص الحالي.</p>
       )}
 
-      <div className="rounded-md border border-violetBorder bg-violetSoft p-3 text-xs leading-6">
-        <div className="mb-1 flex items-center gap-2 text-violet"><Bot size={16} aria-hidden="true" /><b>المساعد الذكي</b></div>
-        <p>{review.aiEnhancement?.assistantSummary ? review.aiEnhancement.assistantSummary : internalAssistantSummary}</p>
-      </div>
-
-      <div className="rounded-md border border-violetBorder bg-violetSoft p-3 text-xs leading-6">
-        <div className="mb-2 flex items-center gap-2 text-violet"><Bot size={16} aria-hidden="true" /><b>توجيه المساعد حسب نتيجة التحليل</b></div>
-        {assistantIssues.length ? (
-          <ol className="space-y-2 pr-5">
-            {assistantIssues.map((item, index) => (
-              <li key={item.id} className="rounded-md border border-line bg-white p-2">
-                <div className="flex flex-wrap items-center gap-2">
-                  <StatusBadge tone={item.severity === "critical" || item.severity === "high" ? "gold" : "neutral"}>{index + 1}. {item.label}</StatusBadge>
-                  <span className="text-ink/55">الأولوية: {item.severity === "critical" ? "حرجة" : item.severity === "high" ? "عالية" : item.severity === "medium" ? "متوسطة" : "منخفضة"}</span>
-                </div>
-                <p className="mt-2"><b>المشكلة:</b> {item.label}</p>
-                <DgaBlockquote title="العبارة المرتبطة" text={item.evidence} transparent />
-                <DgaBlockquote title="سبب المخالفة أو الملاحظة" text={item.reason} transparent />
-                {item.source ? <p className="mt-1"><b>المرجع:</b> {item.source}</p> : null}
-                <DgaBlockquote title="الإجراء المقترح" text={item.action} transparent />
-              </li>
-            ))}
-          </ol>
-        ) : (
-          <p>{review.publicationDecision.reason}</p>
-        )}
-      </div>
-
       {rewrite ? (
         <div className="rounded-md border border-violetBorder bg-violetSoft p-3 text-xs leading-6">
           <div className="flex flex-wrap items-center justify-between gap-2">
@@ -263,7 +235,7 @@ export function InlineContentGuidance({
             </button>
           </div>
           {enhancedRewrite?.explanation ? <p className="mt-2 text-ink/70">{enhancedRewrite.explanation}</p> : null}
-          <DgaBlockquote text={enhancedRewrite?.suggestedText ?? rewrite.suggestedText} transparent />
+          <p className="mt-2 text-xs leading-7 text-ink/80">{enhancedRewrite?.suggestedText ?? rewrite.suggestedText}</p>
         </div>
       ) : null}
     </div>

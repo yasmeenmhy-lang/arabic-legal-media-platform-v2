@@ -652,6 +652,8 @@ export default function ContentReviewPage() {
             </div>
           </section>
 
+          <SmartAssistantPanel review={review} />
+
           <nav aria-label="أقسام نتيجة مراجعة المحتوى" className="sticky top-2 z-10 flex gap-2 overflow-x-auto rounded-lg border border-line bg-white/95 p-2 shadow-sm backdrop-blur">
             {reviewTabs.map((tab) => (
               <button
@@ -810,8 +812,6 @@ export default function ContentReviewPage() {
             }) : null}
           </Panel>
           </section>
-
-          <SmartAssistantPanel review={review} />
 
           <Panel id="references" className="scroll-mt-24">
             <SectionTitle title="المراجع المهنية والرسمية" subtitle="المصادر الرسمية المرتبطة مباشرة بالملاحظات، مع بيان القاعدة المتأثرة." />
