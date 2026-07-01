@@ -405,9 +405,9 @@ function FindingCard({ finding, index }: { finding: ReviewFinding; index: number
         </StatusBadge>
       </div>
       <div className="mt-5 grid gap-4 lg:grid-cols-2">
-        <DgaBlockquote title=”ما الخطأ؟” text={finding.issue} />
-        <DgaBlockquote title=”الدليل من المحتوى” text={finding.evidence} />
-        <DgaBlockquote title=”القاعدة القانونية” text={finding.legalExplanation} />
+        <DgaBlockquote title="ما الخطأ؟" text={finding.issue} />
+        <DgaBlockquote title="الدليل من المحتوى" text={finding.evidence} />
+        <DgaBlockquote title="القاعدة القانونية" text={finding.legalExplanation} />
         <div className="rounded-lg bg-paper p-4">
           <p className="text-xs text-ink/55">المرجع المتأثر</p>
           <div className="mt-2 flex items-start gap-3 leading-7"><OfficialLogo entity={officialEntityFromUrl(finding.sourceUrl)} /><span className="pt-1">{finding.sourceDocument} — {finding.legalReference}</span></div>
