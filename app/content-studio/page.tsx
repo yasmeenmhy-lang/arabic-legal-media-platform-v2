@@ -795,7 +795,7 @@ export default function ContentStudioPage() {
 
       {/* ── 4. Generated content preview ── */}
       {path === "create" && generatedText && !review && !reviewing && (
-        <Panel className="border-violetBorder bg-violetSoft/30">
+        <Panel className="bg-violetSoft/30">
           <div className="mb-4 flex items-center justify-between">
             <SectionTitle title="3. المحتوى المقترح" subtitle="راجع وعدّل قبل التحليل القانوني." />
             <button
