@@ -651,8 +651,6 @@ export default function ContentReviewPage() {
             </div>
           </section>
 
-          <SmartAssistantPanel review={review} />
-
           <nav aria-label="أقسام نتيجة مراجعة المحتوى" className="sticky top-2 z-10 flex gap-2 overflow-x-auto rounded-lg border border-line bg-white/95 p-2 shadow-sm backdrop-blur">
             {reviewTabs.map((tab) => (
               <button
@@ -705,6 +703,8 @@ export default function ContentReviewPage() {
             })()}
           </section>
           </>
+
+          <SmartAssistantPanel review={review} />
 
           <section id="improvements" className="space-y-5 scroll-mt-24">
           <Panel id="rewrite">
