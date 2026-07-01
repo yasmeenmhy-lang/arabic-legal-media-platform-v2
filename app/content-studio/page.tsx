@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import {
+  AlertTriangle,
   Award,
   BarChart2,
   BookOpen,
@@ -814,9 +815,13 @@ export default function ContentStudioPage() {
             onChange={(e) => setGeneratedText(e.target.value)}
             className="min-h-44 w-full rounded-lg border border-line p-4 leading-8"
           />
-          <p className="mt-2 rounded-lg bg-paper p-3 text-xs leading-6 text-ink/55">
-            النص المقترح لغرض التعليم والمساعدة فقط — تظل مسؤولية النشر والمشاركة على المستخدم.
-          </p>
+          <div className="mt-3 flex gap-3 rounded-lg border border-amber-200 bg-amber-50 p-4">
+            <AlertTriangle size={18} className="mt-0.5 shrink-0 text-amber-500" aria-hidden="true" />
+            <div className="text-sm leading-7 text-amber-900">
+              <p className="font-semibold">هذا المحتوى استرشادي — يجب مراجعته قبل النشر</p>
+              <p className="mt-1 text-xs leading-6 text-amber-800">أنشأ الذكاء الاصطناعي هذا النص بناءً على المدخلات فقط، وهو لا يُغني عن المراجعة القانونية والمهنية الشخصية. تقع مسؤولية التحقق والاعتماد والنشر على المحامي وحده.</p>
+            </div>
+          </div>
           <div className="mt-4 flex flex-wrap gap-3">
             <Button onClick={runReview} disabled={generatedText.trim().length < 5} leadingIcon={<FileCheck2 size={16} aria-hidden="true" />}>
               راجع قانونياً
