@@ -289,10 +289,10 @@ export async function runSemanticAnalysis(
   let message: Awaited<ReturnType<typeof client.messages.create>>;
   try {
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 25_000);
+    const timer = setTimeout(() => controller.abort(), 45_000);
     try {
       message = await client.messages.create(
-        { model: "claude-haiku-4-5-20251001", max_tokens: 4096, messages: [{ role: "user", content: prompt }] },
+        { model: "claude-sonnet-5", max_tokens: 4096, messages: [{ role: "user", content: prompt }] },
         { signal: controller.signal }
       );
     } finally {

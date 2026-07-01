@@ -204,7 +204,7 @@ export async function evaluateContent(text: string): Promise<ContentEvaluation> 
   let message: Awaited<ReturnType<typeof client.messages.create>>;
   try {
     message = await client.messages.create({
-      model: "claude-haiku-4-5-20251001",
+      model: "claude-sonnet-5",
       max_tokens: 2048,
       messages: [{ role: "user", content: buildEvaluationPrompt(text) }]
     });

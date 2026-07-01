@@ -155,7 +155,7 @@ async function requestAnthropicJson(input: AIProviderRequest) {
       "Content-Type": "application/json"
     },
     body: JSON.stringify({
-      model: "claude-3-5-haiku-latest",
+      model: "claude-sonnet-5",
       max_tokens: input.maxTokens ?? 1600,
       temperature: 0.2,
       system: input.system,
@@ -301,7 +301,7 @@ export async function diagnoseAIEnhancementProvider(): Promise<AIProviderDiagnos
             "Content-Type": "application/json"
           },
           body: JSON.stringify({
-            model: "claude-3-5-haiku-latest",
+            model: "claude-sonnet-5",
             max_tokens: 700,
             temperature: 0,
             system,
