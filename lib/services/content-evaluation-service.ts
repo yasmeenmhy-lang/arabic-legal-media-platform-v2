@@ -121,13 +121,21 @@ const VALID_PARTIES: RiskAffectedParty[] = ["الموكل", "المحامي", "�
 const VALID_CATEGORIES: LanguageIssueCategory[] = ["spelling", "grammar", "style", "readability", "اتساق المصطلحات"];
 const VALID_SEVERITIES: LanguageIssueSeverity[] = ["low", "medium", "high", "critical"];
 
+function extractJson(raw: string): string | null {
+  // handle ```json ... ``` or ``` ... ``` wrapping
+  const codeBlock = raw.match(/```(?:json)?\s*([\s\S]*?)```/);
+  if (codeBlock) return codeBlock[1].trim();
+  const obj = raw.match(/\{[\s\S]*\}/);
+  return obj ? obj[0] : null;
+}
+
 function parseEvaluationResponse(raw: string): ContentEvaluation {
-  const jsonMatch = raw.match(/\{[\s\S]*\}/);
+  const jsonMatch = extractJson(raw);
   if (!jsonMatch) throw new Error("[evaluation] failed to parse: no JSON found in response");
 
   let parsed: Record<string, unknown>;
   try {
-    parsed = JSON.parse(jsonMatch[0]) as Record<string, unknown>;
+    parsed = JSON.parse(jsonMatch) as Record<string, unknown>;
   } catch {
     throw new Error("[evaluation] failed to parse: invalid JSON");
   }

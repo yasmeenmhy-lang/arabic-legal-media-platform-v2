@@ -166,11 +166,22 @@ interface HolisticViolation {
   advice: string;
 }
 
+function extractJsonArray(raw: string): string | null {
+  const codeBlock = raw.match(/```(?:json)?\s*([\s\S]*?)```/);
+  if (codeBlock) {
+    const inner = codeBlock[1].trim();
+    const arr = inner.match(/\[[\s\S]*\]/);
+    return arr ? arr[0] : null;
+  }
+  const arr = raw.match(/\[[\s\S]*\]/);
+  return arr ? arr[0] : null;
+}
+
 function parseHolisticResponse(raw: string): HolisticViolation[] {
   try {
-    const jsonMatch = raw.match(/\[[\s\S]*\]/);
+    const jsonMatch = extractJsonArray(raw);
     if (!jsonMatch) return [];
-    const parsed = JSON.parse(jsonMatch[0]) as Partial<HolisticViolation>[];
+    const parsed = JSON.parse(jsonMatch) as Partial<HolisticViolation>[];
     if (!Array.isArray(parsed)) return [];
     return parsed
       .filter((v) => typeof v.ruleReference === "string" && v.ruleReference && typeof v.evidenceExcerpt === "string" && v.evidenceExcerpt)
