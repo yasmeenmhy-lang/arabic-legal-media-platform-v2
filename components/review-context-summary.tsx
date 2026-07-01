@@ -4,7 +4,8 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ExternalLink } from "lucide-react";
 import { DgaBlockquote, Panel, StatusBadge } from "@/components/ui";
-import type { ReviewFinding, ReviewResult } from "@/lib/types";
+import { riskDisplayLabel } from "@/lib/types";
+import type { ReviewFinding, ReviewResult, RiskLevel } from "@/lib/types";
 
 export type StoredReviewContext = {
   reviewId: string;
@@ -197,13 +198,13 @@ export function ReviewContextSummary({ focus }: { focus: "findings" | "opportuni
         <div className="grid gap-2 text-xs sm:grid-cols-2 lg:grid-cols-5 xl:min-w-[720px]">
           <div className="rounded-md bg-paper p-3"><span className="block text-ink/50">نوع المحتوى</span><strong className="mt-1 block font-normal text-ink">{context.contentType ?? "غير محدد"}</strong></div>
           <div className="rounded-md bg-paper p-3"><span className="block text-ink/50">القناة</span><strong className="mt-1 block font-normal text-ink">{context.channel ?? "غير محدد"}</strong></div>
-          <div className="rounded-md bg-paper p-3"><span className="block text-ink/50">مستوى المخاطر</span><strong className="mt-1 block font-normal text-ink">{context.riskLevel ?? "غير متاح"}</strong></div>
+          <div className="rounded-md bg-paper p-3"><span className="block text-ink/50">مستوى المخاطر</span><strong className="mt-1 block font-normal text-ink">{context.riskLevel ? riskDisplayLabel(context.riskLevel as RiskLevel) : "غير متاح"}</strong></div>
           <div className="rounded-md bg-paper p-3"><span className="block text-ink/50">الامتثال</span><strong className="mt-1 block font-normal text-ink">{typeof context.complianceScore === "number" ? `${context.complianceScore}%` : "غير متاح"}</strong></div>
           <div className="rounded-md bg-paper p-3"><span className="block text-ink/50">جاهزية النشر</span><strong className="mt-1 block font-normal text-ink">{typeof context.publishingReadinessScore === "number" ? `${context.publishingReadinessScore}%` : "غير متاح"}</strong></div>
         </div>
       </div>
       <div className="mt-4 flex flex-wrap gap-2 text-xs">
-        <StatusBadge tone={context.riskLevel === "مرتفع" ? "gold" : context.riskLevel === "متوسط" ? "neutral" : "good"}>{focusLabels[focus]}</StatusBadge>
+        <StatusBadge tone={["بالغ", "حرج", "مرتفع"].includes(context.riskLevel ?? "") ? "gold" : context.riskLevel === "متوسط" ? "neutral" : "good"}>{focusLabels[focus]}</StatusBadge>
         <Link href="/content-review#decision" className="rounded-md border border-line bg-paper px-3 py-2 text-ink/70 transition hover:border-palm hover:text-palm focus-ring">
           العودة إلى المراجعة
         </Link>
@@ -306,10 +307,10 @@ export function ReviewRiskSection() {
           <p className="text-base font-normal text-ink">مؤشرات المخاطر لهذه المراجعة</p>
           <p className="mt-1 text-xs leading-6 text-ink/55">تعرض هذه الشاشة مستوى المخاطر وسبب التصنيف فقط.</p>
         </div>
-        <StatusBadge tone={snapshot.risk.level === "مرتفع" ? "gold" : snapshot.risk.level === "متوسط" ? "neutral" : "good"}>{snapshot.risk.level}</StatusBadge>
+        <StatusBadge tone={["بالغ", "حرج", "مرتفع"].includes(snapshot.risk.level) ? "gold" : snapshot.risk.level === "متوسط" ? "neutral" : "good"}>{riskDisplayLabel(snapshot.risk.level as RiskLevel)}</StatusBadge>
       </div>
       <div className="grid gap-4 lg:grid-cols-3">
-        <FieldBlock label="مستوى المخاطر">{snapshot.risk.level}</FieldBlock>
+        <FieldBlock label="مستوى المخاطر">{riskDisplayLabel(snapshot.risk.level as RiskLevel)}</FieldBlock>
         <FieldBlock label="جاهزية النشر">{snapshot.risk.publishingReadinessScore}%</FieldBlock>
         <FieldBlock label="عدد الملاحظات">{snapshot.findings.length}</FieldBlock>
       </div>
