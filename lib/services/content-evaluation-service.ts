@@ -226,7 +226,13 @@ export async function evaluateContent(text: string): Promise<ContentEvaluation> 
     .map((block) => (block as { type: "text"; text: string }).text)
     .join("");
 
-  const result = parseEvaluationResponse(rawText);
+  let result: ContentEvaluation;
+  try {
+    result = parseEvaluationResponse(rawText);
+  } catch (err) {
+    console.warn("[evaluation] parse failed — returning fallback evaluation", err instanceof Error ? err.message : "");
+    return buildFallbackEvaluation();
+  }
   console.log(
     "[evaluation] done: risk=%s, professionalism=%d, language=%d",
     result.risks.level,
