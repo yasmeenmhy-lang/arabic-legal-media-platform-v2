@@ -787,6 +787,38 @@ function InlineContentGuidance({
         <p className="text-xs leading-6 text-ink/60">لم يرصد المدقق أخطاء إملائية واضحة داخل النص الحالي.</p>
       )}
 
+      <div className="rounded-md border border-violetBorder bg-violetSoft p-3 text-xs leading-6">
+        <div className="mb-1 flex items-center gap-2 text-violet"><Bot size={16} aria-hidden="true" /><b>المساعد الذكي</b></div>
+        <p>
+          {review.aiEnhancement?.assistantSummary
+            ? review.aiEnhancement.assistantSummary
+            : internalAssistantSummary}
+        </p>
+      </div>
+
+      <div className="rounded-md border border-violetBorder bg-violetSoft p-3 text-xs leading-6">
+        <div className="mb-2 flex items-center gap-2 text-violet"><Bot size={16} aria-hidden="true" /><b>توجيه المساعد حسب نتيجة التحليل</b></div>
+        {assistantIssues.length ? (
+          <ol className="space-y-2 pr-5">
+            {assistantIssues.map((item, index) => (
+              <li key={item.id} className="rounded-md border border-line bg-white p-2">
+                <div className="flex flex-wrap items-center gap-2">
+                  <StatusBadge tone={item.severity === "critical" || item.severity === "high" ? "gold" : "neutral"}>{index + 1}. {item.label}</StatusBadge>
+                  <span className="text-ink/55">الأولوية: {item.severity === "critical" ? "حرجة" : item.severity === "high" ? "عالية" : item.severity === "medium" ? "متوسطة" : "منخفضة"}</span>
+                </div>
+                <p className="mt-2"><b>المشكلة:</b> {item.label}</p>
+                <DgaBlockquote title="العبارة المرتبطة" text={item.evidence} transparent />
+                <DgaBlockquote title="سبب المخالفة أو الملاحظة" text={item.reason} transparent />
+                {item.source ? <p className="mt-1"><b>المرجع:</b> {item.source}</p> : null}
+                <DgaBlockquote title="الإجراء المقترح" text={item.action} transparent />
+              </li>
+            ))}
+          </ol>
+        ) : (
+          <p>{review.publicationDecision.reason}</p>
+        )}
+      </div>
+
       {rewrite ? (
         <div className="rounded-md border border-violetBorder bg-violetSoft p-3 text-xs leading-6">
           <div className="flex flex-wrap items-center justify-between gap-2">
@@ -794,7 +826,7 @@ function InlineContentGuidance({
             <button type="button" onClick={onApplyRewrite} disabled={loading} className="inline-flex items-center gap-1.5 rounded-md bg-violet px-2 py-0.5 text-xs font-medium text-white transition hover:bg-violetDark disabled:opacity-50 min-h-[32px]"><Sparkles size={14} />استخدام الصياغة المقترحة</button>
           </div>
           {enhancedRewrite?.explanation ? <p className="mt-2 text-ink/70">{enhancedRewrite.explanation}</p> : null}
-          <p className="mt-2 leading-6">{enhancedRewrite?.suggestedText ?? rewrite.suggestedText}</p>
+          <DgaBlockquote text={enhancedRewrite?.suggestedText ?? rewrite.suggestedText} transparent />
         </div>
       ) : null}
     </div>
@@ -888,7 +920,6 @@ export default function ContentReviewPage() {
   }, []);
 
   const hasReviewContext = Boolean(kind && channel && audience && purpose);
-  const contextScore = [kind, channel, audience, purpose].filter(Boolean).length;
   const contentTypeLabel = kind ? contentTypes.find((item) => item.value === kind)?.label ?? "محتوى مهني" : "";
   const sortedFindings = useMemo(
     () => [...(review?.findings ?? [])].sort((a, b) => severityOrder[a.businessSeverity ?? "low"] - severityOrder[b.businessSeverity ?? "low"]),
@@ -1215,10 +1246,10 @@ export default function ContentReviewPage() {
         <div className="mb-5">
           <div className="mb-1.5 flex items-center justify-between text-xs">
             <span className="text-ink/55">اكتمال السياق</span>
-            <span className="font-semibold text-palm">{contextScore} من 4</span>
+            <span className="font-semibold text-palm">4 من 4</span>
           </div>
           <div className="h-1.5 overflow-hidden rounded-full bg-paper">
-            <div className="h-full rounded-full bg-palm opacity-80" style={{ width: `${contextScore * 25}%` }} />
+            <div className="h-full rounded-full bg-palm opacity-80" style={{ width: "100%" }} />
           </div>
         </div>
 
@@ -1319,6 +1350,24 @@ export default function ContentReviewPage() {
             </div>
           </section>
 
+          <Panel id="decision" className="border-2 border-palm/20">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+              <div>
+                <p className="text-xs text-palm">2. قرار النشر</p>
+                <h2 className="mt-2 text-lg font-semibold">{review.publicationDecision.label}</h2>
+                <p className="mt-3 max-w-4xl leading-8 text-ink/75">{review.publicationDecision.reason}</p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <StatusBadge tone={decisionTone(review)}>{review.publicationDecision.label}</StatusBadge>
+                <StatusBadge tone={review.confidence.level === "High" ? "good" : review.confidence.level === "Medium" ? "neutral" : "gold"}>الثقة {review.confidence.label}</StatusBadge>
+              </div>
+            </div>
+            <div className="mt-5 grid gap-4 lg:grid-cols-2">
+              <div className="rounded-lg bg-paper p-4"><p className="text-xs text-ink/55">لماذا هذه التوصية؟</p><p className="mt-2 leading-8">{review.confidence.reason}</p></div>
+              <div className="rounded-lg bg-paper p-4"><p className="text-xs text-ink/55">ما المطلوب قبل النشر؟</p><ul className="mt-2 list-disc space-y-2 pr-5 leading-7">{review.readinessDecision.blockers.length ? review.readinessDecision.blockers.map((item) => <li key={item}>{item}</li>) : <li>لا توجد متطلبات مانعة متبقية.</li>}</ul></div>
+            </div>
+          </Panel>
+
           <nav aria-label="أقسام نتيجة مراجعة المحتوى" className="sticky top-2 z-10 flex gap-2 overflow-x-auto rounded-lg border border-line bg-white/95 p-2 shadow-sm backdrop-blur">
             {reviewTabs.map((tab) => (
               <button
@@ -1348,26 +1397,6 @@ export default function ContentReviewPage() {
             )}
           </section>
           </>
-
-          <Panel id="decision" className={`border-2 ${review.publicationDecision.outcome === "RECOMMENDED" ? "border-palm/20" : review.publicationDecision.outcome === "NOT_RECOMMENDED" ? "border-red-200" : "border-amber-200"}`}>
-            <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-              <div>
-                <p className="text-xs text-palm">2. قرار النشر</p>
-                <h2 className="mt-2 text-lg font-semibold">{review.publicationDecision.label}</h2>
-                <p className="mt-3 max-w-4xl leading-8 text-ink/75">{review.publicationDecision.reason}</p>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                <StatusBadge tone={decisionTone(review)}>{review.publicationDecision.label}</StatusBadge>
-                <StatusBadge tone={review.confidence.level === "High" ? "good" : review.confidence.level === "Medium" ? "neutral" : "gold"}>الثقة {review.confidence.label}</StatusBadge>
-              </div>
-            </div>
-            <div className="mt-5 grid gap-4 lg:grid-cols-2">
-              <div className="rounded-lg bg-paper p-4"><p className="text-xs text-ink/55">لماذا هذه التوصية؟</p><p className="mt-2 leading-8">{review.confidence.reason}</p></div>
-              <div className="rounded-lg bg-paper p-4"><p className="text-xs text-ink/55">ما المطلوب قبل النشر؟</p><ul className="mt-2 list-disc space-y-2 pr-5 leading-7">{review.readinessDecision.blockers.length ? review.readinessDecision.blockers.map((item) => <li key={item}>{item}</li>) : <li>لا توجد متطلبات مانعة متبقية.</li>}</ul></div>
-            </div>
-          </Panel>
-
-          <SmartAssistantPanel review={review} />
 
           <section id="improvements" className="space-y-5 scroll-mt-24">
           <Panel id="rewrite">
@@ -1465,8 +1494,8 @@ export default function ContentReviewPage() {
                 <p className="leading-8">{enhancedRewrite?.suggestedText ?? rewrite.suggestedText}</p>
                 <p className="mt-3 rounded-lg bg-paper p-3 text-xs leading-6 text-ink/65">النص المقترح لغرض التعليم والمساعدة فقط، وتظل مسؤولية النشر والمشاركة والاعتماد على المستخدم.</p>
                 <div className="mt-4 grid gap-3 md:grid-cols-2">
-                  <div className="rounded-lg bg-paper p-4"><p className="text-xs text-ink/55">قبل التوصية</p><p className="mt-2">المخاطر {rewrite.originalRiskLevel}</p></div>
-                  <div className="rounded-lg bg-mint p-4"><p className="text-xs text-palm">الأثر المتوقع بعد التطبيق</p><p className="mt-2">المخاطر المتوقعة {rewrite.proposedRiskLevel}</p></div>
+                  <div className="rounded-lg bg-paper p-4"><p className="text-xs text-ink/55">قبل التوصية</p><p className="mt-2">المخاطر {riskDisplayLabel(rewrite.originalRiskLevel)}</p></div>
+                  <div className="rounded-lg bg-mint p-4"><p className="text-xs text-palm">الأثر المتوقع بعد التطبيق</p><p className="mt-2">المخاطر المتوقعة {riskDisplayLabel(rewrite.proposedRiskLevel)}</p></div>
                 </div>
                 <button type="button" onClick={applyRewrite} disabled={loading} className="mt-4 inline-flex items-center gap-2 rounded-md bg-palm px-4 py-2.5 text-white"><Sparkles size={16} />تطبيق الصياغة وإعادة التقييم</button>
               </div>

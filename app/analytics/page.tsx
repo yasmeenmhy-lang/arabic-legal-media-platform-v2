@@ -5,6 +5,7 @@ import Link from "next/link";
 import { BarChart3, Download, FileCheck2, ShieldAlert } from "lucide-react";
 import { BarList, Button, KpiGrid, PageHeader, Panel, SectionTitle, StatusBadge } from "@/components/ui";
 import { loadContentRecords, type StoredContentRecord } from "@/lib/content-record-store";
+import { riskDisplayLabel, type RiskLevel } from "@/lib/types";
 
 export default function AnalyticsPage() {
   const [records, setRecords] = useState<StoredContentRecord[]>([]);
@@ -39,7 +40,7 @@ export default function AnalyticsPage() {
           </dl>
           <div class="metrics">
             <p><strong>الامتثال:</strong> ${analysis ? `${analysis.complianceScore}%` : "غير متاح"}</p>
-            <p><strong>المخاطر:</strong> ${analysis ? `${analysis.riskLevel} (${analysis.riskScore}%)` : "غير متاح"}</p>
+            <p><strong>المخاطر:</strong> ${analysis ? `${riskDisplayLabel(analysis.riskLevel as RiskLevel)} (${analysis.riskScore}%)` : "غير متاح"}</p>
             <p><strong>جودة اللغة:</strong> ${analysis ? `${analysis.languageQuality.score}%` : "غير متاح"}</p>
           </div>
           <h3>أبرز الملاحظات والإجراءات</h3>
@@ -134,7 +135,7 @@ export default function AnalyticsPage() {
                     <div className="md:col-span-2"><p className="font-normal">{record.title}</p><p className="text-xs text-ink/55">المادة الحالية في سجل المحتوى</p></div>
                     <div>الإصدار {record.currentVersion}</div>
                     <div>الامتثال {current?.analysis?.complianceScore ?? "—"}</div>
-                    <div>المخاطر {current?.analysis?.riskLevel ?? "—"}</div>
+                    <div>المخاطر {riskDisplayLabel(current?.analysis?.riskLevel as RiskLevel)}</div>
                     <StatusBadge tone={record.approvedVersion ? "good" : "neutral"}>{record.approvedVersion ? `معتمد — الإصدار ${record.approvedVersion}` : record.status}</StatusBadge>
                   </div>
                 );
