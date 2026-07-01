@@ -1070,8 +1070,9 @@ export default function ContentStudioPage() {
             );
           })()}
 
-          {/* ── نص مقترح محسّن ── */}
+          {/* ── نص مقترح محسّن — يظهر فقط عند مراجعة نص كتبه المستخدم ── */}
           {(() => {
+            if (path === "create") return null;
             const improvedText = review.governedRewrites?.[0]?.suggestedText ?? review.languageQuality?.improvedDraft;
             if (!improvedText) return null;
             return (
