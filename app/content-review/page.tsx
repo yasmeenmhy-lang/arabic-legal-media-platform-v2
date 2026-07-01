@@ -1349,7 +1349,7 @@ export default function ContentReviewPage() {
           </section>
           </>
 
-          <Panel id="decision" className="border-2 border-palm/20">
+          <Panel id="decision" className={`border-2 ${review.publicationDecision.outcome === "RECOMMENDED" ? "border-palm/20" : review.publicationDecision.outcome === "NOT_RECOMMENDED" ? "border-red-200" : "border-amber-200"}`}>
             <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
               <div>
                 <p className="text-xs text-palm">2. قرار النشر</p>
