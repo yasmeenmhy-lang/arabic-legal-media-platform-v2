@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   AlertTriangle,
   Award,
@@ -362,6 +363,8 @@ function createDraftRecord(
 // ── Page ───────────────────────────────────────────────────────────────────
 
 export default function ContentStudioPage() {
+  const router = useRouter();
+
   // Shared context
   const [kind, setKind] = useState<ContentKind | null>(null);
   const [channel, setChannel] = useState("");
@@ -483,7 +486,7 @@ export default function ContentStudioPage() {
     if (!activeText.trim()) return;
     try {
       createDraftRecord(activeText, { kind, channel, audience, purpose });
-      flash("تم حفظ المسودة في سجل المحتوى");
+      router.push("/content-management");
     } catch {
       flash("فشل حفظ المسودة");
     }
