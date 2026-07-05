@@ -135,15 +135,15 @@ const STAGE_LABELS = [
 ];
 
 const STAGE_HREFS = [
-  "/content-studio",     // فكرة المحتوى
-  "/content-review",     // المراجعة والامتثال
-  "/content-review",     // الصياغة الآمنة
-  "/content-review",     // الاعتماد
-  "/calendar-v2",        // إعداد الحملة
-  "/calendar-v2",        // الجدولة
-  "/content-management", // تجهيز النشر
-  "/content-management", // المتابعة
-  "/content-studio",     // التحسين
+  "/content-studio",            // فكرة المحتوى
+  "/content-review#findings",   // المراجعة والامتثال → قسم الملاحظات
+  "/content-review#rewrite",    // الصياغة الآمنة → قسم الصياغة المقترحة
+  "/content-review#approval",   // الاعتماد → قسم الاعتماد
+  "/calendar-v2",               // إعداد الحملة
+  "/calendar-v2",               // الجدولة
+  "/content-management",        // تجهيز النشر
+  "/content-management",        // المتابعة
+  "/content-studio",            // التحسين
 ];
 
 function computeStages(record: StoredContentRecord, targetDate: string) {
