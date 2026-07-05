@@ -125,10 +125,10 @@ function suggestPublishDate(
 const STAGE_LABELS = [
   "فكرة المحتوى",
   "المراجعة والامتثال",
-  "الصياغة الآمنة",
-  "الاعتماد",
-  "إعداد الحملة",
-  "الجدولة",
+  "الصياغة المقترحة",
+  "اعتماد النسخة",
+  "القنوات المقترحة",
+  "موعد النشر",
   "تجهيز النشر",
   "المتابعة",
   "التحسين",
@@ -136,11 +136,11 @@ const STAGE_LABELS = [
 
 const STAGE_HREFS = [
   "/content-studio",            // فكرة المحتوى
-  "/content-review#findings",   // المراجعة والامتثال → قسم الملاحظات
-  "/content-review#rewrite",    // الصياغة الآمنة → قسم الصياغة المقترحة
-  "/content-review#approval",   // الاعتماد → قسم الاعتماد
-  "/calendar-v2",               // إعداد الحملة
-  "/calendar-v2",               // الجدولة
+  "/content-review#findings",   // المراجعة والامتثال
+  "/content-review#rewrite",    // الصياغة المقترحة
+  "/content-review#approval",   // اعتماد النسخة
+  "/content-review#channels",   // القنوات المقترحة
+  "/calendar-v2",               // موعد النشر
   "/content-management",        // تجهيز النشر
   "/content-management",        // المتابعة
   "/content-studio",            // التحسين

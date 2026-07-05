@@ -813,7 +813,7 @@ export default function ContentReviewPage() {
           </section>
 
 <>
-          <Panel id="channels">
+          <Panel id="channels" className="scroll-mt-24">
             <SectionTitle title="5. القنوات المقترحة" subtitle="كل توصية مبنية على نوع المحتوى والجمهور والهدف ونتائج المراجعة." />
             <div className="flex flex-wrap gap-3">
               {review.channelRecommendations.map((item) => {
