@@ -1362,20 +1362,23 @@ export default function CalendarV2Page() {
 
       {/* 2. Action bar */}
       <div className="flex flex-wrap items-center gap-2">
+        {/* زر إنشاء/تعديل — يجلب خطة جديدة دائماً */}
         <button
           onClick={createNewPlan}
           disabled={records.length === 0}
           className="flex items-center gap-1.5 rounded-lg bg-palm px-4 py-2 text-sm font-medium text-white transition hover:bg-palm/90 disabled:opacity-50"
         >
-          <Sparkles size={14} /> إنشاء خطة جديدة
+          <Sparkles size={14} />
+          {smartPlanResult ? "تعديل الخطة" : "إنشاء خطة ذكية"}
         </button>
+        {/* زر عرض — يفتح الخطة المحفوظة فوراً بلا طلب */}
         <button
           onClick={() => setSmartPlanOpen(true)}
           disabled={!smartPlanResult}
           className="flex items-center gap-1.5 rounded-lg border border-palm bg-mint px-4 py-2 text-sm font-medium text-palm transition hover:bg-palm hover:text-white disabled:opacity-40"
         >
           <LayoutGrid size={14} />
-          عرض الخطة الذكية المقترحة
+          عرض الخطة المقترحة
           {smartPlanResult && <span className="rounded-full bg-palm/20 px-1.5 text-[10px] font-bold">{smartPlanResult.plan.length}</span>}
         </button>
         <div className="flex min-w-[150px] flex-1 items-center gap-2 rounded-lg border border-line bg-white px-3 py-2">
