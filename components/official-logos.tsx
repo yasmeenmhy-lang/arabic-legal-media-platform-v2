@@ -31,7 +31,7 @@ export function OfficialLogo({ entity, className }: { entity: OfficialEntityKey;
       aria-label={`شعار ${style.label}`}
       title={`شعار ${style.label}`}
       className={clsx(
-        "inline-flex h-10 w-36 shrink-0 items-center justify-center gap-2 rounded-md border border-line px-3 py-1.5 text-[11px] font-semibold leading-4 tracking-wide",
+        "inline-flex h-10 w-36 shrink-0 overflow-hidden items-center justify-center gap-2 rounded-md border border-line px-3 py-1.5 text-[11px] font-semibold leading-4 tracking-wide",
         style.bg,
         style.color,
         className
@@ -39,7 +39,7 @@ export function OfficialLogo({ entity, className }: { entity: OfficialEntityKey;
     >
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src={style.src} alt={`شعار ${style.label}`} className="h-6 w-6 shrink-0 object-contain" />
-      <span aria-hidden="true" className="truncate">{style.label}</span>
+      <span aria-hidden="true" className="min-w-0 truncate">{style.label}</span>
     </span>
   );
 }
