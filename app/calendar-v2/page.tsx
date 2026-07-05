@@ -134,6 +134,18 @@ const STAGE_LABELS = [
   "التحسين",
 ];
 
+const STAGE_HREFS = [
+  "/content-studio",     // فكرة المحتوى
+  "/content-review",     // المراجعة والامتثال
+  "/content-review",     // الصياغة الآمنة
+  "/content-review",     // الاعتماد
+  "/calendar-v2",        // إعداد الحملة
+  "/calendar-v2",        // الجدولة
+  "/content-management", // تجهيز النشر
+  "/content-management", // المتابعة
+  "/content-studio",     // التحسين
+];
+
 function computeStages(record: StoredContentRecord, targetDate: string) {
   const version = record.versions.find((v) => v.version === record.currentVersion);
   const review = version?.analysis;
@@ -156,6 +168,7 @@ function computeStages(record: StoredContentRecord, targetDate: string) {
   const currentIndex = completions.findIndex((c) => !c);
   return STAGE_LABELS.map((label, i) => ({
     label,
+    href: STAGE_HREFS[i],
     complete: completions[i],
     current: i === currentIndex,
   }));
@@ -666,18 +679,19 @@ function ContentPanel({
             </div>
             <div className="grid grid-cols-3 gap-1">
               {stages.map((stage) => (
-                <div
+                <Link
                   key={stage.label}
-                  className={`rounded px-1.5 py-1 text-center text-[10px] leading-4 ${
+                  href={stage.href}
+                  className={`rounded px-1.5 py-1 text-center text-[10px] leading-4 transition hover:opacity-75 focus-ring ${
                     stage.complete
                       ? "bg-mint text-palm"
                       : stage.current
-                        ? "bg-goldSoft text-gold"
+                        ? "bg-goldSoft text-gold ring-1 ring-gold/30"
                         : "bg-paper text-ink/40"
                   }`}
                 >
                   {stage.label}
-                </div>
+                </Link>
               ))}
             </div>
           </div>
