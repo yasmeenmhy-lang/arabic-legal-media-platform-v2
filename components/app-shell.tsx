@@ -7,6 +7,7 @@ import { Menu, ShieldCheck, X } from "lucide-react";
 import { navItems, platformTitle } from "@/lib/navigation";
 import { demoSession } from "@/lib/rbac";
 import { clsx } from "clsx";
+import { DigitalSeal } from "@/components/digital-seal";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -81,6 +82,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               </Link>
             );
           })}
+          <div className="mt-4">
+            <DigitalSeal />
+          </div>
         </nav>
       </aside>
 
