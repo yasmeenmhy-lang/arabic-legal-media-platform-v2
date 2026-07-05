@@ -1218,13 +1218,27 @@ export default function CalendarV2Page() {
   const [smartPlanResult,  setSmartPlanResult]  = useState<SmartPlanResult | null>(null);
   const [smartPlanError,   setSmartPlanError]   = useState("");
 
+  const SMART_PLAN_KEY = "lawyer-media:smart-plan-result";
+
   useEffect(() => {
     const loaded = loadContentRecords();
     setRecords(loaded);
     const dates: Record<string, string> = {};
     loaded.forEach((r) => { dates[r.id] = getTargetDate(r.id); });
     setTargetDates(dates);
+    // تحميل الخطة المحفوظة من localStorage
+    try {
+      const saved = window.localStorage.getItem(SMART_PLAN_KEY);
+      if (saved) setSmartPlanResult(JSON.parse(saved) as SmartPlanResult);
+    } catch { /* تجاهل البيانات التالفة */ }
   }, []);
+
+  // حفظ الخطة تلقائياً عند تغيّرها
+  useEffect(() => {
+    if (smartPlanResult) {
+      window.localStorage.setItem(SMART_PLAN_KEY, JSON.stringify(smartPlanResult));
+    }
+  }, [smartPlanResult]);
 
   const selectedRecord = records.find((r) => r.id === selectedId) ?? null;
 
@@ -1308,8 +1322,9 @@ export default function CalendarV2Page() {
     void fetchSmartPlan();
   }
 
-  // إنشاء خطة جديدة — يفتح البانيل ويجلب تحليلاً جديداً دائماً
+  // إنشاء خطة جديدة — يمسح المحفوظة ويجلب تحليلاً جديداً
   function createNewPlan() {
+    window.localStorage.removeItem(SMART_PLAN_KEY);
     setSmartPlanOpen(true);
     setSmartPlanResult(null);
     void fetchSmartPlan();
