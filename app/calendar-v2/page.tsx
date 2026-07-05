@@ -781,14 +781,11 @@ function ContentPanel({
                         <span className={`flex-1 text-sm font-medium ${isSelected ? "text-palm" : "text-ink"}`}>{rec.channel}</span>
                         {isSelected && <CheckCircle2 size={13} className="shrink-0 text-palm" />}
                       </button>
-                      <div className="border-t border-line/50 px-3 pb-3 pt-2 space-y-1.5 text-[11px] leading-5 text-ink/65">
-                        {rec.targetAudience && <p><span className="font-medium text-ink/80">الجمهور: </span>{rec.targetAudience}</p>}
-                        {rec.format        && <p><span className="font-medium text-ink/80">الصيغة: </span>{rec.format}</p>}
-                        {rec.expectedBenefit && <p><span className="font-medium text-ink/80">الفائدة: </span>{rec.expectedBenefit}</p>}
-                        {rec.risks         && <p><span className="font-medium text-ink/80">المخاطر: </span>{rec.risks}</p>}
-                        {rec.timing        && <p><span className="font-medium text-ink/80">التوقيت: </span>{rec.timing}</p>}
-                        {rec.reason        && <p className="border-t border-line/40 pt-1.5 text-ink/50">{rec.reason}</p>}
-                      </div>
+                      {(rec.expectedBenefit || rec.reason) && (
+                        <p className="border-t border-line/50 px-3 pb-2.5 pt-2 text-[11px] leading-5 text-ink/55">
+                          {rec.expectedBenefit || rec.reason}
+                        </p>
+                      )}
                     </div>
                   );
                 })}
