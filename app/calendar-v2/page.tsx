@@ -962,15 +962,21 @@ const PRIORITY_LABEL: Record<SmartPlanItem["priority"], string> = {
 };
 
 function SmartPlanPanel({
+  loading,
+  error,
   result,
   records,
   onClose,
+  onRefresh,
   onApply,
   onSelectRecord,
 }: {
-  result: SmartPlanResult;
+  loading: boolean;
+  error: string;
+  result: SmartPlanResult | null;
   records: StoredContentRecord[];
   onClose: () => void;
+  onRefresh: () => void;
   onApply: (dates: Record<string, string>) => void;
   onSelectRecord: (id: string) => void;
 }) {
@@ -979,28 +985,149 @@ function SmartPlanPanel({
   }
 
   function handleApply() {
+    if (!result) return;
     const dates: Record<string, string> = {};
     result.plan.forEach((item) => { dates[item.contentId] = item.suggestedDate; });
     onApply(dates);
     onClose();
   }
 
+  // ── حساب إحصائيات العرض الشامل ────────────────────────────────────────
+  const stats = result ? (() => {
+    const high   = result.plan.filter(p => p.priority === "high").length;
+    const medium = result.plan.filter(p => p.priority === "medium").length;
+    const low    = result.plan.filter(p => p.priority === "low").length;
+    const total  = result.plan.length;
+    const ready  = result.plan.filter(p => {
+      const r = records.find(r => r.id === p.contentId);
+      return Boolean(r?.approvedVersion);
+    }).length;
+    // توزيع القنوات
+    const channelMap: Record<string, number> = {};
+    result.plan.forEach(p => { channelMap[p.channel] = (channelMap[p.channel] ?? 0) + 1; });
+    const channels = Object.entries(channelMap).sort((a, b) => b[1] - a[1]);
+    // نطاق التواريخ
+    const dates = result.plan.map(p => p.suggestedDate).sort();
+    const firstDate = dates[0];
+    const lastDate  = dates[dates.length - 1];
+    const fmtDate = (d: string) => new Date(d + "T12:00:00").toLocaleDateString("ar-SA-u-ca-gregory", { day: "numeric", month: "short" });
+    return { high, medium, low, total, ready, channels, firstDate, lastDate, fmtDate };
+  })() : null;
+
   return (
     <>
       <div className="fixed inset-0 z-40 bg-ink/20 backdrop-blur-sm" onClick={onClose} aria-hidden="true" />
       <div className="fixed inset-x-0 bottom-0 z-50 max-h-[85vh] overflow-y-auto rounded-t-2xl bg-white shadow-2xl lg:inset-x-auto lg:bottom-0 lg:end-0 lg:top-0 lg:w-[420px] lg:max-h-full lg:rounded-none lg:rounded-s-2xl lg:shadow-[-4px_0_24px_rgba(0,0,0,0.08)]">
+        {/* Header */}
         <div className="sticky top-0 z-10 flex items-center justify-between border-b border-line bg-white px-4 py-3">
-          <div className="flex items-center gap-2 text-palm">
-            <Sparkles size={16} />
+          <div className="flex items-center gap-2">
+            <Sparkles size={16} className="text-palm" />
             <p className="font-semibold text-ink">الخطة الذكية المقترحة</p>
+            {result?.demo && <span className="rounded-full bg-goldSoft px-2 py-0.5 text-[10px] font-medium text-gold">تجريبي</span>}
           </div>
-          <button onClick={onClose} className="rounded-lg p-1.5 hover:bg-paper transition focus-ring">
-            <X size={18} />
-          </button>
+          <div className="flex items-center gap-1">
+            <button onClick={onRefresh} disabled={loading} title="تحديث الخطة" className="rounded-lg p-1.5 text-ink/50 hover:bg-paper hover:text-palm transition focus-ring disabled:opacity-40">
+              <RotateCcw size={15} />
+            </button>
+            <button onClick={onClose} className="rounded-lg p-1.5 hover:bg-paper transition focus-ring">
+              <X size={18} />
+            </button>
+          </div>
         </div>
 
+        {/* Loading state */}
+        {loading && (
+          <div className="flex flex-col items-center justify-center gap-3 py-16 text-ink/50">
+            <DgaSpinner size="md" />
+            <p className="text-sm">جاري التحليل وبناء الخطة...</p>
+          </div>
+        )}
+
+        {/* Error state */}
+        {!loading && error && (
+          <div className="m-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            {error}
+            <button onClick={onRefresh} className="mt-2 flex items-center gap-1 text-xs text-red-600 underline">
+              <RotateCcw size={11} /> إعادة المحاولة
+            </button>
+          </div>
+        )}
+
+        {/* Result */}
+        {!loading && result && (
         <div className="space-y-4 p-4">
-<div className="rounded-lg bg-mint px-4 py-3">
+          {/* ── العرض الشامل البصري ── */}
+          {stats && (
+            <div className="rounded-xl border border-line bg-paper p-4 space-y-3">
+              <p className="text-xs font-bold text-ink/60 tracking-wide">نظرة عامة على الخطة</p>
+
+              {/* الأرقام الكبيرة */}
+              <div className="grid grid-cols-3 gap-2">
+                <div className="rounded-lg bg-white border border-line p-2.5 text-center">
+                  <p className="text-xl font-bold text-ink">{stats.total}</p>
+                  <p className="text-[10px] text-ink/50">منشور مجدول</p>
+                </div>
+                <div className="rounded-lg bg-mint border border-palm/20 p-2.5 text-center">
+                  <p className="text-xl font-bold text-palm">{stats.ready}</p>
+                  <p className="text-[10px] text-palm/70">جاهز للنشر</p>
+                </div>
+                <div className="rounded-lg bg-goldSoft border border-goldBorder p-2.5 text-center">
+                  <p className="text-xl font-bold text-gold">{stats.total - stats.ready}</p>
+                  <p className="text-[10px] text-gold/70">يحتاج مراجعة</p>
+                </div>
+              </div>
+
+              {/* شريط الأولويات */}
+              <div className="space-y-1.5">
+                <p className="text-[10px] font-semibold text-ink/50">توزيع الأولوية</p>
+                {[
+                  { label: "عالية",   count: stats.high,   color: "bg-palm",      textColor: "text-palm" },
+                  { label: "متوسطة", count: stats.medium, color: "bg-gold",      textColor: "text-gold" },
+                  { label: "منخفضة", count: stats.low,    color: "bg-ink/20",    textColor: "text-ink/50" },
+                ].map(({ label, count, color, textColor }) => (
+                  <div key={label} className="flex items-center gap-2">
+                    <span className={`w-12 text-[10px] ${textColor}`}>{label}</span>
+                    <div className="flex-1 h-2 rounded-full bg-line overflow-hidden">
+                      <div
+                        className={`h-full rounded-full ${color} transition-all duration-500`}
+                        style={{ width: stats.total > 0 ? `${(count / stats.total) * 100}%` : "0%" }}
+                      />
+                    </div>
+                    <span className={`w-4 text-right text-[10px] font-bold ${textColor}`}>{count}</span>
+                  </div>
+                ))}
+              </div>
+
+              {/* القنوات */}
+              {stats.channels.length > 0 && (
+                <div className="space-y-1">
+                  <p className="text-[10px] font-semibold text-ink/50">القنوات</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {stats.channels.map(([ch, count]) => (
+                      <span key={ch} className="flex items-center gap-1 rounded-full border border-line bg-white px-2.5 py-0.5 text-[10px] font-medium text-ink/70">
+                        {ch}
+                        <span className="rounded-full bg-palm/10 px-1 text-palm font-bold">{count}</span>
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* نطاق التواريخ */}
+              {stats.firstDate && (
+                <div className="flex items-center gap-2 rounded-lg border border-line bg-white px-3 py-2">
+                  <Calendar size={13} className="shrink-0 text-palm" />
+                  <p className="text-xs text-ink/70">
+                    فترة النشر: <span className="font-semibold text-ink">{stats.fmtDate(stats.firstDate)}</span>
+                    {stats.firstDate !== stats.lastDate && <> — <span className="font-semibold text-ink">{stats.fmtDate(stats.lastDate)}</span></>}
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* الملخص */}
+          <div className="rounded-lg bg-mint px-4 py-3">
             <p className="text-sm leading-6 text-palm">{result.summary}</p>
           </div>
 
@@ -1072,6 +1199,7 @@ function SmartPlanPanel({
             المقترحات استرشادية — يمكنك تعديل المواعيد بعد التطبيق
           </p>
         </div>
+        )}
       </div>
     </>
   );
@@ -1087,9 +1215,10 @@ export default function CalendarV2Page() {
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState<DisplayStatus | "">("");
   const [dayPanel, setDayPanel] = useState<{ date: string; items: StoredContentRecord[] } | null>(null);
+  const [smartPlanOpen,    setSmartPlanOpen]    = useState(false);
   const [smartPlanLoading, setSmartPlanLoading] = useState(false);
-  const [smartPlanResult, setSmartPlanResult] = useState<SmartPlanResult | null>(null);
-  const [smartPlanError, setSmartPlanError] = useState("");
+  const [smartPlanResult,  setSmartPlanResult]  = useState<SmartPlanResult | null>(null);
+  const [smartPlanError,   setSmartPlanError]   = useState("");
 
   useEffect(() => {
     const loaded = loadContentRecords();
@@ -1124,11 +1253,11 @@ export default function CalendarV2Page() {
     setTargetDates((prev) => ({ ...prev, ...dates }));
   }
 
-  async function generateSmartPlan() {
+  // جلب الخطة من API (دائمًا طلب جديد)
+  async function fetchSmartPlan() {
     if (records.length === 0) return;
     setSmartPlanLoading(true);
     setSmartPlanError("");
-    setSmartPlanResult(null);
     try {
       const payload = {
         horizon: "monthly" as const,
@@ -1165,6 +1294,20 @@ export default function CalendarV2Page() {
     } finally {
       setSmartPlanLoading(false);
     }
+  }
+
+  // فتح البانيل — إذا النتيجة موجودة يُعرض البانيل فوراً بلا إعادة تحليل
+  function openSmartPlan() {
+    setSmartPlanOpen(true);
+    if (!smartPlanResult && !smartPlanLoading) {
+      void fetchSmartPlan();
+    }
+  }
+
+  // تحديث الخطة يدوياً (من زر "تحديث" داخل البانيل)
+  function refreshSmartPlan() {
+    setSmartPlanResult(null);
+    void fetchSmartPlan();
   }
 
   function handleDelete(id: string) {
@@ -1226,16 +1369,14 @@ export default function CalendarV2Page() {
           <FileText size={14} /> مراجعة
         </Link>
         <button
-          onClick={generateSmartPlan}
-          disabled={smartPlanLoading || records.length === 0}
+          onClick={openSmartPlan}
+          disabled={records.length === 0}
           className="flex items-center gap-1.5 rounded-lg border border-palm bg-mint px-4 py-2 text-sm font-medium text-palm transition hover:bg-palm hover:text-white disabled:opacity-50"
         >
-          {smartPlanLoading ? <DgaSpinner size="sm" /> : <Sparkles size={14} />}
-          {smartPlanLoading ? "جاري التحليل..." : "خطة ذكية"}
+          <Sparkles size={14} />
+          خطة ذكية
+          {smartPlanResult && <span className="rounded-full bg-palm/20 px-1.5 text-[10px] font-bold">{smartPlanResult.plan.length}</span>}
         </button>
-        {smartPlanError && (
-          <p className="text-xs text-red-600">{smartPlanError}</p>
-        )}
         <div className="flex min-w-[150px] flex-1 items-center gap-2 rounded-lg border border-line bg-white px-3 py-2">
           <Search size={14} className="shrink-0 text-ink/40" />
           <input
@@ -1308,13 +1449,16 @@ export default function CalendarV2Page() {
       )}
 
       {/* Smart Plan Panel */}
-      {smartPlanResult && (
+      {smartPlanOpen && (
         <SmartPlanPanel
+          loading={smartPlanLoading}
+          error={smartPlanError}
           result={smartPlanResult}
           records={records}
-          onClose={() => setSmartPlanResult(null)}
+          onClose={() => setSmartPlanOpen(false)}
+          onRefresh={refreshSmartPlan}
           onApply={handleApplySmartPlan}
-          onSelectRecord={(id) => { setSmartPlanResult(null); setSelectedId(id); }}
+          onSelectRecord={(id) => { setSmartPlanOpen(false); setSelectedId(id); }}
         />
       )}
 
