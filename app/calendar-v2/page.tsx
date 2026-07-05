@@ -12,6 +12,7 @@ import {
   Filter,
   LayoutGrid,
   List,
+  RotateCcw,
   Save,
   Search,
   Sparkles,
@@ -813,20 +814,32 @@ function ContentPanel({
             <div className="rounded-lg border border-line p-4">
               <p className="mb-3 text-sm font-semibold">هل تم النشر فعلاً؟</p>
               {postOutcome ? (
-                <div className="space-y-3">
-                  <p className="rounded-lg bg-mint p-3 text-sm text-palm">
-                    {postOutcome === "published" && "✅ تم تأكيد النشر — أحسنت!"}
-                    {postOutcome === "delayed" && "⏸️ تم تسجيل التأجيل."}
-                    {postOutcome === "cancelled" && "❌ تم تسجيل الإلغاء."}
+                <div className="space-y-2">
+                  <p className={`rounded-lg p-3 text-sm ${
+                    postOutcome === "published" ? "bg-mint text-palm"
+                    : postOutcome === "delayed"   ? "bg-goldSoft text-gold"
+                    : "bg-red-50 text-red-600"
+                  }`}>
+                    {postOutcome === "published" && "تم تأكيد النشر — أحسنت!"}
+                    {postOutcome === "delayed"   && "تم تسجيل التأجيل."}
+                    {postOutcome === "cancelled" && "تم تسجيل الإلغاء."}
                   </p>
-                  {postOutcome === "published" && (
-                    <Link
-                      href="/content-studio"
-                      className="flex items-center gap-1.5 text-sm text-palm hover:underline"
+                  <div className="flex items-center gap-3">
+                    {postOutcome === "published" && (
+                      <Link
+                        href="/content-studio"
+                        className="flex items-center gap-1 text-xs text-palm hover:underline"
+                      >
+                        <Sparkles size={11} /> إنشاء محتوى مشابه
+                      </Link>
+                    )}
+                    <button
+                      onClick={() => setPostOutcome(null)}
+                      className="flex items-center gap-1 text-xs text-ink/50 hover:text-ink transition"
                     >
-                      <Sparkles size={13} /> إنشاء محتوى مشابه
-                    </Link>
-                  )}
+                      <RotateCcw size={11} /> تغيير الحالة
+                    </button>
+                  </div>
                 </div>
               ) : (
                 <div className="flex flex-wrap gap-2">
