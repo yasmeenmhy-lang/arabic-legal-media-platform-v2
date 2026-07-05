@@ -415,6 +415,7 @@ export default function ContentStudioPage() {
   const [imageGenUrl, setImageGenUrl] = useState("");
   const [imageGenPrompt, setImageGenPrompt] = useState("");
   const [imageGenError, setImageGenError] = useState("");
+  const [imageGenSvg, setImageGenSvg] = useState("");
   const [charLimit, setCharLimit] = useState<number | null>(null);
 
   // Path
@@ -583,6 +584,7 @@ export default function ContentStudioPage() {
     setImageGenUrl("");
     setImageGenPrompt("");
     setImageGenError("");
+    setImageGenSvg("");
   }
 
   function buildInfographicDesc(): string {
@@ -597,31 +599,58 @@ export default function ContentStudioPage() {
     return `${typeLabel}${subDetail}${body} — أسلوب احترافي قانوني نظيف بخلفية بيضاء أو رمادية فاتحة`;
   }
 
+  function downloadSvg(svg: string, filename: string) {
+    const blob = new Blob([svg], { type: "image/svg+xml" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
   async function generateImage(descOverride?: string) {
     const description = descOverride ?? imageDesc;
     if (!description.trim()) return;
+
+    const visualType =
+      kind === "infographic"
+        ? infographicSubType === "chart"
+          ? "chart"
+          : infographicSubType === "mindmap"
+          ? "mindmap"
+          : "infographic"
+        : "image";
+
     setImageGenLoading(true);
     setImageGenError("");
     setImageGenUrl("");
     setImageGenPrompt("");
+    setImageGenSvg("");
     try {
       const res = await fetch("/api/content-studio/generate-image", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           description: description.trim(),
+          visualType,
+          chartType: visualType === "chart" ? (infographicChartType || undefined) : undefined,
           style: imageStyle || undefined,
           dimensions: imageDimensions || undefined,
           channel: channel || undefined,
         }),
       });
-      const data = (await res.json()) as { imageUrl?: string; prompt?: string; error?: string };
+      const data = (await res.json()) as { svgCode?: string; imageUrl?: string; prompt?: string; error?: string };
       if (!res.ok) {
         setImageGenError(data.error ?? "فشل في إنشاء الصورة");
         return;
       }
-      setImageGenUrl(data.imageUrl ?? "");
-      setImageGenPrompt(data.prompt ?? "");
+      if (data.svgCode) {
+        setImageGenSvg(data.svgCode);
+      } else {
+        setImageGenUrl(data.imageUrl ?? "");
+        setImageGenPrompt(data.prompt ?? "");
+      }
     } catch {
       setImageGenError("تعذر الاتصال بخدمة إنشاء الصور");
     } finally {
@@ -1102,6 +1131,7 @@ export default function ContentStudioPage() {
                         setInfographicChartType("");
                         setInfographicMindStyle("");
                         setImageGenUrl("");
+                        setImageGenSvg("");
                         setImageGenError("");
                       }}
                       className={`rounded-lg border px-3 py-1.5 text-xs font-medium transition ${
@@ -1180,7 +1210,7 @@ export default function ContentStudioPage() {
                 </p>
                 <textarea
                   value={infographicDesc}
-                  onChange={(e) => { setInfographicDesc(e.target.value); setImageGenUrl(""); setImageGenError(""); }}
+                  onChange={(e) => { setInfographicDesc(e.target.value); setImageGenUrl(""); setImageGenSvg(""); setImageGenError(""); }}
                   placeholder={
                     infographicSubType === "infographic"
                       ? "مثال: إنفوغراف يوضح خطوات إنهاء عقد العمل وفق نظام العمل السعودي..."
@@ -1210,38 +1240,39 @@ export default function ContentStudioPage() {
               {imageGenLoading && (
                 <div className="flex flex-col items-center gap-3 rounded-xl border border-line bg-white py-10">
                   <div className="h-10 w-10 animate-spin rounded-full border-4 border-palm/20 border-t-palm" />
-                  <p className="text-xs text-ink/50">الذكاء الاصطناعي يُنشئ الصورة — قد يستغرق ١٠–٣٠ ثانية</p>
+                  <p className="text-xs text-ink/50">الذكاء الاصطناعي يُنشئ المرئي — قد يستغرق ١٥–٤٥ ثانية</p>
                 </div>
               )}
 
-              {/* Result */}
-              {imageGenUrl && !imageGenLoading && (
+              {/* SVG result */}
+              {imageGenSvg && !imageGenLoading && (
                 <div className="overflow-hidden rounded-xl border border-line bg-white">
-                  <img src={imageGenUrl} alt="المرئي المُنشأ" className="w-full object-cover"
-                    onError={() => setImageGenError("تعذر تحميل الصورة — حاول مرة أخرى")} />
+                  <div
+                    className="w-full p-2"
+                    dangerouslySetInnerHTML={{ __html: imageGenSvg }}
+                  />
                   <div className="flex items-center justify-between gap-3 border-t border-line px-3 py-2.5">
-                    <p className="text-xs text-ink/40">أُنشئ بواسطة Flux AI</p>
+                    <p className="text-xs text-ink/40">رسم متجه SVG — جودة عالية قابل للتكبير</p>
                     <div className="flex gap-2">
-                      <a href={imageGenUrl} target="_blank" rel="noopener noreferrer" download="generated.jpg"
-                        className="rounded-lg border border-line bg-paper px-3 py-1 text-xs font-medium text-ink/70 transition hover:border-palm hover:text-palm">
-                        تنزيل
-                      </a>
+                      <button
+                        type="button"
+                        onClick={() => downloadSvg(imageGenSvg,
+                          infographicSubType === "chart" ? "chart.svg" :
+                          infographicSubType === "mindmap" ? "mindmap.svg" : "infographic.svg"
+                        )}
+                        className="rounded-lg border border-line bg-paper px-3 py-1 text-xs font-medium text-ink/70 transition hover:border-palm hover:text-palm"
+                      >
+                        تنزيل SVG
+                      </button>
                       <button type="button" onClick={() => generateImage(buildInfographicDesc())}
                         className="rounded-lg border border-line bg-paper px-3 py-1 text-xs font-medium text-ink/70 transition hover:border-palm hover:text-palm">
                         إعادة الإنشاء
                       </button>
                     </div>
                   </div>
-                  {imageGenPrompt && (
-                    <details className="border-t border-line">
-                      <summary className="cursor-pointer px-3 py-2 text-xs text-ink/40 hover:text-ink/60">
-                        Prompt (DALL-E / Midjourney)
-                      </summary>
-                      <p className="select-all px-3 pb-3 pt-1 text-xs leading-5 text-ink/55">{imageGenPrompt}</p>
-                    </details>
-                  )}
                 </div>
               )}
+
               {imageGenError && <p className="text-xs text-red-600">{imageGenError}</p>}
             </div>
           </div>
