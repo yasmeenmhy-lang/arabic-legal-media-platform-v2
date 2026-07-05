@@ -161,6 +161,27 @@ function computeStages(record: StoredContentRecord, targetDate: string) {
   }));
 }
 
+// ── Hijri date helpers ─────────────────────────────────────────────────────
+
+function hijriDayLabel(date: Date): string {
+  // Returns the Hijri day number (Latin digits). On the 1st of a Hijri month
+  // returns the short Arabic month name instead (like iOS Calendar).
+  const dayNum = new Intl.DateTimeFormat("en-u-ca-islamic", { day: "numeric" }).format(date);
+  if (dayNum === "1") {
+    return new Intl.DateTimeFormat("ar-SA-u-ca-islamic", { month: "short" }).format(date);
+  }
+  return dayNum;
+}
+
+function hijriMonthRange(year: number, mon: number): string {
+  const first = new Date(year, mon, 1);
+  const last  = new Date(year, mon + 1, 0);
+  const full  = (d: Date) => new Intl.DateTimeFormat("ar-SA-u-ca-islamic", { month: "long", year: "numeric" }).format(d);
+  const month = (d: Date) => new Intl.DateTimeFormat("ar-SA-u-ca-islamic", { month: "long" }).format(d);
+  const fl = full(first), ll = full(last);
+  return fl === ll ? fl : `${month(first)} – ${ll}`;
+}
+
 // ── Calendar Tab ───────────────────────────────────────────────────────────
 
 function CalendarTab({
@@ -233,7 +254,10 @@ function CalendarTab({
         >
           <ChevronRight size={16} />
         </button>
-        <p className="font-semibold">{monthLabel}</p>
+        <div className="text-center">
+          <p className="font-semibold">{monthLabel}</p>
+          <p className="text-[11px] text-ink/45">{hijriMonthRange(year, mon)}</p>
+        </div>
         <button
           onClick={() => setMonth(new Date(year, mon + 1, 1))}
           className="rounded-lg border border-line p-2 hover:bg-paper transition focus-ring"
@@ -257,13 +281,20 @@ function CalendarTab({
             <button
               key={i}
               onClick={() => onSelectDate(dateStr, items)}
-              className={`min-h-[64px] w-full bg-white p-1 text-right transition hover:bg-paper/80 focus-ring ${isToday(day) ? "ring-2 ring-inset ring-palm" : ""} ${items.length > 1 ? "bg-goldSoft/20" : ""}`}
+              className={`min-h-[72px] w-full bg-white p-1 text-start transition hover:bg-paper/80 focus-ring ${items.length > 1 ? "bg-goldSoft/20" : ""}`}
             >
-              <div className="mb-0.5 flex items-center gap-0.5">
-                <p className={`text-xs font-medium ${isToday(day) ? "text-palm" : "text-ink/60"}`}>{day}</p>
-                {items.length > 1 && (
-                  <span className="h-1.5 w-1.5 rounded-full bg-gold" title="تعارض: أكثر من منشور في يوم واحد" />
-                )}
+              <div className="mb-0.5 flex flex-col">
+                <div className="flex items-center gap-0.5">
+                  <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold leading-none ${
+                    isToday(day) ? "bg-palm text-white" : "text-ink"
+                  }`}>{day}</span>
+                  {items.length > 1 && (
+                    <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-gold" title="تعارض: أكثر من منشور في يوم واحد" />
+                  )}
+                </div>
+                <p className={`ps-0.5 text-[9px] leading-3 ${isToday(day) ? "text-palm/70" : "text-ink/40"}`}>
+                  {hijriDayLabel(new Date(year, mon, day))}
+                </p>
               </div>
               <div className="space-y-0.5">
                 {items.slice(0, 2).map((r) => {
