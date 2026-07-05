@@ -166,10 +166,12 @@ function CalendarTab({
   records,
   targetDates,
   onSelect,
+  onSelectDate,
 }: {
   records: StoredContentRecord[];
   targetDates: Record<string, string>;
   onSelect: (id: string) => void;
+  onSelectDate: (date: string, items: StoredContentRecord[]) => void;
 }) {
   const [month, setMonth] = useState(() => {
     const d = new Date();
@@ -251,9 +253,10 @@ function CalendarTab({
           const dateStr = `${year}-${String(mon + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
           const items = byDate[dateStr] ?? [];
           return (
-            <div
+            <button
               key={i}
-              className={`min-h-[64px] bg-white p-1 ${isToday(day) ? "ring-2 ring-inset ring-palm" : ""} ${items.length > 1 ? "bg-goldSoft/30" : ""}`}
+              onClick={() => onSelectDate(dateStr, items)}
+              className={`min-h-[64px] w-full bg-white p-1 text-right transition hover:bg-paper/80 focus-ring ${isToday(day) ? "ring-2 ring-inset ring-palm" : ""} ${items.length > 1 ? "bg-goldSoft/20" : ""}`}
             >
               <div className="mb-0.5 flex items-center gap-0.5">
                 <p className={`text-xs font-medium ${isToday(day) ? "text-palm" : "text-ink/60"}`}>{day}</p>
@@ -266,20 +269,19 @@ function CalendarTab({
                   const ds = getDisplayStatus(r, targetDates[r.id] ?? "");
                   const c = STATUS_COLORS[ds];
                   return (
-                    <button
+                    <span
                       key={r.id}
-                      onClick={() => onSelect(r.id)}
-                      className={`w-full truncate rounded px-1 py-0.5 text-right text-[10px] leading-4 ${c.bg} ${c.text} hover:opacity-80`}
+                      className={`block w-full truncate rounded px-1 py-0.5 text-right text-[10px] leading-4 ${c.bg} ${c.text}`}
                     >
                       {r.title}
-                    </button>
+                    </span>
                   );
                 })}
                 {items.length > 2 && (
                   <p className="px-1 text-[10px] text-ink/40">+{items.length - 2}</p>
                 )}
               </div>
-            </div>
+            </button>
           );
         })}
       </div>
@@ -787,6 +789,75 @@ function ContentPanel({
   );
 }
 
+// ── Day Panel ─────────────────────────────────────────────────────────────
+
+function DayPanel({
+  date,
+  items,
+  targetDates,
+  onClose,
+  onSelectRecord,
+}: {
+  date: string;
+  items: StoredContentRecord[];
+  targetDates: Record<string, string>;
+  onClose: () => void;
+  onSelectRecord: (id: string) => void;
+}) {
+  const dateLabel = new Date(date + "T12:00:00").toLocaleDateString("ar-SA", {
+    weekday: "long", year: "numeric", month: "long", day: "numeric",
+  });
+
+  return (
+    <>
+      <div className="fixed inset-0 z-40 bg-ink/20 backdrop-blur-sm" onClick={onClose} aria-hidden="true" />
+      <div className="fixed inset-x-0 bottom-0 z-50 max-h-[70vh] overflow-y-auto rounded-t-2xl bg-white shadow-2xl lg:inset-x-auto lg:bottom-0 lg:end-0 lg:top-0 lg:w-[380px] lg:max-h-full lg:rounded-none lg:rounded-s-2xl lg:shadow-[-4px_0_24px_rgba(0,0,0,0.08)]">
+        <div className="sticky top-0 z-10 flex items-center justify-between border-b border-line bg-white px-4 py-3">
+          <div>
+            <p className="font-semibold">{dateLabel}</p>
+            <p className="text-xs text-ink/50">{items.length ? `${items.length} محتوى مجدول` : "لا يوجد محتوى مجدول"}</p>
+          </div>
+          <button onClick={onClose} className="rounded-lg p-1.5 hover:bg-paper transition focus-ring">
+            <X size={18} />
+          </button>
+        </div>
+
+        <div className="p-4">
+          {items.length === 0 ? (
+            <div className="rounded-lg border border-dashed border-line bg-paper py-10 text-center">
+              <p className="text-sm text-ink/40">لا يوجد محتوى مجدول لهذا اليوم</p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {items.map((r) => {
+                const ds = getDisplayStatus(r, targetDates[r.id] ?? "");
+                const c = STATUS_COLORS[ds];
+                return (
+                  <button
+                    key={r.id}
+                    onClick={() => { onSelectRecord(r.id); onClose(); }}
+                    className="w-full rounded-lg border border-line p-3 text-right transition hover:border-palm hover:shadow-sm focus-ring"
+                  >
+                    <p className="font-medium leading-6">{r.title}</p>
+                    <div className="mt-1.5 flex items-center gap-2">
+                      <span className={`rounded-full px-2 py-0.5 text-xs ${c.bg} ${c.text}`}>{ds}</span>
+                      {r.approvedVersion && (
+                        <span className="flex items-center gap-1 text-xs text-palm">
+                          <CheckCircle2 size={11} /> معتمد
+                        </span>
+                      )}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+    </>
+  );
+}
+
 // ── Smart Plan Panel ───────────────────────────────────────────────────────
 
 const PRIORITY_STYLE: Record<SmartPlanItem["priority"], string> = {
@@ -901,6 +972,7 @@ export default function CalendarV2Page() {
   const [tab, setTab] = useState<ViewTab>("calendar");
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState<DisplayStatus | "">("");
+  const [dayPanel, setDayPanel] = useState<{ date: string; items: StoredContentRecord[] } | null>(null);
   const [smartPlanLoading, setSmartPlanLoading] = useState(false);
   const [smartPlanResult, setSmartPlanResult] = useState<SmartPlanResult | null>(null);
   const [smartPlanError, setSmartPlanError] = useState("");
@@ -1102,13 +1174,24 @@ export default function CalendarV2Page() {
             </Link>
           </div>
         ) : tab === "calendar" ? (
-          <CalendarTab records={filtered} targetDates={targetDates} onSelect={setSelectedId} />
+          <CalendarTab records={filtered} targetDates={targetDates} onSelect={setSelectedId} onSelectDate={(date, items) => setDayPanel({ date, items })} />
         ) : tab === "kanban" ? (
           <KanbanTab records={filtered} targetDates={targetDates} onSelect={setSelectedId} />
         ) : (
           <ListTab records={filtered} targetDates={targetDates} onSelect={setSelectedId} />
         )}
       </Panel>
+
+      {/* Day Panel */}
+      {dayPanel && (
+        <DayPanel
+          date={dayPanel.date}
+          items={dayPanel.items}
+          targetDates={targetDates}
+          onClose={() => setDayPanel(null)}
+          onSelectRecord={(id) => { setSelectedId(id); setDayPanel(null); }}
+        />
+      )}
 
       {/* Smart Plan Panel */}
       {smartPlanResult && (
