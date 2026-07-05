@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import { DgaSpinner, PageHeader, Panel } from "@/components/ui";
 import { socialBrandIcons } from "@/components/social-icons";
+import { CircularStepper } from "@/components/circular-stepper";
 import {
   loadContentRecords,
   saveContentRecords,
@@ -667,17 +668,21 @@ function ContentPanel({
           </div>
 
           {/* Timeline */}
-          <div>
-            <div className="mb-2 flex items-center justify-between">
-              <p className="text-xs font-semibold text-ink/60">الخط الزمني</p>
-              <p className="text-xs text-ink/50">{completed} من {stages.length}</p>
-            </div>
-            <div className="mb-3 h-1.5 w-full overflow-hidden rounded-full bg-line">
-              <div
-                className="h-full rounded-full bg-palm transition-all duration-300"
-                style={{ width: `${progressPercent}%` }}
-              />
-            </div>
+          <div className="space-y-3">
+            {(() => {
+              const currentIdx = stages.findIndex((s) => s.current);
+              const activeIdx  = currentIdx >= 0 ? currentIdx : completed < stages.length ? completed : stages.length - 1;
+              return (
+                <CircularStepper
+                  current={activeIdx + 1}
+                  total={stages.length}
+                  title={stages[activeIdx]?.label ?? ""}
+                  prev={activeIdx > 0 ? stages[activeIdx - 1].label : undefined}
+                  next={activeIdx < stages.length - 1 ? stages[activeIdx + 1].label : undefined}
+                  size="sm"
+                />
+              );
+            })()}
             <div className="grid grid-cols-3 gap-1">
               {stages.map((stage) => (
                 <Link
