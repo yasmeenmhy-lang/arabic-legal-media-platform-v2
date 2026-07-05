@@ -8,7 +8,6 @@ import {
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
-  FileText,
   Filter,
   LayoutGrid,
   List,
@@ -1310,6 +1309,13 @@ export default function CalendarV2Page() {
     void fetchSmartPlan();
   }
 
+  // إنشاء خطة جديدة — يفتح البانيل ويجلب تحليلاً جديداً دائماً
+  function createNewPlan() {
+    setSmartPlanOpen(true);
+    setSmartPlanResult(null);
+    void fetchSmartPlan();
+  }
+
   function handleDelete(id: string) {
     const next = records.filter((r) => r.id !== id);
     saveContentRecords(next);
@@ -1318,8 +1324,8 @@ export default function CalendarV2Page() {
   }
 
   const TABS: { key: ViewTab; icon: React.ReactNode; label: string }[] = [
-    { key: "calendar", icon: <Calendar size={15} />, label: "تقويم" },
     { key: "kanban",   icon: <LayoutGrid size={15} />, label: "مسار" },
+    { key: "calendar", icon: <Calendar size={15} />, label: "تقويم" },
     { key: "list",     icon: <List size={15} />, label: "قائمة" },
   ];
 
@@ -1356,25 +1362,20 @@ export default function CalendarV2Page() {
 
       {/* 2. Action bar */}
       <div className="flex flex-wrap items-center gap-2">
-        <Link
-          href="/content-studio"
-          className="flex items-center gap-1.5 rounded-lg bg-palm px-4 py-2 text-sm font-medium text-white transition hover:bg-palm/90"
-        >
-          <Sparkles size={14} /> إنشاء محتوى
-        </Link>
-        <Link
-          href="/content-review"
-          className="flex items-center gap-1.5 rounded-lg border border-line bg-white px-4 py-2 text-sm font-medium text-ink transition hover:border-palm hover:text-palm"
-        >
-          <FileText size={14} /> مراجعة
-        </Link>
         <button
-          onClick={openSmartPlan}
+          onClick={createNewPlan}
           disabled={records.length === 0}
-          className="flex items-center gap-1.5 rounded-lg border border-palm bg-mint px-4 py-2 text-sm font-medium text-palm transition hover:bg-palm hover:text-white disabled:opacity-50"
+          className="flex items-center gap-1.5 rounded-lg bg-palm px-4 py-2 text-sm font-medium text-white transition hover:bg-palm/90 disabled:opacity-50"
         >
-          <Sparkles size={14} />
-          {smartPlanResult ? "عرض الخطة الذكية" : "إنشاء خطة ذكية"}
+          <Sparkles size={14} /> إنشاء خطة جديدة
+        </button>
+        <button
+          onClick={() => setSmartPlanOpen(true)}
+          disabled={!smartPlanResult}
+          className="flex items-center gap-1.5 rounded-lg border border-palm bg-mint px-4 py-2 text-sm font-medium text-palm transition hover:bg-palm hover:text-white disabled:opacity-40"
+        >
+          <LayoutGrid size={14} />
+          عرض الخطة الذكية
           {smartPlanResult && <span className="rounded-full bg-palm/20 px-1.5 text-[10px] font-bold">{smartPlanResult.plan.length}</span>}
         </button>
         <div className="flex min-w-[150px] flex-1 items-center gap-2 rounded-lg border border-line bg-white px-3 py-2">
