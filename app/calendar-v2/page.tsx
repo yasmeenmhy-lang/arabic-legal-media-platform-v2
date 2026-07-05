@@ -1375,7 +1375,7 @@ export default function CalendarV2Page() {
           className="flex items-center gap-1.5 rounded-lg border border-palm bg-mint px-4 py-2 text-sm font-medium text-palm transition hover:bg-palm hover:text-white disabled:opacity-40"
         >
           <LayoutGrid size={14} />
-          عرض الخطة الذكية
+          عرض الخطة الذكية المقترحة
           {smartPlanResult && <span className="rounded-full bg-palm/20 px-1.5 text-[10px] font-bold">{smartPlanResult.plan.length}</span>}
         </button>
         <div className="flex min-w-[150px] flex-1 items-center gap-2 rounded-lg border border-line bg-white px-3 py-2">
