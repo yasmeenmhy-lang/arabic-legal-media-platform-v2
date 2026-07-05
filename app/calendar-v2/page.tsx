@@ -81,6 +81,44 @@ const STATUS_DOT: Record<DisplayStatus, string> = {
   "مسودة":         "bg-violet",
 };
 
+// ── Feature 1: Auto date suggestion ───────────────────────────────────────
+
+const CHANNEL_PREFERRED_DAYS: Record<string, number[]> = {
+  linkedin:  [1, 2, 3],
+  twitter:   [0, 4],
+  instagram: [3, 4],
+  snapchat:  [4, 5],
+  youtube:   [2, 3],
+  tiktok:    [4, 5],
+};
+const PROFESSIONAL_DAYS = [1, 2, 3];
+
+function suggestPublishDate(
+  record: StoredContentRecord,
+  allTargetDates: Record<string, string>
+): string {
+  const version = record.versions.find((v) => v.version === record.currentVersion) ?? record.versions.at(-1);
+  const channels = version?.analysis?.channelRecommendations?.map((c) => c.key) ?? [];
+  const preferredDays = channels.length
+    ? (CHANNEL_PREFERRED_DAYS[channels[0]] ?? PROFESSIONAL_DAYS)
+    : PROFESSIONAL_DAYS;
+  const taken = new Set(Object.values(allTargetDates).filter(Boolean));
+  const base = new Date();
+  for (let i = 1; i <= 60; i++) {
+    const d = new Date(base);
+    d.setDate(base.getDate() + i);
+    const dateStr = d.toISOString().slice(0, 10);
+    if (preferredDays.includes(d.getDay()) && !taken.has(dateStr)) return dateStr;
+  }
+  for (let i = 1; i <= 60; i++) {
+    const d = new Date(base);
+    d.setDate(base.getDate() + i);
+    const dateStr = d.toISOString().slice(0, 10);
+    if (!taken.has(dateStr)) return dateStr;
+  }
+  return "";
+}
+
 // ── Timeline ───────────────────────────────────────────────────────────────
 
 const STAGE_LABELS = [
@@ -163,6 +201,22 @@ function CalendarTab({
   ];
   while (cells.length % 7 !== 0) cells.push(null);
 
+  // Feature 2: gap detection — weeks with no scheduled content
+  const gapWeeks = useMemo(() => {
+    const weeks: number[] = [];
+    const rows = Math.ceil(cells.length / 7);
+    for (let w = 0; w < rows; w++) {
+      const week = cells.slice(w * 7, w * 7 + 7);
+      const hasContent = week.some((day) => {
+        if (!day) return false;
+        const dateStr = `${year}-${String(mon + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+        return (byDate[dateStr]?.length ?? 0) > 0;
+      });
+      if (!hasContent) weeks.push(w + 1);
+    }
+    return weeks;
+  }, [cells, byDate, year, mon]);
+
   const today = new Date();
   const isToday = (day: number) =>
     today.getDate() === day && today.getMonth() === mon && today.getFullYear() === year;
@@ -199,11 +253,14 @@ function CalendarTab({
           return (
             <div
               key={i}
-              className={`min-h-[64px] bg-white p-1 ${isToday(day) ? "ring-2 ring-inset ring-palm" : ""}`}
+              className={`min-h-[64px] bg-white p-1 ${isToday(day) ? "ring-2 ring-inset ring-palm" : ""} ${items.length > 1 ? "bg-goldSoft/30" : ""}`}
             >
-              <p className={`mb-0.5 text-xs font-medium ${isToday(day) ? "text-palm" : "text-ink/60"}`}>
-                {day}
-              </p>
+              <div className="mb-0.5 flex items-center gap-0.5">
+                <p className={`text-xs font-medium ${isToday(day) ? "text-palm" : "text-ink/60"}`}>{day}</p>
+                {items.length > 1 && (
+                  <span className="h-1.5 w-1.5 rounded-full bg-gold" title="تعارض: أكثر من منشور في يوم واحد" />
+                )}
+              </div>
               <div className="space-y-0.5">
                 {items.slice(0, 2).map((r) => {
                   const ds = getDisplayStatus(r, targetDates[r.id] ?? "");
@@ -226,6 +283,18 @@ function CalendarTab({
           );
         })}
       </div>
+
+      {/* Feature 2: gap warnings */}
+      {gapWeeks.length > 0 && (
+        <div className="mt-3 space-y-1.5">
+          {gapWeeks.map((w) => (
+            <div key={w} className="flex items-center gap-2 rounded-lg bg-goldSoft px-3 py-2">
+              <AlertTriangle size={12} className="shrink-0 text-gold" />
+              <p className="text-xs text-gold">الأسبوع {w} من الشهر بدون محتوى مجدول</p>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -242,19 +311,27 @@ const KANBAN_COLS: { key: DisplayStatus; label: string }[] = [
 function KanbanCard({
   record,
   targetDates,
+  todayStr,
   onSelect,
 }: {
   record: StoredContentRecord;
   targetDates: Record<string, string>;
+  todayStr: string;
   onSelect: (id: string) => void;
 }) {
   const ds = getDisplayStatus(record, targetDates[record.id] ?? "");
   const c = STATUS_COLORS[ds];
+  const isReadyToday = targetDates[record.id] === todayStr && Boolean(record.approvedVersion);
   return (
     <button
       onClick={() => onSelect(record.id)}
-      className="w-full rounded-lg border border-line bg-white p-3 text-right transition hover:border-palm hover:shadow-sm focus-ring"
+      className={`w-full rounded-lg border bg-white p-3 text-right transition hover:border-palm hover:shadow-sm focus-ring ${isReadyToday ? "border-palm ring-1 ring-palm/20" : "border-line"}`}
     >
+      {isReadyToday && (
+        <span className="mb-1.5 inline-flex items-center gap-1 rounded-full bg-mint px-2 py-0.5 text-xs text-palm">
+          <CheckCircle2 size={10} /> جاهز للنشر اليوم
+        </span>
+      )}
       <p className="line-clamp-2 text-sm font-medium leading-6">{record.title}</p>
       <div className="mt-2 flex items-center justify-between gap-2">
         <span className={`rounded-full px-2 py-0.5 text-xs ${c.bg} ${c.text}`}>{ds}</span>
@@ -276,6 +353,7 @@ function KanbanTab({
   onSelect: (id: string) => void;
 }) {
   const [mobileCol, setMobileCol] = useState<DisplayStatus>("مسودة");
+  const todayStr = useMemo(() => new Date().toISOString().slice(0, 10), []);
 
   const grouped = useMemo(() => {
     const map: Record<DisplayStatus, StoredContentRecord[]> = {
@@ -285,8 +363,23 @@ function KanbanTab({
       const ds = getDisplayStatus(r, targetDates[r.id] ?? "");
       map[ds].push(r);
     });
+    // Feature 3: smart sort — ready today → approved → has date → rest
+    (Object.keys(map) as DisplayStatus[]).forEach((col) => {
+      map[col].sort((a, b) => {
+        const score = (r: StoredContentRecord) => {
+          if (targetDates[r.id] === todayStr && r.approvedVersion) return 0;
+          if (r.approvedVersion && targetDates[r.id]) return 1;
+          if (r.approvedVersion) return 2;
+          if (targetDates[r.id]) return 3;
+          return 4;
+        };
+        const diff = score(a) - score(b);
+        if (diff !== 0) return diff;
+        return (targetDates[a.id] ?? "").localeCompare(targetDates[b.id] ?? "");
+      });
+    });
     return map;
-  }, [records, targetDates]);
+  }, [records, targetDates, todayStr]);
 
   return (
     <div>
@@ -327,7 +420,7 @@ function KanbanTab({
                   </p>
                 ) : (
                   grouped[col.key].map((r) => (
-                    <KanbanCard key={r.id} record={r} targetDates={targetDates} onSelect={onSelect} />
+                    <KanbanCard key={r.id} record={r} targetDates={targetDates} todayStr={todayStr} onSelect={onSelect} />
                   ))
                 )}
               </div>
@@ -344,7 +437,7 @@ function KanbanTab({
           </p>
         ) : (
           grouped[mobileCol].map((r) => (
-            <KanbanCard key={r.id} record={r} targetDates={targetDates} onSelect={onSelect} />
+            <KanbanCard key={r.id} record={r} targetDates={targetDates} todayStr={todayStr} onSelect={onSelect} />
           ))
         )}
       </div>
@@ -460,12 +553,14 @@ function ListTab({
 function ContentPanel({
   record,
   targetDate,
+  allTargetDates,
   onClose,
   onSaveDate,
   onDelete,
 }: {
   record: StoredContentRecord;
   targetDate: string;
+  allTargetDates: Record<string, string>;
   onClose: () => void;
   onSaveDate: (date: string) => void;
   onDelete: () => void;
@@ -589,6 +684,12 @@ function ContentPanel({
                 <Save size={14} /> حفظ
               </button>
             </div>
+            <button
+              onClick={() => setDate(suggestPublishDate(record, allTargetDates))}
+              className="mt-1.5 flex items-center gap-1 text-xs text-palm hover:underline"
+            >
+              <Sparkles size={11} /> اقتراح موعد تلقائي
+            </button>
             {savedMsg && <p className="mt-1 text-xs text-palm">{savedMsg}</p>}
           </div>
 
@@ -1024,6 +1125,7 @@ export default function CalendarV2Page() {
         <ContentPanel
           record={selectedRecord}
           targetDate={targetDates[selectedRecord.id] ?? ""}
+          allTargetDates={targetDates}
           onClose={() => setSelectedId(null)}
           onSaveDate={(date) => handleSaveDate(selectedRecord.id, date)}
           onDelete={() => handleDelete(selectedRecord.id)}
