@@ -403,6 +403,10 @@ export default function ContentStudioPage() {
   const [scriptStyle, setScriptStyle] = useState("");
   const [articleLength, setArticleLength] = useState("");
   const [infographicStyle, setInfographicStyle] = useState("");
+  const [infographicSubType, setInfographicSubType] = useState<"infographic" | "chart" | "mindmap">("infographic");
+  const [infographicChartType, setInfographicChartType] = useState("");
+  const [infographicMindStyle, setInfographicMindStyle] = useState("");
+  const [infographicDesc, setInfographicDesc] = useState("");
   const [planFrequency, setPlanFrequency] = useState("");
   const [planDateRange, setPlanDateRange] = useState("");
   const [visualMode, setVisualMode] = useState<"upload" | "describe">("upload");
@@ -567,6 +571,10 @@ export default function ContentStudioPage() {
     setScriptStyle("");
     setArticleLength("");
     setInfographicStyle("");
+    setInfographicSubType("infographic");
+    setInfographicChartType("");
+    setInfographicMindStyle("");
+    setInfographicDesc("");
     setPlanFrequency("");
     setPlanDateRange("");
     setVisualMode("upload");
@@ -577,8 +585,21 @@ export default function ContentStudioPage() {
     setImageGenError("");
   }
 
-  async function generateImage() {
-    if (!imageDesc.trim()) return;
+  function buildInfographicDesc(): string {
+    const typeLabel =
+      infographicSubType === "chart" ? "رسم بياني" :
+      infographicSubType === "mindmap" ? "خريطة ذهنية" : "إنفوغراف احترافي";
+    const subDetail =
+      infographicSubType === "infographic" && infographicStyle ? ` — ${infographicStyle}` :
+      infographicSubType === "chart" && infographicChartType ? ` (${infographicChartType})` :
+      infographicSubType === "mindmap" && infographicMindStyle ? ` بأسلوب ${infographicMindStyle}` : "";
+    const body = infographicDesc.trim() ? `: ${infographicDesc.trim()}` : "";
+    return `${typeLabel}${subDetail}${body} — أسلوب احترافي قانوني نظيف بخلفية بيضاء أو رمادية فاتحة`;
+  }
+
+  async function generateImage(descOverride?: string) {
+    const description = descOverride ?? imageDesc;
+    if (!description.trim()) return;
     setImageGenLoading(true);
     setImageGenError("");
     setImageGenUrl("");
@@ -588,7 +609,7 @@ export default function ContentStudioPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          description: imageDesc.trim(),
+          description: description.trim(),
           style: imageStyle || undefined,
           dimensions: imageDimensions || undefined,
           channel: channel || undefined,
@@ -774,7 +795,7 @@ export default function ContentStudioPage() {
 
                   <button
                     type="button"
-                    onClick={generateImage}
+                    onClick={() => generateImage()}
                     disabled={!imageDesc.trim() || imageGenLoading}
                     className="inline-flex items-center gap-2 rounded-lg bg-palm px-4 py-2 text-sm font-medium text-white transition hover:bg-palm/90 disabled:cursor-not-allowed disabled:opacity-50"
                   >
@@ -813,7 +834,7 @@ export default function ContentStudioPage() {
                           </a>
                           <button
                             type="button"
-                            onClick={generateImage}
+                            onClick={() => generateImage()}
                             className="rounded-lg border border-line bg-paper px-3 py-1 text-xs font-medium text-ink/70 transition hover:border-palm hover:text-palm"
                           >
                             إعادة الإنشاء
@@ -1055,27 +1076,173 @@ export default function ContentStudioPage() {
           </div>
         )}
 
-        {/* رسم توضيحي — نوع التخطيط */}
+        {/* رسم توضيحي / بياني / خريطة ذهنية */}
         {kind === "infographic" && (
           <div className="mb-4 overflow-hidden rounded-xl border border-palm/20 bg-mint/30">
             <div className="flex items-center gap-2 border-b border-palm/10 bg-mint/60 px-4 py-3">
               <BarChart2 size={14} className="text-palm" />
-              <p className="text-sm font-semibold text-palm">إعداد الرسم التوضيحي</p>
+              <p className="text-sm font-semibold text-palm">إعداد المرئيات والمخططات</p>
             </div>
-            <div className="p-4">
-              <p className="mb-2 text-xs font-medium text-ink/65">نوع التخطيط البصري</p>
-              <div className="flex flex-wrap gap-2">
-                {["خطوات متسلسلة", "إحصائيات ومقارنات", "شجرة قرارات", "خط زمني", "قائمة بصرية"].map((s) => (
-                  <button
-                    key={s}
-                    type="button"
-                    onClick={() => setInfographicStyle(infographicStyle === s ? "" : s)}
-                    className={`${chipBase} text-xs ${infographicStyle === s ? chipSelected : chipIdle}`}
-                  >
-                    {s}
-                  </button>
-                ))}
+            <div className="space-y-4 p-4">
+
+              {/* Sub-type selector */}
+              <div>
+                <p className="mb-2 text-xs font-medium text-ink/65">نوع المرئي</p>
+                <div className="flex flex-wrap gap-2">
+                  {[
+                    { key: "infographic" as const, label: "إنفوغراف" },
+                    { key: "chart" as const, label: "رسم بياني / شارت" },
+                    { key: "mindmap" as const, label: "خريطة ذهنية" },
+                  ].map((t) => (
+                    <button
+                      key={t.key}
+                      type="button"
+                      onClick={() => {
+                        setInfographicSubType(t.key);
+                        setInfographicChartType("");
+                        setInfographicMindStyle("");
+                        setImageGenUrl("");
+                        setImageGenError("");
+                      }}
+                      className={`rounded-lg border px-3 py-1.5 text-xs font-medium transition ${
+                        infographicSubType === t.key
+                          ? "border-palm bg-white text-palm shadow-[0_0_0_1px_theme(colors.palm)]"
+                          : "border-line bg-white/60 text-ink/55 hover:border-palm hover:text-palm"
+                      }`}
+                    >
+                      {t.label}
+                    </button>
+                  ))}
+                </div>
               </div>
+
+              {/* Infographic — layout options */}
+              {infographicSubType === "infographic" && (
+                <div>
+                  <p className="mb-2 text-xs font-medium text-ink/65">نوع التخطيط</p>
+                  <div className="flex flex-wrap gap-2">
+                    {["خطوات متسلسلة", "إحصائيات ومقارنات", "شجرة قرارات", "خط زمني", "قائمة بصرية"].map((s) => (
+                      <button key={s} type="button"
+                        onClick={() => setInfographicStyle(infographicStyle === s ? "" : s)}
+                        className={`${chipBase} text-xs ${infographicStyle === s ? chipSelected : chipIdle}`}>
+                        {s}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Chart — chart type */}
+              {infographicSubType === "chart" && (
+                <div>
+                  <p className="mb-2 text-xs font-medium text-ink/65">نوع الرسم البياني</p>
+                  <div className="flex flex-wrap gap-2">
+                    {[
+                      { key: "أعمدة", hint: "Bar" },
+                      { key: "خطي", hint: "Line" },
+                      { key: "دائري", hint: "Pie" },
+                      { key: "حلقي", hint: "Donut" },
+                      { key: "مساحة", hint: "Area" },
+                      { key: "أعمدة أفقية", hint: "H-Bar" },
+                    ].map((c) => (
+                      <button key={c.key} type="button"
+                        onClick={() => setInfographicChartType(infographicChartType === c.key ? "" : c.key)}
+                        className={`${chipBase} text-xs ${infographicChartType === c.key ? chipSelected : chipIdle}`}>
+                        {c.key}
+                        <span className="opacity-40">·</span>
+                        <span className="opacity-50">{c.hint}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Mind map — style */}
+              {infographicSubType === "mindmap" && (
+                <div>
+                  <p className="mb-2 text-xs font-medium text-ink/65">أسلوب الخريطة</p>
+                  <div className="flex flex-wrap gap-2">
+                    {["إشعاعي من المركز", "هرمي من الأعلى", "شجرة أفقية", "عنقودي"].map((s) => (
+                      <button key={s} type="button"
+                        onClick={() => setInfographicMindStyle(infographicMindStyle === s ? "" : s)}
+                        className={`${chipBase} text-xs ${infographicMindStyle === s ? chipSelected : chipIdle}`}>
+                        {s}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Description */}
+              <div>
+                <p className="mb-2 text-xs font-medium text-ink/65">
+                  صف المحتوى المطلوب <span className="font-bold text-red-500">*</span>
+                </p>
+                <textarea
+                  value={infographicDesc}
+                  onChange={(e) => { setInfographicDesc(e.target.value); setImageGenUrl(""); setImageGenError(""); }}
+                  placeholder={
+                    infographicSubType === "infographic"
+                      ? "مثال: إنفوغراف يوضح خطوات إنهاء عقد العمل وفق نظام العمل السعودي..."
+                      : infographicSubType === "chart"
+                      ? "مثال: رسم بياني يُظهر توزيع أنواع النزاعات العمالية عبر خمس سنوات..."
+                      : "مثال: خريطة ذهنية تُلخص حقوق المستثمر الأجنبي في نظام الاستثمار السعودي..."
+                  }
+                  className="min-h-24 w-full rounded-lg border border-line bg-white p-3 text-sm leading-7"
+                />
+              </div>
+
+              {/* Generate button */}
+              <button
+                type="button"
+                onClick={() => generateImage(buildInfographicDesc())}
+                disabled={!infographicDesc.trim() || imageGenLoading}
+                className="inline-flex items-center gap-2 rounded-lg bg-palm px-4 py-2 text-sm font-medium text-white transition hover:bg-palm/90 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <BarChart2 size={14} />
+                {imageGenLoading ? "جارٍ الإنشاء..." :
+                  infographicSubType === "chart" ? "إنشاء رسم بياني" :
+                  infographicSubType === "mindmap" ? "إنشاء خريطة ذهنية" :
+                  "إنشاء إنفوغراف"}
+              </button>
+
+              {/* Loading */}
+              {imageGenLoading && (
+                <div className="flex flex-col items-center gap-3 rounded-xl border border-line bg-white py-10">
+                  <div className="h-10 w-10 animate-spin rounded-full border-4 border-palm/20 border-t-palm" />
+                  <p className="text-xs text-ink/50">الذكاء الاصطناعي يُنشئ الصورة — قد يستغرق ١٠–٣٠ ثانية</p>
+                </div>
+              )}
+
+              {/* Result */}
+              {imageGenUrl && !imageGenLoading && (
+                <div className="overflow-hidden rounded-xl border border-line bg-white">
+                  <img src={imageGenUrl} alt="المرئي المُنشأ" className="w-full object-cover"
+                    onError={() => setImageGenError("تعذر تحميل الصورة — حاول مرة أخرى")} />
+                  <div className="flex items-center justify-between gap-3 border-t border-line px-3 py-2.5">
+                    <p className="text-xs text-ink/40">أُنشئ بواسطة Flux AI</p>
+                    <div className="flex gap-2">
+                      <a href={imageGenUrl} target="_blank" rel="noopener noreferrer" download="generated.jpg"
+                        className="rounded-lg border border-line bg-paper px-3 py-1 text-xs font-medium text-ink/70 transition hover:border-palm hover:text-palm">
+                        تنزيل
+                      </a>
+                      <button type="button" onClick={() => generateImage(buildInfographicDesc())}
+                        className="rounded-lg border border-line bg-paper px-3 py-1 text-xs font-medium text-ink/70 transition hover:border-palm hover:text-palm">
+                        إعادة الإنشاء
+                      </button>
+                    </div>
+                  </div>
+                  {imageGenPrompt && (
+                    <details className="border-t border-line">
+                      <summary className="cursor-pointer px-3 py-2 text-xs text-ink/40 hover:text-ink/60">
+                        Prompt (DALL-E / Midjourney)
+                      </summary>
+                      <p className="select-all px-3 pb-3 pt-1 text-xs leading-5 text-ink/55">{imageGenPrompt}</p>
+                    </details>
+                  )}
+                </div>
+              )}
+              {imageGenError && <p className="text-xs text-red-600">{imageGenError}</p>}
             </div>
           </div>
         )}
