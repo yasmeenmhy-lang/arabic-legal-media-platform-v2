@@ -71,6 +71,22 @@ const studioContentTypes = contentKindOptions.filter((item) =>
 );
 
 const channels = ["LinkedIn", "X", "Instagram", "TikTok", "Snapchat", "YouTube", "الموقع الإلكتروني"];
+
+const CHANNEL_CHAR_LIMITS: Partial<Record<string, number>> = {
+  X: 280,
+  Snapchat: 250,
+  Instagram: 2200,
+  TikTok: 2200,
+  LinkedIn: 3000,
+  YouTube: 5000,
+};
+
+const charLimitPresets = [
+  { key: "x", label: "X · ٢٨٠", value: 280 },
+  { key: "snap", label: "Snapchat · ٢٥٠", value: 250 },
+  { key: "insta-tiktok", label: "Instagram / TikTok · ٢٢٠٠", value: 2200 },
+  { key: "li", label: "LinkedIn · ٣٠٠٠", value: 3000 },
+];
 const audiences = ["عملاء محتملون من الأفراد", "منشآت ورواد أعمال", "زملاء وقطاع قانوني", "الجمهور العام"];
 const purposes = [
   "تثقيف الجمهور حول موضوع قانوني",
@@ -389,6 +405,9 @@ export default function ContentStudioPage() {
   const [infographicStyle, setInfographicStyle] = useState("");
   const [planFrequency, setPlanFrequency] = useState("");
   const [planDateRange, setPlanDateRange] = useState("");
+  const [visualMode, setVisualMode] = useState<"upload" | "describe">("upload");
+  const [imageDesc, setImageDesc] = useState("");
+  const [charLimit, setCharLimit] = useState<number | null>(null);
 
   // Path
   const [path, setPath] = useState<"review" | "create" | null>(null);
@@ -546,6 +565,15 @@ export default function ContentStudioPage() {
     setInfographicStyle("");
     setPlanFrequency("");
     setPlanDateRange("");
+    setVisualMode("upload");
+    setImageDesc("");
+  }
+
+  function startCreatePath() {
+    if (kind === "visual_content" && visualMode === "describe" && imageDesc.trim() && !topic) {
+      setTopic(imageDesc.trim());
+    }
+    setPath("create");
   }
 
   function handleKindChange(newKind: ContentKind) {
@@ -610,7 +638,7 @@ export default function ContentStudioPage() {
           </div>
         </div>
 
-        {/* محتوى بصري — رفع صورة وخصائص التصميم */}
+        {/* محتوى بصري — رفع تصميم أو وصف للذكاء الاصطناعي */}
         {kind === "visual_content" && (
           <div className="mb-4 overflow-hidden rounded-xl border border-palm/20 bg-mint/30">
             <div className="flex items-center gap-2 border-b border-palm/10 bg-mint/60 px-4 py-3">
@@ -618,46 +646,98 @@ export default function ContentStudioPage() {
               <p className="text-sm font-semibold text-palm">متطلبات المحتوى البصري</p>
             </div>
             <div className="space-y-4 p-4">
-              <div>
-                <p className="mb-2 text-xs font-medium text-ink/65">
-                  الصورة أو التصميم <span className="font-bold text-red-500">*</span>
-                </p>
-                {imagePreviewUrl ? (
-                  <div className="relative inline-block">
-                    <img
-                      src={imagePreviewUrl}
-                      alt="معاينة التصميم"
-                      className="max-h-48 rounded-lg border border-line object-contain shadow-sm"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => { setImageFile(null); setImagePreviewUrl(""); }}
-                      className="absolute -left-2 -top-2 rounded-full bg-red-500 p-0.5 text-white shadow-md transition hover:bg-red-600"
-                      aria-label="إزالة الصورة"
-                    >
-                      <XCircle size={16} />
-                    </button>
-                    <p className="mt-1.5 text-xs text-ink/50">{imageFile?.name}</p>
-                  </div>
-                ) : (
-                  <label className="flex cursor-pointer flex-col items-center gap-3 rounded-xl border-2 border-dashed border-palm/30 bg-white p-6 text-center transition hover:border-palm hover:bg-mint/40">
-                    <Upload size={28} className="text-palm/50" />
-                    <div>
-                      <p className="text-sm text-ink/70">
-                        اسحب التصميم هنا أو{" "}
-                        <span className="font-semibold text-palm">اختر من جهازك</span>
-                      </p>
-                      <p className="mt-1 text-xs text-ink/40">PNG · JPG · SVG · WebP — حتى ١٠ ميجابايت</p>
-                    </div>
-                    <input
-                      type="file"
-                      accept="image/*,.svg"
-                      onChange={handleImageUpload}
-                      className="hidden"
-                    />
-                  </label>
-                )}
+              {/* Mode toggle */}
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setVisualMode("upload")}
+                  className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition ${
+                    visualMode === "upload"
+                      ? "border-palm bg-white text-palm shadow-[0_0_0_1px_theme(colors.palm)]"
+                      : "border-line bg-white/60 text-ink/55 hover:border-palm hover:text-palm"
+                  }`}
+                >
+                  <Upload size={12} />
+                  رفع تصميم
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setVisualMode("describe")}
+                  className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition ${
+                    visualMode === "describe"
+                      ? "border-palm bg-white text-palm shadow-[0_0_0_1px_theme(colors.palm)]"
+                      : "border-line bg-white/60 text-ink/55 hover:border-palm hover:text-palm"
+                  }`}
+                >
+                  <Sparkles size={12} />
+                  وصف للذكاء الاصطناعي
+                </button>
               </div>
+
+              {/* Upload mode */}
+              {visualMode === "upload" && (
+                <div>
+                  <p className="mb-2 text-xs font-medium text-ink/65">
+                    الصورة أو التصميم <span className="font-bold text-red-500">*</span>
+                  </p>
+                  {imagePreviewUrl ? (
+                    <div className="relative inline-block">
+                      <img
+                        src={imagePreviewUrl}
+                        alt="معاينة التصميم"
+                        className="max-h-48 rounded-lg border border-line object-contain shadow-sm"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => { setImageFile(null); setImagePreviewUrl(""); }}
+                        className="absolute -left-2 -top-2 rounded-full bg-red-500 p-0.5 text-white shadow-md transition hover:bg-red-600"
+                        aria-label="إزالة الصورة"
+                      >
+                        <XCircle size={16} />
+                      </button>
+                      <p className="mt-1.5 text-xs text-ink/50">{imageFile?.name}</p>
+                    </div>
+                  ) : (
+                    <label className="flex cursor-pointer flex-col items-center gap-3 rounded-xl border-2 border-dashed border-palm/30 bg-white p-6 text-center transition hover:border-palm hover:bg-mint/40">
+                      <Upload size={28} className="text-palm/50" />
+                      <div>
+                        <p className="text-sm text-ink/70">
+                          اسحب التصميم هنا أو{" "}
+                          <span className="font-semibold text-palm">اختر من جهازك</span>
+                        </p>
+                        <p className="mt-1 text-xs text-ink/40">PNG · JPG · SVG · WebP — حتى ١٠ ميجابايت</p>
+                      </div>
+                      <input
+                        type="file"
+                        accept="image/*,.svg"
+                        onChange={handleImageUpload}
+                        className="hidden"
+                      />
+                    </label>
+                  )}
+                </div>
+              )}
+
+              {/* Describe mode — AI generates a creative brief */}
+              {visualMode === "describe" && (
+                <div>
+                  <p className="mb-2 text-xs font-medium text-ink/65">
+                    صف التصميم المطلوب <span className="font-bold text-red-500">*</span>
+                  </p>
+                  <textarea
+                    value={imageDesc}
+                    onChange={(e) => setImageDesc(e.target.value)}
+                    placeholder="مثال: تصميم احترافي بخلفية فاتحة يشرح خطوات تسوية النزاعات العمالية بأسلوب بصري منظم، مناسب لـ LinkedIn..."
+                    className="min-h-24 w-full rounded-lg border border-line bg-white p-3 text-sm leading-7"
+                  />
+                  <p className="mt-1.5 flex items-start gap-1.5 text-xs leading-5 text-ink/45">
+                    <Sparkles size={11} className="mt-0.5 shrink-0 text-palm/50" />
+                    عند الضغط على «إنشاء محتوى» سيُنشئ الذكاء الاصطناعي توجيهاً إبداعياً احترافياً يمكن تسليمه للمصمم أو استخدامه مع أدوات توليد الصور.
+                  </p>
+                </div>
+              )}
+
+              {/* Style + dimensions (shared between modes) */}
               <div>
                 <p className="mb-2 text-xs font-medium text-ink/65">أسلوب التصميم</p>
                 <div className="flex flex-wrap gap-2">
@@ -1013,6 +1093,64 @@ export default function ContentStudioPage() {
             ))}
           </div>
         </div>
+
+        {/* Character limit — optional */}
+        <div className="border-t border-line pt-4">
+          <div className="mb-2 flex items-center justify-between">
+            <p className="text-sm text-ink/65">
+              حد الحروف{" "}
+              <span className="text-ink/40">(اختياري)</span>
+            </p>
+            {charLimit !== null && (
+              <button
+                type="button"
+                onClick={() => setCharLimit(null)}
+                className="text-xs text-ink/40 transition hover:text-red-500"
+              >
+                مسح
+              </button>
+            )}
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            {charLimitPresets.map((p) => (
+              <button
+                key={p.key}
+                type="button"
+                onClick={() => setCharLimit(charLimit === p.value ? null : p.value)}
+                className={`${chipBase} text-xs ${charLimit === p.value ? chipSelected : chipIdle}`}
+              >
+                {p.label}
+              </button>
+            ))}
+            <div className="flex items-center gap-1.5 rounded-lg border border-line bg-white px-3 py-1.5 text-xs transition focus-within:border-palm">
+              <input
+                type="number"
+                min={1}
+                max={10000}
+                value={charLimit ?? ""}
+                onChange={(e) => {
+                  const v = parseInt(e.target.value, 10);
+                  setCharLimit(isNaN(v) || v <= 0 ? null : v);
+                }}
+                placeholder="مخصص"
+                className="w-16 bg-transparent text-right text-xs focus:outline-none"
+              />
+              <span className="text-ink/40">حرف</span>
+            </div>
+          </div>
+          {channel && CHANNEL_CHAR_LIMITS[channel] && charLimit !== CHANNEL_CHAR_LIMITS[channel] && (
+            <p className="mt-2 text-xs text-ink/45">
+              الحد المعتاد لـ {channel}:{" "}
+              <button
+                type="button"
+                onClick={() => setCharLimit(CHANNEL_CHAR_LIMITS[channel]!)}
+                className="font-semibold text-palm underline-offset-2 hover:underline"
+              >
+                {CHANNEL_CHAR_LIMITS[channel]!.toLocaleString("ar-SA")} حرف
+              </button>
+            </p>
+          )}
+        </div>
       </Panel>
 
       {/* ── 2. Path selection ── */}
@@ -1036,7 +1174,7 @@ export default function ContentStudioPage() {
 
             <button
               type="button"
-              onClick={() => setPath("create")}
+              onClick={startCreatePath}
               className="flex flex-col items-start gap-3 rounded-xl border-2 border-line bg-white p-6 text-right transition hover:border-violet hover:shadow-md focus-ring"
             >
               <span className="rounded-lg bg-violetSoft p-2.5 text-violet">
@@ -1069,8 +1207,26 @@ export default function ContentStudioPage() {
             value={reviewText}
             onChange={(e) => setReviewText(e.target.value)}
             placeholder="أدخل النص هنا أو اختر صيغة مقترحة أعلاه..."
-            className="min-h-44 w-full rounded-lg border border-line p-4 leading-8"
+            className={`min-h-44 w-full rounded-lg border p-4 leading-8 transition ${
+              charLimit !== null && reviewText.length > charLimit
+                ? "border-red-400 focus:border-red-400"
+                : "border-line"
+            }`}
           />
+          {charLimit !== null && (
+            <div className={`mt-1 text-left text-xs tabular-nums ${
+              reviewText.length > charLimit
+                ? "font-bold text-red-500"
+                : reviewText.length > charLimit * 0.9
+                ? "text-amber-500"
+                : "text-ink/35"
+            }`}>
+              {reviewText.length} / {charLimit}
+              {reviewText.length > charLimit && (
+                <span className="mr-2">(تجاوز بـ {reviewText.length - charLimit} حرف)</span>
+              )}
+            </div>
+          )}
           <div className="mt-4 flex gap-3">
             <Button onClick={runReview} disabled={reviewText.trim().length < 5} leadingIcon={<FileCheck2 size={16} aria-hidden="true" />}>
               مراجعة المحتوى
@@ -1196,8 +1352,26 @@ export default function ContentStudioPage() {
           <textarea
             value={generatedText}
             onChange={(e) => setGeneratedText(e.target.value)}
-            className="min-h-44 w-full rounded-lg border border-line p-4 leading-8"
+            className={`min-h-44 w-full rounded-lg border p-4 leading-8 transition ${
+              charLimit !== null && generatedText.length > charLimit
+                ? "border-red-400 focus:border-red-400"
+                : "border-line"
+            }`}
           />
+          {charLimit !== null && (
+            <div className={`mt-1 text-left text-xs tabular-nums ${
+              generatedText.length > charLimit
+                ? "font-bold text-red-500"
+                : generatedText.length > charLimit * 0.9
+                ? "text-amber-500"
+                : "text-ink/35"
+            }`}>
+              {generatedText.length} / {charLimit}
+              {generatedText.length > charLimit && (
+                <span className="mr-2">(تجاوز بـ {generatedText.length - charLimit} حرف)</span>
+              )}
+            </div>
+          )}
           <div className="mt-3 flex gap-3 rounded-lg border border-amber-200 bg-amber-50 p-4">
             <AlertTriangle size={18} className="mt-0.5 shrink-0 text-amber-500" aria-hidden="true" />
             <div className="text-sm leading-7 text-amber-900">
