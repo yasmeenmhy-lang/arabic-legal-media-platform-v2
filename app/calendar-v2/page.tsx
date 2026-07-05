@@ -10,7 +10,6 @@ import {
   ChevronRight,
   Filter,
   LayoutGrid,
-  List,
   RotateCcw,
   Save,
   Search,
@@ -33,7 +32,7 @@ import {
 // ── Types ──────────────────────────────────────────────────────────────────
 
 type DisplayStatus = "منشورة" | "مجدولة" | "تحتاج مراجعة" | "مسودة";
-type ViewTab = "calendar" | "kanban" | "list";
+type ViewTab = "calendar" | "kanban";
 type SortKey = "title" | "date" | "status";
 
 type SmartPlanItem = {
@@ -1324,9 +1323,8 @@ export default function CalendarV2Page() {
   }
 
   const TABS: { key: ViewTab; icon: React.ReactNode; label: string }[] = [
-    { key: "kanban",   icon: <LayoutGrid size={15} />, label: "مسار" },
     { key: "calendar", icon: <Calendar size={15} />, label: "تقويم" },
-    { key: "list",     icon: <List size={15} />, label: "قائمة" },
+    { key: "kanban",   icon: <LayoutGrid size={15} />, label: "مسار" },
   ];
 
   const SUMMARY_ORDER: DisplayStatus[] = ["منشورة", "مجدولة", "مسودة", "تحتاج مراجعة"];
@@ -1434,10 +1432,8 @@ export default function CalendarV2Page() {
           </div>
         ) : tab === "calendar" ? (
           <CalendarTab records={filtered} targetDates={targetDates} onSelect={setSelectedId} onSelectDate={(date, items) => setDayPanel({ date, items })} />
-        ) : tab === "kanban" ? (
-          <KanbanTab records={filtered} targetDates={targetDates} onSelect={setSelectedId} />
         ) : (
-          <ListTab records={filtered} targetDates={targetDates} onSelect={setSelectedId} />
+          <KanbanTab records={filtered} targetDates={targetDates} onSelect={setSelectedId} />
         )}
       </Panel>
 
