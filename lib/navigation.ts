@@ -1,6 +1,5 @@
 import {
   CalendarDays,
-  CalendarRange,
   FileCheck2,
   FileClock,
   Link2,
@@ -16,7 +15,6 @@ export const navItems = [
   { title: "مركز التخطيط الإعلامي والإعلاني", href: "/calendar-v2", icon: CalendarDays, group: "الرئيسية" },
   { title: "استوديو المحتوى المهني", href: "/content-studio", icon: Sparkles, group: "الرئيسية" },
   { title: "التحليل التفصيلي للمحتوى المهني", href: "/content-review", icon: FileCheck2, group: "الرئيسية" },
-  { title: "التخطيط والنشر", href: "/calendar", icon: CalendarRange, group: "الرئيسية" },
   { title: "سجل المحتوى المهني", href: "/content-management", icon: FileClock, group: "الرئيسية" },
   { title: "الوصول السريع", href: "/library", icon: Link2, group: "الحوكمة" }
 ];
