@@ -407,6 +407,10 @@ export default function ContentStudioPage() {
   const [planDateRange, setPlanDateRange] = useState("");
   const [visualMode, setVisualMode] = useState<"upload" | "describe">("upload");
   const [imageDesc, setImageDesc] = useState("");
+  const [imageGenLoading, setImageGenLoading] = useState(false);
+  const [imageGenUrl, setImageGenUrl] = useState("");
+  const [imageGenPrompt, setImageGenPrompt] = useState("");
+  const [imageGenError, setImageGenError] = useState("");
   const [charLimit, setCharLimit] = useState<number | null>(null);
 
   // Path
@@ -567,6 +571,41 @@ export default function ContentStudioPage() {
     setPlanDateRange("");
     setVisualMode("upload");
     setImageDesc("");
+    setImageGenLoading(false);
+    setImageGenUrl("");
+    setImageGenPrompt("");
+    setImageGenError("");
+  }
+
+  async function generateImage() {
+    if (!imageDesc.trim()) return;
+    setImageGenLoading(true);
+    setImageGenError("");
+    setImageGenUrl("");
+    setImageGenPrompt("");
+    try {
+      const res = await fetch("/api/content-studio/generate-image", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          description: imageDesc.trim(),
+          style: imageStyle || undefined,
+          dimensions: imageDimensions || undefined,
+          channel: channel || undefined,
+        }),
+      });
+      const data = (await res.json()) as { imageUrl?: string; prompt?: string; error?: string };
+      if (!res.ok) {
+        setImageGenError(data.error ?? "فشل في إنشاء الصورة");
+        return;
+      }
+      setImageGenUrl(data.imageUrl ?? "");
+      setImageGenPrompt(data.prompt ?? "");
+    } catch {
+      setImageGenError("تعذر الاتصال بخدمة إنشاء الصور");
+    } finally {
+      setImageGenLoading(false);
+    }
   }
 
   function startCreatePath() {
@@ -718,22 +757,85 @@ export default function ContentStudioPage() {
                 </div>
               )}
 
-              {/* Describe mode — AI generates a creative brief */}
+              {/* Describe mode — AI generates a real image via Pollinations */}
               {visualMode === "describe" && (
-                <div>
-                  <p className="mb-2 text-xs font-medium text-ink/65">
-                    صف التصميم المطلوب <span className="font-bold text-red-500">*</span>
-                  </p>
-                  <textarea
-                    value={imageDesc}
-                    onChange={(e) => setImageDesc(e.target.value)}
-                    placeholder="مثال: تصميم احترافي بخلفية فاتحة يشرح خطوات تسوية النزاعات العمالية بأسلوب بصري منظم، مناسب لـ LinkedIn..."
-                    className="min-h-24 w-full rounded-lg border border-line bg-white p-3 text-sm leading-7"
-                  />
-                  <p className="mt-1.5 flex items-start gap-1.5 text-xs leading-5 text-ink/45">
-                    <Sparkles size={11} className="mt-0.5 shrink-0 text-palm/50" />
-                    عند الضغط على «إنشاء محتوى» سيُنشئ الذكاء الاصطناعي توجيهاً إبداعياً احترافياً يمكن تسليمه للمصمم أو استخدامه مع أدوات توليد الصور.
-                  </p>
+                <div className="space-y-3">
+                  <div>
+                    <p className="mb-2 text-xs font-medium text-ink/65">
+                      صف التصميم المطلوب <span className="font-bold text-red-500">*</span>
+                    </p>
+                    <textarea
+                      value={imageDesc}
+                      onChange={(e) => { setImageDesc(e.target.value); setImageGenUrl(""); setImageGenError(""); }}
+                      placeholder="مثال: تصميم احترافي بخلفية فاتحة يشرح خطوات تسوية النزاعات العمالية بأسلوب بصري منظم، مناسب لـ LinkedIn..."
+                      className="min-h-24 w-full rounded-lg border border-line bg-white p-3 text-sm leading-7"
+                    />
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={generateImage}
+                    disabled={!imageDesc.trim() || imageGenLoading}
+                    className="inline-flex items-center gap-2 rounded-lg bg-palm px-4 py-2 text-sm font-medium text-white transition hover:bg-palm/90 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <ImageIcon size={14} />
+                    {imageGenLoading ? "جارٍ الإنشاء..." : "إنشاء صورة"}
+                  </button>
+
+                  {/* Loading skeleton */}
+                  {imageGenLoading && (
+                    <div className="flex flex-col items-center gap-3 rounded-xl border border-line bg-white py-10">
+                      <div className="h-10 w-10 animate-spin rounded-full border-4 border-palm/20 border-t-palm" />
+                      <p className="text-xs text-ink/50">الذكاء الاصطناعي يُنشئ الصورة — قد يستغرق ١٠–٣٠ ثانية</p>
+                    </div>
+                  )}
+
+                  {/* Generated image */}
+                  {imageGenUrl && !imageGenLoading && (
+                    <div className="overflow-hidden rounded-xl border border-line bg-white">
+                      <img
+                        src={imageGenUrl}
+                        alt="الصورة المُنشأة"
+                        className="w-full object-cover"
+                        onError={() => setImageGenError("تعذر تحميل الصورة — حاول مرة أخرى")}
+                      />
+                      <div className="flex items-center justify-between gap-3 border-t border-line px-3 py-2.5">
+                        <p className="text-xs text-ink/40">أُنشئت بواسطة Flux AI</p>
+                        <div className="flex gap-2">
+                          <a
+                            href={imageGenUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            download="generated-image.jpg"
+                            className="rounded-lg border border-line bg-paper px-3 py-1 text-xs font-medium text-ink/70 transition hover:border-palm hover:text-palm"
+                          >
+                            تنزيل
+                          </a>
+                          <button
+                            type="button"
+                            onClick={generateImage}
+                            className="rounded-lg border border-line bg-paper px-3 py-1 text-xs font-medium text-ink/70 transition hover:border-palm hover:text-palm"
+                          >
+                            إعادة الإنشاء
+                          </button>
+                        </div>
+                      </div>
+                      {imageGenPrompt && (
+                        <details className="border-t border-line">
+                          <summary className="cursor-pointer px-3 py-2 text-xs text-ink/40 hover:text-ink/60">
+                            Prompt المستخدم (للاستخدام مع DALL-E أو Midjourney)
+                          </summary>
+                          <p className="px-3 pb-3 pt-1 text-xs leading-5 text-ink/55 select-all">
+                            {imageGenPrompt}
+                          </p>
+                        </details>
+                      )}
+                    </div>
+                  )}
+
+                  {imageGenError && (
+                    <p className="text-xs text-red-600">{imageGenError}</p>
+                  )}
                 </div>
               )}
 
