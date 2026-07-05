@@ -934,14 +934,16 @@ function SmartPlanPanel({
   records,
   onClose,
   onApply,
+  onSelectRecord,
 }: {
   result: SmartPlanResult;
   records: StoredContentRecord[];
   onClose: () => void;
   onApply: (dates: Record<string, string>) => void;
+  onSelectRecord: (id: string) => void;
 }) {
-  function getTitle(id: string) {
-    return records.find((r) => r.id === id)?.title ?? id;
+  function getRecord(id: string) {
+    return records.find((r) => r.id === id);
   }
 
   function handleApply() {
@@ -974,21 +976,41 @@ function SmartPlanPanel({
             <div>
               <p className="mb-2 text-xs font-semibold text-ink/60">مواعيد النشر المقترحة</p>
               <div className="space-y-2">
-                {result.plan.map((item, i) => (
-                  <div key={i} className="rounded-lg border border-line p-3">
-                    <div className="flex items-start justify-between gap-2">
-                      <p className="text-sm font-medium leading-5">{getTitle(item.contentId)}</p>
-                      <span className={`shrink-0 rounded-full border px-2 py-0.5 text-xs ${PRIORITY_STYLE[item.priority]}`}>
-                        {PRIORITY_LABEL[item.priority]}
-                      </span>
-                    </div>
-                    <div className="mt-2 flex flex-wrap gap-3 text-xs text-ink/55">
-                      <span className="flex items-center gap-1"><Calendar size={11} />{item.suggestedDate}</span>
-                      <span>{item.channel}</span>
-                    </div>
-                    <p className="mt-1.5 text-xs leading-5 text-ink/50">{item.reason}</p>
-                  </div>
-                ))}
+                {result.plan.map((item, i) => {
+                  const rec = getRecord(item.contentId);
+                  const isReady = Boolean(rec?.approvedVersion);
+                  return (
+                    <button
+                      key={i}
+                      onClick={() => { onSelectRecord(item.contentId); onClose(); }}
+                      className="w-full rounded-lg border border-line p-3 text-right transition hover:border-palm hover:shadow-sm focus-ring"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <p className="text-sm font-medium leading-5">{rec?.title ?? item.contentId}</p>
+                        <span className={`shrink-0 rounded-full border px-2 py-0.5 text-xs ${PRIORITY_STYLE[item.priority]}`}>
+                          {PRIORITY_LABEL[item.priority]}
+                        </span>
+                      </div>
+                      <div className="mt-1.5 flex items-center gap-2">
+                        <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium ${
+                          isReady ? "bg-mint text-palm" : "bg-goldSoft text-gold"
+                        }`}>
+                          {isReady
+                            ? <><CheckCircle2 size={10} /> معتمد — جاهز للنشر</>
+                            : <><AlertTriangle size={10} /> يحتاج مراجعة</>}
+                        </span>
+                      </div>
+                      <div className="mt-2 flex flex-wrap items-center justify-between gap-2 text-xs text-ink/55">
+                        <div className="flex flex-wrap gap-3">
+                          <span className="flex items-center gap-1"><Calendar size={11} />{item.suggestedDate}</span>
+                          <span>{item.channel}</span>
+                        </div>
+                        <ChevronLeft size={13} className="text-ink/25" />
+                      </div>
+                      <p className="mt-1 text-[11px] leading-5 text-ink/45">{item.reason}</p>
+                    </button>
+                  );
+                })}
               </div>
             </div>
           )}
@@ -1260,6 +1282,7 @@ export default function CalendarV2Page() {
           records={records}
           onClose={() => setSmartPlanResult(null)}
           onApply={handleApplySmartPlan}
+          onSelectRecord={(id) => { setSmartPlanResult(null); setSelectedId(id); }}
         />
       )}
 
