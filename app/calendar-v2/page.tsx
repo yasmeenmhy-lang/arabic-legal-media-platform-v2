@@ -804,8 +804,12 @@ function DayPanel({
   onClose: () => void;
   onSelectRecord: (id: string) => void;
 }) {
-  const dateLabel = new Date(date + "T12:00:00").toLocaleDateString("ar-SA", {
+  const d = new Date(date + "T12:00:00");
+  const gregorianLabel = d.toLocaleDateString("ar-SA", {
     weekday: "long", year: "numeric", month: "long", day: "numeric",
+  });
+  const hijriLabel = d.toLocaleDateString("ar-SA-u-ca-islamic", {
+    year: "numeric", month: "long", day: "numeric",
   });
 
   return (
@@ -814,8 +818,9 @@ function DayPanel({
       <div className="fixed inset-x-0 bottom-0 z-50 max-h-[70vh] overflow-y-auto rounded-t-2xl bg-white shadow-2xl lg:inset-x-auto lg:bottom-0 lg:end-0 lg:top-0 lg:w-[380px] lg:max-h-full lg:rounded-none lg:rounded-s-2xl lg:shadow-[-4px_0_24px_rgba(0,0,0,0.08)]">
         <div className="sticky top-0 z-10 flex items-center justify-between border-b border-line bg-white px-4 py-3">
           <div>
-            <p className="font-semibold">{dateLabel}</p>
-            <p className="text-xs text-ink/50">{items.length ? `${items.length} محتوى مجدول` : "لا يوجد محتوى مجدول"}</p>
+            <p className="font-semibold">{gregorianLabel}</p>
+            <p className="text-xs text-ink/60">{hijriLabel}</p>
+            <p className="text-xs text-ink/45">{items.length ? `${items.length} محتوى مجدول` : "لا يوجد محتوى مجدول"}</p>
           </div>
           <button onClick={onClose} className="rounded-lg p-1.5 hover:bg-paper transition focus-ring">
             <X size={18} />
