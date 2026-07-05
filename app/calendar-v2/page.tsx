@@ -700,6 +700,21 @@ function ContentPanel({
             </div>
           </div>
 
+          {/* Publication decision */}
+          {version?.analysis?.publicationDecision && (
+            <div className="rounded-lg border border-line p-3">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-xs font-semibold text-ink/70">قرار النشر</p>
+                <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                  version.analysis.publicationDecision.recommended ? "bg-mint text-palm" : "bg-goldSoft text-gold"
+                }`}>
+                  {version.analysis.publicationDecision.label}
+                </span>
+              </div>
+              <p className="mt-2 text-xs leading-5 text-ink/65">{version.analysis.publicationDecision.reason}</p>
+            </div>
+          )}
+
           {/* Target date */}
           <div>
             <label className="text-xs font-semibold text-ink/70">موعد النشر المستهدف</label>
@@ -727,28 +742,36 @@ function ContentPanel({
             {savedMsg && <p className="mt-1 text-xs text-palm">{savedMsg}</p>}
           </div>
 
-          {/* Channels */}
+          {/* Channels — detailed cards */}
           {recommendations.length > 0 && (
             <div>
               <p className="mb-2 text-xs font-semibold text-ink/70">القنوات المقترحة</p>
-              <div className="space-y-1.5">
+              <div className="space-y-2">
                 {recommendations.map((rec) => {
                   const Icon = socialBrandIcons[rec.key];
-                  const selected = selectedChannels.includes(rec.key);
+                  const isSelected = selectedChannels.includes(rec.key);
                   return (
-                    <button
+                    <div
                       key={rec.key}
-                      onClick={() => toggleChannel(rec.key)}
-                      className={`flex w-full items-center gap-3 rounded-lg border px-3 py-2 text-sm transition ${
-                        selected
-                          ? "border-palm bg-mint text-palm"
-                          : "border-line bg-white text-ink/70 hover:border-palm/40"
-                      }`}
+                      className={`rounded-xl border transition ${isSelected ? "border-palm bg-mint/30" : "border-line bg-white"}`}
                     >
-                      {Icon && <Icon size={16} />}
-                      <span className="flex-1 text-right">{rec.channel}</span>
-                      {selected && <CheckCircle2 size={14} className="text-palm shrink-0" />}
-                    </button>
+                      <button
+                        onClick={() => toggleChannel(rec.key)}
+                        className="flex w-full items-center gap-2.5 px-3 py-2.5 text-right"
+                      >
+                        {Icon && <Icon size={17} className={isSelected ? "text-palm" : "text-ink/55"} />}
+                        <span className={`flex-1 text-sm font-medium ${isSelected ? "text-palm" : "text-ink"}`}>{rec.channel}</span>
+                        {isSelected && <CheckCircle2 size={13} className="shrink-0 text-palm" />}
+                      </button>
+                      <div className="border-t border-line/50 px-3 pb-3 pt-2 space-y-1.5 text-[11px] leading-5 text-ink/65">
+                        {rec.targetAudience && <p><span className="font-medium text-ink/80">الجمهور: </span>{rec.targetAudience}</p>}
+                        {rec.format        && <p><span className="font-medium text-ink/80">الصيغة: </span>{rec.format}</p>}
+                        {rec.expectedBenefit && <p><span className="font-medium text-ink/80">الفائدة: </span>{rec.expectedBenefit}</p>}
+                        {rec.risks         && <p><span className="font-medium text-ink/80">المخاطر: </span>{rec.risks}</p>}
+                        {rec.timing        && <p><span className="font-medium text-ink/80">التوقيت: </span>{rec.timing}</p>}
+                        {rec.reason        && <p className="border-t border-line/40 pt-1.5 text-ink/50">{rec.reason}</p>}
+                      </div>
+                    </div>
                   );
                 })}
               </div>
