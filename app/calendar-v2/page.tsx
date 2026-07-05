@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
+  AlertTriangle,
   Calendar,
   CheckCircle2,
   ChevronLeft,
@@ -20,7 +21,7 @@ import {
   Users,
   X,
 } from "lucide-react";
-import { PageHeader, Panel } from "@/components/ui";
+import { DgaSpinner, PageHeader, Panel } from "@/components/ui";
 import { socialBrandIcons } from "@/components/social-icons";
 import {
   loadContentRecords,
@@ -33,6 +34,20 @@ import {
 type DisplayStatus = "منشورة" | "مجدولة" | "تحتاج مراجعة" | "مسودة";
 type ViewTab = "calendar" | "kanban" | "list";
 type SortKey = "title" | "date" | "status";
+
+type SmartPlanItem = {
+  contentId: string;
+  suggestedDate: string;
+  channel: string;
+  reason: string;
+  priority: "high" | "medium" | "low";
+};
+
+type SmartPlanResult = {
+  plan: SmartPlanItem[];
+  gaps: string[];
+  summary: string;
+};
 
 // ── Status helpers ─────────────────────────────────────────────────────────
 
@@ -671,6 +686,111 @@ function ContentPanel({
   );
 }
 
+// ── Smart Plan Panel ───────────────────────────────────────────────────────
+
+const PRIORITY_STYLE: Record<SmartPlanItem["priority"], string> = {
+  high:   "bg-mint text-palm border-palm/30",
+  medium: "bg-goldSoft text-gold border-goldBorder",
+  low:    "bg-paper text-ink/60 border-line",
+};
+const PRIORITY_LABEL: Record<SmartPlanItem["priority"], string> = {
+  high: "أولوية عالية", medium: "متوسطة", low: "منخفضة",
+};
+
+function SmartPlanPanel({
+  result,
+  records,
+  onClose,
+  onApply,
+}: {
+  result: SmartPlanResult;
+  records: StoredContentRecord[];
+  onClose: () => void;
+  onApply: (dates: Record<string, string>) => void;
+}) {
+  function getTitle(id: string) {
+    return records.find((r) => r.id === id)?.title ?? id;
+  }
+
+  function handleApply() {
+    const dates: Record<string, string> = {};
+    result.plan.forEach((item) => { dates[item.contentId] = item.suggestedDate; });
+    onApply(dates);
+    onClose();
+  }
+
+  return (
+    <>
+      <div className="fixed inset-0 z-40 bg-ink/20 backdrop-blur-sm" onClick={onClose} aria-hidden="true" />
+      <div className="fixed inset-x-0 bottom-0 z-50 max-h-[85vh] overflow-y-auto rounded-t-2xl bg-white shadow-2xl lg:inset-x-auto lg:bottom-0 lg:end-0 lg:top-0 lg:w-[420px] lg:max-h-full lg:rounded-none lg:rounded-s-2xl lg:shadow-[-4px_0_24px_rgba(0,0,0,0.08)]">
+        <div className="sticky top-0 z-10 flex items-center justify-between border-b border-line bg-white px-4 py-3">
+          <div className="flex items-center gap-2 text-palm">
+            <Sparkles size={16} />
+            <p className="font-semibold text-ink">الخطة الذكية المقترحة</p>
+          </div>
+          <button onClick={onClose} className="rounded-lg p-1.5 hover:bg-paper transition focus-ring">
+            <X size={18} />
+          </button>
+        </div>
+
+        <div className="space-y-4 p-4">
+          <div className="rounded-lg bg-mint px-4 py-3">
+            <p className="text-sm leading-6 text-palm">{result.summary}</p>
+          </div>
+
+          {result.plan.length > 0 && (
+            <div>
+              <p className="mb-2 text-xs font-semibold text-ink/60">مواعيد النشر المقترحة</p>
+              <div className="space-y-2">
+                {result.plan.map((item, i) => (
+                  <div key={i} className="rounded-lg border border-line p-3">
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="text-sm font-medium leading-5">{getTitle(item.contentId)}</p>
+                      <span className={`shrink-0 rounded-full border px-2 py-0.5 text-xs ${PRIORITY_STYLE[item.priority]}`}>
+                        {PRIORITY_LABEL[item.priority]}
+                      </span>
+                    </div>
+                    <div className="mt-2 flex flex-wrap gap-3 text-xs text-ink/55">
+                      <span className="flex items-center gap-1"><Calendar size={11} />{item.suggestedDate}</span>
+                      <span>{item.channel}</span>
+                    </div>
+                    <p className="mt-1.5 text-xs leading-5 text-ink/50">{item.reason}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {result.gaps.length > 0 && (
+            <div>
+              <p className="mb-2 text-xs font-semibold text-ink/60">فجوات تحتاج انتباهاً</p>
+              <div className="space-y-1.5">
+                {result.gaps.map((gap, i) => (
+                  <div key={i} className="flex items-start gap-2 rounded-lg bg-goldSoft px-3 py-2">
+                    <AlertTriangle size={13} className="mt-0.5 shrink-0 text-gold" />
+                    <p className="text-xs leading-5 text-gold">{gap}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <button
+            onClick={handleApply}
+            className="flex w-full items-center justify-center gap-2 rounded-lg bg-palm px-4 py-3 text-sm font-medium text-white transition hover:bg-palm/90"
+          >
+            <Save size={14} /> تطبيق الخطة وحفظ المواعيد
+          </button>
+
+          <p className="text-center text-xs text-ink/40">
+            المقترحات استرشادية — يمكنك تعديل المواعيد بعد التطبيق
+          </p>
+        </div>
+      </div>
+    </>
+  );
+}
+
 // ── Page ───────────────────────────────────────────────────────────────────
 
 export default function CalendarV2Page() {
@@ -680,6 +800,9 @@ export default function CalendarV2Page() {
   const [tab, setTab] = useState<ViewTab>("calendar");
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState<DisplayStatus | "">("");
+  const [smartPlanLoading, setSmartPlanLoading] = useState(false);
+  const [smartPlanResult, setSmartPlanResult] = useState<SmartPlanResult | null>(null);
+  const [smartPlanError, setSmartPlanError] = useState("");
 
   useEffect(() => {
     const loaded = loadContentRecords();
@@ -707,6 +830,54 @@ export default function CalendarV2Page() {
   function handleSaveDate(id: string, date: string) {
     saveTargetDate(id, date);
     setTargetDates((prev) => ({ ...prev, [id]: date }));
+  }
+
+  function handleApplySmartPlan(dates: Record<string, string>) {
+    Object.entries(dates).forEach(([id, date]) => saveTargetDate(id, date));
+    setTargetDates((prev) => ({ ...prev, ...dates }));
+  }
+
+  async function generateSmartPlan() {
+    if (records.length === 0) return;
+    setSmartPlanLoading(true);
+    setSmartPlanError("");
+    setSmartPlanResult(null);
+    try {
+      const payload = {
+        horizon: "monthly" as const,
+        startDate: new Date().toISOString().slice(0, 10),
+        records: records.map((r) => {
+          const v = r.versions.find((ver) => ver.version === r.currentVersion) ?? r.versions.at(-1);
+          return {
+            id: r.id,
+            title: r.title,
+            status: r.status,
+            sharingStatus: r.sharingStatus,
+            purpose: v?.purpose,
+            audience: v?.audience,
+            channel: v?.channel,
+            approved: Boolean(r.approvedVersion),
+            publicationLabel: v?.analysis?.publicationDecision?.label,
+            channels: v?.analysis?.channelRecommendations?.map((c) => c.channel) ?? [],
+          };
+        }),
+      };
+      const res = await fetch("/api/smart-plan", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json() as SmartPlanResult & { error?: string };
+      if (!res.ok || data.error) {
+        setSmartPlanError(data.error ?? "حدث خطأ غير متوقع");
+      } else {
+        setSmartPlanResult(data);
+      }
+    } catch {
+      setSmartPlanError("تعذّر الاتصال بخدمة التخطيط الذكي");
+    } finally {
+      setSmartPlanLoading(false);
+    }
   }
 
   function handleDelete(id: string) {
@@ -767,6 +938,17 @@ export default function CalendarV2Page() {
         >
           <FileText size={14} /> مراجعة
         </Link>
+        <button
+          onClick={generateSmartPlan}
+          disabled={smartPlanLoading || records.length === 0}
+          className="flex items-center gap-1.5 rounded-lg border border-palm bg-mint px-4 py-2 text-sm font-medium text-palm transition hover:bg-palm hover:text-white disabled:opacity-50"
+        >
+          {smartPlanLoading ? <DgaSpinner size="sm" /> : <Sparkles size={14} />}
+          {smartPlanLoading ? "جاري التحليل..." : "خطة ذكية"}
+        </button>
+        {smartPlanError && (
+          <p className="text-xs text-red-600">{smartPlanError}</p>
+        )}
         <div className="flex min-w-[150px] flex-1 items-center gap-2 rounded-lg border border-line bg-white px-3 py-2">
           <Search size={14} className="shrink-0 text-ink/40" />
           <input
@@ -826,6 +1008,16 @@ export default function CalendarV2Page() {
           <ListTab records={filtered} targetDates={targetDates} onSelect={setSelectedId} />
         )}
       </Panel>
+
+      {/* Smart Plan Panel */}
+      {smartPlanResult && (
+        <SmartPlanPanel
+          result={smartPlanResult}
+          records={records}
+          onClose={() => setSmartPlanResult(null)}
+          onApply={handleApplySmartPlan}
+        />
+      )}
 
       {/* Side panel / Bottom sheet */}
       {selectedRecord && (
