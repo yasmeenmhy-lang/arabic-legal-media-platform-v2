@@ -203,7 +203,7 @@ function CalendarTab({
 
   const year = month.getFullYear();
   const mon = month.getMonth();
-  const monthLabel = month.toLocaleDateString("ar-SA", { month: "long", year: "numeric" });
+  const monthLabel = month.toLocaleDateString("ar-SA-u-ca-gregory", { month: "long", year: "numeric" });
   const firstDay = new Date(year, mon, 1).getDay();
   const daysInMonth = new Date(year, mon + 1, 0).getDate();
 
