@@ -47,6 +47,7 @@ type SmartPlanResult = {
   plan: SmartPlanItem[];
   gaps: string[];
   summary: string;
+  demo?: boolean;
 };
 
 // ── Status helpers ─────────────────────────────────────────────────────────
@@ -911,6 +912,14 @@ function SmartPlanPanel({
         </div>
 
         <div className="space-y-4 p-4">
+          {result.demo && (
+            <div className="flex items-start gap-2 rounded-lg border border-goldBorder bg-goldSoft px-3 py-2.5">
+              <AlertTriangle size={13} className="mt-0.5 shrink-0 text-gold" />
+              <p className="text-xs leading-5 text-gold">
+                خطة محلية — لتفعيل الخطة المدعومة بالذكاء الاصطناعي أضف <span className="font-mono font-semibold">ANTHROPIC_API_KEY</span> في إعدادات Vercel.
+              </p>
+            </div>
+          )}
           <div className="rounded-lg bg-mint px-4 py-3">
             <p className="text-sm leading-6 text-palm">{result.summary}</p>
           </div>
