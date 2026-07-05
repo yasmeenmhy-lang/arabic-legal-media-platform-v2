@@ -53,17 +53,17 @@ function getDisplayStatus(record: StoredContentRecord, targetDate: string): Disp
 }
 
 const STATUS_COLORS: Record<DisplayStatus, { bg: string; text: string; border: string }> = {
-  "منشورة":        { bg: "bg-mint",       text: "text-palm",        border: "border-palm/30" },
-  "مجدولة":        { bg: "bg-amber-50",   text: "text-amber-700",   border: "border-amber-200" },
-  "تحتاج مراجعة": { bg: "bg-red-50",     text: "text-red-700",     border: "border-red-200" },
-  "مسودة":         { bg: "bg-violet-50",  text: "text-violet-700",  border: "border-violet-200" },
+  "منشورة":        { bg: "bg-mint",       text: "text-palm",   border: "border-palm/30" },
+  "مجدولة":        { bg: "bg-goldSoft",   text: "text-gold",   border: "border-goldBorder" },
+  "تحتاج مراجعة": { bg: "bg-red-50",     text: "text-red-700", border: "border-red-200" },
+  "مسودة":         { bg: "bg-violetSoft", text: "text-violet", border: "border-violetBorder" },
 };
 
-const STATUS_ICONS: Record<DisplayStatus, string> = {
-  "منشورة": "🟢",
-  "مجدولة": "⏳",
-  "تحتاج مراجعة": "🔴",
-  "مسودة": "🔵",
+const STATUS_DOT: Record<DisplayStatus, string> = {
+  "منشورة":        "bg-palm",
+  "مجدولة":        "bg-gold",
+  "تحتاج مراجعة": "bg-red-500",
+  "مسودة":         "bg-violet",
 };
 
 // ── Timeline ───────────────────────────────────────────────────────────────
@@ -504,7 +504,7 @@ function ContentPanel({
           <div>
             <p className="text-base font-semibold leading-7">{record.title}</p>
             <span className={`mt-1.5 inline-block rounded-full px-2.5 py-0.5 text-xs font-medium ${c.bg} ${c.text}`}>
-              {STATUS_ICONS[ds]} {ds}
+              {ds}
             </span>
           </div>
 
@@ -528,7 +528,7 @@ function ContentPanel({
                     stage.complete
                       ? "bg-mint text-palm"
                       : stage.current
-                        ? "bg-amber-50 text-amber-700"
+                        ? "bg-goldSoft text-gold"
                         : "bg-paper text-ink/40"
                   }`}
                 >
@@ -745,7 +745,7 @@ export default function CalendarV2Page() {
                 active ? `${c.bg} ${c.border}` : "border-line bg-white"
               }`}
             >
-              <p className="text-xl leading-none">{STATUS_ICONS[ds]}</p>
+              <span className={`block h-3 w-3 rounded-full ${STATUS_DOT[ds]}`} aria-hidden="true" />
               <p className="mt-2 text-2xl font-bold text-ink">{counts[ds]}</p>
               <p className={`mt-0.5 text-xs font-medium ${active ? c.text : "text-ink/55"}`}>{ds}</p>
             </button>
