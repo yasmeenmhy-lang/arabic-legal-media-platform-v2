@@ -1479,21 +1479,6 @@ export default function CalendarV2Page() {
         المقترحات استرشادية فقط — القرار النهائي للمحامي. يظل قرار التعديل أو الاعتماد أو النشر مسؤولية المستخدم الكاملة.
       </p>
 
-      {/* 6. Sticky bottom bar */}
-      <div className="fixed inset-x-0 bottom-0 z-30 flex gap-3 border-t border-line bg-white px-4 py-3 shadow-lg">
-        <Link
-          href="/content-studio"
-          className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-palm px-4 py-2.5 text-sm font-medium text-white transition hover:bg-palm/90"
-        >
-          <Sparkles size={15} /> إنشاء محتوى
-        </Link>
-        <Link
-          href="/content-review"
-          className="flex flex-1 items-center justify-center gap-2 rounded-lg border border-line bg-white px-4 py-2.5 text-sm font-medium text-ink transition hover:border-palm hover:text-palm"
-        >
-          <FileText size={15} /> مراجعة محتوى
-        </Link>
-      </div>
     </div>
   );
 }
