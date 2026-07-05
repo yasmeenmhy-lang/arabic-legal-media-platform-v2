@@ -26,6 +26,7 @@ import {
   TrendingUp,
   User,
   Users,
+  Upload,
   Video,
   XCircle,
 } from "lucide-react";
@@ -372,6 +373,23 @@ export default function ContentStudioPage() {
   const [purpose, setPurpose] = useState("");
   const [specialty, setSpecialty] = useState("");
 
+  // Type-specific fields
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreviewUrl, setImagePreviewUrl] = useState<string>("");
+  const [imageStyle, setImageStyle] = useState("");
+  const [imageDimensions, setImageDimensions] = useState("");
+  const [campaignName, setCampaignName] = useState("");
+  const [campaignDuration, setCampaignDuration] = useState("");
+  const [campaignGoal, setCampaignGoal] = useState("");
+  const [adCta, setAdCta] = useState("");
+  const [adStyle, setAdStyle] = useState("");
+  const [scriptDuration, setScriptDuration] = useState("");
+  const [scriptStyle, setScriptStyle] = useState("");
+  const [articleLength, setArticleLength] = useState("");
+  const [infographicStyle, setInfographicStyle] = useState("");
+  const [planFrequency, setPlanFrequency] = useState("");
+  const [planDateRange, setPlanDateRange] = useState("");
+
   // Path
   const [path, setPath] = useState<"review" | "create" | null>(null);
 
@@ -511,6 +529,38 @@ export default function ContentStudioPage() {
     setReviewError("");
   }
 
+  function clearTypeSpecificFields() {
+    if (imagePreviewUrl) URL.revokeObjectURL(imagePreviewUrl);
+    setImageFile(null);
+    setImagePreviewUrl("");
+    setImageStyle("");
+    setImageDimensions("");
+    setCampaignName("");
+    setCampaignDuration("");
+    setCampaignGoal("");
+    setAdCta("");
+    setAdStyle("");
+    setScriptDuration("");
+    setScriptStyle("");
+    setArticleLength("");
+    setInfographicStyle("");
+    setPlanFrequency("");
+    setPlanDateRange("");
+  }
+
+  function handleKindChange(newKind: ContentKind) {
+    if (newKind !== kind) clearTypeSpecificFields();
+    setKind(newKind);
+  }
+
+  function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (imagePreviewUrl) URL.revokeObjectURL(imagePreviewUrl);
+    setImageFile(file);
+    setImagePreviewUrl(URL.createObjectURL(file));
+  }
+
   // ── Render ──
 
   return (
@@ -550,7 +600,7 @@ export default function ContentStudioPage() {
               <button
                 key={item.value}
                 type="button"
-                onClick={() => setKind(item.value as ContentKind)}
+                onClick={() => handleKindChange(item.value as ContentKind)}
                 className={`${chipBase} ${kind === item.value ? chipSelected : chipIdle}`}
               >
                 {contentTypeIcons[item.value]}
@@ -559,6 +609,336 @@ export default function ContentStudioPage() {
             ))}
           </div>
         </div>
+
+        {/* محتوى بصري — رفع صورة وخصائص التصميم */}
+        {kind === "visual_content" && (
+          <div className="mb-4 overflow-hidden rounded-xl border border-palm/20 bg-mint/30">
+            <div className="flex items-center gap-2 border-b border-palm/10 bg-mint/60 px-4 py-3">
+              <ImageIcon size={14} className="text-palm" />
+              <p className="text-sm font-semibold text-palm">متطلبات المحتوى البصري</p>
+            </div>
+            <div className="space-y-4 p-4">
+              <div>
+                <p className="mb-2 text-xs font-medium text-ink/65">
+                  الصورة أو التصميم <span className="font-bold text-red-500">*</span>
+                </p>
+                {imagePreviewUrl ? (
+                  <div className="relative inline-block">
+                    <img
+                      src={imagePreviewUrl}
+                      alt="معاينة التصميم"
+                      className="max-h-48 rounded-lg border border-line object-contain shadow-sm"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => { setImageFile(null); setImagePreviewUrl(""); }}
+                      className="absolute -left-2 -top-2 rounded-full bg-red-500 p-0.5 text-white shadow-md transition hover:bg-red-600"
+                      aria-label="إزالة الصورة"
+                    >
+                      <XCircle size={16} />
+                    </button>
+                    <p className="mt-1.5 text-xs text-ink/50">{imageFile?.name}</p>
+                  </div>
+                ) : (
+                  <label className="flex cursor-pointer flex-col items-center gap-3 rounded-xl border-2 border-dashed border-palm/30 bg-white p-6 text-center transition hover:border-palm hover:bg-mint/40">
+                    <Upload size={28} className="text-palm/50" />
+                    <div>
+                      <p className="text-sm text-ink/70">
+                        اسحب التصميم هنا أو{" "}
+                        <span className="font-semibold text-palm">اختر من جهازك</span>
+                      </p>
+                      <p className="mt-1 text-xs text-ink/40">PNG · JPG · SVG · WebP — حتى ١٠ ميجابايت</p>
+                    </div>
+                    <input
+                      type="file"
+                      accept="image/*,.svg"
+                      onChange={handleImageUpload}
+                      className="hidden"
+                    />
+                  </label>
+                )}
+              </div>
+              <div>
+                <p className="mb-2 text-xs font-medium text-ink/65">أسلوب التصميم</p>
+                <div className="flex flex-wrap gap-2">
+                  {["احترافي رسمي", "إبداعي ملوّن", "بسيط ونظيف", "إخباري صارم"].map((s) => (
+                    <button
+                      key={s}
+                      type="button"
+                      onClick={() => setImageStyle(imageStyle === s ? "" : s)}
+                      className={`${chipBase} text-xs ${imageStyle === s ? chipSelected : chipIdle}`}
+                    >
+                      {s}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <p className="mb-2 text-xs font-medium text-ink/65">نسبة الأبعاد</p>
+                <div className="flex flex-wrap gap-2">
+                  {[
+                    { key: "1:1", label: "مربع ١:١", hint: "منشورات" },
+                    { key: "16:9", label: "أفقي ١٦:٩", hint: "بانرات" },
+                    { key: "9:16", label: "عمودي ٩:١٦", hint: "قصص" },
+                    { key: "4:5", label: "٤:٥", hint: "إنستغرام" },
+                  ].map((d) => (
+                    <button
+                      key={d.key}
+                      type="button"
+                      onClick={() => setImageDimensions(imageDimensions === d.key ? "" : d.key)}
+                      className={`${chipBase} text-xs ${imageDimensions === d.key ? chipSelected : chipIdle}`}
+                    >
+                      {d.label}
+                      <span className="opacity-40">·</span>
+                      <span className="opacity-50">{d.hint}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* حملة — اسم ومدة وهدف */}
+        {kind === "campaign" && (
+          <div className="mb-4 overflow-hidden rounded-xl border border-palm/20 bg-mint/30">
+            <div className="flex items-center gap-2 border-b border-palm/10 bg-mint/60 px-4 py-3">
+              <Layers size={14} className="text-palm" />
+              <p className="text-sm font-semibold text-palm">إعداد الحملة</p>
+            </div>
+            <div className="space-y-4 p-4">
+              <div>
+                <p className="mb-2 text-xs font-medium text-ink/65">
+                  اسم الحملة <span className="font-bold text-red-500">*</span>
+                </p>
+                <input
+                  type="text"
+                  value={campaignName}
+                  onChange={(e) => setCampaignName(e.target.value)}
+                  placeholder="مثال: حملة الوعي بحقوق العمال ٢٠٢٥"
+                  className="w-full rounded-lg border border-line bg-white px-4 py-2.5 text-sm transition focus:border-palm focus:outline-none"
+                />
+              </div>
+              <div>
+                <p className="mb-2 text-xs font-medium text-ink/65">مدة الحملة</p>
+                <div className="flex flex-wrap gap-2">
+                  {["أسبوع", "أسبوعان", "شهر", "شهران", "ثلاثة أشهر"].map((d) => (
+                    <button
+                      key={d}
+                      type="button"
+                      onClick={() => setCampaignDuration(campaignDuration === d ? "" : d)}
+                      className={`${chipBase} text-xs ${campaignDuration === d ? chipSelected : chipIdle}`}
+                    >
+                      {d}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <p className="mb-2 text-xs font-medium text-ink/65">هدف الحملة</p>
+                <div className="flex flex-wrap gap-2">
+                  {[
+                    "تعزيز الوعي القانوني",
+                    "توليد عملاء محتملين",
+                    "إطلاق خدمة جديدة",
+                    "ترسيخ العلامة المهنية",
+                    "تثقيف قانوني متخصص",
+                  ].map((g) => (
+                    <button
+                      key={g}
+                      type="button"
+                      onClick={() => setCampaignGoal(campaignGoal === g ? "" : g)}
+                      className={`${chipBase} text-xs ${campaignGoal === g ? chipSelected : chipIdle}`}
+                    >
+                      {g}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* إعلان — نداء الإجراء وأسلوب الإعلان */}
+        {kind === "advertisement" && (
+          <div className="mb-4 overflow-hidden rounded-xl border border-palm/20 bg-mint/30">
+            <div className="flex items-center gap-2 border-b border-palm/10 bg-mint/60 px-4 py-3">
+              <Megaphone size={14} className="text-palm" />
+              <p className="text-sm font-semibold text-palm">إعداد الإعلان المهني</p>
+            </div>
+            <div className="space-y-4 p-4">
+              <div>
+                <p className="mb-2 text-xs font-medium text-ink/65">نداء الإجراء (CTA)</p>
+                <div className="flex flex-wrap gap-2">
+                  {["تواصل معنا", "احجز استشارة مجانية", "اقرأ المقال كاملاً", "زر الموقع الإلكتروني", "شاهد الفيديو"].map((cta) => (
+                    <button
+                      key={cta}
+                      type="button"
+                      onClick={() => setAdCta(adCta === cta ? "" : cta)}
+                      className={`${chipBase} text-xs ${adCta === cta ? chipSelected : chipIdle}`}
+                    >
+                      {cta}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <p className="mb-2 text-xs font-medium text-ink/65">أسلوب الإعلان</p>
+                <div className="flex flex-wrap gap-2">
+                  {["مهني رسمي", "احترافي محايد", "توعوي تثقيفي", "ترويجي جذاب"].map((s) => (
+                    <button
+                      key={s}
+                      type="button"
+                      onClick={() => setAdStyle(adStyle === s ? "" : s)}
+                      className={`${chipBase} text-xs ${adStyle === s ? chipSelected : chipIdle}`}
+                    >
+                      {s}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* نص فيديو — مدة وأسلوب */}
+        {kind === "script" && (
+          <div className="mb-4 overflow-hidden rounded-xl border border-palm/20 bg-mint/30">
+            <div className="flex items-center gap-2 border-b border-palm/10 bg-mint/60 px-4 py-3">
+              <Video size={14} className="text-palm" />
+              <p className="text-sm font-semibold text-palm">إعداد نص الفيديو</p>
+            </div>
+            <div className="space-y-4 p-4">
+              <div>
+                <p className="mb-2 text-xs font-medium text-ink/65">المدة المستهدفة للفيديو</p>
+                <div className="flex flex-wrap gap-2">
+                  {["٣٠ ثانية", "دقيقة واحدة", "٣ دقائق", "٥ دقائق", "+١٠ دقائق"].map((d) => (
+                    <button
+                      key={d}
+                      type="button"
+                      onClick={() => setScriptDuration(scriptDuration === d ? "" : d)}
+                      className={`${chipBase} text-xs ${scriptDuration === d ? chipSelected : chipIdle}`}
+                    >
+                      {d}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <p className="mb-2 text-xs font-medium text-ink/65">أسلوب النص</p>
+                <div className="flex flex-wrap gap-2">
+                  {["تقديمي رسمي", "حواري تفاعلي", "توضيحي خطوة بخطوة", "إعلامي إخباري"].map((s) => (
+                    <button
+                      key={s}
+                      type="button"
+                      onClick={() => setScriptStyle(scriptStyle === s ? "" : s)}
+                      className={`${chipBase} text-xs ${scriptStyle === s ? chipSelected : chipIdle}`}
+                    >
+                      {s}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* مقال — الطول المستهدف */}
+        {kind === "article" && (
+          <div className="mb-4 overflow-hidden rounded-xl border border-palm/20 bg-mint/30">
+            <div className="flex items-center gap-2 border-b border-palm/10 bg-mint/60 px-4 py-3">
+              <BookOpen size={14} className="text-palm" />
+              <p className="text-sm font-semibold text-palm">إعداد المقال</p>
+            </div>
+            <div className="p-4">
+              <p className="mb-2 text-xs font-medium text-ink/65">الطول المستهدف</p>
+              <div className="flex flex-wrap gap-2">
+                {[
+                  { key: "short", label: "قصير", hint: "٥٠٠–٨٠٠ كلمة" },
+                  { key: "medium", label: "متوسط", hint: "٨٠٠–١٥٠٠ كلمة" },
+                  { key: "long", label: "معمّق", hint: "+١٥٠٠ كلمة" },
+                ].map((l) => (
+                  <button
+                    key={l.key}
+                    type="button"
+                    onClick={() => setArticleLength(articleLength === l.key ? "" : l.key)}
+                    className={`${chipBase} flex-col items-start gap-0.5 py-2 text-xs ${articleLength === l.key ? chipSelected : chipIdle}`}
+                  >
+                    <span className="font-medium">{l.label}</span>
+                    <span className="opacity-55">{l.hint}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* رسم توضيحي — نوع التخطيط */}
+        {kind === "infographic" && (
+          <div className="mb-4 overflow-hidden rounded-xl border border-palm/20 bg-mint/30">
+            <div className="flex items-center gap-2 border-b border-palm/10 bg-mint/60 px-4 py-3">
+              <BarChart2 size={14} className="text-palm" />
+              <p className="text-sm font-semibold text-palm">إعداد الرسم التوضيحي</p>
+            </div>
+            <div className="p-4">
+              <p className="mb-2 text-xs font-medium text-ink/65">نوع التخطيط البصري</p>
+              <div className="flex flex-wrap gap-2">
+                {["خطوات متسلسلة", "إحصائيات ومقارنات", "شجرة قرارات", "خط زمني", "قائمة بصرية"].map((s) => (
+                  <button
+                    key={s}
+                    type="button"
+                    onClick={() => setInfographicStyle(infographicStyle === s ? "" : s)}
+                    className={`${chipBase} text-xs ${infographicStyle === s ? chipSelected : chipIdle}`}
+                  >
+                    {s}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* خطة نشر — مدة وتكرار */}
+        {kind === "publishing_plan" && (
+          <div className="mb-4 overflow-hidden rounded-xl border border-palm/20 bg-mint/30">
+            <div className="flex items-center gap-2 border-b border-palm/10 bg-mint/60 px-4 py-3">
+              <CalendarDays size={14} className="text-palm" />
+              <p className="text-sm font-semibold text-palm">إعداد خطة النشر</p>
+            </div>
+            <div className="space-y-4 p-4">
+              <div>
+                <p className="mb-2 text-xs font-medium text-ink/65">المدة الزمنية للخطة</p>
+                <div className="flex flex-wrap gap-2">
+                  {["أسبوع", "أسبوعان", "شهر", "ثلاثة أشهر", "ستة أشهر"].map((d) => (
+                    <button
+                      key={d}
+                      type="button"
+                      onClick={() => setPlanDateRange(planDateRange === d ? "" : d)}
+                      className={`${chipBase} text-xs ${planDateRange === d ? chipSelected : chipIdle}`}
+                    >
+                      {d}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <p className="mb-2 text-xs font-medium text-ink/65">تكرار النشر</p>
+                <div className="flex flex-wrap gap-2">
+                  {["يومي", "مرتان أسبوعياً", "أسبوعي", "كل أسبوعين"].map((f) => (
+                    <button
+                      key={f}
+                      type="button"
+                      onClick={() => setPlanFrequency(planFrequency === f ? "" : f)}
+                      className={`${chipBase} text-xs ${planFrequency === f ? chipSelected : chipIdle}`}
+                    >
+                      {f}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Channel */}
         <div className="mb-4">
