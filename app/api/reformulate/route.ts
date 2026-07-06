@@ -1,6 +1,9 @@
 import { z } from "zod";
 import { NextResponse } from "next/server";
 import { badRequest, ok } from "@/lib/api";
+import { AI_CONSTITUTION } from "@/lib/governance";
+import { runSemanticAnalysis } from "@/lib/services/semantic-analysis-service";
+import { evaluateContent } from "@/lib/services/content-evaluation-service";
 
 const schema = z.object({
   text: z.string().min(5),
@@ -21,6 +24,58 @@ const schema = z.object({
   })).default([])
 });
 
+async function callModel(apiKey: string, systemPrompt: string, userPrompt: string): Promise<string> {
+  const response = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {
+      "x-api-key": apiKey,
+      "anthropic-version": "2023-06-01",
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      model: "claude-sonnet-5",
+      max_tokens: 1200,
+      system: systemPrompt,
+      messages: [{ role: "user", content: userPrompt }]
+    })
+  });
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({})) as { error?: { message?: string } };
+    throw new Error(err.error?.message ?? "تعذر إنشاء الصياغة المقترحة");
+  }
+  const data = await response.json() as { content?: Array<{ type?: string; text?: string }> };
+  return data.content?.find((item) => item.type === "text")?.text?.trim() ?? "";
+}
+
+// التحقق الإلزامي: الصياغة المقترحة تمر عبر محركي الامتثال واللغة قبل عرضها.
+// لا تُعرض أي صياغة فيها مخالفات أو أخطاء إملائية/نحوية.
+async function verifySuggestion(
+  text: string,
+  context: { contentType?: string; channel?: string; audience?: string; purpose?: string }
+) {
+  const [semantic, evaluation] = await Promise.all([
+    runSemanticAnalysis(text, context),
+    evaluateContent(text)
+  ]);
+  const spellingGrammarIssues = evaluation.language.issues.filter(
+    (issue) => issue.category === "spelling" || issue.category === "grammar"
+  );
+  const clean =
+    semantic.findings.length === 0 &&
+    evaluation.language.passed &&
+    spellingGrammarIssues.length === 0;
+
+  const remainingNotes = [
+    ...semantic.findings.map(
+      (f) => `- مخالفة: ${f.issue} — العبارة: "${f.evidence}" — البديل الآمن: ${f.suggestedSaferWording}`
+    ),
+    ...spellingGrammarIssues.map(
+      (i) => `- خطأ لغوي: "${i.excerpt}" — ${i.message} — التصحيح: ${i.suggestion}`
+    )
+  ];
+  return { clean, remainingNotes };
+}
+
 export async function POST(request: Request) {
   const parsed = schema.safeParse(await request.json());
   if (!parsed.success) return badRequest("بيانات غير صالحة");
@@ -29,6 +84,7 @@ export async function POST(request: Request) {
   if (!apiKey) return NextResponse.json({ error: "خدمة التحليل غير مهيأة — تأكد من ضبط متغيرات البيئة." }, { status: 503 });
 
   const { text, contentType, channel, audience, purpose, findings, languageIssues } = parsed.data;
+  const context = { contentType, channel, audience, purpose };
 
   const findingsList = findings.length
     ? findings.map((f, i) =>
@@ -41,6 +97,8 @@ export async function POST(request: Request) {
     : "لا توجد ملاحظات لغوية أو إملائية.";
 
   const systemPrompt = [
+    AI_CONSTITUTION,
+    "",
     "أنت محرر قانوني متخصص في ضبط محتوى المحامين وفق نظام مهنة المحاماة السعودي ولوائحه التنفيذية.",
     "",
     "مهمتك إعادة كتابة النص بحيث يكون النص المُخرَج خالياً تماماً من المخالفات القانونية والمهنية التالية:",
@@ -80,32 +138,43 @@ export async function POST(request: Request) {
   ].join("\n");
 
   try {
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "x-api-key": apiKey,
-        "anthropic-version": "2023-06-01",
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        model: "claude-sonnet-5",
-        max_tokens: 1200,
-        system: systemPrompt,
-        messages: [{ role: "user", content: userPrompt }]
-      })
-    });
+    let suggestedText = await callModel(apiKey, systemPrompt, userPrompt);
+    if (!suggestedText) return NextResponse.json({ error: "لم يُنتج النموذج صياغة صالحة" }, { status: 503 });
 
-    if (!response.ok) {
-      const err = await response.json().catch(() => ({})) as { error?: { message?: string } };
-      return NextResponse.json(
-        { error: err.error?.message ?? "تعذر إنشاء الصياغة المقترحة" },
-        { status: 503 }
-      );
+    // جولة تحقق أولى عبر محركي الامتثال واللغة
+    let verification = await verifySuggestion(suggestedText, context);
+
+    // جولة تصحيحية واحدة إذا بقيت ملاحظات
+    if (!verification.clean && verification.remainingNotes.length > 0) {
+      const fixPrompt = [
+        "النص التالي اقترحته أنت، لكن التحقق الآلي رصد فيه الملاحظات المتبقية أدناه.",
+        "أعد كتابته معالجاً كل ملاحظة نهائياً مع الالتزام الكامل بالقاعدة الدستورية ومعايير الجودة.",
+        "",
+        "النص المقترح السابق:",
+        suggestedText,
+        "",
+        "الملاحظات المتبقية التي يجب إزالتها:",
+        verification.remainingNotes.join("\n"),
+        "",
+        "أخرج النص المُصحح فقط دون أي تعليق."
+      ].join("\n");
+      const fixedText = await callModel(apiKey, systemPrompt, fixPrompt);
+      if (fixedText) {
+        const secondVerification = await verifySuggestion(fixedText, context);
+        if (secondVerification.clean || secondVerification.remainingNotes.length < verification.remainingNotes.length) {
+          suggestedText = fixedText;
+          verification = secondVerification;
+        }
+      }
     }
 
-    const data = await response.json() as { content?: Array<{ type?: string; text?: string }> };
-    const suggestedText = data.content?.find((item) => item.type === "text")?.text?.trim() ?? "";
-    if (!suggestedText) return NextResponse.json({ error: "لم يُنتج النموذج صياغة صالحة" }, { status: 503 });
+    // لا تُعرض صياغة غير ملتزمة — القاعدة الدستورية
+    if (!verification.clean) {
+      return NextResponse.json(
+        { error: "تعذر إنتاج صياغة ملتزمة بالكامل بقواعد السلوك المهني واللائحة التنفيذية — عدّل النص الأصلي ثم أعد المحاولة." },
+        { status: 422 }
+      );
+    }
 
     return ok({ suggestedText });
   } catch (error) {

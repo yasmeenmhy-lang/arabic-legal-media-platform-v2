@@ -4,6 +4,7 @@
 // Controlled by ANTHROPIC_API_KEY env var.
 
 import Anthropic from "@anthropic-ai/sdk";
+import { AI_CONSTITUTION } from "@/lib/governance";
 import type { ContentKind, FindingCategory, FindingDomain, ReviewContext, ReviewFinding, RiskLevel } from "@/lib/types";
 import { legalKnowledgeEntries } from "@/lib/legal-knowledge-base";
 import {
@@ -54,7 +55,9 @@ function buildValidReferencesList(entries: typeof legalKnowledgeEntries): string
 
 function buildHolisticPrompt(text: string, contextSummary: string, entries: typeof legalKnowledgeEntries): string {
   const validRefs = buildValidReferencesList(entries);
-  return `أنت متخصص في قواعد السلوك المهني للمحامين في المملكة العربية السعودية (46 قاعدة، 1447هـ).
+  return `${AI_CONSTITUTION}
+
+أنت متخصص في قواعد السلوك المهني للمحامين في المملكة العربية السعودية (46 قاعدة، 1447هـ).
 
 ## السياق الثابت
 هذه المنصة مخصصة للمحامين المرخصين حصراً. النص التالي كتبه محامٍ ويريد نشره على وسائل التواصل الاجتماعي — سواء كان منشوراً، تغريدة، تعليقاً، رداً، أو إعلاناً.${contextSummary !== "غير محدد" ? `\nالسياق الإضافي: ${contextSummary}` : ""}

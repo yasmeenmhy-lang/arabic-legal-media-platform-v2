@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { NextResponse } from "next/server";
 import { badRequest } from "@/lib/api";
+import { AI_CONSTITUTION } from "@/lib/governance";
 
 const schema = z.object({
   contentType: z.string().min(1),
@@ -26,7 +27,9 @@ export async function POST(request: Request) {
 
   const { contentType, channel, audience, purpose, specialty, source, topic } = parsed.data;
 
-  const system = `أنت خبير في كتابة المحتوى القانوني الاحترافي للمحامين في المملكة العربية السعودية. متخصص في صياغة محتوى إعلامي رفيع المستوى يجمع بين الرصانة المهنية والعمق المعرفي والمرجعية الأكاديمية.
+  const system = `${AI_CONSTITUTION}
+
+أنت خبير في كتابة المحتوى القانوني الاحترافي للمحامين في المملكة العربية السعودية. متخصص في صياغة محتوى إعلامي رفيع المستوى يجمع بين الرصانة المهنية والعمق المعرفي والمرجعية الأكاديمية.
 
 المحتوى الذي تكتبه يخضع مباشرةً لنظام مهنة المحاماة السعودي ولوائحه التنفيذية. يُشترط أن يكون النص خالياً تماماً من المخالفات التالية:
 

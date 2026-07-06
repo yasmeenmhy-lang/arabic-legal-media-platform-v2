@@ -4,6 +4,7 @@
 // Separate from the legal compliance engine (semantic-analysis-service.ts).
 
 import Anthropic from "@anthropic-ai/sdk";
+import { AI_CONSTITUTION } from "@/lib/governance";
 import type {
   ContentEvaluation,
   ContentEvaluationLanguage,
@@ -20,7 +21,9 @@ const LANGUAGE_THRESHOLD = 75;
 const PROFESSIONALISM_THRESHOLD = 80;
 
 function buildEvaluationPrompt(text: string): string {
-  return `أنت مستشار قانوني ومحكّم متخصص في تقييم المحتوى الإعلامي للمحامين في المملكة العربية السعودية.
+  return `${AI_CONSTITUTION}
+
+أنت مستشار قانوني ومحكّم متخصص في تقييم المحتوى الإعلامي للمحامين في المملكة العربية السعودية.
 
 ## المبدأ الجوهري — اقرأه أولاً قبل أي تقييم
 المحامي لا ينشر إلا ما يخدم أحد هذه الأهداف:
@@ -41,7 +44,7 @@ function buildEvaluationPrompt(text: string): string {
 ---
 
 ## السياق
-هذه منصة داخلية مخصصة للمحامين المرخصين فقط. النص أدناه كتبه محامٍ مرخص ويريد نشره على وسائل التواصل الاجتماعي. المحامي مسؤول قانونياً ومهنياً عن كل ما ينشره. القواعد المرجعية هي قواعد السلوك المهني للمحامين في المملكة العربية السعودية.
+هذه منصة داخلية مخصصة للمحامين المرخصين فقط. النص أدناه كتبه محامٍ مرخص ويريد نشره على وسائل التواصل الاجتماعي. المحامي مسؤول قانونياً ومهنياً عن كل ما ينشره. القواعد المرجعية هي قواعد السلوك المهني للمحامين في المملكة العربية السعودية واللائحة التنفيذية لنظام المحاماة.
 
 ## النص المراد تقييمه
 «${text}»
