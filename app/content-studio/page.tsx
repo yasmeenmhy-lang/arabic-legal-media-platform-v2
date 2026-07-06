@@ -410,6 +410,7 @@ export default function ContentStudioPage() {
   // Visual translation panel (step 3 — works for all content kinds)
   const [vtType, setVtType] = useState<"infographic" | "chart" | "mindmap" | "image">("infographic");
   const [vtChartType, setVtChartType] = useState("");
+  const [vtConfirming, setVtConfirming] = useState(false);
   const [vtLoading, setVtLoading] = useState(false);
   const [vtSvg, setVtSvg] = useState("");
   const [vtUrl, setVtUrl] = useState("");
@@ -598,6 +599,7 @@ export default function ContentStudioPage() {
     setImageGenSvg("");
     setVtType("infographic");
     setVtChartType("");
+    setVtConfirming(false);
     setVtLoading(false);
     setVtSvg("");
     setVtUrl("");
@@ -1680,7 +1682,7 @@ export default function ContentStudioPage() {
             <SectionTitle title="3. المحتوى المقترح" subtitle="راجع وعدّل قبل التحليل القانوني." />
             <button
               type="button"
-              onClick={() => { setGeneratedText(""); setTopic(""); setVtSvg(""); setVtUrl(""); setVtError(""); }}
+              onClick={() => { setGeneratedText(""); setTopic(""); setVtSvg(""); setVtUrl(""); setVtError(""); setVtConfirming(false); }}
               className="text-xs text-ink/50 transition hover:text-ink"
             >
               أعد الإنشاء
@@ -1732,7 +1734,7 @@ export default function ContentStudioPage() {
                   <button
                     key={t.key}
                     type="button"
-                    onClick={() => { setVtType(t.key); setVtSvg(""); setVtUrl(""); setVtError(""); }}
+                    onClick={() => { setVtType(t.key); setVtSvg(""); setVtUrl(""); setVtError(""); setVtConfirming(false); }}
                     className={`rounded-lg border px-3 py-1.5 text-xs font-medium transition ${
                       vtType === t.key
                         ? "border-palm bg-white text-palm shadow-[0_0_0_1px_theme(colors.palm)]"
@@ -1766,17 +1768,52 @@ export default function ContentStudioPage() {
                 </div>
               )}
 
-              {/* Generate / loading / result */}
-              {!vtLoading && !vtSvg && !vtUrl && (
+              {/* Generate / confirm / loading / result */}
+              {!vtLoading && !vtSvg && !vtUrl && !vtConfirming && (
                 <button
                   type="button"
-                  onClick={() => void generateVisualTranslation()}
+                  onClick={() => setVtConfirming(true)}
                   disabled={!generatedText.trim()}
                   className="flex items-center gap-1.5 rounded-lg border border-palm bg-palm px-4 py-2 text-xs font-semibold text-white transition hover:bg-palm/90 disabled:opacity-40"
                 >
                   <Sparkles size={13} aria-hidden="true" />
                   إنشاء مرئي من النص
                 </button>
+              )}
+
+              {vtConfirming && !vtLoading && (
+                <div className="rounded-xl border border-palm/30 bg-white p-4 shadow-sm">
+                  <p className="mb-1 text-xs font-semibold text-palm">
+                    هل تريد إنشاء{" "}
+                    {{
+                      infographic: "إنفوغراف",
+                      chart: `رسم بياني${vtChartType ? ` (${vtChartType})` : ""}`,
+                      mindmap: "خريطة ذهنية",
+                      image: "صورة بالذكاء الاصطناعي",
+                    }[vtType]}{" "}
+                    الآن؟
+                  </p>
+                  <p className="mb-4 line-clamp-2 rounded-lg bg-paper p-2.5 text-xs leading-6 text-ink/55">
+                    {generatedText.slice(0, 140)}{generatedText.length > 140 ? "…" : ""}
+                  </p>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => { setVtConfirming(false); void generateVisualTranslation(); }}
+                      className="flex items-center gap-1.5 rounded-lg bg-palm px-4 py-2 text-xs font-semibold text-white transition hover:bg-palm/90"
+                    >
+                      <Sparkles size={12} aria-hidden="true" />
+                      نعم، أنشئ الآن
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setVtConfirming(false)}
+                      className="rounded-lg border border-line bg-paper px-4 py-2 text-xs text-ink/60 transition hover:border-ink/30 hover:text-ink"
+                    >
+                      إلغاء
+                    </button>
+                  </div>
+                </div>
               )}
 
               {vtLoading && (
@@ -1835,7 +1872,7 @@ export default function ContentStudioPage() {
             <Button onClick={runReview} disabled={generatedText.trim().length < 5} leadingIcon={<FileCheck2 size={16} aria-hidden="true" />}>
               راجع قانونياً
             </Button>
-            <Button variant="secondary-gray" onClick={() => { setGeneratedText(""); setTopic(""); setVtSvg(""); setVtUrl(""); setVtError(""); }} leadingIcon={<Edit3 size={16} />}>
+            <Button variant="secondary-gray" onClick={() => { setGeneratedText(""); setTopic(""); setVtSvg(""); setVtUrl(""); setVtError(""); setVtConfirming(false); }} leadingIcon={<Edit3 size={16} />}>
               عدّل الطلب
             </Button>
           </div>

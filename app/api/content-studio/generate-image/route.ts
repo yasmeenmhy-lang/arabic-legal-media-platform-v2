@@ -20,6 +20,7 @@ interface ChartData {
 }
 
 interface MindMapData {
+  title?: string;
   center: string;
   branches: { label: string; sub1?: string; sub2?: string }[];
 }
@@ -68,7 +69,7 @@ function parseJson<T>(raw: string): T {
 
 // ── SVG renderers (programmatic — no AI coordinates) ─────────────────────
 
-const FONT = "Tahoma,Arial,sans-serif";
+const FONT = "IBM Plex Sans Arabic,Tahoma,Arial,sans-serif";
 const PALM = "#1a6b4a";
 const BAR_COLORS = [PALM, "#2d8f64", "#4aad82", "#6ecaa2", "#98d4c0", "#c0e5d8"];
 
@@ -292,59 +293,82 @@ function renderChartSvg(data: ChartData, chartType: string): string {
 // ── Mind map: 1080×1080 (square — Instagram / general social) ─────────────
 
 function renderMindMapSvg(d: MindMapData): string {
-  const W = 1080, H = 1080, cx = 540, cy = 570, branchR = 300, subR = 128;
-  const BRANCH_COLORS = ["#e8f5f0", "#d4ede4", "#c0e5d8", "#acdccc", "#98d4c0"];
-  const BORDER_COLORS = ["#1a6b4a", "#2d8f64", "#4aad82", "#6ecaa2", "#98d4c0"];
+  const W = 1080, H = 1080;
+  const HDR = 90;
+  const cx = 540;
+  const cy = HDR + Math.round((H - HDR) / 2); // 585 — geometric center of usable area
+  const branchR = 265;
+  const subR = 112;
+
+  const BRANCH_BG = ["#e8f5f0", "#d4ede4", "#c0e5d8", "#acdccc", "#98d4c0"];
+  const BRANCH_BD = ["#1a6b4a", "#2d8f64", "#4aad82", "#6ecaa2", "#8dc4b4"];
   const branches = (d.branches || []).slice(0, 5);
-  const baseAngles = [-90, -18, 54, 126, 198];
+  const BASE_ANGLES = [-90, -18, 54, 126, 198]; // degrees, 0° = rightward
 
   const connectors: string[] = [];
   const nodes: string[] = [];
 
   branches.forEach((b, i) => {
-    const a = (baseAngles[i] * Math.PI) / 180;
-    const nx = Math.round(cx + branchR * Math.cos(a));
-    const ny = Math.round(cy + branchR * Math.sin(a));
-    // Wider nodes for more text
-    const bw = 180, bh = 56;
+    const a = (BASE_ANGLES[i] * Math.PI) / 180;
+    const bx = Math.round(cx + branchR * Math.cos(a));
+    const by = Math.round(cy + branchR * Math.sin(a));
+    const bw = 172, bh = 48;
 
+    // Quadratic bezier with gentle perpendicular offset for a polished curve
+    const perpX = -Math.sin(a) * 18;
+    const perpY =  Math.cos(a) * 18;
+    const qx = Math.round((cx + bx) / 2 + perpX);
+    const qy = Math.round((cy + by) / 2 + perpY);
     connectors.push(
-      `<line x1="${cx}" y1="${cy}" x2="${nx}" y2="${ny}" stroke="${BORDER_COLORS[i]}" stroke-width="3" opacity="0.4"/>`
+      `<path d="M ${cx} ${cy} Q ${qx} ${qy} ${bx} ${by}" fill="none" stroke="${BRANCH_BD[i]}" stroke-width="2.5" stroke-linecap="round" opacity="0.5"/>`
     );
+
     nodes.push(
-      `<rect x="${nx - bw / 2}" y="${ny - bh / 2}" width="${bw}" height="${bh}" rx="28" fill="${BRANCH_COLORS[i]}" stroke="${BORDER_COLORS[i]}" stroke-width="2.5"/>
-<text x="${nx}" y="${ny + 7}" text-anchor="middle" font-family="${FONT}" font-size="15" font-weight="bold" fill="#1a1a2e">${trunc(b.label, 12)}</text>`
+      `<rect x="${bx - bw / 2}" y="${by - bh / 2}" width="${bw}" height="${bh}" rx="24" fill="${BRANCH_BG[i]}" stroke="${BRANCH_BD[i]}" stroke-width="2"/>
+<text x="${bx}" y="${by + 5}" text-anchor="middle" font-family="${FONT}" font-size="13" font-weight="bold" fill="#1a2e24">${trunc(b.label, 13)}</text>`
     );
 
     const subs = [b.sub1, b.sub2].filter(Boolean) as string[];
     subs.forEach((sub, si) => {
-      const sa = a + ((si === 0 ? -1 : 1) * Math.PI) / 6;
-      const sx = Math.round(nx + subR * Math.cos(sa));
-      const sy = Math.round(ny + subR * Math.sin(sa));
-      const sw = 130, sh = 38;
+      const sa = a + (si === 0 ? -0.44 : 0.44); // ±25° in radians
+      const sx = Math.round(bx + subR * Math.cos(sa));
+      const sy = Math.round(by + subR * Math.sin(sa));
+      const sw = 116, sh = 34;
       connectors.push(
-        `<line x1="${nx}" y1="${ny}" x2="${sx}" y2="${sy}" stroke="${BORDER_COLORS[i]}" stroke-width="1.8" opacity="0.3"/>`
+        `<line x1="${bx}" y1="${by}" x2="${sx}" y2="${sy}" stroke="${BRANCH_BD[i]}" stroke-width="1.5" stroke-linecap="round" opacity="0.4"/>`
       );
       nodes.push(
-        `<rect x="${sx - sw / 2}" y="${sy - sh / 2}" width="${sw}" height="${sh}" rx="19" fill="#f0fbf7" stroke="${BORDER_COLORS[i]}" stroke-width="1.5"/>
-<text x="${sx}" y="${sy + 6}" text-anchor="middle" font-family="${FONT}" font-size="13" fill="#1a3a2a">${trunc(sub, 10)}</text>`
+        `<rect x="${sx - sw / 2}" y="${sy - sh / 2}" width="${sw}" height="${sh}" rx="17" fill="#f0fbf7" stroke="${BRANCH_BD[i]}" stroke-width="1.5"/>
+<text x="${sx}" y="${sy + 5}" text-anchor="middle" font-family="${FONT}" font-size="11" fill="#1a3a2a">${trunc(sub, 12)}</text>`
       );
     });
   });
 
-  // Centre node
-  const cw = 190, ch = 64;
-  nodes.push(
-    `<rect x="${cx - cw / 2}" y="${cy - ch / 2}" width="${cw}" height="${ch}" rx="32" fill="${PALM}"/>
-<text x="${cx}" y="${cy + 8}" text-anchor="middle" font-family="${FONT}" font-size="17" font-weight="bold" fill="#fff">${trunc(d.center, 12)}</text>`
-  );
+  const headerTitle = trunc(d.title || d.center, 24);
+  const cr = 68;
 
   return `<svg width="100%" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
+<defs>
+  <pattern id="dotGrid" x="0" y="0" width="30" height="30" patternUnits="userSpaceOnUse">
+    <circle cx="15" cy="15" r="1.2" fill="#1a6b4a" opacity="0.07"/>
+  </pattern>
+  <linearGradient id="mmHdr" x1="0" y1="0" x2="1" y2="0">
+    <stop offset="0%" stop-color="#0d3322"/>
+    <stop offset="100%" stop-color="#1a6b4a"/>
+  </linearGradient>
+  <filter id="nodeShad" x="-25%" y="-25%" width="150%" height="150%">
+    <feDropShadow dx="0" dy="2" stdDeviation="5" flood-color="#1a6b4a" flood-opacity="0.14"/>
+  </filter>
+</defs>
 <rect width="${W}" height="${H}" fill="#f8fdf9"/>
-<rect width="${W}" height="88" fill="${PALM}"/>
-<text x="${W / 2}" y="56" text-anchor="middle" font-family="${FONT}" font-size="26" font-weight="bold" fill="#fff">${trunc(d.center, 24)}</text>
+<rect width="${W}" height="${H}" fill="url(#dotGrid)"/>
+<rect width="${W}" height="${HDR}" fill="url(#mmHdr)"/>
+<text x="${W / 2}" y="${Math.round(HDR * 0.62)}" text-anchor="middle" font-family="${FONT}" font-size="20" font-weight="bold" fill="#fff">${headerTitle}</text>
 ${connectors.join("\n")}
 ${nodes.join("\n")}
+<circle cx="${cx}" cy="${cy}" r="${cr}" fill="${PALM}" filter="url(#nodeShad)"/>
+<circle cx="${cx}" cy="${cy}" r="${cr}" fill="none" stroke="#fff" stroke-width="2.5" opacity="0.25"/>
+<text x="${cx}" y="${cy + 5}" text-anchor="middle" font-family="${FONT}" font-size="14" font-weight="bold" fill="#fff">${trunc(d.center, 13)}</text>
 </svg>`;
 }
 
@@ -378,18 +402,20 @@ function renderInfographicSvg(d: InfographicData): string {
     const numBgY = y0 + cardH / 2 + 22;
 
     const line3 = sec.line3
-      ? `<text x="${TR}" y="${y0 + 132}" text-anchor="end" font-family="${FONT}" font-size="15" fill="#555">${trunc(sec.line3, 36)}</text>`
+      ? `<text x="${TR}" y="${y0 + 120}" text-anchor="end" font-family="${FONT}" font-size="12" fill="#555">${trunc(sec.line3, 36)}</text>`
       : "";
     const stat  = sec.stat
-      ? `<text x="${TR}" y="${y0 + (sec.line3 ? 162 : 140)}" text-anchor="end" font-family="${FONT}" font-size="14" fill="${ac}" font-weight="bold">${trunc(sec.stat, 34)}</text>`
+      ? `<text x="${TR}" y="${y0 + (sec.line3 ? 144 : 126)}" text-anchor="end" font-family="${FONT}" font-size="12" fill="${ac}" font-weight="bold">${trunc(sec.stat, 34)}</text>`
       : "";
 
     return `<rect x="${PAD}" y="${y0}" width="${CARD_W}" height="${cardH}" rx="16" fill="${bg}" stroke="#e4f2ec" stroke-width="1.5"/>
 <rect x="${PAD}" y="${y0}" width="${ACCENT_W}" height="${cardH}" rx="5" fill="${ac}"/>
-<text x="${numBgX}" y="${numBgY}" text-anchor="middle" font-family="${FONT}" font-size="96" font-weight="bold" fill="${ac}" opacity="0.08">${i + 1}</text>
-<text x="${TR}" y="${y0 + 54}" text-anchor="end" font-family="${FONT}" font-size="21" font-weight="bold" fill="#1a1a2e">${trunc(sec.heading, 26)}</text>
-<text x="${TR}" y="${y0 + 84}" text-anchor="end" font-family="${FONT}" font-size="16" fill="#3a3a4a">${trunc(sec.line1, 36)}</text>
-<text x="${TR}" y="${y0 + 108}" text-anchor="end" font-family="${FONT}" font-size="16" fill="#3a3a4a">${trunc(sec.line2, 36)}</text>
+<circle cx="${PAD + ACCENT_W / 2}" cy="${y0 + 28}" r="3" fill="#fff" opacity="0.45"/>
+<circle cx="${PAD + ACCENT_W / 2}" cy="${y0 + cardH - 28}" r="3" fill="#fff" opacity="0.45"/>
+<text x="${numBgX}" y="${numBgY}" text-anchor="middle" font-family="${FONT}" font-size="96" font-weight="bold" fill="${ac}" opacity="0.07">${i + 1}</text>
+<text x="${TR}" y="${y0 + 48}" text-anchor="end" font-family="${FONT}" font-size="17" font-weight="bold" fill="#1a1a2e">${trunc(sec.heading, 26)}</text>
+<text x="${TR}" y="${y0 + 74}" text-anchor="end" font-family="${FONT}" font-size="13" fill="#3a3a4a">${trunc(sec.line1, 36)}</text>
+<text x="${TR}" y="${y0 + 96}" text-anchor="end" font-family="${FONT}" font-size="13" fill="#3a3a4a">${trunc(sec.line2, 36)}</text>
 ${line3}${stat}`;
   }).join("\n");
 
@@ -403,13 +429,13 @@ ${line3}${stat}`;
 </defs>
 <rect width="${W}" height="${H}" fill="#fff"/>
 <rect width="${W}" height="${HEADER_H}" fill="url(#hdrGrad)"/>
-<text x="${W / 2}" y="${HEADER_H / 2 + 8}" text-anchor="middle" font-family="${FONT}" font-size="34" font-weight="bold" fill="#fff">${trunc(d.title, 24)}</text>
+<text x="${W / 2}" y="${HEADER_H / 2 + 8}" text-anchor="middle" font-family="${FONT}" font-size="28" font-weight="bold" fill="#fff">${trunc(d.title, 24)}</text>
 <rect y="${HEADER_H}" width="${W}" height="${SUB_H}" fill="#f0f9f5"/>
-<text x="${W / 2}" y="${HEADER_H + 54}" text-anchor="middle" font-family="${FONT}" font-size="18" fill="#2d6e52">${trunc(d.subtitle, 42)}</text>
+<text x="${W / 2}" y="${HEADER_H + 50}" text-anchor="middle" font-family="${FONT}" font-size="15" fill="#2d6e52">${trunc(d.subtitle, 42)}</text>
 ${sectionBlocks}
 <rect x="0" y="${footerY}" width="${W}" height="${FOOTER_H}" fill="#f0f9f5"/>
 <line x1="${PAD}" y1="${footerY + 1}" x2="${W - PAD}" y2="${footerY + 1}" stroke="#c8e8d8" stroke-width="1"/>
-<text x="${W / 2}" y="${footerY + 44}" text-anchor="middle" font-family="${FONT}" font-size="13" fill="#7a9a8a">${trunc(d.source, 60)}</text>
+<text x="${W / 2}" y="${footerY + 42}" text-anchor="middle" font-family="${FONT}" font-size="12" fill="#7a9a8a">${trunc(d.source, 60)}</text>
 </svg>`;
 }
 
@@ -444,21 +470,23 @@ function mindMapDataPrompt(description: string): string {
 
 Return ONLY valid JSON with no markdown fences or explanation:
 {
-  "center": "موضوع مركزي — أقصى 12 حرفاً",
+  "title": "عنوان توضيحي للخريطة — أقصى 22 حرفاً",
+  "center": "اختصار المفهوم المركزي — أقصى 12 حرفاً",
   "branches": [
-    {"label": "فرع رئيسي 1 — أقصى 12 حرفاً", "sub1": "فرعي 1أ — أقصى 10 أحرف", "sub2": "فرعي 1ب — أقصى 10 أحرف"},
-    {"label": "فرع رئيسي 2 — أقصى 12 حرفاً", "sub1": "فرعي 2أ — أقصى 10 أحرف", "sub2": "فرعي 2ب — أقصى 10 أحرف"},
-    {"label": "فرع رئيسي 3 — أقصى 12 حرفاً", "sub1": "فرعي 3أ — أقصى 10 أحرف", "sub2": "فرعي 3ب — أقصى 10 أحرف"},
-    {"label": "فرع رئيسي 4 — أقصى 12 حرفاً", "sub1": "فرعي 4أ — أقصى 10 أحرف"},
-    {"label": "فرع رئيسي 5 — أقصى 12 حرفاً", "sub1": "فرعي 5أ — أقصى 10 أحرف"}
+    {"label": "فرع رئيسي 1 — أقصى 12 حرفاً", "sub1": "فرعي 1أ — أقصى 11 حرفاً", "sub2": "فرعي 1ب — أقصى 11 حرفاً"},
+    {"label": "فرع رئيسي 2 — أقصى 12 حرفاً", "sub1": "فرعي 2أ — أقصى 11 حرفاً", "sub2": "فرعي 2ب — أقصى 11 حرفاً"},
+    {"label": "فرع رئيسي 3 — أقصى 12 حرفاً", "sub1": "فرعي 3أ — أقصى 11 حرفاً", "sub2": "فرعي 3ب — أقصى 11 حرفاً"},
+    {"label": "فرع رئيسي 4 — أقصى 12 حرفاً", "sub1": "فرعي 4أ — أقصى 11 حرفاً"},
+    {"label": "فرع رئيسي 5 — أقصى 12 حرفاً", "sub1": "فرعي 5أ — أقصى 11 حرفاً"}
   ]
 }
 
 Rules:
 - Exactly 5 main branches covering distinct legal aspects of the topic
-- center: ≤12 Arabic chars — the core legal concept
+- title: full descriptive heading for the chart (displayed in the header banner) ≤22 Arabic chars
+- center: abbreviated core concept for the central node ≤12 Arabic chars
 - branch labels: ≤12 Arabic chars each — use meaningful abbreviations if needed
-- sub-labels: ≤10 Arabic chars each
+- sub-labels: ≤11 Arabic chars each
 - All content must be legally accurate and topic-specific`;
 }
 
