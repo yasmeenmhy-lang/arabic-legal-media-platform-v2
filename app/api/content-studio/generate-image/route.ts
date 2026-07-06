@@ -262,10 +262,10 @@ function renderPieOrDonutSvg(d: ChartData, isDonut: boolean): string {
       const ix1 = cx + ri * Math.cos(end), iy1 = cy + ri * Math.sin(end);
       const ix2 = cx + ri * Math.cos(start), iy2 = cy + ri * Math.sin(start);
       return `<path d="M ${x1} ${y1} A ${R} ${R} 0 ${large} 1 ${x2} ${y2} L ${ix1} ${iy1} A ${ri} ${ri} 0 ${large} 0 ${ix2} ${iy2} Z" fill="${BAR_COLORS[i]}" stroke="#fff" stroke-width="3"/>
-${pct >= 7 ? `<text x="${lx}" y="${ly + 6}" text-anchor="middle" font-family="${FONT}" font-size="18" font-weight="bold" fill="#fff">${pct}%</text>` : ""}`;
+${pct >= 7 ? `<text x="${lx}" y="${ly + 6}" text-anchor="middle" font-family="${FONT}" font-size="18" font-weight="600" fill="#fff">${pct}%</text>` : ""}`;
     }
     return `<path d="M ${cx} ${cy} L ${x1} ${y1} A ${R} ${R} 0 ${large} 1 ${x2} ${y2} Z" fill="${BAR_COLORS[i]}" stroke="#fff" stroke-width="3"/>
-${pct >= 5 ? `<text x="${lx}" y="${ly + 6}" text-anchor="middle" font-family="${FONT}" font-size="18" font-weight="bold" fill="#fff">${pct}%</text>` : ""}`;
+${pct >= 5 ? `<text x="${lx}" y="${ly + 6}" text-anchor="middle" font-family="${FONT}" font-size="18" font-weight="600" fill="#fff">${pct}%</text>` : ""}`;
   });
 
   const legendY = 870;
@@ -602,14 +602,21 @@ export async function POST(request: Request) {
     const promptRaw = await callClaude(
       apiKey,
       "claude-haiku-4-5-20251001",
-      250,
-      `Convert this Arabic legal media description to an English image generation prompt.
+      300,
+      `Convert this Arabic legal media description into a high-quality English prompt for the Flux image generation model.
 Description: ${description}
 Style: ${style ?? "professional, clean, corporate"}
 Platform: ${channel ?? "social media"}
 Format: ${dimensions ?? "square"}
 
-Rules: photorealistic or clean illustration, professional corporate aesthetic, NO human faces, soft neutral backgrounds, max 100 words. Output ONLY the prompt.`
+Rules:
+- Professional corporate aesthetic — law office, justice, document, scale of justice themes
+- NO human faces or identifiable people
+- Soft neutral backgrounds (light grey, off-white, or pale green)
+- Sharp details, clean lines, high resolution, professional studio lighting
+- Add quality boosters: "sharp focus, high detail, professional photography, clean composition"
+- Maximum 120 words
+Output ONLY the English prompt, nothing else.`
     );
     const [w, h] = getDimensions(dimensions);
     const seed = Date.now() % 99999;

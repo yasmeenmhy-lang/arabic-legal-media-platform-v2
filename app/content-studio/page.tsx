@@ -26,6 +26,7 @@ import {
   TrendingUp,
   User,
   Users,
+  Trash2,
   Upload,
   Video,
   XCircle,
@@ -415,6 +416,8 @@ export default function ContentStudioPage() {
   const [vtSvg, setVtSvg] = useState("");
   const [vtUrl, setVtUrl] = useState("");
   const [vtError, setVtError] = useState("");
+  const [vtSuggesting, setVtSuggesting] = useState(false);
+  const [vtSuggestionReason, setVtSuggestionReason] = useState("");
   const [planFrequency, setPlanFrequency] = useState("");
   const [planDateRange, setPlanDateRange] = useState("");
   const [visualMode, setVisualMode] = useState<"upload" | "describe">("upload");
@@ -604,6 +607,8 @@ export default function ContentStudioPage() {
     setVtSvg("");
     setVtUrl("");
     setVtError("");
+    setVtSuggesting(false);
+    setVtSuggestionReason("");
   }
 
   function buildInfographicDesc(): string {
@@ -693,6 +698,37 @@ export default function ContentStudioPage() {
       setVtError("تعذر الاتصال بخدمة إنشاء المرئيات");
     } finally {
       setVtLoading(false);
+    }
+  }
+
+  async function suggestVisualType() {
+    if (!generatedText.trim()) return;
+    setVtSuggesting(true);
+    setVtSuggestionReason("");
+    try {
+      const res = await fetch("/api/content-studio/suggest-visual", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: generatedText.trim() }),
+      });
+      const data = (await res.json()) as {
+        visualType?: "infographic" | "chart" | "mindmap" | "image";
+        chartType?: string;
+        reason?: string;
+        error?: string;
+      };
+      if (!res.ok || !data.visualType) return;
+      setVtType(data.visualType);
+      if (data.visualType === "chart" && data.chartType) setVtChartType(data.chartType);
+      if (data.reason) setVtSuggestionReason(data.reason);
+      setVtSvg("");
+      setVtUrl("");
+      setVtError("");
+      setVtConfirming(false);
+    } catch {
+      // silent failure — user can still pick manually
+    } finally {
+      setVtSuggesting(false);
     }
   }
 
@@ -961,6 +997,15 @@ export default function ContentStudioPage() {
                             className="rounded-lg border border-line bg-paper px-3 py-1 text-xs font-medium text-ink/70 transition hover:border-palm hover:text-palm"
                           >
                             إعادة الإنشاء
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => { setImageGenUrl(""); setImageGenPrompt(""); setImageGenError(""); }}
+                            className="flex items-center gap-1 rounded-lg border border-line bg-paper px-3 py-1 text-xs font-medium text-red-500/70 transition hover:border-red-300 hover:text-red-600"
+                            title="مسح الصورة"
+                          >
+                            <Trash2 size={12} />
+                            مسح
                           </button>
                         </div>
                       </div>
@@ -1682,7 +1727,7 @@ export default function ContentStudioPage() {
             <SectionTitle title="3. المحتوى المقترح" subtitle="راجع وعدّل قبل التحليل القانوني." />
             <button
               type="button"
-              onClick={() => { setGeneratedText(""); setTopic(""); setVtSvg(""); setVtUrl(""); setVtError(""); setVtConfirming(false); }}
+              onClick={() => { setGeneratedText(""); setTopic(""); setVtSvg(""); setVtUrl(""); setVtError(""); setVtConfirming(false); setVtSuggestionReason(""); }}
               className="text-xs text-ink/50 transition hover:text-ink"
             >
               أعد الإنشاء
@@ -1723,6 +1768,29 @@ export default function ContentStudioPage() {
               </p>
             </div>
             <div className="space-y-3 p-4">
+              {/* AI suggestion row */}
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => void suggestVisualType()}
+                  disabled={vtSuggesting || !generatedText.trim()}
+                  className="flex items-center gap-1.5 rounded-lg border border-palm/40 bg-mint/60 px-3 py-1.5 text-xs font-medium text-palm transition hover:border-palm hover:bg-mint disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {vtSuggesting ? (
+                    <span className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-palm/20 border-t-palm" />
+                  ) : (
+                    <Sparkles size={12} aria-hidden="true" />
+                  )}
+                  {vtSuggesting ? "جارٍ التحليل..." : "اقتراح الذكاء الاصطناعي"}
+                </button>
+                {vtSuggestionReason && !vtSuggesting && (
+                  <span className="flex items-center gap-1 rounded-full border border-palm/20 bg-mint px-2.5 py-1 text-xs text-palm">
+                    <CheckCircle2 size={11} aria-hidden="true" />
+                    {vtSuggestionReason}
+                  </span>
+                )}
+              </div>
+
               {/* Visual type picker */}
               <div className="flex flex-wrap gap-2">
                 {([
@@ -1734,7 +1802,7 @@ export default function ContentStudioPage() {
                   <button
                     key={t.key}
                     type="button"
-                    onClick={() => { setVtType(t.key); setVtSvg(""); setVtUrl(""); setVtError(""); setVtConfirming(false); }}
+                    onClick={() => { setVtType(t.key); setVtSvg(""); setVtUrl(""); setVtError(""); setVtConfirming(false); setVtSuggestionReason(""); }}
                     className={`rounded-lg border px-3 py-1.5 text-xs font-medium transition ${
                       vtType === t.key
                         ? "border-palm bg-white text-palm shadow-[0_0_0_1px_theme(colors.palm)]"
@@ -1835,6 +1903,12 @@ export default function ContentStudioPage() {
                         className="rounded-lg border border-line bg-paper px-3 py-1 text-xs font-medium text-ink/70 transition hover:border-palm hover:text-palm">PNG</button>
                       <button type="button" onClick={() => { setVtSvg(""); setVtUrl(""); void generateVisualTranslation(); }}
                         className="rounded-lg border border-line bg-paper px-3 py-1 text-xs font-medium text-ink/70 transition hover:border-palm hover:text-palm">إعادة الإنشاء</button>
+                      <button type="button" onClick={() => { setVtSvg(""); setVtUrl(""); setVtError(""); }}
+                        className="flex items-center gap-1 rounded-lg border border-line bg-paper px-3 py-1 text-xs font-medium text-red-500/70 transition hover:border-red-300 hover:text-red-600"
+                        title="مسح المرئي">
+                        <Trash2 size={12} />
+                        مسح
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -1852,6 +1926,12 @@ export default function ContentStudioPage() {
                         className="rounded-lg border border-line bg-paper px-3 py-1 text-xs font-medium text-ink/70 transition hover:border-palm hover:text-palm">PNG</button>
                       <button type="button" onClick={() => { setVtSvg(""); setVtUrl(""); void generateVisualTranslation(); }}
                         className="rounded-lg border border-line bg-paper px-3 py-1 text-xs font-medium text-ink/70 transition hover:border-palm hover:text-palm">إعادة الإنشاء</button>
+                      <button type="button" onClick={() => { setVtSvg(""); setVtUrl(""); setVtError(""); }}
+                        className="flex items-center gap-1 rounded-lg border border-line bg-paper px-3 py-1 text-xs font-medium text-red-500/70 transition hover:border-red-300 hover:text-red-600"
+                        title="مسح الصورة">
+                        <Trash2 size={12} />
+                        مسح
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -1872,7 +1952,7 @@ export default function ContentStudioPage() {
             <Button onClick={runReview} disabled={generatedText.trim().length < 5} leadingIcon={<FileCheck2 size={16} aria-hidden="true" />}>
               راجع قانونياً
             </Button>
-            <Button variant="secondary-gray" onClick={() => { setGeneratedText(""); setTopic(""); setVtSvg(""); setVtUrl(""); setVtError(""); setVtConfirming(false); }} leadingIcon={<Edit3 size={16} />}>
+            <Button variant="secondary-gray" onClick={() => { setGeneratedText(""); setTopic(""); setVtSvg(""); setVtUrl(""); setVtError(""); setVtConfirming(false); setVtSuggestionReason(""); }} leadingIcon={<Edit3 size={16} />}>
               عدّل الطلب
             </Button>
           </div>
