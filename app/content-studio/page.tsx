@@ -1226,58 +1226,6 @@ export default function ContentStudioPage() {
                 />
               </div>
 
-              {/* Generate button */}
-              <button
-                type="button"
-                onClick={() => generateImage(buildInfographicDesc())}
-                disabled={!infographicDesc.trim() || imageGenLoading}
-                className="inline-flex items-center gap-2 rounded-lg bg-palm px-4 py-2 text-sm font-medium text-white transition hover:bg-palm/90 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                <BarChart2 size={14} />
-                {imageGenLoading ? "جارٍ الإنشاء..." :
-                  infographicSubType === "chart" ? "إنشاء رسم بياني" :
-                  infographicSubType === "mindmap" ? "إنشاء خريطة ذهنية" :
-                  "إنشاء إنفوغراف"}
-              </button>
-
-              {/* Loading */}
-              {imageGenLoading && (
-                <div className="flex flex-col items-center gap-3 rounded-xl border border-line bg-white py-10">
-                  <div className="h-10 w-10 animate-spin rounded-full border-4 border-palm/20 border-t-palm" />
-                  <p className="text-xs text-ink/50">الذكاء الاصطناعي يُنشئ المرئي — قد يستغرق ١٥–٤٥ ثانية</p>
-                </div>
-              )}
-
-              {/* SVG result */}
-              {imageGenSvg && !imageGenLoading && (
-                <div className="overflow-hidden rounded-xl border border-line bg-white">
-                  <div
-                    className="w-full p-2"
-                    dangerouslySetInnerHTML={{ __html: imageGenSvg }}
-                  />
-                  <div className="flex items-center justify-between gap-3 border-t border-line px-3 py-2.5">
-                    <p className="text-xs text-ink/40">رسم متجه SVG — جودة عالية قابل للتكبير</p>
-                    <div className="flex gap-2">
-                      <button
-                        type="button"
-                        onClick={() => downloadSvg(imageGenSvg,
-                          infographicSubType === "chart" ? "chart.svg" :
-                          infographicSubType === "mindmap" ? "mindmap.svg" : "infographic.svg"
-                        )}
-                        className="rounded-lg border border-line bg-paper px-3 py-1 text-xs font-medium text-ink/70 transition hover:border-palm hover:text-palm"
-                      >
-                        تنزيل SVG
-                      </button>
-                      <button type="button" onClick={() => generateImage(buildInfographicDesc())}
-                        className="rounded-lg border border-line bg-paper px-3 py-1 text-xs font-medium text-ink/70 transition hover:border-palm hover:text-palm">
-                        إعادة الإنشاء
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {imageGenError && <p className="text-xs text-red-600">{imageGenError}</p>}
             </div>
           </div>
         )}
