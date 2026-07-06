@@ -407,6 +407,13 @@ export default function ContentStudioPage() {
   const [infographicChartType, setInfographicChartType] = useState("");
   const [infographicMindStyle, setInfographicMindStyle] = useState("");
   const [infographicDesc, setInfographicDesc] = useState("");
+  // Visual translation panel (step 3 — works for all content kinds)
+  const [vtType, setVtType] = useState<"infographic" | "chart" | "mindmap" | "image">("infographic");
+  const [vtChartType, setVtChartType] = useState("");
+  const [vtLoading, setVtLoading] = useState(false);
+  const [vtSvg, setVtSvg] = useState("");
+  const [vtUrl, setVtUrl] = useState("");
+  const [vtError, setVtError] = useState("");
   const [planFrequency, setPlanFrequency] = useState("");
   const [planDateRange, setPlanDateRange] = useState("");
   const [visualMode, setVisualMode] = useState<"upload" | "describe">("upload");
@@ -475,10 +482,10 @@ export default function ContentStudioPage() {
         return;
       }
       setGeneratedText(data.text);
-      // Auto-generate visual as a translation/simplification of the generated content
-      if (kind === "infographic" || kind === "visual_content") {
-        void generateImage(data.text);
-      }
+      // Reset any previous visual translation when new text is generated
+      setVtSvg("");
+      setVtUrl("");
+      setVtError("");
     } finally {
       setGenerating(false);
     }
@@ -589,6 +596,12 @@ export default function ContentStudioPage() {
     setImageGenPrompt("");
     setImageGenError("");
     setImageGenSvg("");
+    setVtType("infographic");
+    setVtChartType("");
+    setVtLoading(false);
+    setVtSvg("");
+    setVtUrl("");
+    setVtError("");
   }
 
   function buildInfographicDesc(): string {
@@ -650,6 +663,34 @@ export default function ContentStudioPage() {
     } catch {
       // Fallback: open in new tab
       window.open(url, "_blank");
+    }
+  }
+
+  async function generateVisualTranslation() {
+    if (!generatedText.trim()) return;
+    setVtLoading(true);
+    setVtError("");
+    setVtSvg("");
+    setVtUrl("");
+    try {
+      const res = await fetch("/api/content-studio/generate-image", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          description: generatedText.trim(),
+          visualType: vtType,
+          chartType: vtType === "chart" ? (vtChartType || undefined) : undefined,
+          channel: channel || undefined,
+        }),
+      });
+      const data = (await res.json()) as { svgCode?: string; imageUrl?: string; error?: string };
+      if (!res.ok) { setVtError(data.error ?? "فشل في إنشاء المرئي"); return; }
+      if (data.svgCode) setVtSvg(data.svgCode);
+      else setVtUrl(data.imageUrl ?? "");
+    } catch {
+      setVtError("تعذر الاتصال بخدمة إنشاء المرئيات");
+    } finally {
+      setVtLoading(false);
     }
   }
 
@@ -1639,7 +1680,7 @@ export default function ContentStudioPage() {
             <SectionTitle title="3. المحتوى المقترح" subtitle="راجع وعدّل قبل التحليل القانوني." />
             <button
               type="button"
-              onClick={() => { setGeneratedText(""); setTopic(""); setImageGenSvg(""); setImageGenUrl(""); setImageGenError(""); }}
+              onClick={() => { setGeneratedText(""); setTopic(""); setVtSvg(""); setVtUrl(""); setVtError(""); }}
               className="text-xs text-ink/50 transition hover:text-ink"
             >
               أعد الإنشاء
@@ -1671,99 +1712,117 @@ export default function ContentStudioPage() {
             </div>
           )}
 
-          {/* Visual — appears after text, explains/simplifies/translates it */}
-          {(kind === "infographic" || kind === "visual_content") && (imageGenLoading || imageGenSvg || imageGenUrl || imageGenError) && (
-            <div className="mt-5">
-              <p className="mb-2 flex items-center gap-1.5 text-xs font-semibold text-palm">
+          {/* ── Universal visual translation — works for every content kind ── */}
+          <div className="mt-5 overflow-hidden rounded-xl border border-palm/20 bg-mint/10">
+            <div className="border-b border-palm/10 bg-mint/30 px-4 py-3">
+              <p className="flex items-center gap-1.5 text-xs font-semibold text-palm">
                 <BarChart2 size={13} aria-hidden="true" />
-                يوضح المحتوى ويبسطه ويترجمه
+                ترجمة المحتوى بصرياً — اختر الأسلوب
               </p>
-              {imageGenLoading && (
+            </div>
+            <div className="space-y-3 p-4">
+              {/* Visual type picker */}
+              <div className="flex flex-wrap gap-2">
+                {([
+                  { key: "infographic", label: "إنفوغراف", hint: "بطاقات منظّمة" },
+                  { key: "chart",       label: "رسم بياني",  hint: "Bar / Line / Pie" },
+                  { key: "mindmap",     label: "خريطة ذهنية", hint: "شبكة إشعاعية" },
+                  { key: "image",       label: "صورة",       hint: "Flux AI" },
+                ] as const).map((t) => (
+                  <button
+                    key={t.key}
+                    type="button"
+                    onClick={() => { setVtType(t.key); setVtSvg(""); setVtUrl(""); setVtError(""); }}
+                    className={`rounded-lg border px-3 py-1.5 text-xs font-medium transition ${
+                      vtType === t.key
+                        ? "border-palm bg-white text-palm shadow-[0_0_0_1px_theme(colors.palm)]"
+                        : "border-line bg-white/70 text-ink/55 hover:border-palm hover:text-palm"
+                    }`}
+                  >
+                    {t.label}
+                    <span className="mr-1 opacity-40">·</span>
+                    <span className="opacity-50">{t.hint}</span>
+                  </button>
+                ))}
+              </div>
+
+              {/* Chart sub-type */}
+              {vtType === "chart" && (
+                <div className="flex flex-wrap gap-2">
+                  {["أعمدة", "خطي", "دائري", "حلقي", "مساحة", "أعمدة أفقية"].map((c) => (
+                    <button
+                      key={c}
+                      type="button"
+                      onClick={() => setVtChartType(vtChartType === c ? "" : c)}
+                      className={`rounded-lg border px-2.5 py-1 text-xs transition ${
+                        vtChartType === c
+                          ? "border-palm bg-white text-palm"
+                          : "border-line bg-white/60 text-ink/50 hover:border-palm hover:text-palm"
+                      }`}
+                    >
+                      {c}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* Generate / loading / result */}
+              {!vtLoading && !vtSvg && !vtUrl && (
+                <button
+                  type="button"
+                  onClick={() => void generateVisualTranslation()}
+                  disabled={!generatedText.trim()}
+                  className="flex items-center gap-1.5 rounded-lg border border-palm bg-palm px-4 py-2 text-xs font-semibold text-white transition hover:bg-palm/90 disabled:opacity-40"
+                >
+                  <Sparkles size={13} aria-hidden="true" />
+                  إنشاء مرئي من النص
+                </button>
+              )}
+
+              {vtLoading && (
                 <div className="flex flex-col items-center gap-3 rounded-xl border border-line bg-white py-8">
                   <div className="h-8 w-8 animate-spin rounded-full border-4 border-palm/20 border-t-palm" />
                   <p className="text-xs text-ink/50">جارٍ ترجمة المحتوى إلى مرئي...</p>
                 </div>
               )}
-              {imageGenSvg && !imageGenLoading && (
+
+              {vtSvg && !vtLoading && (
                 <div className="overflow-hidden rounded-xl border border-line bg-white">
-                  <div className="w-full p-2" dangerouslySetInnerHTML={{ __html: imageGenSvg }} />
+                  <div className="w-full p-2" dangerouslySetInnerHTML={{ __html: vtSvg }} />
                   <div className="flex items-center justify-between border-t border-line px-3 py-2">
                     <p className="text-xs text-ink/40">مرئي SVG — جودة عالية قابل للتكبير</p>
                     <div className="flex gap-2">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const base = infographicSubType === "chart" ? "chart" :
-                            infographicSubType === "mindmap" ? "mindmap" : "visual";
-                          downloadSvg(imageGenSvg, `${base}.svg`);
-                        }}
-                        className="rounded-lg border border-line bg-paper px-3 py-1 text-xs font-medium text-ink/70 transition hover:border-palm hover:text-palm"
-                      >
-                        SVG
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const base = infographicSubType === "chart" ? "chart" :
-                            infographicSubType === "mindmap" ? "mindmap" : "visual";
-                          downloadSvgAsPng(imageGenSvg, `${base}.svg`);
-                        }}
-                        className="rounded-lg border border-line bg-paper px-3 py-1 text-xs font-medium text-ink/70 transition hover:border-palm hover:text-palm"
-                      >
-                        PNG
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => generateImage(generatedText)}
-                        className="rounded-lg border border-line bg-paper px-3 py-1 text-xs font-medium text-ink/70 transition hover:border-palm hover:text-palm"
-                      >
-                        إعادة الترجمة
-                      </button>
+                      <button type="button" onClick={() => downloadSvg(vtSvg, `${vtType}.svg`)}
+                        className="rounded-lg border border-line bg-paper px-3 py-1 text-xs font-medium text-ink/70 transition hover:border-palm hover:text-palm">SVG</button>
+                      <button type="button" onClick={() => downloadSvgAsPng(vtSvg, `${vtType}.svg`)}
+                        className="rounded-lg border border-line bg-paper px-3 py-1 text-xs font-medium text-ink/70 transition hover:border-palm hover:text-palm">PNG</button>
+                      <button type="button" onClick={() => { setVtSvg(""); setVtUrl(""); void generateVisualTranslation(); }}
+                        className="rounded-lg border border-line bg-paper px-3 py-1 text-xs font-medium text-ink/70 transition hover:border-palm hover:text-palm">إعادة الإنشاء</button>
                     </div>
                   </div>
                 </div>
               )}
-              {imageGenUrl && !imageGenLoading && (
+
+              {vtUrl && !vtLoading && (
                 <div className="overflow-hidden rounded-xl border border-line bg-white">
-                  <img
-                    src={imageGenUrl}
-                    alt="الترجمة البصرية للمحتوى"
-                    className="w-full"
-                    onError={() => setImageGenError("تعذر تحميل الصورة")}
-                  />
+                  <img src={vtUrl} alt="الترجمة البصرية" className="w-full" onError={() => setVtError("تعذر تحميل الصورة")} />
                   <div className="flex items-center justify-between border-t border-line px-3 py-2">
                     <p className="text-xs text-ink/40">صورة مُنشأة بالذكاء الاصطناعي</p>
                     <div className="flex gap-2">
-                      <a
-                        href={imageGenUrl}
-                        download="visual.jpg"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="rounded-lg border border-line bg-paper px-3 py-1 text-xs font-medium text-ink/70 transition hover:border-palm hover:text-palm"
-                      >
-                        JPG
-                      </a>
-                      <button
-                        type="button"
-                        onClick={() => void downloadUrlAsPng(imageGenUrl, "visual.png")}
-                        className="rounded-lg border border-line bg-paper px-3 py-1 text-xs font-medium text-ink/70 transition hover:border-palm hover:text-palm"
-                      >
-                        PNG
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => generateImage(generatedText)}
-                        className="rounded-lg border border-line bg-paper px-3 py-1 text-xs font-medium text-ink/70 transition hover:border-palm hover:text-palm"
-                      >
-                        إعادة الترجمة
-                      </button>
+                      <a href={vtUrl} download="visual.jpg" target="_blank" rel="noopener noreferrer"
+                        className="rounded-lg border border-line bg-paper px-3 py-1 text-xs font-medium text-ink/70 transition hover:border-palm hover:text-palm">JPG</a>
+                      <button type="button" onClick={() => void downloadUrlAsPng(vtUrl, "visual.png")}
+                        className="rounded-lg border border-line bg-paper px-3 py-1 text-xs font-medium text-ink/70 transition hover:border-palm hover:text-palm">PNG</button>
+                      <button type="button" onClick={() => { setVtSvg(""); setVtUrl(""); void generateVisualTranslation(); }}
+                        className="rounded-lg border border-line bg-paper px-3 py-1 text-xs font-medium text-ink/70 transition hover:border-palm hover:text-palm">إعادة الإنشاء</button>
                     </div>
                   </div>
                 </div>
               )}
-              {imageGenError && <p className="text-xs text-red-600">{imageGenError}</p>}
+
+              {vtError && <p className="text-xs text-red-600">{vtError}</p>}
             </div>
-          )}
+          </div>
 
           <div className="mt-3 flex gap-3 rounded-lg border border-amber-200 bg-amber-50 p-4">
             <AlertTriangle size={18} className="mt-0.5 shrink-0 text-amber-500" aria-hidden="true" />
@@ -1776,7 +1835,7 @@ export default function ContentStudioPage() {
             <Button onClick={runReview} disabled={generatedText.trim().length < 5} leadingIcon={<FileCheck2 size={16} aria-hidden="true" />}>
               راجع قانونياً
             </Button>
-            <Button variant="secondary-gray" onClick={() => { setGeneratedText(""); setTopic(""); setImageGenSvg(""); setImageGenUrl(""); setImageGenError(""); }} leadingIcon={<Edit3 size={16} />}>
+            <Button variant="secondary-gray" onClick={() => { setGeneratedText(""); setTopic(""); setVtSvg(""); setVtUrl(""); setVtError(""); }} leadingIcon={<Edit3 size={16} />}>
               عدّل الطلب
             </Button>
           </div>
