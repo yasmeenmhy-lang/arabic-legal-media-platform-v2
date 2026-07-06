@@ -193,7 +193,7 @@ export async function reviewContent(text: string, kind: ContentKind = "post", co
   });
   const reviewContext = createReviewedContentContext(text, context);
   const calculatedAt = new Date().toISOString();
-  const confidence = buildConfidence(compliance.findings, context);
+  const confidence = buildConfidence(compliance.findings);
   const readinessDecision = buildReadinessDecision({
     complianceScore: compliance.complianceScore,
     riskLevel,

@@ -356,7 +356,6 @@ export default function ContentReviewPage() {
   const report = review ? {
     "قرار النشر": review.publicationDecision.label,
     "سبب القرار": review.publicationDecision.reason,
-    "مستوى الثقة": review.confidence.label,
     "الملاحظات": sortedFindings.map((finding) => ({
       "الملاحظة": finding.issue,
       "الدليل": finding.evidence,
@@ -627,7 +626,6 @@ export default function ContentReviewPage() {
               </div>
               <div className="flex shrink-0 flex-wrap gap-2">
                 <StatusBadge tone={decisionTone(review)}>{review.publicationDecision.label}</StatusBadge>
-                <StatusBadge tone={review.confidence.level === "High" ? "good" : review.confidence.level === "Medium" ? "neutral" : "gold"}>الثقة {review.confidence.label}</StatusBadge>
               </div>
             </div>
             <div className="mt-5 grid gap-4 lg:grid-cols-2">

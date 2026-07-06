@@ -258,10 +258,10 @@ const MOCK_REVIEW: ReviewResult = {
     recommended: false,
   },
   confidence: {
-    level: "High",
-    label: "عالية",
-    reason: "مطابقة صريحة مع أنماط محظورة في المراجع المسجلة.",
-    evidenceQuality: "دليل نصي مباشر من المحتوى المُدخل",
+    level: "Low",
+    label: "غير موثوق",
+    reason: "المحتوى غير ملتزم بقواعد السلوك المهني أو اللائحة التنفيذية لنظام المحاماة — أي محتوى غير ملتزم غير موثوق فيه.",
+    evidenceQuality: "توجد مخالفات مرصودة مرتبطة بالمراجع المسجلة.",
   },
   readinessDecision: {
     level: "غير جاهز",

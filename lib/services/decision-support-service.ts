@@ -14,32 +14,23 @@ import type {
 
 const approvedStatuses: ReviewReadinessStatus[] = ["READY_FOR_PUBLISHING", "EXPORTED", "SHARED"];
 
-export function buildConfidence(findings: ReviewFinding[], context: ReviewContext): AssessmentConfidence {
-  const completeContext = [context.contentType, context.channel, context.audience, context.purpose].filter(Boolean).length;
-  const highEvidence = findings.filter((finding) => finding.confidenceLevel === "مرتفع").length;
-  const weakEvidence = findings.filter((finding) => finding.confidenceLevel === "منخفض").length;
-
-  if ((findings.length === 0 && completeContext >= 3) || (findings.length > 0 && highEvidence === findings.length && completeContext >= 3)) {
-    return {
-      level: "High",
-      label: "عالية",
-      reason: "الأدلة محددة، وسياق المحتوى مكتمل، والمراجع الرسمية منطبقة بصورة مباشرة.",
-      evidenceQuality: "عبارات واضحة مرتبطة بمراجع مسجلة وسياق مكتمل."
-    };
-  }
-  if (weakEvidence > 0 || completeContext < 2) {
+// الثقة تتبع الامتثال فقط: أي محتوى غير ملتزم بقواعد السلوك المهني
+// أو اللائحة التنفيذية لنظام المحاماة غير موثوق فيه.
+export function buildConfidence(findings: ReviewFinding[]): AssessmentConfidence {
+  const unresolved = findings.filter((finding) => !finding.resolved);
+  if (unresolved.length > 0) {
     return {
       level: "Low",
-      label: "منخفضة",
-      reason: "السياق أو الأدلة غير مكتملة بما يكفي لاتخاذ قرار نهائي دون مراجعة إضافية.",
-      evidenceQuality: "تحتاج بعض العبارات أو بيانات السياق إلى توضيح."
+      label: "غير موثوق",
+      reason: "المحتوى غير ملتزم بقواعد السلوك المهني أو اللائحة التنفيذية لنظام المحاماة — أي محتوى غير ملتزم غير موثوق فيه.",
+      evidenceQuality: "توجد مخالفات مرصودة مرتبطة بالمراجع المسجلة."
     };
   }
   return {
-    level: "Medium",
-    label: "متوسطة",
-    reason: "توجد أدلة قابلة للاستناد، مع بقاء بعض الجوانب التي تستفيد من مراجعة بشرية.",
-    evidenceQuality: "الأدلة كافية للتوجيه الأولي وليست قطعية في جميع المواضع."
+    level: "High",
+    label: "موثوق",
+    reason: "لم تُرصد مخالفات لقواعد السلوك المهني أو اللائحة التنفيذية لنظام المحاماة.",
+    evidenceQuality: "لا مخالفات مرتبطة بالمراجع المسجلة."
   };
 }
 

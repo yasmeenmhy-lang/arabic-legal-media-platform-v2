@@ -30,7 +30,7 @@ export type PublicationDecision = {
 
 export type AssessmentConfidence = {
   level: "High" | "Medium" | "Low";
-  label: "عالية" | "متوسطة" | "منخفضة";
+  label: "موثوق" | "غير موثوق";
   reason: string;
   evidenceQuality: string;
 };
