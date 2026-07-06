@@ -292,8 +292,9 @@ function renderChartSvg(data: ChartData, chartType: string): string {
 // ── Mind map: 1080×1080 (square — Instagram / general social) ─────────────
 
 function renderMindMapSvg(d: MindMapData): string {
-  const W = 1080, H = 1080, cx = 540, cy = 540, branchR = 290, subR = 120;
-  const COLORS = ["#e8f5f0", "#d4ede4", "#c0e5d8", "#acdccc", "#98d4c0"];
+  const W = 1080, H = 1080, cx = 540, cy = 570, branchR = 300, subR = 128;
+  const BRANCH_COLORS = ["#e8f5f0", "#d4ede4", "#c0e5d8", "#acdccc", "#98d4c0"];
+  const BORDER_COLORS = ["#1a6b4a", "#2d8f64", "#4aad82", "#6ecaa2", "#98d4c0"];
   const branches = (d.branches || []).slice(0, 5);
   const baseAngles = [-90, -18, 54, 126, 198];
 
@@ -304,40 +305,44 @@ function renderMindMapSvg(d: MindMapData): string {
     const a = (baseAngles[i] * Math.PI) / 180;
     const nx = Math.round(cx + branchR * Math.cos(a));
     const ny = Math.round(cy + branchR * Math.sin(a));
-    const bw = 160, bh = 52;
+    // Wider nodes for more text
+    const bw = 180, bh = 56;
 
     connectors.push(
-      `<line x1="${cx}" y1="${cy}" x2="${nx}" y2="${ny}" stroke="${PALM}" stroke-width="2.5" opacity="0.3"/>`
+      `<line x1="${cx}" y1="${cy}" x2="${nx}" y2="${ny}" stroke="${BORDER_COLORS[i]}" stroke-width="3" opacity="0.4"/>`
     );
     nodes.push(
-      `<rect x="${nx - bw / 2}" y="${ny - bh / 2}" width="${bw}" height="${bh}" rx="26" fill="${COLORS[i]}" stroke="${PALM}" stroke-width="2"/>
-<text x="${nx}" y="${ny + 6}" text-anchor="middle" font-family="${FONT}" font-size="15" fill="#1a1a2e">${trunc(b.label, 10)}</text>`
+      `<rect x="${nx - bw / 2}" y="${ny - bh / 2}" width="${bw}" height="${bh}" rx="28" fill="${BRANCH_COLORS[i]}" stroke="${BORDER_COLORS[i]}" stroke-width="2.5"/>
+<text x="${nx}" y="${ny + 7}" text-anchor="middle" font-family="${FONT}" font-size="15" font-weight="bold" fill="#1a1a2e">${trunc(b.label, 12)}</text>`
     );
 
     const subs = [b.sub1, b.sub2].filter(Boolean) as string[];
     subs.forEach((sub, si) => {
-      const sa = a + ((si === 0 ? -1 : 1) * Math.PI) / 7;
+      const sa = a + ((si === 0 ? -1 : 1) * Math.PI) / 6;
       const sx = Math.round(nx + subR * Math.cos(sa));
       const sy = Math.round(ny + subR * Math.sin(sa));
-      const sw = 120, sh = 36;
+      const sw = 130, sh = 38;
       connectors.push(
-        `<line x1="${nx}" y1="${ny}" x2="${sx}" y2="${sy}" stroke="#4a9b7f" stroke-width="1.5" opacity="0.35"/>`
+        `<line x1="${nx}" y1="${ny}" x2="${sx}" y2="${sy}" stroke="${BORDER_COLORS[i]}" stroke-width="1.8" opacity="0.3"/>`
       );
       nodes.push(
-        `<rect x="${sx - sw / 2}" y="${sy - sh / 2}" width="${sw}" height="${sh}" rx="18" fill="#f0fbf7" stroke="#4a9b7f" stroke-width="1.5"/>
-<text x="${sx}" y="${sy + 5}" text-anchor="middle" font-family="${FONT}" font-size="13" fill="#1a1a2e">${trunc(sub, 8)}</text>`
+        `<rect x="${sx - sw / 2}" y="${sy - sh / 2}" width="${sw}" height="${sh}" rx="19" fill="#f0fbf7" stroke="${BORDER_COLORS[i]}" stroke-width="1.5"/>
+<text x="${sx}" y="${sy + 6}" text-anchor="middle" font-family="${FONT}" font-size="13" fill="#1a3a2a">${trunc(sub, 10)}</text>`
       );
     });
   });
 
-  const cw = 176, ch = 58;
+  // Centre node
+  const cw = 190, ch = 64;
   nodes.push(
-    `<rect x="${cx - cw / 2}" y="${cy - ch / 2}" width="${cw}" height="${ch}" rx="29" fill="${PALM}"/>
-<text x="${cx}" y="${cy + 7}" text-anchor="middle" font-family="${FONT}" font-size="18" font-weight="bold" fill="#fff">${trunc(d.center, 10)}</text>`
+    `<rect x="${cx - cw / 2}" y="${cy - ch / 2}" width="${cw}" height="${ch}" rx="32" fill="${PALM}"/>
+<text x="${cx}" y="${cy + 8}" text-anchor="middle" font-family="${FONT}" font-size="17" font-weight="bold" fill="#fff">${trunc(d.center, 12)}</text>`
   );
 
   return `<svg width="100%" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
 <rect width="${W}" height="${H}" fill="#f8fdf9"/>
+<rect width="${W}" height="88" fill="${PALM}"/>
+<text x="${W / 2}" y="56" text-anchor="middle" font-family="${FONT}" font-size="26" font-weight="bold" fill="#fff">${trunc(d.center, 24)}</text>
 ${connectors.join("\n")}
 ${nodes.join("\n")}
 </svg>`;
@@ -347,52 +352,64 @@ ${nodes.join("\n")}
 
 function renderInfographicSvg(d: InfographicData): string {
   const W = 1080;
+  const PAD = 48;
   const sections = (d.sections || []).slice(0, 4);
-  const HEADER_H = 140;
-  const SUB_H    = 80;
-  const SEC_H    = 200;
-  const FOOTER_H = 60;
+  const HEADER_H = 170;
+  const SUB_H    = 88;
+  const SEC_H    = 240;
+  const FOOTER_H = 72;
   const H = HEADER_H + SUB_H + sections.length * SEC_H + FOOTER_H;
 
-  // Layout: number circle on the RIGHT (RTL start), text fills LEFT portion
-  const PAD       = 40;
-  const CIRC_CX   = W - PAD - 50;          // circle centre — right side
-  const CIRC_R    = 36;
-  const TEXT_X    = W - PAD - CIRC_R * 2 - 28; // text right-edge before circle
-  const CARD_W    = W - PAD * 2;
+  // Section accent colours — each section gets a distinct shade
+  const ACCENTS = ["#1a6b4a", "#2d8f64", "#4aad82", "#6ecaa2"];
+  const CARD_W  = W - 2 * PAD;
+  const ACCENT_W = 10;
+  // Text is right-aligned at the RIGHT edge of the card (RTL Arabic)
+  const TR = W - PAD;   // text right anchor (text-anchor="end" → right edge at TR)
 
   const sectionBlocks = sections.map((sec, i) => {
-    const y0   = HEADER_H + SUB_H + i * SEC_H + 12;
-    const cardH = SEC_H - 24;
+    const y0    = HEADER_H + SUB_H + i * SEC_H + 14;
+    const cardH = SEC_H - 28;
     const bg    = i % 2 === 0 ? "#f8fdf9" : "#ffffff";
+    const ac    = ACCENTS[i % 4];
 
-    const line3  = sec.line3
-      ? `<text x="${TEXT_X}" y="${y0 + 108}" text-anchor="end" font-family="${FONT}" font-size="15" fill="#555" clip-path="url(#cp${i})">${trunc(sec.line3, 30)}</text>`
+    // Large translucent background number — decorative only
+    const numBgX = PAD + ACCENT_W + 52;
+    const numBgY = y0 + cardH / 2 + 22;
+
+    const line3 = sec.line3
+      ? `<text x="${TR}" y="${y0 + 132}" text-anchor="end" font-family="${FONT}" font-size="15" fill="#555">${trunc(sec.line3, 36)}</text>`
       : "";
-    const stat   = sec.stat
-      ? `<text x="${TEXT_X}" y="${y0 + (sec.line3 ? 136 : 116)}" text-anchor="end" font-family="${FONT}" font-size="14" fill="${PALM}" font-weight="bold" clip-path="url(#cp${i})">${trunc(sec.stat, 28)}</text>`
+    const stat  = sec.stat
+      ? `<text x="${TR}" y="${y0 + (sec.line3 ? 162 : 140)}" text-anchor="end" font-family="${FONT}" font-size="14" fill="${ac}" font-weight="bold">${trunc(sec.stat, 34)}</text>`
       : "";
 
-    return `<clipPath id="cp${i}"><rect x="${PAD}" y="${y0}" width="${CARD_W}" height="${cardH}"/></clipPath>
-<rect x="${PAD}" y="${y0}" width="${CARD_W}" height="${cardH}" rx="14" fill="${bg}" stroke="#d4ede4" stroke-width="1.5"/>
-<circle cx="${CIRC_CX}" cy="${y0 + 56}" r="${CIRC_R}" fill="#e8f5f0" stroke="${PALM}" stroke-width="2.5"/>
-<text x="${CIRC_CX}" y="${y0 + 67}" text-anchor="middle" font-family="${FONT}" font-size="26" font-weight="bold" fill="${PALM}">${i + 1}</text>
-<text x="${TEXT_X}" y="${y0 + 38}" text-anchor="end" font-family="${FONT}" font-size="18" font-weight="bold" fill="#1a1a2e" clip-path="url(#cp${i})">${trunc(sec.heading, 26)}</text>
-<text x="${TEXT_X}" y="${y0 + 68}" text-anchor="end" font-family="${FONT}" font-size="15" fill="#444" clip-path="url(#cp${i})">${trunc(sec.line1, 30)}</text>
-<text x="${TEXT_X}" y="${y0 + 92}" text-anchor="end" font-family="${FONT}" font-size="15" fill="#444" clip-path="url(#cp${i})">${trunc(sec.line2, 30)}</text>
+    return `<rect x="${PAD}" y="${y0}" width="${CARD_W}" height="${cardH}" rx="16" fill="${bg}" stroke="#e4f2ec" stroke-width="1.5"/>
+<rect x="${PAD}" y="${y0}" width="${ACCENT_W}" height="${cardH}" rx="5" fill="${ac}"/>
+<text x="${numBgX}" y="${numBgY}" text-anchor="middle" font-family="${FONT}" font-size="96" font-weight="bold" fill="${ac}" opacity="0.08">${i + 1}</text>
+<text x="${TR}" y="${y0 + 54}" text-anchor="end" font-family="${FONT}" font-size="21" font-weight="bold" fill="#1a1a2e">${trunc(sec.heading, 26)}</text>
+<text x="${TR}" y="${y0 + 84}" text-anchor="end" font-family="${FONT}" font-size="16" fill="#3a3a4a">${trunc(sec.line1, 36)}</text>
+<text x="${TR}" y="${y0 + 108}" text-anchor="end" font-family="${FONT}" font-size="16" fill="#3a3a4a">${trunc(sec.line2, 36)}</text>
 ${line3}${stat}`;
   }).join("\n");
 
   const footerY = H - FOOTER_H;
   return `<svg width="100%" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
+<defs>
+  <linearGradient id="hdrGrad" x1="0" y1="0" x2="1" y2="0">
+    <stop offset="0%" stop-color="#124d35"/>
+    <stop offset="100%" stop-color="#1a6b4a"/>
+  </linearGradient>
+</defs>
 <rect width="${W}" height="${H}" fill="#fff"/>
-<rect width="${W}" height="${HEADER_H}" fill="${PALM}"/>
-<text x="${W / 2}" y="${HEADER_H / 2 + 14}" text-anchor="middle" font-family="${FONT}" font-size="28" font-weight="bold" fill="#fff">${trunc(d.title, 26)}</text>
-<text x="${W / 2}" y="${HEADER_H + 50}" text-anchor="middle" font-family="${FONT}" font-size="17" fill="#555">${trunc(d.subtitle, 44)}</text>
-<line x1="80" y1="${HEADER_H + 64}" x2="${W - 80}" y2="${HEADER_H + 64}" stroke="#e0e0e0" stroke-width="1"/>
+<rect width="${W}" height="${HEADER_H}" fill="url(#hdrGrad)"/>
+<text x="${W / 2}" y="${HEADER_H / 2 + 8}" text-anchor="middle" font-family="${FONT}" font-size="34" font-weight="bold" fill="#fff">${trunc(d.title, 24)}</text>
+<rect y="${HEADER_H}" width="${W}" height="${SUB_H}" fill="#f0f9f5"/>
+<text x="${W / 2}" y="${HEADER_H + 54}" text-anchor="middle" font-family="${FONT}" font-size="18" fill="#2d6e52">${trunc(d.subtitle, 42)}</text>
 ${sectionBlocks}
-<rect x="0" y="${footerY}" width="${W}" height="${FOOTER_H}" fill="#f0f8f4"/>
-<text x="${W / 2}" y="${footerY + 38}" text-anchor="middle" font-family="${FONT}" font-size="13" fill="#888">${trunc(d.source, 60)}</text>
+<rect x="0" y="${footerY}" width="${W}" height="${FOOTER_H}" fill="#f0f9f5"/>
+<line x1="${PAD}" y1="${footerY + 1}" x2="${W - PAD}" y2="${footerY + 1}" stroke="#c8e8d8" stroke-width="1"/>
+<text x="${W / 2}" y="${footerY + 44}" text-anchor="middle" font-family="${FONT}" font-size="13" fill="#7a9a8a">${trunc(d.source, 60)}</text>
 </svg>`;
 }
 
@@ -427,21 +444,22 @@ function mindMapDataPrompt(description: string): string {
 
 Return ONLY valid JSON with no markdown fences or explanation:
 {
-  "center": "موضوع مركزي 6-10 أحرف",
+  "center": "موضوع مركزي — أقصى 12 حرفاً",
   "branches": [
-    {"label": "فرع 1 — 5-8 أحرف", "sub1": "فرعي 1أ — 4-7 أحرف", "sub2": "فرعي 1ب — 4-7 أحرف"},
-    {"label": "فرع 2 — 5-8 أحرف", "sub1": "فرعي 2أ — 4-7 أحرف", "sub2": "فرعي 2ب — 4-7 أحرف"},
-    {"label": "فرع 3 — 5-8 أحرف", "sub1": "فرعي 3أ — 4-7 أحرف", "sub2": "فرعي 3ب — 4-7 أحرف"},
-    {"label": "فرع 4 — 5-8 أحرف", "sub1": "فرعي 4أ — 4-7 أحرف"},
-    {"label": "فرع 5 — 5-8 أحرف", "sub1": "فرعي 5أ — 4-7 أحرف"}
+    {"label": "فرع رئيسي 1 — أقصى 12 حرفاً", "sub1": "فرعي 1أ — أقصى 10 أحرف", "sub2": "فرعي 1ب — أقصى 10 أحرف"},
+    {"label": "فرع رئيسي 2 — أقصى 12 حرفاً", "sub1": "فرعي 2أ — أقصى 10 أحرف", "sub2": "فرعي 2ب — أقصى 10 أحرف"},
+    {"label": "فرع رئيسي 3 — أقصى 12 حرفاً", "sub1": "فرعي 3أ — أقصى 10 أحرف", "sub2": "فرعي 3ب — أقصى 10 أحرف"},
+    {"label": "فرع رئيسي 4 — أقصى 12 حرفاً", "sub1": "فرعي 4أ — أقصى 10 أحرف"},
+    {"label": "فرع رئيسي 5 — أقصى 12 حرفاً", "sub1": "فرعي 5أ — أقصى 10 أحرف"}
   ]
 }
 
 Rules:
-- Exactly 5 main branches
-- Labels must be very short Arabic (≤8 chars) — abbreviated if needed
-- sub-labels ≤7 chars each
-- Content must be legally relevant to the topic`;
+- Exactly 5 main branches covering distinct legal aspects of the topic
+- center: ≤12 Arabic chars — the core legal concept
+- branch labels: ≤12 Arabic chars each — use meaningful abbreviations if needed
+- sub-labels: ≤10 Arabic chars each
+- All content must be legally accurate and topic-specific`;
 }
 
 function infographicDataPrompt(description: string): string {
@@ -449,29 +467,29 @@ function infographicDataPrompt(description: string): string {
 
 Return ONLY valid JSON with no markdown fences or explanation:
 {
-  "title": "عنوان رئيسي عربي 15-25 حرف",
-  "subtitle": "وصف توضيحي عربي 30-45 حرف",
+  "title": "عنوان رئيسي عربي — أقصى 24 حرفاً",
+  "subtitle": "وصف توضيحي عربي — أقصى 42 حرفاً",
   "sections": [
     {
-      "heading": "عنوان القسم 10-18 حرف",
-      "line1": "نص عربي وصفي أول 35-45 حرف",
-      "line2": "نص عربي وصفي ثانٍ 35-45 حرف",
-      "line3": "نص عربي ثالث اختياري 35-45 حرف",
-      "stat": "إحصاء أو مرجع قصير مثل: المادة 35 — نظام العمل"
+      "heading": "عنوان القسم — أقصى 26 حرفاً",
+      "line1": "نص عربي وصفي أول — أقصى 36 حرفاً",
+      "line2": "نص عربي وصفي ثانٍ — أقصى 36 حرفاً",
+      "line3": "نص عربي ثالث اختياري — أقصى 36 حرفاً",
+      "stat": "مثال: المادة 74 — نظام العمل السعودي"
     },
-    { ... },
-    { ... },
-    { ... }
+    { "heading": "...", "line1": "...", "line2": "...", "stat": "..." },
+    { "heading": "...", "line1": "...", "line2": "..." },
+    { "heading": "...", "line1": "...", "line2": "...", "line3": "..." }
   ],
   "source": "مصدر: وزارة العدل / هيئة المحامين السعوديين / ..."
 }
 
 Rules:
-- Exactly 4 sections
-- All text in Arabic, professional legal tone
-- line1/line2/line3 each ≤45 chars so they fit in one line
-- stat is optional but helpful for authority
-- source must be a real Saudi legal authority relevant to the topic`;
+- Exactly 4 sections, each covering a distinct aspect of the topic
+- CRITICAL: each field must NOT exceed the char limit or it will be cut off
+- All text in Arabic, professional legal tone with accurate information
+- stat is optional — use only when there is a real article number or statistic
+- source must reference a real Saudi legal authority relevant to the topic`;
 }
 
 // ── Route ──────────────────────────────────────────────────────────────────
