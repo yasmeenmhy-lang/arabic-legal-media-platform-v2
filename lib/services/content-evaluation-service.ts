@@ -215,9 +215,13 @@ export async function evaluateContent(text: string): Promise<ContentEvaluation> 
     try {
       const message = await client.messages.create({
         model: "claude-sonnet-5",
-        max_tokens: 2048,
+        max_tokens: 4096,
         messages: [{ role: "user", content: buildEvaluationPrompt(text) }]
       });
+
+      if (message.stop_reason === "max_tokens") {
+        throw new Error("response truncated at max_tokens — JSON incomplete");
+      }
 
       const rawText = message.content
         .filter((block) => block.type === "text")
