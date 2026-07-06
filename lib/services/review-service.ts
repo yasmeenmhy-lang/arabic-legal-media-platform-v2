@@ -5,8 +5,11 @@ import type {
   LanguageQualityIssue,
   LanguageQualityReviewResult,
   ReviewContext,
+  ReviewFinding,
   ReviewResult,
-  ReviewWorkflowStep
+  ReviewWorkflowStep,
+  RiskAffectedParty,
+  RiskLevel
 } from "@/lib/types";
 import { advisoryDisclaimer } from "@/lib/governance";
 import { createReviewedContentContext } from "@/lib/review-context";
@@ -33,6 +36,16 @@ import {
 } from "@/lib/services/decision-support-service";
 
 const noRegisteredViolationMessage = "لم يتم رصد ملاحظة مرتبطة بالمراجع المهنية والتنظيمية المسجلة.";
+
+// الامتثال يحكم أرضية المخاطر: لا يجوز أن يظهر خطر "منخفض" مع وجود مخالفات مرصودة
+const RISK_ORDER: RiskLevel[] = ["منخفض", "متوسط", "مرتفع", "بالغ"];
+
+function riskFloorFromFindings(findings: ReviewFinding[]): RiskLevel {
+  const active = findings.filter((f) => !f.resolved);
+  if (active.some((f) => f.businessSeverity === "critical" || f.businessSeverity === "high")) return "مرتفع";
+  if (active.length > 0) return "متوسط";
+  return "منخفض";
+}
 
 const workflowLabels: Array<[ReviewWorkflowStep["key"], string]> = [
   ["language_quality_review", "جودة اللغة والصياغة"],
@@ -108,13 +121,31 @@ export async function reviewContent(text: string, kind: ContentKind = "post", co
   const languageQuality = mapToLanguageQualityResult(contentEval.language);
   const compliance = rebuildComplianceFromFindings(semanticFindings, profile);
 
-  // Override risk values with AI-based evaluation (affected parties model)
-  const riskScore = contentEval.risks.level === "بالغ" ? 100
-    : contentEval.risks.level === "مرتفع" ? 70
-    : contentEval.risks.level === "متوسط" ? 40
+  // Override risk values with AI-based evaluation (affected parties model),
+  // floored by compliance findings — non-compliance always raises the risk level
+  const complianceFloor = riskFloorFromFindings(compliance.findings);
+  const effectiveRisks =
+    RISK_ORDER.indexOf(complianceFloor) > RISK_ORDER.indexOf(contentEval.risks.level)
+      ? {
+          level: complianceFloor,
+          affectedParties: contentEval.risks.affectedParties.length > 0
+            ? contentEval.risks.affectedParties
+            : (["المحامي", "المهنة"] as RiskAffectedParty[]),
+          explanation: [
+            `رُصدت ${compliance.findings.length} مخالفة امتثال — عدم الالتزام بقواعد السلوك المهني يعرّض المحامي للمساءلة ويضر بسمعة المهنة.`,
+            contentEval.risks.explanation && !contentEval.risks.explanation.startsWith("تعذّر")
+              ? contentEval.risks.explanation
+              : ""
+          ].filter(Boolean).join(" "),
+          fix: contentEval.risks.fix || "عالج مخالفات الامتثال المرصودة قبل النشر لخفض مستوى المخاطر."
+        }
+      : contentEval.risks;
+  const riskScore = effectiveRisks.level === "بالغ" ? 100
+    : effectiveRisks.level === "مرتفع" ? 70
+    : effectiveRisks.level === "متوسط" ? 40
     : 10;
-  const riskLevel = contentEval.risks.level;
-  const riskScoreExplanation = calculateRiskFromEvaluation(contentEval.risks, compliance.findings.length, profile);
+  const riskLevel = effectiveRisks.level;
+  const riskScoreExplanation = calculateRiskFromEvaluation(effectiveRisks, compliance.findings.length, profile);
   const professionalismScore = contentEval.professionalWriting.score;
   const reviewStatus = deriveReviewStatus({
     languageScore: languageQuality.score,

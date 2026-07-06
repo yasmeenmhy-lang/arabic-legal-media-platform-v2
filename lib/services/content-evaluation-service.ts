@@ -209,35 +209,37 @@ export async function evaluateContent(text: string): Promise<ContentEvaluation> 
   console.log("[evaluation] starting content evaluation (risks, professionalism, language)");
 
   const client = new Anthropic({ apiKey });
-  let message: Awaited<ReturnType<typeof client.messages.create>>;
-  try {
-    message = await client.messages.create({
-      model: "claude-sonnet-5",
-      max_tokens: 2048,
-      messages: [{ role: "user", content: buildEvaluationPrompt(text) }]
-    });
-  } catch (err) {
-    console.warn("[evaluation] API call failed — returning fallback evaluation", err instanceof Error ? err.message : "");
-    return buildFallbackEvaluation();
+  const MAX_ATTEMPTS = 2;
+
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+    try {
+      const message = await client.messages.create({
+        model: "claude-sonnet-5",
+        max_tokens: 2048,
+        messages: [{ role: "user", content: buildEvaluationPrompt(text) }]
+      });
+
+      const rawText = message.content
+        .filter((block) => block.type === "text")
+        .map((block) => (block as { type: "text"; text: string }).text)
+        .join("");
+
+      const result = parseEvaluationResponse(rawText);
+      console.log(
+        "[evaluation] done: risk=%s, professionalism=%d, language=%d",
+        result.risks.level,
+        result.professionalWriting.score,
+        result.language.score
+      );
+      return result;
+    } catch (err) {
+      console.warn(
+        `[evaluation] attempt ${attempt}/${MAX_ATTEMPTS} failed`,
+        err instanceof Error ? err.message : ""
+      );
+    }
   }
 
-  const rawText = message.content
-    .filter((block) => block.type === "text")
-    .map((block) => (block as { type: "text"; text: string }).text)
-    .join("");
-
-  let result: ContentEvaluation;
-  try {
-    result = parseEvaluationResponse(rawText);
-  } catch (err) {
-    console.warn("[evaluation] parse failed — returning fallback evaluation", err instanceof Error ? err.message : "");
-    return buildFallbackEvaluation();
-  }
-  console.log(
-    "[evaluation] done: risk=%s, professionalism=%d, language=%d",
-    result.risks.level,
-    result.professionalWriting.score,
-    result.language.score
-  );
-  return result;
+  console.warn("[evaluation] all attempts failed — returning fallback evaluation");
+  return buildFallbackEvaluation();
 }
