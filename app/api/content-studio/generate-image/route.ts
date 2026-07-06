@@ -297,8 +297,9 @@ function renderMindMapSvg(d: MindMapData): string {
   const HDR = 90;
   const cx = 540;
   const cy = HDR + Math.round((H - HDR) / 2); // 585 — geometric center of usable area
-  const branchR = 265;
-  const subR = 112;
+  // branchR=255 keeps 5 nodes (200px wide) ~100px apart — no overlap
+  const branchR = 255;
+  const subR = 118;
 
   const BRANCH_BG = ["#e8f5f0", "#d4ede4", "#c0e5d8", "#acdccc", "#98d4c0"];
   const BRANCH_BD = ["#1a6b4a", "#2d8f64", "#4aad82", "#6ecaa2", "#8dc4b4"];
@@ -312,63 +313,64 @@ function renderMindMapSvg(d: MindMapData): string {
     const a = (BASE_ANGLES[i] * Math.PI) / 180;
     const bx = Math.round(cx + branchR * Math.cos(a));
     const by = Math.round(cy + branchR * Math.sin(a));
-    const bw = 172, bh = 48;
+    // 200×52: holds up to 16 Arabic chars at 12px comfortably
+    const bw = 200, bh = 52;
 
-    // Quadratic bezier with gentle perpendicular offset for a polished curve
     const perpX = -Math.sin(a) * 18;
     const perpY =  Math.cos(a) * 18;
     const qx = Math.round((cx + bx) / 2 + perpX);
     const qy = Math.round((cy + by) / 2 + perpY);
     connectors.push(
-      `<path d="M ${cx} ${cy} Q ${qx} ${qy} ${bx} ${by}" fill="none" stroke="${BRANCH_BD[i]}" stroke-width="2.5" stroke-linecap="round" opacity="0.5"/>`
+      `<path d="M ${cx} ${cy} Q ${qx} ${qy} ${bx} ${by}" fill="none" stroke="${BRANCH_BD[i]}" stroke-width="2" stroke-linecap="round" opacity="0.45"/>`
     );
 
     nodes.push(
-      `<rect x="${bx - bw / 2}" y="${by - bh / 2}" width="${bw}" height="${bh}" rx="24" fill="${BRANCH_BG[i]}" stroke="${BRANCH_BD[i]}" stroke-width="2"/>
-<text x="${bx}" y="${by + 5}" text-anchor="middle" font-family="${FONT}" font-size="13" font-weight="bold" fill="#1a2e24">${trunc(b.label, 13)}</text>`
+      `<rect x="${bx - bw / 2}" y="${by - bh / 2}" width="${bw}" height="${bh}" rx="26" fill="${BRANCH_BG[i]}" stroke="${BRANCH_BD[i]}" stroke-width="1.8"/>
+<text x="${bx}" y="${by + 5}" text-anchor="middle" font-family="${FONT}" font-size="12" font-weight="600" fill="#1a2e24">${trunc(b.label, 16)}</text>`
     );
 
     const subs = [b.sub1, b.sub2].filter(Boolean) as string[];
     subs.forEach((sub, si) => {
-      const sa = a + (si === 0 ? -0.44 : 0.44); // ±25° in radians
+      const sa = a + (si === 0 ? -0.44 : 0.44); // ±25°
       const sx = Math.round(bx + subR * Math.cos(sa));
       const sy = Math.round(by + subR * Math.sin(sa));
-      const sw = 116, sh = 34;
+      // 138×36: holds up to 14 Arabic chars at 10px
+      const sw = 138, sh = 36;
       connectors.push(
-        `<line x1="${bx}" y1="${by}" x2="${sx}" y2="${sy}" stroke="${BRANCH_BD[i]}" stroke-width="1.5" stroke-linecap="round" opacity="0.4"/>`
+        `<line x1="${bx}" y1="${by}" x2="${sx}" y2="${sy}" stroke="${BRANCH_BD[i]}" stroke-width="1.4" stroke-linecap="round" opacity="0.35"/>`
       );
       nodes.push(
-        `<rect x="${sx - sw / 2}" y="${sy - sh / 2}" width="${sw}" height="${sh}" rx="17" fill="#f0fbf7" stroke="${BRANCH_BD[i]}" stroke-width="1.5"/>
-<text x="${sx}" y="${sy + 5}" text-anchor="middle" font-family="${FONT}" font-size="11" fill="#1a3a2a">${trunc(sub, 12)}</text>`
+        `<rect x="${sx - sw / 2}" y="${sy - sh / 2}" width="${sw}" height="${sh}" rx="18" fill="#f0fbf7" stroke="${BRANCH_BD[i]}" stroke-width="1.2"/>
+<text x="${sx}" y="${sy + 4}" text-anchor="middle" font-family="${FONT}" font-size="10" fill="#1a3a2a">${trunc(sub, 14)}</text>`
       );
     });
   });
 
-  const headerTitle = trunc(d.title || d.center, 24);
-  const cr = 68;
+  const headerTitle = trunc(d.title || d.center, 26);
+  const cr = 78;
 
   return `<svg width="100%" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
 <defs>
-  <pattern id="dotGrid" x="0" y="0" width="30" height="30" patternUnits="userSpaceOnUse">
-    <circle cx="15" cy="15" r="1.2" fill="#1a6b4a" opacity="0.07"/>
+  <pattern id="dotGrid" x="0" y="0" width="28" height="28" patternUnits="userSpaceOnUse">
+    <circle cx="14" cy="14" r="1" fill="#1a6b4a" opacity="0.06"/>
   </pattern>
   <linearGradient id="mmHdr" x1="0" y1="0" x2="1" y2="0">
     <stop offset="0%" stop-color="#0d3322"/>
     <stop offset="100%" stop-color="#1a6b4a"/>
   </linearGradient>
-  <filter id="nodeShad" x="-25%" y="-25%" width="150%" height="150%">
-    <feDropShadow dx="0" dy="2" stdDeviation="5" flood-color="#1a6b4a" flood-opacity="0.14"/>
+  <filter id="nodeShad" x="-30%" y="-30%" width="160%" height="160%">
+    <feDropShadow dx="0" dy="3" stdDeviation="6" flood-color="#1a6b4a" flood-opacity="0.13"/>
   </filter>
 </defs>
 <rect width="${W}" height="${H}" fill="#f8fdf9"/>
 <rect width="${W}" height="${H}" fill="url(#dotGrid)"/>
 <rect width="${W}" height="${HDR}" fill="url(#mmHdr)"/>
-<text x="${W / 2}" y="${Math.round(HDR * 0.62)}" text-anchor="middle" font-family="${FONT}" font-size="20" font-weight="bold" fill="#fff">${headerTitle}</text>
+<text x="${W / 2}" y="${Math.round(HDR * 0.64)}" text-anchor="middle" font-family="${FONT}" font-size="20" font-weight="600" fill="#fff">${headerTitle}</text>
 ${connectors.join("\n")}
 ${nodes.join("\n")}
 <circle cx="${cx}" cy="${cy}" r="${cr}" fill="${PALM}" filter="url(#nodeShad)"/>
-<circle cx="${cx}" cy="${cy}" r="${cr}" fill="none" stroke="#fff" stroke-width="2.5" opacity="0.25"/>
-<text x="${cx}" y="${cy + 5}" text-anchor="middle" font-family="${FONT}" font-size="14" font-weight="bold" fill="#fff">${trunc(d.center, 13)}</text>
+<circle cx="${cx}" cy="${cy}" r="${cr - 6}" fill="none" stroke="#fff" stroke-width="1.5" opacity="0.2"/>
+<text x="${cx}" y="${cy + 5}" text-anchor="middle" font-family="${FONT}" font-size="14" font-weight="600" fill="#fff">${trunc(d.center, 15)}</text>
 </svg>`;
 }
 
@@ -470,23 +472,24 @@ function mindMapDataPrompt(description: string): string {
 
 Return ONLY valid JSON with no markdown fences or explanation:
 {
-  "title": "عنوان توضيحي للخريطة — أقصى 22 حرفاً",
-  "center": "اختصار المفهوم المركزي — أقصى 12 حرفاً",
+  "title": "عنوان توضيحي للخريطة — أقصى 24 حرفاً",
+  "center": "اختصار المفهوم المركزي — أقصى 13 حرفاً",
   "branches": [
-    {"label": "فرع رئيسي 1 — أقصى 12 حرفاً", "sub1": "فرعي 1أ — أقصى 11 حرفاً", "sub2": "فرعي 1ب — أقصى 11 حرفاً"},
-    {"label": "فرع رئيسي 2 — أقصى 12 حرفاً", "sub1": "فرعي 2أ — أقصى 11 حرفاً", "sub2": "فرعي 2ب — أقصى 11 حرفاً"},
-    {"label": "فرع رئيسي 3 — أقصى 12 حرفاً", "sub1": "فرعي 3أ — أقصى 11 حرفاً", "sub2": "فرعي 3ب — أقصى 11 حرفاً"},
-    {"label": "فرع رئيسي 4 — أقصى 12 حرفاً", "sub1": "فرعي 4أ — أقصى 11 حرفاً"},
-    {"label": "فرع رئيسي 5 — أقصى 12 حرفاً", "sub1": "فرعي 5أ — أقصى 11 حرفاً"}
+    {"label": "فرع رئيسي 1 — أقصى 14 حرفاً", "sub1": "فرعي 1أ — أقصى 12 حرفاً", "sub2": "فرعي 1ب — أقصى 12 حرفاً"},
+    {"label": "فرع رئيسي 2 — أقصى 14 حرفاً", "sub1": "فرعي 2أ — أقصى 12 حرفاً", "sub2": "فرعي 2ب — أقصى 12 حرفاً"},
+    {"label": "فرع رئيسي 3 — أقصى 14 حرفاً", "sub1": "فرعي 3أ — أقصى 12 حرفاً", "sub2": "فرعي 3ب — أقصى 12 حرفاً"},
+    {"label": "فرع رئيسي 4 — أقصى 14 حرفاً", "sub1": "فرعي 4أ — أقصى 12 حرفاً"},
+    {"label": "فرع رئيسي 5 — أقصى 14 حرفاً", "sub1": "فرعي 5أ — أقصى 12 حرفاً"}
   ]
 }
 
+IMPORTANT: Strictly respect every character limit. Nodes are sized to fit exactly these limits — any longer text will be cut off visually with "…".
 Rules:
 - Exactly 5 main branches covering distinct legal aspects of the topic
-- title: full descriptive heading for the chart (displayed in the header banner) ≤22 Arabic chars
-- center: abbreviated core concept for the central node ≤12 Arabic chars
-- branch labels: ≤12 Arabic chars each — use meaningful abbreviations if needed
-- sub-labels: ≤11 Arabic chars each
+- title: full descriptive heading displayed in the header banner ≤24 Arabic chars
+- center: short core concept for the central circle ≤13 Arabic chars
+- branch labels: ≤14 Arabic chars — abbreviate if needed (حق → حقوق الملكية ✗, حق الملكية ✓)
+- sub-labels: ≤12 Arabic chars each
 - All content must be legally accurate and topic-specific`;
 }
 
