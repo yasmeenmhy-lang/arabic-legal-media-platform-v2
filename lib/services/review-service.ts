@@ -37,13 +37,14 @@ import {
 
 const noRegisteredViolationMessage = "لم يتم رصد ملاحظة مرتبطة بالمراجع المهنية والتنظيمية المسجلة.";
 
-// الامتثال يحكم أرضية المخاطر: لا يجوز أن يظهر خطر "منخفض" مع وجود مخالفات مرصودة
+// قاعدة الجهات المتضررة المتفق عليها: جهة واحدة أو أقل → منخفض، جهتان → متوسط، ثلاث جهات → مرتفع.
+// أي مخالفة امتثال تضر المحامي والمهنة بالضرورة (جهتان) → المخاطر لا تقل عن "متوسط".
+// "مرتفع" يبقى محكوماً بتقييم الجهات الثلاث، لا بشدة المخالفة.
 const RISK_ORDER: RiskLevel[] = ["منخفض", "متوسط", "مرتفع", "بالغ"];
 
-function riskFloorFromFindings(findings: ReviewFinding[]): RiskLevel {
-  const active = findings.filter((f) => !f.resolved);
-  if (active.some((f) => f.businessSeverity === "critical" || f.businessSeverity === "high")) return "مرتفع";
-  if (active.length > 0) return "متوسط";
+function partiesToRiskLevel(count: number): RiskLevel {
+  if (count >= 3) return "مرتفع";
+  if (count === 2) return "متوسط";
   return "منخفض";
 }
 
@@ -121,18 +122,21 @@ export async function reviewContent(text: string, kind: ContentKind = "post", co
   const languageQuality = mapToLanguageQualityResult(contentEval.language);
   const compliance = rebuildComplianceFromFindings(semanticFindings, profile);
 
-  // Override risk values with AI-based evaluation (affected parties model),
-  // floored by compliance findings — non-compliance always raises the risk level
-  const complianceFloor = riskFloorFromFindings(compliance.findings);
+  // Override risk values with AI-based evaluation (affected parties model).
+  // Compliance findings guarantee two affected parties (المحامي والمهنة), so the
+  // risk level is floored per the agreed parties rule — never "منخفض" with violations.
+  const activeFindings = compliance.findings.filter((f) => !f.resolved);
+  const flooredParties = activeFindings.length > 0
+    ? ([...new Set([...contentEval.risks.affectedParties, "المحامي", "المهنة"])] as RiskAffectedParty[])
+    : contentEval.risks.affectedParties;
+  const complianceFloor = partiesToRiskLevel(flooredParties.length);
   const effectiveRisks =
     RISK_ORDER.indexOf(complianceFloor) > RISK_ORDER.indexOf(contentEval.risks.level)
       ? {
           level: complianceFloor,
-          affectedParties: contentEval.risks.affectedParties.length > 0
-            ? contentEval.risks.affectedParties
-            : (["المحامي", "المهنة"] as RiskAffectedParty[]),
+          affectedParties: flooredParties,
           explanation: [
-            `رُصدت ${compliance.findings.length} مخالفة امتثال — عدم الالتزام بقواعد السلوك المهني يعرّض المحامي للمساءلة ويضر بسمعة المهنة.`,
+            `رُصدت ${activeFindings.length} مخالفة امتثال — عدم الالتزام بقواعد السلوك المهني يعرّض المحامي للمساءلة ويضر بسمعة المهنة.`,
             contentEval.risks.explanation && !contentEval.risks.explanation.startsWith("تعذّر")
               ? contentEval.risks.explanation
               : ""
