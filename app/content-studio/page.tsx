@@ -613,6 +613,46 @@ export default function ContentStudioPage() {
     URL.revokeObjectURL(url);
   }
 
+  function downloadSvgAsPng(svg: string, filename: string) {
+    // Parse viewBox dimensions from the SVG
+    const match = svg.match(/viewBox="0 0 (\d+) (\d+)"/);
+    const W = match ? parseInt(match[1]) : 1200;
+    const H = match ? parseInt(match[2]) : 628;
+    const dataUrl = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      canvas.width = W;
+      canvas.height = H;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return;
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, W, H);
+      ctx.drawImage(img, 0, 0, W, H);
+      const a = document.createElement("a");
+      a.download = filename.replace(/\.svg$/, ".png");
+      a.href = canvas.toDataURL("image/png");
+      a.click();
+    };
+    img.src = dataUrl;
+  }
+
+  async function downloadUrlAsPng(url: string, filename: string) {
+    try {
+      const res = await fetch(url);
+      const blob = await res.blob();
+      const objectUrl = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = objectUrl;
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(objectUrl);
+    } catch {
+      // Fallback: open in new tab
+      window.open(url, "_blank");
+    }
+  }
+
   async function generateImage(descOverride?: string) {
     const description = descOverride ?? imageDesc;
     if (!description.trim()) return;
@@ -863,8 +903,15 @@ export default function ContentStudioPage() {
                             download="generated-image.jpg"
                             className="rounded-lg border border-line bg-paper px-3 py-1 text-xs font-medium text-ink/70 transition hover:border-palm hover:text-palm"
                           >
-                            تنزيل
+                            JPG
                           </a>
+                          <button
+                            type="button"
+                            onClick={() => void downloadUrlAsPng(imageGenUrl, "generated-image.png")}
+                            className="rounded-lg border border-line bg-paper px-3 py-1 text-xs font-medium text-ink/70 transition hover:border-palm hover:text-palm"
+                          >
+                            PNG
+                          </button>
                           <button
                             type="button"
                             onClick={() => generateImage()}
@@ -1645,13 +1692,25 @@ export default function ContentStudioPage() {
                     <div className="flex gap-2">
                       <button
                         type="button"
-                        onClick={() => downloadSvg(imageGenSvg,
-                          infographicSubType === "chart" ? "chart.svg" :
-                          infographicSubType === "mindmap" ? "mindmap.svg" : "visual.svg"
-                        )}
+                        onClick={() => {
+                          const base = infographicSubType === "chart" ? "chart" :
+                            infographicSubType === "mindmap" ? "mindmap" : "visual";
+                          downloadSvg(imageGenSvg, `${base}.svg`);
+                        }}
                         className="rounded-lg border border-line bg-paper px-3 py-1 text-xs font-medium text-ink/70 transition hover:border-palm hover:text-palm"
                       >
-                        تنزيل SVG
+                        SVG
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const base = infographicSubType === "chart" ? "chart" :
+                            infographicSubType === "mindmap" ? "mindmap" : "visual";
+                          downloadSvgAsPng(imageGenSvg, `${base}.svg`);
+                        }}
+                        className="rounded-lg border border-line bg-paper px-3 py-1 text-xs font-medium text-ink/70 transition hover:border-palm hover:text-palm"
+                      >
+                        PNG
                       </button>
                       <button
                         type="button"
@@ -1682,8 +1741,15 @@ export default function ContentStudioPage() {
                         rel="noopener noreferrer"
                         className="rounded-lg border border-line bg-paper px-3 py-1 text-xs font-medium text-ink/70 transition hover:border-palm hover:text-palm"
                       >
-                        تنزيل
+                        JPG
                       </a>
+                      <button
+                        type="button"
+                        onClick={() => void downloadUrlAsPng(imageGenUrl, "visual.png")}
+                        className="rounded-lg border border-line bg-paper px-3 py-1 text-xs font-medium text-ink/70 transition hover:border-palm hover:text-palm"
+                      >
+                        PNG
+                      </button>
                       <button
                         type="button"
                         onClick={() => generateImage(generatedText)}
