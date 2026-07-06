@@ -475,9 +475,9 @@ export default function ContentStudioPage() {
         return;
       }
       setGeneratedText(data.text);
-      // Auto-generate visual that represents the content
+      // Auto-generate visual as a translation/simplification of the generated content
       if (kind === "infographic" || kind === "visual_content") {
-        void generateImage(topic.trim());
+        void generateImage(data.text);
       }
     } finally {
       setGenerating(false);
@@ -1651,13 +1651,42 @@ export default function ContentStudioPage() {
             </button>
           </div>
 
-          {/* Visual generated alongside content — shown first for visual types */}
+          {/* Text — always shown first */}
+          <textarea
+            value={generatedText}
+            onChange={(e) => setGeneratedText(e.target.value)}
+            className={`min-h-44 w-full rounded-lg border p-4 leading-8 transition ${
+              charLimit !== null && generatedText.length > charLimit
+                ? "border-red-400 focus:border-red-400"
+                : "border-line"
+            }`}
+          />
+          {charLimit !== null && (
+            <div className={`mt-1 text-left text-xs tabular-nums ${
+              generatedText.length > charLimit
+                ? "font-bold text-red-500"
+                : generatedText.length > charLimit * 0.9
+                ? "text-amber-500"
+                : "text-ink/35"
+            }`}>
+              {generatedText.length} / {charLimit}
+              {generatedText.length > charLimit && (
+                <span className="mr-2">(تجاوز بـ {generatedText.length - charLimit} حرف)</span>
+              )}
+            </div>
+          )}
+
+          {/* Visual — appears after text, explains/simplifies/translates it */}
           {(kind === "infographic" || kind === "visual_content") && (imageGenLoading || imageGenSvg || imageGenUrl || imageGenError) && (
-            <div className="mb-4">
+            <div className="mt-5">
+              <p className="mb-2 flex items-center gap-1.5 text-xs font-semibold text-palm">
+                <BarChart2 size={13} aria-hidden="true" />
+                يوضح المحتوى ويبسطه ويترجمه
+              </p>
               {imageGenLoading && (
                 <div className="flex flex-col items-center gap-3 rounded-xl border border-line bg-white py-8">
                   <div className="h-8 w-8 animate-spin rounded-full border-4 border-palm/20 border-t-palm" />
-                  <p className="text-xs text-ink/50">إنشاء المرئي...</p>
+                  <p className="text-xs text-ink/50">جارٍ ترجمة المحتوى إلى مرئي...</p>
                 </div>
               )}
               {imageGenSvg && !imageGenLoading && (
@@ -1678,10 +1707,10 @@ export default function ContentStudioPage() {
                       </button>
                       <button
                         type="button"
-                        onClick={() => generateImage(topic.trim())}
+                        onClick={() => generateImage(generatedText)}
                         className="rounded-lg border border-line bg-paper px-3 py-1 text-xs font-medium text-ink/70 transition hover:border-palm hover:text-palm"
                       >
-                        إعادة الإنشاء
+                        إعادة الترجمة
                       </button>
                     </div>
                   </div>
@@ -1691,7 +1720,7 @@ export default function ContentStudioPage() {
                 <div className="overflow-hidden rounded-xl border border-line bg-white">
                   <img
                     src={imageGenUrl}
-                    alt="المرئي المُنشأ"
+                    alt="الترجمة البصرية للمحتوى"
                     className="w-full"
                     onError={() => setImageGenError("تعذر تحميل الصورة")}
                   />
@@ -1709,10 +1738,10 @@ export default function ContentStudioPage() {
                       </a>
                       <button
                         type="button"
-                        onClick={() => generateImage(topic.trim())}
+                        onClick={() => generateImage(generatedText)}
                         className="rounded-lg border border-line bg-paper px-3 py-1 text-xs font-medium text-ink/70 transition hover:border-palm hover:text-palm"
                       >
-                        إعادة الإنشاء
+                        إعادة الترجمة
                       </button>
                     </div>
                   </div>
@@ -1720,47 +1749,6 @@ export default function ContentStudioPage() {
               )}
               {imageGenError && <p className="text-xs text-red-600">{imageGenError}</p>}
             </div>
-          )}
-
-          {/* Text area — full for text types, collapsible for visual types */}
-          {kind !== "infographic" && kind !== "visual_content" ? (
-            <>
-              <textarea
-                value={generatedText}
-                onChange={(e) => setGeneratedText(e.target.value)}
-                className={`min-h-44 w-full rounded-lg border p-4 leading-8 transition ${
-                  charLimit !== null && generatedText.length > charLimit
-                    ? "border-red-400 focus:border-red-400"
-                    : "border-line"
-                }`}
-              />
-              {charLimit !== null && (
-                <div className={`mt-1 text-left text-xs tabular-nums ${
-                  generatedText.length > charLimit
-                    ? "font-bold text-red-500"
-                    : generatedText.length > charLimit * 0.9
-                    ? "text-amber-500"
-                    : "text-ink/35"
-                }`}>
-                  {generatedText.length} / {charLimit}
-                  {generatedText.length > charLimit && (
-                    <span className="mr-2">(تجاوز بـ {generatedText.length - charLimit} حرف)</span>
-                  )}
-                </div>
-              )}
-            </>
-          ) : (
-            <details className="mb-3 rounded-lg border border-line">
-              <summary className="cursor-pointer px-4 py-2.5 text-sm text-ink/60 hover:text-ink/80">
-                النص التفسيري المرافق
-              </summary>
-              <textarea
-                value={generatedText}
-                onChange={(e) => setGeneratedText(e.target.value)}
-                className="w-full rounded-b-lg border-t border-line p-4 text-sm leading-8"
-                rows={6}
-              />
-            </details>
           )}
 
           <div className="mt-3 flex gap-3 rounded-lg border border-amber-200 bg-amber-50 p-4">
