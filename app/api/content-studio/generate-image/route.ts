@@ -69,9 +69,20 @@ function parseJson<T>(raw: string): T {
 
 // ── SVG renderers (programmatic — no AI coordinates) ─────────────────────
 
-const FONT = "IBM Plex Sans Arabic,Tahoma,Arial,sans-serif";
-const PALM = "#1a6b4a";
-const BAR_COLORS = [PALM, "#2d8f64", "#4aad82", "#6ecaa2", "#98d4c0", "#c0e5d8"];
+// DGA Madkhel exact tokens (design.dga.gov.sa/guidelines)
+const FONT       = "IBM Plex Sans Arabic,Tahoma,Arial,sans-serif";
+const PALM       = "#25935F"; // SA-500 — brand primary
+const PALM_DARK  = "#1B8354"; // SA-600
+const PALM_DEEP  = "#166A45"; // SA-700
+const MINT       = "#F3FCF6"; // SA-50
+const MINT_DEEP  = "#DFF6E7"; // SA-100
+const INK        = "#0D121C"; // Gray-950 — primary text
+const INK_SEC    = "#384250"; // Gray-700
+const INK_TER    = "#4D5761"; // Gray-600
+const LINE       = "#E5E7EB"; // Gray-200 — borders
+const CANVAS_BG  = "#F4F7F6"; // page background
+// Chart bar palette — distinct DGA brand hues for multi-series data
+const BAR_COLORS = [PALM, "#DBA102", "#80519F", "#2E90FA", PALM_DARK, PALM_DEEP];
 
 // Truncate Arabic text to max chars, appending ellipsis
 function trunc(s: string, max: number): string {
@@ -94,24 +105,24 @@ function renderBarChartSvg(d: ChartData): string {
   const gridLines = [0, 1, 2, 3, 4].map((i) => {
     const v = Math.round((maxVal * i) / 4);
     const y = toY(v);
-    return `<line x1="${ML}" y1="${y}" x2="${W - MR}" y2="${y}" stroke="#ececec" stroke-width="1"/>
-<text x="${ML - 10}" y="${y + 5}" text-anchor="end" font-family="${FONT}" font-size="14" fill="#aaa">${v}</text>`;
+    return `<line x1="${ML}" y1="${y}" x2="${W - MR}" y2="${y}" stroke="${LINE}" stroke-width="1"/>
+<text x="${ML - 10}" y="${y + 5}" text-anchor="end" font-family="${FONT}" font-size="14" fill="${INK_TER}">${v}</text>`;
   }).join("\n");
 
   const bars = items.map((item, i) => {
     const x = bx(i), y = toY(item.value), bh = H - MB - y;
     return `<rect x="${x}" y="${y}" width="${bw}" height="${bh}" fill="${BAR_COLORS[i % BAR_COLORS.length]}" rx="4"/>
-<text x="${x + bw / 2}" y="${y - 9}" text-anchor="middle" font-family="${FONT}" font-size="14" font-weight="bold" fill="#1a1a2e">${item.value}</text>
-<text x="${x + bw / 2}" y="${H - MB + 22}" text-anchor="middle" font-family="${FONT}" font-size="13" fill="#555">${trunc(item.label, 10)}</text>`;
+<text x="${x + bw / 2}" y="${y - 9}" text-anchor="middle" font-family="${FONT}" font-size="14" font-weight="600" fill="${INK}">${item.value}</text>
+<text x="${x + bw / 2}" y="${H - MB + 22}" text-anchor="middle" font-family="${FONT}" font-size="13" fill="${INK_SEC}">${trunc(item.label, 10)}</text>`;
   }).join("\n");
 
   return `<svg width="100%" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
-<rect width="${W}" height="${H}" fill="#fff"/>
-<text x="${W / 2}" y="52" text-anchor="middle" font-family="${FONT}" font-size="22" font-weight="bold" fill="#1a1a2e">${trunc(d.title, 36)}</text>
-<text x="${W / 2}" y="78" text-anchor="middle" font-family="${FONT}" font-size="14" fill="#999">${trunc(d.yLabel, 40)}</text>
+<rect width="${W}" height="${H}" fill="${CANVAS_BG}"/>
+<text x="${W / 2}" y="52" text-anchor="middle" font-family="${FONT}" font-size="22" font-weight="600" fill="${INK}">${trunc(d.title, 36)}</text>
+<text x="${W / 2}" y="78" text-anchor="middle" font-family="${FONT}" font-size="14" fill="${INK_TER}">${trunc(d.yLabel, 40)}</text>
 ${gridLines}
-<line x1="${ML}" y1="${MT}" x2="${ML}" y2="${H - MB}" stroke="#ccc" stroke-width="1.5"/>
-<line x1="${ML}" y1="${H - MB}" x2="${W - MR}" y2="${H - MB}" stroke="#ccc" stroke-width="1.5"/>
+<line x1="${ML}" y1="${MT}" x2="${ML}" y2="${H - MB}" stroke="${LINE}" stroke-width="1.5"/>
+<line x1="${ML}" y1="${H - MB}" x2="${W - MR}" y2="${H - MB}" stroke="${LINE}" stroke-width="1.5"/>
 ${bars}
 </svg>`;
 }
@@ -128,26 +139,26 @@ function renderLineChartSvg(d: ChartData): string {
   const gridLines = [0, 1, 2, 3, 4].map((i) => {
     const v = Math.round((maxVal * i) / 4);
     const y = toY(v);
-    return `<line x1="${ML}" y1="${y}" x2="${W - MR}" y2="${y}" stroke="#ececec" stroke-width="1"/>
-<text x="${ML - 10}" y="${y + 5}" text-anchor="end" font-family="${FONT}" font-size="14" fill="#aaa">${v}</text>`;
+    return `<line x1="${ML}" y1="${y}" x2="${W - MR}" y2="${y}" stroke="${LINE}" stroke-width="1"/>
+<text x="${ML - 10}" y="${y + 5}" text-anchor="end" font-family="${FONT}" font-size="14" fill="${INK_TER}">${v}</text>`;
   }).join("\n");
 
   const pts = items.map((it, i) => `${toX(i)},${toY(it.value)}`).join(" ");
   const fill = `${ML},${H - MB} ${pts} ${toX(items.length - 1)},${H - MB}`;
 
   const dots = items.map((it, i) =>
-    `<circle cx="${toX(i)}" cy="${toY(it.value)}" r="6" fill="#fff" stroke="${PALM}" stroke-width="3"/>
-<text x="${toX(i)}" y="${toY(it.value) - 14}" text-anchor="middle" font-family="${FONT}" font-size="13" font-weight="bold" fill="#1a1a2e">${it.value}</text>
-<text x="${toX(i)}" y="${H - MB + 22}" text-anchor="middle" font-family="${FONT}" font-size="13" fill="#555">${trunc(it.label, 10)}</text>`
+    `<circle cx="${toX(i)}" cy="${toY(it.value)}" r="6" fill="${CANVAS_BG}" stroke="${PALM}" stroke-width="3"/>
+<text x="${toX(i)}" y="${toY(it.value) - 14}" text-anchor="middle" font-family="${FONT}" font-size="13" font-weight="600" fill="${INK}">${it.value}</text>
+<text x="${toX(i)}" y="${H - MB + 22}" text-anchor="middle" font-family="${FONT}" font-size="13" fill="${INK_SEC}">${trunc(it.label, 10)}</text>`
   ).join("\n");
 
   return `<svg width="100%" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
-<rect width="${W}" height="${H}" fill="#fff"/>
-<text x="${W / 2}" y="52" text-anchor="middle" font-family="${FONT}" font-size="22" font-weight="bold" fill="#1a1a2e">${trunc(d.title, 36)}</text>
-<text x="${W / 2}" y="78" text-anchor="middle" font-family="${FONT}" font-size="14" fill="#999">${trunc(d.yLabel, 40)}</text>
+<rect width="${W}" height="${H}" fill="${CANVAS_BG}"/>
+<text x="${W / 2}" y="52" text-anchor="middle" font-family="${FONT}" font-size="22" font-weight="600" fill="${INK}">${trunc(d.title, 36)}</text>
+<text x="${W / 2}" y="78" text-anchor="middle" font-family="${FONT}" font-size="14" fill="${INK_TER}">${trunc(d.yLabel, 40)}</text>
 ${gridLines}
-<line x1="${ML}" y1="${MT}" x2="${ML}" y2="${H - MB}" stroke="#ccc" stroke-width="1.5"/>
-<line x1="${ML}" y1="${H - MB}" x2="${W - MR}" y2="${H - MB}" stroke="#ccc" stroke-width="1.5"/>
+<line x1="${ML}" y1="${MT}" x2="${ML}" y2="${H - MB}" stroke="${LINE}" stroke-width="1.5"/>
+<line x1="${ML}" y1="${H - MB}" x2="${W - MR}" y2="${H - MB}" stroke="${LINE}" stroke-width="1.5"/>
 <polygon points="${fill}" fill="${PALM}" opacity="0.07"/>
 <polyline points="${pts}" fill="none" stroke="${PALM}" stroke-width="3" stroke-linejoin="round"/>
 ${dots}
@@ -166,27 +177,27 @@ function renderAreaChartSvg(d: ChartData): string {
   const gridLines = [0, 1, 2, 3, 4].map((i) => {
     const v = Math.round((maxVal * i) / 4);
     const y = toY(v);
-    return `<line x1="${ML}" y1="${y}" x2="${W - MR}" y2="${y}" stroke="#ececec" stroke-width="1"/>
-<text x="${ML - 10}" y="${y + 5}" text-anchor="end" font-family="${FONT}" font-size="14" fill="#aaa">${v}</text>`;
+    return `<line x1="${ML}" y1="${y}" x2="${W - MR}" y2="${y}" stroke="${LINE}" stroke-width="1"/>
+<text x="${ML - 10}" y="${y + 5}" text-anchor="end" font-family="${FONT}" font-size="14" fill="${INK_TER}">${v}</text>`;
   }).join("\n");
 
   const pts = items.map((it, i) => `${toX(i)},${toY(it.value)}`).join(" ");
   const fill = `${ML},${H - MB} ${pts} ${toX(items.length - 1)},${H - MB}`;
 
   const dots = items.map((it, i) =>
-    `<circle cx="${toX(i)}" cy="${toY(it.value)}" r="6" fill="${PALM}" stroke="#fff" stroke-width="2.5"/>
-<text x="${toX(i)}" y="${toY(it.value) - 14}" text-anchor="middle" font-family="${FONT}" font-size="13" font-weight="bold" fill="#1a1a2e">${it.value}</text>
-<text x="${toX(i)}" y="${H - MB + 22}" text-anchor="middle" font-family="${FONT}" font-size="13" fill="#555">${trunc(it.label, 10)}</text>`
+    `<circle cx="${toX(i)}" cy="${toY(it.value)}" r="6" fill="${PALM}" stroke="${CANVAS_BG}" stroke-width="2.5"/>
+<text x="${toX(i)}" y="${toY(it.value) - 14}" text-anchor="middle" font-family="${FONT}" font-size="13" font-weight="600" fill="${INK}">${it.value}</text>
+<text x="${toX(i)}" y="${H - MB + 22}" text-anchor="middle" font-family="${FONT}" font-size="13" fill="${INK_SEC}">${trunc(it.label, 10)}</text>`
   ).join("\n");
 
   return `<svg width="100%" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
-<rect width="${W}" height="${H}" fill="#fff"/>
-<text x="${W / 2}" y="52" text-anchor="middle" font-family="${FONT}" font-size="22" font-weight="bold" fill="#1a1a2e">${trunc(d.title, 36)}</text>
-<text x="${W / 2}" y="78" text-anchor="middle" font-family="${FONT}" font-size="14" fill="#999">${trunc(d.yLabel, 40)}</text>
+<rect width="${W}" height="${H}" fill="${CANVAS_BG}"/>
+<text x="${W / 2}" y="52" text-anchor="middle" font-family="${FONT}" font-size="22" font-weight="600" fill="${INK}">${trunc(d.title, 36)}</text>
+<text x="${W / 2}" y="78" text-anchor="middle" font-family="${FONT}" font-size="14" fill="${INK_TER}">${trunc(d.yLabel, 40)}</text>
 ${gridLines}
-<line x1="${ML}" y1="${MT}" x2="${ML}" y2="${H - MB}" stroke="#ccc" stroke-width="1.5"/>
-<line x1="${ML}" y1="${H - MB}" x2="${W - MR}" y2="${H - MB}" stroke="#ccc" stroke-width="1.5"/>
-<polygon points="${fill}" fill="${PALM}" opacity="0.15"/>
+<line x1="${ML}" y1="${MT}" x2="${ML}" y2="${H - MB}" stroke="${LINE}" stroke-width="1.5"/>
+<line x1="${ML}" y1="${H - MB}" x2="${W - MR}" y2="${H - MB}" stroke="${LINE}" stroke-width="1.5"/>
+<polygon points="${fill}" fill="${PALM}" opacity="0.12"/>
 <polyline points="${pts}" fill="none" stroke="${PALM}" stroke-width="3" stroke-linejoin="round"/>
 ${dots}
 </svg>`;
@@ -205,23 +216,23 @@ function renderHBarChartSvg(d: ChartData): string {
   const gridLines = [0, 1, 2, 3, 4].map((i) => {
     const v = Math.round((maxVal * i) / 4);
     const x = ML + toW(v);
-    return `<line x1="${x}" y1="${MT}" x2="${x}" y2="${H - MB}" stroke="#ececec" stroke-width="1"/>
-<text x="${x}" y="${H - MB + 20}" text-anchor="middle" font-family="${FONT}" font-size="13" fill="#aaa">${v}</text>`;
+    return `<line x1="${x}" y1="${MT}" x2="${x}" y2="${H - MB}" stroke="${LINE}" stroke-width="1"/>
+<text x="${x}" y="${H - MB + 20}" text-anchor="middle" font-family="${FONT}" font-size="13" fill="${INK_TER}">${v}</text>`;
   }).join("\n");
 
   const bars = items.map((item, i) => {
     const y = by(i), barW = toW(item.value);
     return `<rect x="${ML}" y="${y}" width="${barW}" height="${bh}" fill="${BAR_COLORS[i % BAR_COLORS.length]}" rx="4"/>
-<text x="${ML + barW + 8}" y="${y + bh / 2 + 5}" text-anchor="start" font-family="${FONT}" font-size="14" font-weight="bold" fill="#1a1a2e">${item.value}</text>
-<text x="${ML - 12}" y="${y + bh / 2 + 5}" text-anchor="end" font-family="${FONT}" font-size="13" fill="#555">${trunc(item.label, 12)}</text>`;
+<text x="${ML + barW + 8}" y="${y + bh / 2 + 5}" text-anchor="start" font-family="${FONT}" font-size="14" font-weight="600" fill="${INK}">${item.value}</text>
+<text x="${ML - 12}" y="${y + bh / 2 + 5}" text-anchor="end" font-family="${FONT}" font-size="13" fill="${INK_SEC}">${trunc(item.label, 12)}</text>`;
   }).join("\n");
 
   return `<svg width="100%" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
-<rect width="${W}" height="${H}" fill="#fff"/>
-<text x="${W / 2}" y="52" text-anchor="middle" font-family="${FONT}" font-size="22" font-weight="bold" fill="#1a1a2e">${trunc(d.title, 36)}</text>
-<text x="${W / 2}" y="78" text-anchor="middle" font-family="${FONT}" font-size="14" fill="#999">${trunc(d.yLabel, 40)}</text>
+<rect width="${W}" height="${H}" fill="${CANVAS_BG}"/>
+<text x="${W / 2}" y="52" text-anchor="middle" font-family="${FONT}" font-size="22" font-weight="600" fill="${INK}">${trunc(d.title, 36)}</text>
+<text x="${W / 2}" y="78" text-anchor="middle" font-family="${FONT}" font-size="14" fill="${INK_TER}">${trunc(d.yLabel, 40)}</text>
 ${gridLines}
-<line x1="${ML}" y1="${MT}" x2="${ML}" y2="${H - MB}" stroke="#ccc" stroke-width="1.5"/>
+<line x1="${ML}" y1="${MT}" x2="${ML}" y2="${H - MB}" stroke="${LINE}" stroke-width="1.5"/>
 ${bars}
 </svg>`;
 }
@@ -262,18 +273,18 @@ ${pct >= 5 ? `<text x="${lx}" y="${ly + 6}" text-anchor="middle" font-family="${
     const lx = 120 + Math.floor(i / 3) * 500;
     const ly = legendY + (i % 3) * 42;
     return `<rect x="${lx}" y="${ly}" width="22" height="22" rx="4" fill="${BAR_COLORS[i]}"/>
-<text x="${lx + 32}" y="${ly + 16}" font-family="${FONT}" font-size="16" fill="#333">${trunc(item.label, 14)}: ${item.value}</text>`;
+<text x="${lx + 32}" y="${ly + 16}" font-family="${FONT}" font-size="16" fill="${INK_SEC}">${trunc(item.label, 14)}: ${item.value}</text>`;
   }).join("\n");
 
   const center = isDonut
-    ? `<circle cx="${cx}" cy="${cy}" r="${ri - 4}" fill="#fff"/>
-<text x="${cx}" y="${cy - 12}" text-anchor="middle" font-family="${FONT}" font-size="44" font-weight="bold" fill="${PALM}">${Math.round((items[0].value / total) * 100)}%</text>
-<text x="${cx}" y="${cy + 22}" text-anchor="middle" font-family="${FONT}" font-size="18" fill="#666">${trunc(items[0].label, 12)}</text>`
+    ? `<circle cx="${cx}" cy="${cy}" r="${ri - 4}" fill="${CANVAS_BG}"/>
+<text x="${cx}" y="${cy - 12}" text-anchor="middle" font-family="${FONT}" font-size="44" font-weight="600" fill="${PALM}">${Math.round((items[0].value / total) * 100)}%</text>
+<text x="${cx}" y="${cy + 22}" text-anchor="middle" font-family="${FONT}" font-size="18" fill="${INK_SEC}">${trunc(items[0].label, 12)}</text>`
     : "";
 
   return `<svg width="100%" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
-<rect width="${W}" height="${H}" fill="#fff"/>
-<text x="${W / 2}" y="60" text-anchor="middle" font-family="${FONT}" font-size="26" font-weight="bold" fill="#1a1a2e">${trunc(d.title, 32)}</text>
+<rect width="${W}" height="${H}" fill="${CANVAS_BG}"/>
+<text x="${W / 2}" y="60" text-anchor="middle" font-family="${FONT}" font-size="26" font-weight="600" fill="${INK}">${trunc(d.title, 32)}</text>
 ${slices.join("\n")}
 ${center}
 ${legend}
@@ -301,8 +312,9 @@ function renderMindMapSvg(d: MindMapData): string {
   const branchR = 255;
   const subR = 118;
 
-  const BRANCH_BG = ["#e8f5f0", "#d4ede4", "#c0e5d8", "#acdccc", "#98d4c0"];
-  const BRANCH_BD = ["#1a6b4a", "#2d8f64", "#4aad82", "#6ecaa2", "#8dc4b4"];
+  // DGA mint scale for branch backgrounds, palm scale for borders
+  const BRANCH_BG = [MINT, MINT_DEEP, "#C5EDD6", "#A8E0C0", "#8DD4AB"];
+  const BRANCH_BD = [PALM, PALM_DARK, PALM_DEEP, PALM, PALM_DARK];
   const branches = (d.branches || []).slice(0, 5);
   const BASE_ANGLES = [-90, -18, 54, 126, 198]; // degrees, 0° = rightward
 
@@ -326,7 +338,7 @@ function renderMindMapSvg(d: MindMapData): string {
 
     nodes.push(
       `<rect x="${bx - bw / 2}" y="${by - bh / 2}" width="${bw}" height="${bh}" rx="26" fill="${BRANCH_BG[i]}" stroke="${BRANCH_BD[i]}" stroke-width="1.8"/>
-<text x="${bx}" y="${by + 5}" text-anchor="middle" font-family="${FONT}" font-size="12" font-weight="600" fill="#1a2e24">${trunc(b.label, 16)}</text>`
+<text x="${bx}" y="${by + 5}" text-anchor="middle" font-family="${FONT}" font-size="12" font-weight="600" fill="${INK}">${trunc(b.label, 16)}</text>`
     );
 
     const subs = [b.sub1, b.sub2].filter(Boolean) as string[];
@@ -340,8 +352,8 @@ function renderMindMapSvg(d: MindMapData): string {
         `<line x1="${bx}" y1="${by}" x2="${sx}" y2="${sy}" stroke="${BRANCH_BD[i]}" stroke-width="1.4" stroke-linecap="round" opacity="0.35"/>`
       );
       nodes.push(
-        `<rect x="${sx - sw / 2}" y="${sy - sh / 2}" width="${sw}" height="${sh}" rx="18" fill="#f0fbf7" stroke="${BRANCH_BD[i]}" stroke-width="1.2"/>
-<text x="${sx}" y="${sy + 4}" text-anchor="middle" font-family="${FONT}" font-size="10" fill="#1a3a2a">${trunc(sub, 14)}</text>`
+        `<rect x="${sx - sw / 2}" y="${sy - sh / 2}" width="${sw}" height="${sh}" rx="18" fill="${MINT}" stroke="${BRANCH_BD[i]}" stroke-width="1.2"/>
+<text x="${sx}" y="${sy + 4}" text-anchor="middle" font-family="${FONT}" font-size="10" fill="${INK_SEC}">${trunc(sub, 14)}</text>`
       );
     });
   });
@@ -352,17 +364,17 @@ function renderMindMapSvg(d: MindMapData): string {
   return `<svg width="100%" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
 <defs>
   <pattern id="dotGrid" x="0" y="0" width="28" height="28" patternUnits="userSpaceOnUse">
-    <circle cx="14" cy="14" r="1" fill="#1a6b4a" opacity="0.06"/>
+    <circle cx="14" cy="14" r="1" fill="${PALM}" opacity="0.06"/>
   </pattern>
   <linearGradient id="mmHdr" x1="0" y1="0" x2="1" y2="0">
-    <stop offset="0%" stop-color="#0d3322"/>
-    <stop offset="100%" stop-color="#1a6b4a"/>
+    <stop offset="0%" stop-color="${PALM_DEEP}"/>
+    <stop offset="100%" stop-color="${PALM}"/>
   </linearGradient>
   <filter id="nodeShad" x="-30%" y="-30%" width="160%" height="160%">
-    <feDropShadow dx="0" dy="3" stdDeviation="6" flood-color="#1a6b4a" flood-opacity="0.13"/>
+    <feDropShadow dx="0" dy="3" stdDeviation="6" flood-color="${PALM}" flood-opacity="0.13"/>
   </filter>
 </defs>
-<rect width="${W}" height="${H}" fill="#f8fdf9"/>
+<rect width="${W}" height="${H}" fill="${CANVAS_BG}"/>
 <rect width="${W}" height="${H}" fill="url(#dotGrid)"/>
 <rect width="${W}" height="${HDR}" fill="url(#mmHdr)"/>
 <text x="${W / 2}" y="${Math.round(HDR * 0.64)}" text-anchor="middle" font-family="${FONT}" font-size="20" font-weight="600" fill="#fff">${headerTitle}</text>
@@ -386,8 +398,8 @@ function renderInfographicSvg(d: InfographicData): string {
   const FOOTER_H = 72;
   const H = HEADER_H + SUB_H + sections.length * SEC_H + FOOTER_H;
 
-  // Section accent colours — each section gets a distinct shade
-  const ACCENTS = ["#1a6b4a", "#2d8f64", "#4aad82", "#6ecaa2"];
+  // Section accent colours — DGA palm scale
+  const ACCENTS = [PALM, PALM_DARK, PALM_DEEP, PALM];
   const CARD_W  = W - 2 * PAD;
   const ACCENT_W = 10;
   // Text is right-aligned at the RIGHT edge of the card (RTL Arabic)
@@ -396,7 +408,7 @@ function renderInfographicSvg(d: InfographicData): string {
   const sectionBlocks = sections.map((sec, i) => {
     const y0    = HEADER_H + SUB_H + i * SEC_H + 14;
     const cardH = SEC_H - 28;
-    const bg    = i % 2 === 0 ? "#f8fdf9" : "#ffffff";
+    const bg    = i % 2 === 0 ? MINT : "#ffffff";
     const ac    = ACCENTS[i % 4];
 
     // Large translucent background number — decorative only
@@ -404,20 +416,20 @@ function renderInfographicSvg(d: InfographicData): string {
     const numBgY = y0 + cardH / 2 + 22;
 
     const line3 = sec.line3
-      ? `<text x="${TR}" y="${y0 + 120}" text-anchor="end" font-family="${FONT}" font-size="12" fill="#555">${trunc(sec.line3, 36)}</text>`
+      ? `<text x="${TR}" y="${y0 + 120}" text-anchor="end" font-family="${FONT}" font-size="12" fill="${INK_TER}">${trunc(sec.line3, 36)}</text>`
       : "";
     const stat  = sec.stat
-      ? `<text x="${TR}" y="${y0 + (sec.line3 ? 144 : 126)}" text-anchor="end" font-family="${FONT}" font-size="12" fill="${ac}" font-weight="bold">${trunc(sec.stat, 34)}</text>`
+      ? `<text x="${TR}" y="${y0 + (sec.line3 ? 144 : 126)}" text-anchor="end" font-family="${FONT}" font-size="12" fill="${ac}" font-weight="600">${trunc(sec.stat, 34)}</text>`
       : "";
 
-    return `<rect x="${PAD}" y="${y0}" width="${CARD_W}" height="${cardH}" rx="16" fill="${bg}" stroke="#e4f2ec" stroke-width="1.5"/>
+    return `<rect x="${PAD}" y="${y0}" width="${CARD_W}" height="${cardH}" rx="16" fill="${bg}" stroke="${LINE}" stroke-width="1.5"/>
 <rect x="${PAD}" y="${y0}" width="${ACCENT_W}" height="${cardH}" rx="5" fill="${ac}"/>
 <circle cx="${PAD + ACCENT_W / 2}" cy="${y0 + 28}" r="3" fill="#fff" opacity="0.45"/>
 <circle cx="${PAD + ACCENT_W / 2}" cy="${y0 + cardH - 28}" r="3" fill="#fff" opacity="0.45"/>
-<text x="${numBgX}" y="${numBgY}" text-anchor="middle" font-family="${FONT}" font-size="96" font-weight="bold" fill="${ac}" opacity="0.07">${i + 1}</text>
-<text x="${TR}" y="${y0 + 48}" text-anchor="end" font-family="${FONT}" font-size="17" font-weight="bold" fill="#1a1a2e">${trunc(sec.heading, 26)}</text>
-<text x="${TR}" y="${y0 + 74}" text-anchor="end" font-family="${FONT}" font-size="13" fill="#3a3a4a">${trunc(sec.line1, 36)}</text>
-<text x="${TR}" y="${y0 + 96}" text-anchor="end" font-family="${FONT}" font-size="13" fill="#3a3a4a">${trunc(sec.line2, 36)}</text>
+<text x="${numBgX}" y="${numBgY}" text-anchor="middle" font-family="${FONT}" font-size="96" font-weight="600" fill="${ac}" opacity="0.07">${i + 1}</text>
+<text x="${TR}" y="${y0 + 48}" text-anchor="end" font-family="${FONT}" font-size="17" font-weight="600" fill="${INK}">${trunc(sec.heading, 26)}</text>
+<text x="${TR}" y="${y0 + 74}" text-anchor="end" font-family="${FONT}" font-size="13" fill="${INK_SEC}">${trunc(sec.line1, 36)}</text>
+<text x="${TR}" y="${y0 + 96}" text-anchor="end" font-family="${FONT}" font-size="13" fill="${INK_SEC}">${trunc(sec.line2, 36)}</text>
 ${line3}${stat}`;
   }).join("\n");
 
@@ -425,19 +437,19 @@ ${line3}${stat}`;
   return `<svg width="100%" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
 <defs>
   <linearGradient id="hdrGrad" x1="0" y1="0" x2="1" y2="0">
-    <stop offset="0%" stop-color="#124d35"/>
-    <stop offset="100%" stop-color="#1a6b4a"/>
+    <stop offset="0%" stop-color="${PALM_DEEP}"/>
+    <stop offset="100%" stop-color="${PALM}"/>
   </linearGradient>
 </defs>
 <rect width="${W}" height="${H}" fill="#fff"/>
 <rect width="${W}" height="${HEADER_H}" fill="url(#hdrGrad)"/>
-<text x="${W / 2}" y="${HEADER_H / 2 + 8}" text-anchor="middle" font-family="${FONT}" font-size="28" font-weight="bold" fill="#fff">${trunc(d.title, 24)}</text>
-<rect y="${HEADER_H}" width="${W}" height="${SUB_H}" fill="#f0f9f5"/>
-<text x="${W / 2}" y="${HEADER_H + 50}" text-anchor="middle" font-family="${FONT}" font-size="15" fill="#2d6e52">${trunc(d.subtitle, 42)}</text>
+<text x="${W / 2}" y="${HEADER_H / 2 + 8}" text-anchor="middle" font-family="${FONT}" font-size="28" font-weight="600" fill="#fff">${trunc(d.title, 24)}</text>
+<rect y="${HEADER_H}" width="${W}" height="${SUB_H}" fill="${MINT}"/>
+<text x="${W / 2}" y="${HEADER_H + 50}" text-anchor="middle" font-family="${FONT}" font-size="15" fill="${PALM_DARK}">${trunc(d.subtitle, 42)}</text>
 ${sectionBlocks}
-<rect x="0" y="${footerY}" width="${W}" height="${FOOTER_H}" fill="#f0f9f5"/>
-<line x1="${PAD}" y1="${footerY + 1}" x2="${W - PAD}" y2="${footerY + 1}" stroke="#c8e8d8" stroke-width="1"/>
-<text x="${W / 2}" y="${footerY + 42}" text-anchor="middle" font-family="${FONT}" font-size="12" fill="#7a9a8a">${trunc(d.source, 60)}</text>
+<rect x="0" y="${footerY}" width="${W}" height="${FOOTER_H}" fill="${MINT}"/>
+<line x1="${PAD}" y1="${footerY + 1}" x2="${W - PAD}" y2="${footerY + 1}" stroke="${LINE}" stroke-width="1"/>
+<text x="${W / 2}" y="${footerY + 42}" text-anchor="middle" font-family="${FONT}" font-size="12" fill="${INK_TER}">${trunc(d.source, 60)}</text>
 </svg>`;
 }
 
