@@ -139,18 +139,26 @@ export function RiskIndicatorCard({ review }: { review: ReviewResult }) {
           ))}
         </div>
       </div>
-      {parties.length > 0 && (
-        <div className="mt-4">
-          <p className="mb-2 text-xs text-slate-400">الجهات المتضررة</p>
-          <div className="flex flex-wrap gap-2">
-            {parties.map((p) => (
-              <span key={p} className="inline-flex items-center gap-1.5 rounded-full border border-red-200 bg-red-50 px-3 py-1 text-xs font-semibold text-red-700">
+      <div className="mt-4">
+        <p className="mb-2 text-xs text-slate-400">الجهات المتضررة</p>
+        <div className="flex flex-wrap gap-2">
+          {(["الموكل", "المحامي", "المهنة"] as RiskAffectedParty[]).map((p) => {
+            const affected = parties.includes(p);
+            return (
+              <span
+                key={p}
+                className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold ${
+                  affected
+                    ? "border-red-200 bg-red-50 text-red-700"
+                    : "border-line bg-paper text-ink/40"
+                }`}
+              >
                 {partyIcon(p)}{p}
               </span>
-            ))}
-          </div>
+            );
+          })}
         </div>
-      )}
+      </div>
       {review.riskScoreExplanation.explanation ? (
         <p className="mt-4 rounded-lg bg-slate-50 p-3 text-sm leading-6 text-slate-600">{review.riskScoreExplanation.explanation}</p>
       ) : null}
