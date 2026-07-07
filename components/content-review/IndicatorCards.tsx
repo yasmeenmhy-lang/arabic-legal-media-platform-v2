@@ -26,7 +26,7 @@ const categoryLabel: Record<string, string> = {
 
 function toneBorder(tone: "good" | "gold" | "danger" | "neutral") {
   if (tone === "good") return "border-t-green-400";
-  if (tone === "gold") return "border-t-amber-400";
+  if (tone === "gold") return "border-t-warningBase";
   if (tone === "danger") return "border-t-red-400";
   return "border-t-slate-300";
 }

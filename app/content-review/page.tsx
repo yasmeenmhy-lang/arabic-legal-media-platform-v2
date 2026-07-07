@@ -614,7 +614,7 @@ export default function ContentReviewPage() {
                   ? "border-t-green-400 bg-green-50/40"
                   : review.publicationDecision.outcome === "NOT_RECOMMENDED"
                     ? "border-t-red-400 bg-red-50/40"
-                    : "border-t-amber-400 bg-amber-50/40"
+                    : "border-t-warningBase bg-warningSoft/40"
             }`}
           >
             <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
