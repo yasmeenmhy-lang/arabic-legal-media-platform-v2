@@ -27,8 +27,8 @@ function prepareChannelCopy(input: { body: string }) {
   return input.body.trim();
 }
 
-function download(name: string, body: string) {
-  const blob = new Blob([body], { type: "application/json;charset=utf-8" });
+function download(name: string, body: string, type = "application/json;charset=utf-8") {
+  const blob = new Blob([body], { type });
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
@@ -36,6 +36,35 @@ function download(name: string, body: string) {
   link.click();
   URL.revokeObjectURL(url);
 }
+
+// pptxgenjs يُحمّل من CDN وقت الحاجة — تضمينه في الحزمة يكسر بناء Next
+function loadPptxGen(): Promise<new () => any> {
+  const w = window as unknown as { PptxGenJS?: new () => any };
+  if (w.PptxGenJS) return Promise.resolve(w.PptxGenJS);
+  return new Promise((resolve, reject) => {
+    const script = document.createElement("script");
+    script.src = "https://cdn.jsdelivr.net/npm/pptxgenjs@4.0.1/dist/pptxgen.bundle.js";
+    script.onload = () => (w.PptxGenJS ? resolve(w.PptxGenJS) : reject(new Error("PptxGenJS unavailable")));
+    script.onerror = () => reject(new Error("script load failed"));
+    document.head.appendChild(script);
+  });
+}
+
+function escapeHtml(value: string) {
+  return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+function toParagraphsHtml(text: string) {
+  return text
+    .split(/\n{2,}/)
+    .map((p) => `<p>${escapeHtml(p.trim()).replace(/\n/g, "<br/>")}</p>`)
+    .join("\n");
+}
+
+const exportDocStyles = `body{font-family:Arial,Tahoma,sans-serif;direction:rtl;line-height:2;color:#0D121C;padding:32px;font-size:14px}
+h1{font-size:20px;color:#166A45;border-bottom:2px solid #25935F;padding-bottom:10px;margin-bottom:8px}
+.meta{color:#4D5761;font-size:12px;margin-bottom:20px}
+p{margin:0 0 12px}`;
 
 export default function SocialMediaPage() {
   const [records, setRecords] = useState<StoredContentRecord[]>([]);
@@ -111,6 +140,69 @@ export default function SocialMediaPage() {
     setActiveContentSelection(selected.record.id, selected.version.version);
   }
 
+  const exportTitle = selected?.record.title ?? "المحتوى المعتمد";
+  const exportMeta = selected ? `نسخة معتمدة — الإصدار ${selected.version.version}` : "نسخة معتمدة";
+
+  // حفظ PDF: نافذة عرض نظيفة للمحتوى فقط ثم حوار الحفظ (اختر "حفظ كـ PDF")
+  function exportPdf() {
+    const w = window.open("", "_blank");
+    if (!w) {
+      setMessage("اسمح بالنوافذ المنبثقة لإتمام حفظ PDF.");
+      return;
+    }
+    w.document.write(`<!doctype html><html dir="rtl" lang="ar"><head><meta charset="utf-8"><title>${escapeHtml(exportTitle)}</title><style>${exportDocStyles}</style></head><body><h1>${escapeHtml(exportTitle)}</h1><div class="meta">${escapeHtml(exportMeta)}</div>${toParagraphsHtml(body)}</body></html>`);
+    w.document.close();
+    setTimeout(() => w.print(), 400);
+    setMessage("اختر «حفظ كـ PDF» من نافذة الحفظ.");
+  }
+
+  // حفظ Word: مستند .doc قابل للتعديل بالكامل
+  function exportWord() {
+    const html = `<!doctype html><html dir="rtl" lang="ar"><head><meta charset="utf-8"><style>${exportDocStyles}</style></head><body><h1>${escapeHtml(exportTitle)}</h1><div class="meta">${escapeHtml(exportMeta)}</div>${toParagraphsHtml(body)}</body></html>`;
+    download("المحتوى-المعتمد.doc", html, "application/msword;charset=utf-8");
+    setMessage("تم تنزيل ملف Word قابل للتعديل.");
+  }
+
+  // حفظ PowerPoint: شرائح نصية قابلة للتعديل بالكامل داخل PowerPoint
+  async function exportPptx() {
+    try {
+      const PptxGen = await loadPptxGen();
+      const pptx: any = new PptxGen();
+      pptx.rtlMode = true;
+      pptx.defineLayout({ name: "W", width: 10, height: 7.5 });
+      pptx.layout = "W";
+
+      const cover = pptx.addSlide();
+      cover.addText(exportTitle, { x: 0.6, y: 2.4, w: 8.8, h: 1.4, fontSize: 28, bold: true, align: "center", rtlMode: true, color: "166A45", fontFace: "Arial" });
+      cover.addText(exportMeta, { x: 0.6, y: 3.9, w: 8.8, h: 0.6, fontSize: 14, align: "center", rtlMode: true, color: "4D5761", fontFace: "Arial" });
+      cover.addShape("rect", { x: 0, y: 0, w: 10, h: 0.35, fill: { color: "25935F" } });
+
+      const paragraphs = body.split(/\n{2,}/).map((p) => p.trim()).filter(Boolean);
+      const chunks: string[] = [];
+      let current = "";
+      for (const p of paragraphs) {
+        if ((current + "\n\n" + p).length > 550 && current) {
+          chunks.push(current);
+          current = p;
+        } else {
+          current = current ? `${current}\n\n${p}` : p;
+        }
+      }
+      if (current) chunks.push(current);
+
+      chunks.forEach((chunk) => {
+        const slide = pptx.addSlide();
+        slide.addShape("rect", { x: 0, y: 0, w: 10, h: 0.35, fill: { color: "25935F" } });
+        slide.addText(chunk, { x: 0.6, y: 0.7, w: 8.8, h: 6.3, fontSize: 16, align: "right", valign: "top", rtlMode: true, color: "0D121C", fontFace: "Arial", lineSpacingMultiple: 1.4 });
+      });
+
+      await pptx.writeFile({ fileName: "المحتوى-المعتمد.pptx" });
+      setMessage("تم تنزيل عرض PowerPoint قابل للتعديل.");
+    } catch {
+      setMessage("تعذر إنشاء ملف PowerPoint — حاول مرة أخرى.");
+    }
+  }
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -134,7 +226,9 @@ export default function SocialMediaPage() {
               <Button variant="secondary-gray" onClick={copy} leadingIcon={<Clipboard size={16} />}>نسخ</Button>
               <Button variant="secondary-gray" onClick={downloadPackage} leadingIcon={<Download size={16} />}>تنزيل الحزمة</Button>
               <Button variant="secondary-gray" onClick={edit} leadingIcon={<Edit3 size={16} />}>تحرير نسخة جديدة</Button>
-              <Button onClick={() => window.print()} leadingIcon={<FileDown size={16} />}>طباعة / حفظ PDF</Button>
+              <Button onClick={exportPdf} leadingIcon={<FileDown size={16} />}>حفظ PDF</Button>
+              <Button onClick={exportWord} leadingIcon={<FileDown size={16} />}>حفظ Word</Button>
+              <Button onClick={() => void exportPptx()} leadingIcon={<FileDown size={16} />}>حفظ PowerPoint</Button>
             </div>
             {message ? <p className="mt-3 text-sm text-palm">{message}</p> : null}
           </Panel>
