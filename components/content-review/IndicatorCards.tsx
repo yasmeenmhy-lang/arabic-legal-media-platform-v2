@@ -183,16 +183,15 @@ export function ProfessionalismIndicatorCard({ review }: { review: ReviewResult 
 }
 
 export function LanguageIndicatorCard({ review }: { review: ReviewResult }) {
-  const passed = review.languageQuality.passed;
-  const tone = languageKpiTone(review.languageQuality.score);
   const issues = review.languageQuality.issues;
+  // ثنائي: أخطاء ⇒ أحمر، لا أخطاء ⇒ أخضر — لا حالة وسطى
+  const hasIssues = issues.length > 0 || !review.languageQuality.passed;
+  const tone = hasIssues ? ("danger" as const) : ("good" as const);
   return (
-    <Panel className={`scroll-mt-24 border-t-4 shadow-md ${toneBorder(passed ? "good" : tone)}`}>
+    <Panel className={`scroll-mt-24 border-t-4 shadow-md ${toneBorder(tone)}`}>
       <p className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-400">اللغة والإملاء</p>
-      <StatusBadge tone={passed ? "good" : tone}>
-        {passed
-          ? issues.length === 0 ? "ناجح — لا ملاحظات" : `ناجح — ${issues.length} ملاحظة`
-          : `يحتاج تصحيح — ${issues.length} ملاحظة`}
+      <StatusBadge tone={tone}>
+        {hasIssues ? `يحتاج تصحيح — ${issues.length} ملاحظة` : "سليم لغوياً"}
       </StatusBadge>
       {issues.length > 0 ? (
         <div className="mt-4 space-y-2">
