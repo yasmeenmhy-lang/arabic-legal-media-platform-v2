@@ -650,7 +650,7 @@ export default function ContentReviewPage() {
 
           <>
           <section id="findings" className="space-y-4 scroll-mt-24">
-            <SectionTitle title="3. الملاحظات" subtitle="جميع الملاحظات واجبة المعالجة قبل النشر — لا أولوية بينها." />
+            <SectionTitle title="3. الملاحظات" subtitle="جميع الملاحظات واجبة المعالجة قبل النشر." />
             {sortedFindings.length ? <FindingsList findings={sortedFindings} /> : (() => {
               const hasOtherIssues = review.publicationDecision.outcome === "NOT_RECOMMENDED"
                 || ["بالغ", "حرج", "مرتفع"].includes(review.riskLevel)
