@@ -663,13 +663,6 @@ export default function ContentReviewPage() {
           </nav>
 
           <>
-          {sortedFindings.some((item) => item.businessSeverity === "critical") ? (
-            <div className="rounded-xl border-2 border-red-300 bg-red-50 p-5">
-              <div className="flex items-center gap-2 text-red-800"><ShieldAlert size={22} /><h2 className="text-lg font-bold">ملاحظات حرجة تتطلب إجراءً فورياً</h2></div>
-              <p className="mt-2 leading-7 text-red-800/80">هذه الملاحظات ظاهرة دائماً لأنها تمنع التوصية بالنشر حتى معالجتها وإعادة التقييم.</p>
-            </div>
-          ) : null}
-
           <section id="findings" className="space-y-4 scroll-mt-24">
             <SectionTitle title="3. الملاحظات" subtitle="جميع الملاحظات واجبة المعالجة قبل النشر — لا أولوية بينها." />
             {sortedFindings.length ? <FindingsList findings={sortedFindings} /> : (() => {
