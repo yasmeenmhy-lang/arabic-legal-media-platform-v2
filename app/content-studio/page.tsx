@@ -2482,8 +2482,7 @@ export default function ContentStudioPage() {
                 <p className="mt-4 text-sm leading-7 text-slate-500">التحليل غير مكتمل بسبب عطل — أعد التحليل قبل الاعتماد على هذه النتيجة.</p>
               </Panel>
             );
-            const tone = review.analysisMode === "pattern-only" ? "neutral" as const
-              : review.publicationDecision.outcome === "RECOMMENDED" ? "good" as const
+            const tone = review.publicationDecision.outcome === "RECOMMENDED" ? "good" as const
               : review.publicationDecision.outcome === "NOT_RECOMMENDED" ? "danger" as const
               : review.publishingReadinessScore < 60 ? "danger" as const
               : "gold" as const;
