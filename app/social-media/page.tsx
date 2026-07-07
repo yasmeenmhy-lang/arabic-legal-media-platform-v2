@@ -20,28 +20,9 @@ const platforms: Array<{
   { key: "youtube_shorts", label: "YouTube Shorts" }
 ];
 
-function prepareChannelCopy(input: {
-  platformLabel: string;
-  body: string;
-  reason?: string;
-  format?: string;
-  timing?: string;
-  hashtags?: string[];
-}) {
-  const lines = [
-    `نسخة مجهزة لقناة ${input.platformLabel}`,
-    "",
-    input.body,
-    "",
-    input.format ? `الصيغة المقترحة: ${input.format}` : null,
-    input.reason ? `سبب ملاءمة القناة: ${input.reason}` : null,
-    input.timing ? `التوقيت المقترح: ${input.timing}` : null,
-    input.hashtags?.length ? `وسوم مقترحة: ${input.hashtags.join(" ")}` : null,
-    "",
-    "تنبيه: راجع النسخة النهائية داخل التطبيق المستهدف قبل النشر، وتبقى مسؤولية النشر على المستخدم."
-  ].filter(Boolean);
-
-  return lines.join("\n");
+// المشاركة والنسخ يمرران نص المحتوى المعتمد فقط — بلا ترويسات أو بيانات أو تنبيهات إضافية
+function prepareChannelCopy(input: { body: string }) {
+  return input.body.trim();
 }
 
 function download(name: string, body: string) {
@@ -147,14 +128,7 @@ export default function SocialMediaPage() {
                     <p className="mt-3 text-xs leading-6 text-ink/60">{recommendation?.risks ?? "راجع طول النص والخصوصية وسياسات المنصة قبل النشر."}</p>
                     {platform.share ? (
                       <a
-                        href={platform.share(prepareChannelCopy({
-                          platformLabel: platform.label,
-                          body,
-                          reason: recommendation?.reason,
-                          format: recommendation?.format,
-                          timing: recommendation?.timing,
-                          hashtags: recommendation?.hashtags
-                        }))}
+                        href={platform.share(prepareChannelCopy({ body }))}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="mt-4 inline-flex items-center gap-2 rounded-lg bg-palm px-[11px] py-[9px] text-sm font-medium text-white transition hover:bg-palmDark focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-palm"
@@ -164,15 +138,8 @@ export default function SocialMediaPage() {
                         variant="secondary-gray"
                         className="mt-4"
                         onClick={async () => {
-                          await navigator.clipboard.writeText(prepareChannelCopy({
-                            platformLabel: platform.label,
-                            body,
-                            reason: recommendation?.reason,
-                            format: recommendation?.format,
-                            timing: recommendation?.timing,
-                            hashtags: recommendation?.hashtags
-                          }));
-                          setMessage(`تم نسخ نسخة مجهزة لقناة ${platform.label}. افتح التطبيق وأكمل المراجعة قبل النشر.`);
+                          await navigator.clipboard.writeText(prepareChannelCopy({ body }));
+                          setMessage(`تم نسخ نص المحتوى لقناة ${platform.label}. افتح التطبيق وأكمل النشر.`);
                         }}
                         leadingIcon={<Clipboard size={15} />}
                       >نسخ للتجهيز</Button>
