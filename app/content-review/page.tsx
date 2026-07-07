@@ -65,7 +65,6 @@ import {
   RiskIndicatorCard
 } from "@/components/content-review/IndicatorCards";
 import { InlineContentGuidance } from "@/components/content-review/InlineGuidance";
-import { SmartAssistantPanel } from "@/components/content-review/SmartAssistant";
 
 const contentTypes = contentKindOptions.filter((item) =>
   (["post", "advertisement", "campaign", "article", "script", "caption", "visual_content", "infographic", "publishing_plan"] as ContentKind[]).includes(item.value)
@@ -702,7 +701,6 @@ export default function ContentReviewPage() {
           </section>
           </>
 
-          <SmartAssistantPanel review={review} />
 
           <section id="improvements" className="space-y-5 scroll-mt-24">
           <Panel id="rewrite" className="scroll-mt-24">

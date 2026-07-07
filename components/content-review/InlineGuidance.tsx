@@ -1,6 +1,6 @@
 "use client";
 
-import { SpellCheck, Sparkles } from "lucide-react";
+import { SpellCheck } from "lucide-react";
 import { StatusBadge } from "@/components/ui";
 import { riskDisplayLabel, type LanguageQualityIssue, type ReviewResult } from "@/lib/types";
 
@@ -194,10 +194,6 @@ export function InlineContentGuidance({
 
   const reviewSpellingIssues = review.languageQuality.issues.filter((issue) => issue.category === "spelling");
   const spellingIssues = reviewSpellingIssues.length ? reviewSpellingIssues : liveSpellingIssues;
-  const rewrite = review.governedRewrites[0];
-  const enhancedRewrite = rewrite
-    ? review.aiEnhancement?.rewriteSuggestions.find((item) => item.rewriteId === rewrite.id)
-    : undefined;
   const languagePassed = review.languageQuality.passed && review.languageQuality.issues.length === 0 && liveSpellingIssues.length === 0;
   const assistantIssues = buildAssistantIssues(review, liveSpellingIssues);
   const internalAssistantSummary = buildInternalAssistantSummary(review, assistantIssues, languagePassed);
@@ -225,19 +221,6 @@ export function InlineContentGuidance({
       ) : (
         <p className="text-xs leading-6 text-ink/60">لم يرصد المدقق أخطاء إملائية واضحة داخل النص الحالي.</p>
       )}
-
-      {rewrite ? (
-        <div className="rounded-md border border-violetBorder bg-violetSoft p-3 text-xs leading-6">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <b className="text-violet">مسار التعديل المقترح</b>
-            <button type="button" onClick={onApplyRewrite} disabled={loading} className="inline-flex min-h-[32px] items-center gap-1.5 rounded-md bg-violet px-2 py-0.5 text-xs font-medium text-white transition hover:bg-violetDark focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet disabled:opacity-50">
-              <Sparkles size={14} />استخدام الصياغة المقترحة
-            </button>
-          </div>
-          {enhancedRewrite?.explanation ? <p className="mt-2 text-ink/70">{enhancedRewrite.explanation}</p> : null}
-          <p className="mt-2 text-xs leading-7 text-ink/80">{enhancedRewrite?.suggestedText ?? rewrite.suggestedText}</p>
-        </div>
-      ) : null}
     </div>
   );
 }
