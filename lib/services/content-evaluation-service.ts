@@ -4,7 +4,6 @@
 // Separate from the legal compliance engine (semantic-analysis-service.ts).
 
 import Anthropic from "@anthropic-ai/sdk";
-import { AI_CONSTITUTION } from "@/lib/governance";
 import type {
   ContentEvaluation,
   ContentEvaluationLanguage,
@@ -21,9 +20,7 @@ const LANGUAGE_THRESHOLD = 75;
 const PROFESSIONALISM_THRESHOLD = 80;
 
 function buildEvaluationPrompt(text: string): string {
-  return `${AI_CONSTITUTION}
-
-أنت مستشار قانوني ومحكّم متخصص في تقييم المحتوى الإعلامي للمحامين في المملكة العربية السعودية.
+  return `أنت مستشار قانوني ومحكّم متخصص في تقييم المحتوى الإعلامي للمحامين في المملكة العربية السعودية.
 
 ## المبدأ الجوهري — اقرأه أولاً قبل أي تقييم
 المحامي لا ينشر إلا ما يخدم أحد هذه الأهداف:
