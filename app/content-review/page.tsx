@@ -55,7 +55,7 @@ import {
 } from "@/lib/content-record-store";
 import { saveLatestReviewSnapshot } from "@/components/review-context-summary";
 import { riskDisplayLabel, type ContentKind, type ReviewResult, type RiskLevel } from "@/lib/types";
-import { FindingCard } from "@/components/content-review/FindingCard";
+import { FindingsList } from "@/components/content-review/FindingCard";
 import {
   ComplianceIndicatorCard,
   ContentQualityIndicatorCard,
@@ -673,7 +673,7 @@ export default function ContentReviewPage() {
 
           <section id="findings" className="space-y-4 scroll-mt-24">
             <SectionTitle title="3. الملاحظات حسب الأولوية" subtitle="الملاحظات الحرجة أولاً، ثم العالية والمتوسطة والمنخفضة. لا يعتمد العرض على ترتيب الاكتشاف." />
-            {sortedFindings.length ? sortedFindings.map((finding, index) => <FindingCard key={`${finding.title}-${finding.evidence}`} finding={finding} index={index} />) : (() => {
+            {sortedFindings.length ? <FindingsList findings={sortedFindings} /> : (() => {
               const hasOtherIssues = review.publicationDecision.outcome === "NOT_RECOMMENDED"
                 || ["بالغ", "حرج", "مرتفع"].includes(review.riskLevel)
                 || review.professionalismScore < 60
