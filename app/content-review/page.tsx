@@ -598,7 +598,7 @@ export default function ContentReviewPage() {
             <div
               dir="rtl"
               role="alert"
-              className="sticky top-0 z-20 flex items-start gap-3 rounded-b-lg border-2 border-red-700 bg-red-600 px-5 py-4 text-base font-semibold text-white shadow-lg"
+              className="sticky top-0 z-20 flex items-start gap-3 rounded-b-lg border-2 border-warningDark bg-warningSoft px-5 py-4 text-base font-semibold text-warningDark shadow-lg"
             >
               <span aria-hidden="true" className="mt-0.5 shrink-0 text-xl">⚠️</span>
               <span>{"تنبيه: يوجد عطل، والتحليل غير مكتمل حالياً، وقد لا تشمل النتيجة كل المخالفات — أعد التحليل قبل الاعتماد على هذه النتيجة."}</span>
