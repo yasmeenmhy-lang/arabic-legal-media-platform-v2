@@ -119,11 +119,13 @@ export function ComplianceIndicatorCard({ review }: { review: ReviewResult }) {
 }
 
 export function RiskIndicatorCard({ review }: { review: ReviewResult }) {
-  const tone = riskKpiTone(review.riskLevel);
+  // تقييم متعذر ≠ منخفض: يُعرض محايداً رمادياً لا أخضر
+  const assessmentFailed = (review.riskScoreExplanation.explanation ?? "").includes("تعذّر");
+  const tone = assessmentFailed ? ("neutral" as const) : riskKpiTone(review.riskLevel);
   const parties = review.riskScoreExplanation.affectedParties ?? [];
   // ثلاثة مستويات معتمدة فقط — بعدد الجهات المتضررة
   const riskLevels = ["منخفض", "متوسط", "مرتفع"];
-  const activeCount = riskLevels.indexOf(riskDisplayLabel(review.riskLevel)) + 1;
+  const activeCount = assessmentFailed ? 0 : riskLevels.indexOf(riskDisplayLabel(review.riskLevel)) + 1;
   const partyIcon = (p: RiskAffectedParty) => {
     if (p === "الموكل") return <User size={13} aria-hidden="true" />;
     if (p === "المحامي") return <Scale size={13} aria-hidden="true" />;
@@ -133,7 +135,7 @@ export function RiskIndicatorCard({ review }: { review: ReviewResult }) {
     <Panel id="risk" className={`scroll-mt-24 border-t-4 shadow-md ${toneBorder(tone)}`}>
       <p className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-400">المخاطر</p>
       <div className="flex items-center justify-between gap-3">
-        <StatusBadge tone={tone}>{riskDisplayLabel(review.riskLevel)}</StatusBadge>
+        <StatusBadge tone={tone}>{assessmentFailed ? "تعذّر التقييم" : riskDisplayLabel(review.riskLevel)}</StatusBadge>
         <div className="flex gap-1.5">
           {riskLevels.map((_, i) => (
             <span key={i} className={`inline-block h-2.5 w-2.5 rounded-full ${i < activeCount ? (tone === "good" ? "bg-green-400" : tone === "gold" ? "bg-amber-400" : "bg-red-500") : "bg-slate-200"}`} />
