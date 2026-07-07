@@ -83,12 +83,26 @@ export default function LibraryPage() {
               key={group.key}
               className="overflow-hidden rounded-xl border border-line bg-white"
             >
-              {/* ── رأس المجموعة — بلا شعارات أو شارات جهات ── */}
+              {/* ── رأس الجهة ── */}
               <div className="flex items-center gap-3 border-b border-line bg-paper px-4 py-3">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={group.favicon}
+                  alt=""
+                  aria-hidden="true"
+                  width={32}
+                  height={32}
+                  className="h-8 w-8 shrink-0 rounded-lg border border-line bg-white object-contain p-0.5"
+                />
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-semibold text-ink">{group.name}</p>
                   <p className="text-[11px] text-ink/45">{group.domain}</p>
                 </div>
+                {/* شارة النطاق الحكومي */}
+                <span className="flex items-center gap-1 rounded-md border border-palm/20 bg-mint px-2 py-0.5 text-[10px] font-semibold text-palm">
+                  <span aria-hidden="true">🇸🇦</span>
+                  gov
+                </span>
               </div>
 
               {/* ── قائمة الروابط ── */}

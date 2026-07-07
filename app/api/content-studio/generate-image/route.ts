@@ -524,7 +524,7 @@ Return ONLY valid JSON with no markdown fences or explanation:
     { "heading": "...", "line1": "...", "line2": "..." },
     { "heading": "...", "line1": "...", "line2": "...", "line3": "..." }
   ],
-  "source": "المرجع: نظام العمل السعودي — المادة 74"
+  "source": "مصدر: وزارة العدل / هيئة المحامين السعوديين / ..."
 }
 
 Rules:
@@ -532,7 +532,7 @@ Rules:
 - CRITICAL: each field must NOT exceed the char limit or it will be cut off
 - All text in Arabic, professional legal tone with accurate information
 - stat is optional — use only when there is a real article number or statistic
-- source must cite the relevant Saudi law or regulation with its article number, WITHOUT naming any ministry, government entity, or authority`;
+- source must reference a real Saudi legal authority relevant to the topic`;
 }
 
 // ── Route ──────────────────────────────────────────────────────────────────

@@ -35,11 +35,11 @@ export default async function AdministrationPage() {
       <PageHeader
         eyebrow="حوكمة المراجع والتنبيهات"
         title="الحوكمة والإعدادات"
-        description="متابعة المصادر والمراجع النظامية وحالة استخدامها في تقييم الامتثال والمخاطر، إلى جانب التنبيهات التشغيلية ذات الأولوية."
+        description="متابعة مصادر وزارة العدل والمراجع النظامية وحالة استخدامها في تقييم الامتثال والمخاطر، إلى جانب التنبيهات التشغيلية ذات الأولوية."
       />
       <div className="grid gap-5 xl:grid-cols-[1.2fr_1fr]">
         <Panel className="overflow-hidden">
-          <SectionTitle title="المصادر والمراجع النظامية" subtitle="تعرض هذه القائمة حالة المراجع المستخدمة في نتائج المراجعة." />
+          <SectionTitle title="مصادر وزارة العدل والمراجع النظامية" subtitle="تعرض هذه القائمة حالة المراجع المستخدمة في نتائج المراجعة." />
           <DataTable
             headers={["المصدر", "آخر فحص", "الإصدار", "تغير مرصود", "حالة الاستخدام"]}
             rows={updateCenter.sources.map((source) => [
