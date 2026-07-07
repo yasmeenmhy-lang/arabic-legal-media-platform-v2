@@ -805,9 +805,25 @@ export default function ContentStudioPage() {
     });
   }
 
+  // pptxgenjs يُحمّل من CDN وقت الحاجة — تضمينه في الحزمة يكسر بناء Next (يستورد وحدات Node)
+  function loadPptxGen(): Promise<new () => any> {
+    const w = window as unknown as { PptxGenJS?: new () => any };
+    if (w.PptxGenJS) return Promise.resolve(w.PptxGenJS);
+    return new Promise((resolve, reject) => {
+      const script = document.createElement("script");
+      script.src = "https://cdn.jsdelivr.net/npm/pptxgenjs@4.0.1/dist/pptxgen.bundle.js";
+      script.onload = () => {
+        if (w.PptxGenJS) resolve(w.PptxGenJS);
+        else reject(new Error("PptxGenJS unavailable"));
+      };
+      script.onerror = () => reject(new Error("script load failed"));
+      document.head.appendChild(script);
+    });
+  }
+
   async function downloadPptx(source: { svg?: string; url?: string }, filename: string) {
     try {
-      const PptxGen = (await import("pptxgenjs")).default;
+      const PptxGen = await loadPptxGen();
       const { dataUrl, w, h } = source.svg
         ? await svgToPngData(source.svg)
         : await urlToPngData(source.url ?? "");
