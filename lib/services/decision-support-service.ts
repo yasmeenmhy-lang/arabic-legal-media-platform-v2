@@ -48,7 +48,6 @@ export function buildReadinessDecision({
   findings: ReviewFinding[];
 }): ReadinessDecision {
   const blockers: string[] = [];
-  if (!approved) blockers.push("اعتماد الإصدار الحالي");
   if (!languagePassed) blockers.push("معالجة ملاحظات اللغة والصياغة");
   if (riskLevel === "بالغ" || riskLevel === "حرج" || riskLevel === "مرتفع") blockers.push("معالجة المخاطر المرتفعة قبل النشر");
   if (findings.some((finding) => finding.businessSeverity === "critical" && !finding.resolved)) {
@@ -75,7 +74,7 @@ export function buildReadinessDecision({
   }
   return {
     level: "جاهز للنشر",
-    reasons: ["لا توجد ملاحظات مانعة، واجتاز المحتوى المراجعة اللغوية، وتم اعتماد الإصدار الحالي."],
+    reasons: ["لا توجد ملاحظات مانعة، واجتاز المحتوى المراجعة اللغوية ومراجعة الامتثال."],
     blockers: [],
     actions: ["يمكن تجهيز حزمة النشر للقناة المناسبة مع مراجعة النسخة النهائية قبل الإرسال."]
   };
