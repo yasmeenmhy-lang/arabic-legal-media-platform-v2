@@ -51,7 +51,6 @@ import {
   type StoredContentVersion,
 } from "@/lib/content-record-store";
 import { saveLatestReviewSnapshot } from "@/components/review-context-summary";
-import { aiSuggestionDisclaimer, confidentialityNotice } from "@/lib/governance";
 import { riskDisplayLabel, type ContentKind, type ReviewResult, type RiskAffectedParty, type RiskLevel } from "@/lib/types";
 
 // ── Constants ──────────────────────────────────────────────────────────────
@@ -1946,8 +1945,7 @@ export default function ContentStudioPage() {
             <AlertTriangle size={18} className="mt-0.5 shrink-0 text-amber-500" aria-hidden="true" />
             <div className="text-sm leading-7 text-amber-900">
               <p className="font-semibold">هذا المحتوى استرشادي — يجب مراجعته قبل النشر</p>
-              <p className="mt-1 text-xs leading-6 text-amber-800">{aiSuggestionDisclaimer}</p>
-              <p className="mt-1 text-xs leading-6 text-amber-800">{confidentialityNotice}</p>
+              <p className="mt-1 text-xs leading-6 text-amber-800">أنشأ الذكاء الاصطناعي هذا النص بناءً على المدخلات فقط، وهو لا يُغني عن المراجعة القانونية والمهنية الشخصية. تقع مسؤولية التحقق والاعتماد والنشر على المحامي وحده.</p>
             </div>
           </div>
           <div className="mt-4 flex flex-wrap gap-3">
@@ -2224,10 +2222,6 @@ export default function ContentStudioPage() {
                   نص معاد صياغته وفق قواعد السلوك المهني للمحامي — يمكنك استخدامه مباشرة أو تعديله.
                 </p>
                 <p className="text-sm leading-8 text-violetText">{improvedText}</p>
-                <div className="my-3 space-y-1.5 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs leading-6 text-amber-900">
-                  <p className="font-semibold">{aiSuggestionDisclaimer}</p>
-                  <p>{confidentialityNotice}</p>
-                </div>
                 <button
                   type="button"
                   onClick={() => { setReviewText(improvedText); setReview(null); setPath("review"); }}
