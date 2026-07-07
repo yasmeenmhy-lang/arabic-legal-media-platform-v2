@@ -38,18 +38,16 @@ export function FindingsList({ findings }: { findings: ReviewFinding[] }) {
             <div key={`${finding.title}-${finding.evidence}-details`} className={index > 0 ? "border-t border-line pt-4" : ""}>
               <p className="text-sm font-semibold leading-7">{index + 1}. {finding.title}</p>
               <ul className="mt-2 list-disc space-y-1.5 pr-5 text-sm leading-7">
-                <li><span className="text-ink/55">السبب:</span> {finding.issue}</li>
-                <li><span className="text-ink/55">الشرح:</span> {finding.legalExplanation}</li>
-                <li><span className="text-ink/55">الدليل من المحتوى:</span> «{finding.evidence}»</li>
-                <li><span className="text-ink/55">القاعدة:</span> {finding.sourceDocument} — {finding.legalReference}</li>
+                <li><span className="text-ink/55">السبب:</span> {finding.legalExplanation}</li>
                 <li>
+                  <span className="text-ink/55">المرجع:</span> {finding.sourceDocument} — {finding.legalReference}{" "}
                   <a
                     href={finding.sourceUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 text-palm underline"
+                    className="inline-flex items-center gap-1 text-palm underline"
                   >
-                    فتح المرجع الرسمي <ExternalLink size={13} aria-hidden="true" />
+                    فتح المرجع الرسمي <ExternalLink size={12} aria-hidden="true" />
                   </a>
                 </li>
               </ul>
