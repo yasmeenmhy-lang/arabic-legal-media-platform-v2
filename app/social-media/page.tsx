@@ -7,17 +7,19 @@ import { Button, PageHeader, Panel, SectionTitle, StatusBadge } from "@/componen
 import { socialBrandIcons, socialBrandStyles } from "@/components/social-icons";
 import { getActiveContentSelection, loadContentRecords, setActiveContentSelection, type StoredContentRecord } from "@/lib/content-record-store";
 
+// prefill: القناة تدعم تضمين النص في الرابط (X فقط) — البقية يُنسخ النص تلقائياً وتُفتح صفحة الإنشاء
 const platforms: Array<{
   key: "x" | "linkedin" | "instagram" | "tiktok" | "snapchat" | "youtube_shorts";
   label: string;
-  share?: (text: string) => string;
+  prefill: boolean;
+  shareUrl: (text: string) => string;
 }> = [
-  { key: "x", label: "X", share: (text: string) => `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}` },
-  { key: "linkedin", label: "LinkedIn", share: (_text: string) => "https://www.linkedin.com/feed/?shareActive=true" },
-  { key: "instagram", label: "Instagram" },
-  { key: "tiktok", label: "TikTok" },
-  { key: "snapchat", label: "Snapchat" },
-  { key: "youtube_shorts", label: "YouTube Shorts" }
+  { key: "x", label: "X", prefill: true, shareUrl: (text: string) => `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}` },
+  { key: "linkedin", label: "LinkedIn", prefill: false, shareUrl: () => "https://www.linkedin.com/feed/?shareActive=true" },
+  { key: "instagram", label: "Instagram", prefill: false, shareUrl: () => "https://www.instagram.com/" },
+  { key: "tiktok", label: "TikTok", prefill: false, shareUrl: () => "https://www.tiktok.com/upload" },
+  { key: "snapchat", label: "Snapchat", prefill: false, shareUrl: () => "https://www.snapchat.com/" },
+  { key: "youtube_shorts", label: "YouTube Shorts", prefill: false, shareUrl: () => "https://studio.youtube.com/" }
 ];
 
 // المشاركة والنسخ يمرران نص المحتوى المعتمد فقط — بلا ترويسات أو بيانات أو تنبيهات إضافية
@@ -39,19 +41,28 @@ export default function SocialMediaPage() {
   const [records, setRecords] = useState<StoredContentRecord[]>([]);
   const [selectedId, setSelectedId] = useState("");
   const [message, setMessage] = useState("");
-  // تأكيد قياسي قبل كل مشاركة أو نسخ — التنبيه يظهر للمستخدم ولا يدخل النص المشارك
+  // تأكيد قياسي قبل كل مشاركة — التنبيه يظهر للمستخدم ولا يدخل النص المشارك
   const [confirmShare, setConfirmShare] = useState<
-    { label: string; href?: string } | null
+    { label: string; href: string; prefill: boolean } | null
   >(null);
 
   async function executeConfirmedShare() {
     if (!confirmShare) return;
-    if (confirmShare.href) {
-      window.open(confirmShare.href, "_blank", "noopener,noreferrer");
-      setMessage(`فُتحت نافذة المشاركة لقناة ${confirmShare.label}.`);
-    } else {
+    // يُنسخ النص دائماً حتى يمكن لصقه داخل القناة مباشرة
+    try {
       await navigator.clipboard.writeText(prepareChannelCopy({ body }));
-      setMessage(`تم نسخ نص المحتوى لقناة ${confirmShare.label}. افتح التطبيق وأكمل النشر.`);
+    } catch {
+      /* بعض المتصفحات تمنع النسخ بعد فقدان التركيز — الفتح يستمر */
+    }
+    const opened = window.open(confirmShare.href, "_blank", "noopener,noreferrer");
+    if (!opened) {
+      setMessage(`نُسخ النص، وتعذر فتح ${confirmShare.label} تلقائياً — اسمح بالنوافذ المنبثقة أو افتح القناة يدوياً والصق النص.`);
+    } else {
+      setMessage(
+        confirmShare.prefill
+          ? `فُتحت نافذة ${confirmShare.label} والنص مضمّن فيها — راجعه ثم أكمل النشر.`
+          : `فُتحت ${confirmShare.label} ونُسخ النص تلقائياً — الصقه في المنشور وأكمل النشر.`
+      );
     }
     setConfirmShare(null);
   }
@@ -142,20 +153,15 @@ export default function SocialMediaPage() {
                     </div>
                     <p className="mt-4 text-sm leading-7">{recommendation?.reason ?? "يمكن إعداد نسخة لهذه القناة بعد تكييف الصيغة بصرياً ومراجعتها."}</p>
                     <p className="mt-3 text-xs leading-6 text-ink/60">{recommendation?.risks ?? "راجع طول النص والخصوصية وسياسات المنصة قبل النشر."}</p>
-                    {platform.share ? (
-                      <button
-                        type="button"
-                        onClick={() => setConfirmShare({ label: platform.label, href: platform.share!(prepareChannelCopy({ body })) })}
-                        className="mt-4 inline-flex items-center gap-2 rounded-lg bg-palm px-[11px] py-[9px] text-sm font-medium text-white transition hover:bg-palmDark focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-palm"
-                      ><Share2 size={15} />فتح المشاركة</button>
-                    ) : (
-                      <Button
-                        variant="secondary-gray"
-                        className="mt-4"
-                        onClick={() => setConfirmShare({ label: platform.label })}
-                        leadingIcon={<Clipboard size={15} />}
-                      >نسخ للتجهيز</Button>
-                    )}
+                    <button
+                      type="button"
+                      onClick={() => setConfirmShare({
+                        label: platform.label,
+                        href: platform.shareUrl(prepareChannelCopy({ body })),
+                        prefill: platform.prefill,
+                      })}
+                      className="mt-4 inline-flex items-center gap-2 rounded-lg bg-palm px-[11px] py-[9px] text-sm font-medium text-white transition hover:bg-palmDark focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-palm"
+                    ><Share2 size={15} />فتح المشاركة</button>
                   </article>
                 );
               })}
@@ -183,6 +189,11 @@ export default function SocialMediaPage() {
                 <p className="mt-2 text-sm leading-7 text-ink/75">
                   راجع النسخة النهائية داخل التطبيق المستهدف قبل النشر — تبقى مسؤولية النشر على المستخدم.
                 </p>
+                {!confirmShare.prefill ? (
+                  <p className="mt-2 rounded-lg bg-mint p-2.5 text-xs leading-6 text-palm">
+                    سيُنسخ نص المحتوى تلقائياً — الصقه داخل المنشور بعد فتح القناة.
+                  </p>
+                ) : null}
               </div>
             </div>
             <div className="mt-5 flex flex-wrap justify-start gap-3">
