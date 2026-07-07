@@ -2286,16 +2286,11 @@ export default function ContentStudioPage() {
                 </StatusBadge>
                 {review.findings.length > 0 ? (
                   <div className="mt-4 space-y-2">
-                    {review.findings.map((f) => {
-                      const sev = f.businessSeverity ?? "low";
-                      const tag = sevTag(sev);
-                      return (
-                        <div key={f.traceabilityId} className={`flex items-start gap-2.5 rounded-lg p-3 ${sev === "critical" || sev === "high" ? "border border-red-200 bg-red-50" : "border border-amber-200 bg-amber-50"}`}>
-                          <span className={`shrink-0 rounded px-1.5 py-0.5 text-xs font-bold ${tag.cls}`}>{tag.label}</span>
-                          <span className="text-sm leading-6">{f.title}</span>
-                        </div>
-                      );
-                    })}
+                    {review.findings.map((f) => (
+                      <div key={f.traceabilityId} className="flex items-start gap-2.5 rounded-lg border border-red-200 bg-red-50 p-3">
+                        <span className="text-sm leading-6">{f.title}</span>
+                      </div>
+                    ))}
                   </div>
                 ) : (
                   <p className="mt-4 text-sm leading-7 text-slate-500">لم ترصد مخالفات مرتبطة بالمراجع المسجلة.</p>
