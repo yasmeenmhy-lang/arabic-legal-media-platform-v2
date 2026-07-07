@@ -84,6 +84,31 @@ const purposes = [
   "التعريف بالخبرات والمشاركات المهنية",
   "مساهمة مجتمعية وعمل تطوعي قانوني"
 ];
+const specialties = [
+  "قانون الأعمال والتجارة",
+  "قانون العمل",
+  "قانون الأسرة",
+  "عقارات وتطوير",
+  "ملكية فكرية",
+  "تحكيم ونزاعات",
+  "قانون التقنية",
+  "القانون الجنائي",
+  "قانون الاستثمار"
+];
+const CHANNEL_CHAR_LIMITS: Partial<Record<string, number>> = {
+  X: 280,
+  Snapchat: 250,
+  Instagram: 2200,
+  TikTok: 2200,
+  LinkedIn: 3000,
+  YouTube: 5000
+};
+const charLimitPresets = [
+  { key: "x", label: "X · ٢٨٠", value: 280 },
+  { key: "snap", label: "Snapchat · ٢٥٠", value: 250 },
+  { key: "insta-tiktok", label: "Instagram / TikTok · ٢٢٠٠", value: 2200 },
+  { key: "li", label: "LinkedIn · ٣٠٠٠", value: 3000 }
+];
 
 const contentTypeIcons: Record<string, React.ReactNode> = {
   post: <FileText size={13} />,
@@ -184,6 +209,8 @@ export default function ContentReviewPage() {
   const [suggestingAI, setSuggestingAI] = useState(false);
   const [suggestionError, setSuggestionError] = useState<string | null>(null);
   const [shareMessage, setShareMessage] = useState("");
+  const [specialty, setSpecialty] = useState("");
+  const [charLimit, setCharLimit] = useState<number | null>(null);
 
   useEffect(() => {
     const selection = getActiveContentSelection();
@@ -597,6 +624,64 @@ export default function ContentReviewPage() {
             ))}
           </div>
         </div>
+        {/* التخصص (اختياري) */}
+        <div className={`mb-4 ${Boolean(review) && !isEditing ? "pointer-events-none opacity-60" : ""}`}>
+          <p className="mb-2 text-sm text-ink/65">
+            التخصص <span className="text-ink/40">(اختياري)</span>
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {specialties.map((item) => (
+              <button key={item} type="button" onClick={() => setSpecialty(specialty === item ? "" : item)} className={`${chipBase} ${specialty === item ? chipSelected : chipIdle}`}>
+                {item}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* حد الحروف (اختياري) */}
+        <div className={`border-t border-line pt-4 ${Boolean(review) && !isEditing ? "pointer-events-none opacity-60" : ""}`}>
+          <div className="mb-2 flex items-center justify-between">
+            <p className="text-sm text-ink/65">
+              حد الحروف <span className="text-ink/40">(اختياري)</span>
+            </p>
+            {charLimit !== null && (
+              <button type="button" onClick={() => setCharLimit(null)} className="text-xs text-ink/40 transition hover:text-red-500">
+                مسح
+              </button>
+            )}
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            {charLimitPresets.map((p) => (
+              <button key={p.key} type="button" onClick={() => setCharLimit(charLimit === p.value ? null : p.value)} className={`${chipBase} text-xs ${charLimit === p.value ? chipSelected : chipIdle}`}>
+                {p.label}
+              </button>
+            ))}
+            <div className="flex items-center gap-1.5 rounded-lg border border-line bg-white px-3 py-1.5 text-xs transition focus-within:border-palm">
+              <input
+                type="number"
+                min={1}
+                max={10000}
+                value={charLimit ?? ""}
+                onChange={(e) => {
+                  const v = parseInt(e.target.value, 10);
+                  setCharLimit(isNaN(v) || v <= 0 ? null : v);
+                }}
+                placeholder="مخصص"
+                className="w-16 bg-transparent text-right text-xs focus:outline-none"
+              />
+              <span className="text-ink/40">حرف</span>
+            </div>
+          </div>
+          {channel && CHANNEL_CHAR_LIMITS[channel] && charLimit !== CHANNEL_CHAR_LIMITS[channel] && (
+            <p className="mt-2 text-xs text-ink/45">
+              الحد المعتاد لـ {channel}:{" "}
+              <button type="button" onClick={() => setCharLimit(CHANNEL_CHAR_LIMITS[channel]!)} className="font-semibold text-palm underline-offset-2 hover:underline">
+                {CHANNEL_CHAR_LIMITS[channel]!.toLocaleString("ar-SA")} حرف
+              </button>
+            </p>
+          )}
+        </div>
+
         {!hasReviewContext ? (
           <p className="mt-2 text-xs leading-6 text-ink/60">اختر نوع المحتوى والقناة والجمهور والهدف حتى يكون التحليل مرتبطًا بالسياق الصحيح.</p>
         ) : null}
@@ -605,8 +690,29 @@ export default function ContentReviewPage() {
             <span>النص محل المراجعة</span>
             <Button size="sm" variant="secondary-gray" onClick={clearContentInput} disabled={loading || text.length === 0} leadingIcon={<XCircle size={14} aria-hidden="true" />}>مسح المحتوى</Button>
           </span>
-          <textarea value={text} disabled={Boolean(review) && !isEditing} onChange={(event) => setText(event.target.value)} className="mt-2 min-h-44 w-full rounded-lg border border-line p-4 leading-8 disabled:bg-paper disabled:text-ink/65" />
+          <textarea
+            value={text}
+            disabled={Boolean(review) && !isEditing}
+            onChange={(event) => setText(event.target.value)}
+            className={`mt-2 min-h-44 w-full rounded-lg border p-4 leading-8 transition disabled:bg-paper disabled:text-ink/65 ${
+              charLimit !== null && text.length > charLimit ? "border-red-400 focus:border-red-400" : "border-line"
+            }`}
+          />
         </label>
+        {charLimit !== null && (
+          <div className={`mt-1 text-left text-xs tabular-nums ${
+            text.length > charLimit
+              ? "font-bold text-red-500"
+              : text.length > charLimit * 0.9
+              ? "text-amber-500"
+              : "text-ink/35"
+          }`}>
+            {text.length} / {charLimit}
+            {text.length > charLimit && (
+              <span className="mr-2">(تجاوز بـ {text.length - charLimit} حرف)</span>
+            )}
+          </div>
+        )}
         <div className="mt-3">
           <InlineContentGuidance review={review} draftText={text} onApplyRewrite={applyRewrite} loading={loading} />
         </div>
