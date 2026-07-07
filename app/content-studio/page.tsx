@@ -972,36 +972,36 @@ export default function ContentStudioPage() {
                         className="w-full object-cover"
                         onError={() => setImageGenError("تعذر تحميل الصورة — حاول مرة أخرى")}
                       />
-                      <div className="flex items-center justify-between gap-3 border-t border-line px-3 py-2.5">
-                        <p className="text-xs text-ink/40">أُنشئت بواسطة Flux AI</p>
-                        <div className="flex gap-2">
+                      <div className="flex flex-wrap items-center justify-between gap-2 border-t border-line px-3 py-2.5">
+                        <p className="text-xs text-ink/40">صورة مُنشأة بالذكاء الاصطناعي</p>
+                        <div className="flex flex-wrap gap-2">
                           <a
                             href={imageGenUrl}
                             target="_blank"
                             rel="noopener noreferrer"
                             download="generated-image.jpg"
-                            className="rounded-lg border border-line bg-paper px-3 py-1 text-xs font-medium text-ink/70 transition hover:border-palm hover:text-palm"
+                            className="shrink-0 whitespace-nowrap rounded-lg border border-line bg-paper px-3 py-1 text-xs font-medium text-ink/70 transition hover:border-palm hover:text-palm"
                           >
                             JPG
                           </a>
                           <button
                             type="button"
                             onClick={() => void downloadUrlAsPng(imageGenUrl, "generated-image.png")}
-                            className="rounded-lg border border-line bg-paper px-3 py-1 text-xs font-medium text-ink/70 transition hover:border-palm hover:text-palm"
+                            className="shrink-0 whitespace-nowrap rounded-lg border border-line bg-paper px-3 py-1 text-xs font-medium text-ink/70 transition hover:border-palm hover:text-palm"
                           >
                             PNG
                           </button>
                           <button
                             type="button"
                             onClick={() => generateImage()}
-                            className="rounded-lg border border-line bg-paper px-3 py-1 text-xs font-medium text-ink/70 transition hover:border-palm hover:text-palm"
+                            className="shrink-0 whitespace-nowrap rounded-lg border border-line bg-paper px-3 py-1 text-xs font-medium text-ink/70 transition hover:border-palm hover:text-palm"
                           >
                             إعادة الإنشاء
                           </button>
                           <button
                             type="button"
                             onClick={() => { setImageGenUrl(""); setImageGenPrompt(""); setImageGenError(""); }}
-                            className="flex items-center gap-1 rounded-lg border border-line bg-paper px-3 py-1 text-xs font-medium text-red-500/70 transition hover:border-red-300 hover:text-red-600"
+                            className="flex shrink-0 items-center gap-1 whitespace-nowrap rounded-lg border border-line bg-paper px-3 py-1 text-xs font-medium text-red-500/70 transition hover:border-red-300 hover:text-red-600"
                             title="مسح الصورة"
                           >
                             <Trash2 size={12} />
@@ -1894,17 +1894,17 @@ export default function ContentStudioPage() {
               {vtSvg && !vtLoading && (
                 <div className="overflow-hidden rounded-xl border border-line bg-white">
                   <div className="w-full p-2" dangerouslySetInnerHTML={{ __html: vtSvg }} />
-                  <div className="flex items-center justify-between border-t border-line px-3 py-2">
+                  <div className="flex flex-wrap items-center justify-between gap-2 border-t border-line px-3 py-2">
                     <p className="text-xs text-ink/40">مرئي SVG — جودة عالية قابل للتكبير</p>
-                    <div className="flex gap-2">
+                    <div className="flex flex-wrap gap-2">
                       <button type="button" onClick={() => downloadSvg(vtSvg, `${vtType}.svg`)}
-                        className="rounded-lg border border-line bg-paper px-3 py-1 text-xs font-medium text-ink/70 transition hover:border-palm hover:text-palm">SVG</button>
+                        className="shrink-0 whitespace-nowrap rounded-lg border border-line bg-paper px-3 py-1 text-xs font-medium text-ink/70 transition hover:border-palm hover:text-palm">SVG</button>
                       <button type="button" onClick={() => downloadSvgAsPng(vtSvg, `${vtType}.svg`)}
-                        className="rounded-lg border border-line bg-paper px-3 py-1 text-xs font-medium text-ink/70 transition hover:border-palm hover:text-palm">PNG</button>
+                        className="shrink-0 whitespace-nowrap rounded-lg border border-line bg-paper px-3 py-1 text-xs font-medium text-ink/70 transition hover:border-palm hover:text-palm">PNG</button>
                       <button type="button" onClick={() => { setVtSvg(""); setVtUrl(""); void generateVisualTranslation(); }}
-                        className="rounded-lg border border-line bg-paper px-3 py-1 text-xs font-medium text-ink/70 transition hover:border-palm hover:text-palm">إعادة الإنشاء</button>
+                        className="shrink-0 whitespace-nowrap rounded-lg border border-line bg-paper px-3 py-1 text-xs font-medium text-ink/70 transition hover:border-palm hover:text-palm">إعادة الإنشاء</button>
                       <button type="button" onClick={() => { setVtSvg(""); setVtUrl(""); setVtError(""); }}
-                        className="flex items-center gap-1 rounded-lg border border-line bg-paper px-3 py-1 text-xs font-medium text-red-500/70 transition hover:border-red-300 hover:text-red-600"
+                        className="flex shrink-0 items-center gap-1 whitespace-nowrap rounded-lg border border-line bg-paper px-3 py-1 text-xs font-medium text-red-500/70 transition hover:border-red-300 hover:text-red-600"
                         title="مسح المرئي">
                         <Trash2 size={12} />
                         مسح
@@ -1917,17 +1917,17 @@ export default function ContentStudioPage() {
               {vtUrl && !vtLoading && (
                 <div className="overflow-hidden rounded-xl border border-line bg-white">
                   <img src={vtUrl} alt="الترجمة البصرية" className="w-full" onError={() => setVtError("تعذر تحميل الصورة")} />
-                  <div className="flex items-center justify-between border-t border-line px-3 py-2">
+                  <div className="flex flex-wrap items-center justify-between gap-2 border-t border-line px-3 py-2">
                     <p className="text-xs text-ink/40">صورة مُنشأة بالذكاء الاصطناعي</p>
-                    <div className="flex gap-2">
+                    <div className="flex flex-wrap gap-2">
                       <a href={vtUrl} download="visual.jpg" target="_blank" rel="noopener noreferrer"
-                        className="rounded-lg border border-line bg-paper px-3 py-1 text-xs font-medium text-ink/70 transition hover:border-palm hover:text-palm">JPG</a>
+                        className="shrink-0 whitespace-nowrap rounded-lg border border-line bg-paper px-3 py-1 text-xs font-medium text-ink/70 transition hover:border-palm hover:text-palm">JPG</a>
                       <button type="button" onClick={() => void downloadUrlAsPng(vtUrl, "visual.png")}
-                        className="rounded-lg border border-line bg-paper px-3 py-1 text-xs font-medium text-ink/70 transition hover:border-palm hover:text-palm">PNG</button>
+                        className="shrink-0 whitespace-nowrap rounded-lg border border-line bg-paper px-3 py-1 text-xs font-medium text-ink/70 transition hover:border-palm hover:text-palm">PNG</button>
                       <button type="button" onClick={() => { setVtSvg(""); setVtUrl(""); void generateVisualTranslation(); }}
-                        className="rounded-lg border border-line bg-paper px-3 py-1 text-xs font-medium text-ink/70 transition hover:border-palm hover:text-palm">إعادة الإنشاء</button>
+                        className="shrink-0 whitespace-nowrap rounded-lg border border-line bg-paper px-3 py-1 text-xs font-medium text-ink/70 transition hover:border-palm hover:text-palm">إعادة الإنشاء</button>
                       <button type="button" onClick={() => { setVtSvg(""); setVtUrl(""); setVtError(""); }}
-                        className="flex items-center gap-1 rounded-lg border border-line bg-paper px-3 py-1 text-xs font-medium text-red-500/70 transition hover:border-red-300 hover:text-red-600"
+                        className="flex shrink-0 items-center gap-1 whitespace-nowrap rounded-lg border border-line bg-paper px-3 py-1 text-xs font-medium text-red-500/70 transition hover:border-red-300 hover:text-red-600"
                         title="مسح الصورة">
                         <Trash2 size={12} />
                         مسح

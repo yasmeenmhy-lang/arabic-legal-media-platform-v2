@@ -2,6 +2,9 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { badRequest } from "@/lib/api";
 
+// توليد الصور عبر مزودين خارجيين قد يستغرق حتى دقيقة
+export const maxDuration = 60;
+
 const schema = z.object({
   description: z.string().min(5),
   visualType: z.enum(["image", "chart", "mindmap", "infographic"]).default("image"),
@@ -67,6 +70,92 @@ function parseJson<T>(raw: string): T {
   return JSON.parse(cleaned) as T;
 }
 
+// ── AI image providers: Nano Banana (Gemini) → OpenAI → Pollinations ──────
+// يُستخدم المزود المتاح حسب مفاتيح البيئة، مع الرجوع للمحرك الداخلي إن غابت.
+
+async function nanoBananaImage(prompt: string): Promise<string | null> {
+  const key = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
+  if (!key) return null;
+  const res = await fetch(
+    "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent",
+    {
+      method: "POST",
+      headers: { "x-goog-api-key": key, "content-type": "application/json" },
+      body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }),
+    }
+  );
+  if (!res.ok) throw new Error(`Gemini ${res.status}`);
+  const data = (await res.json()) as {
+    candidates?: { content?: { parts?: { inlineData?: { mimeType?: string; data?: string } }[] } }[];
+  };
+  const part = data.candidates?.[0]?.content?.parts?.find((p) => p.inlineData?.data);
+  return part?.inlineData?.data
+    ? `data:${part.inlineData.mimeType ?? "image/png"};base64,${part.inlineData.data}`
+    : null;
+}
+
+async function openAiImage(prompt: string, w: number, h: number): Promise<string | null> {
+  const key = process.env.OPENAI_API_KEY;
+  if (!key) return null;
+  const size = w > h ? "1536x1024" : h > w ? "1024x1536" : "1024x1024";
+  const res = await fetch("https://api.openai.com/v1/images/generations", {
+    method: "POST",
+    headers: { authorization: `Bearer ${key}`, "content-type": "application/json" },
+    body: JSON.stringify({ model: "gpt-image-1", prompt, size, quality: "medium", output_format: "jpeg" }),
+  });
+  if (!res.ok) throw new Error(`OpenAI ${res.status}`);
+  const data = (await res.json()) as { data?: { b64_json?: string }[] };
+  const b64 = data.data?.[0]?.b64_json;
+  return b64 ? `data:image/jpeg;base64,${b64}` : null;
+}
+
+async function providerImage(prompt: string, w: number, h: number): Promise<string | null> {
+  try {
+    const g = await nanoBananaImage(prompt);
+    if (g) return g;
+  } catch (e) {
+    console.error("[image][nanobanana]", e);
+  }
+  try {
+    const o = await openAiImage(prompt, w, h);
+    if (o) return o;
+  } catch (e) {
+    console.error("[image][openai]", e);
+  }
+  return null;
+}
+
+// وصف بنية الخريطة الذهنية للمزود — النصوص تُكتب حرفياً كما ولّدها المحرك
+function mindMapImagePrompt(d: MindMapData): string {
+  const branches = (d.branches || [])
+    .slice(0, 5)
+    .map((b, i) => `${i + 1}. "${b.label}"${b.sub1 ? ` — فرع فرعي: "${b.sub1}"` : ""}${b.sub2 ? ` و"${b.sub2}"` : ""}`)
+    .join("\n");
+  return `أنشئ صورة خريطة ذهنية إشعاعية احترافية عالية الدقة باللغة العربية (اتجاه RTL).
+العنوان أعلى الصورة: "${d.title ?? d.center}"
+الدائرة المركزية تحتوي: "${d.center}"
+خمسة فروع رئيسية حول المركز:
+${branches}
+المواصفات الإلزامية: خلفية بيضاء نظيفة، عقد بيضاوية بحدود خضراء (اللون #25935F)، خطوط ربط منحنية أنيقة، خط عربي كبير وواضح ومقروء تماماً، بدون قصّ أو تشويه لأي نص، تصميم مؤسسي رسمي، دقة عالية جداً.
+اكتب كل النصوص العربية أعلاه حرفياً كما هي دون أي تغيير أو اختصار.`;
+}
+
+// وصف بنية الإنفوغراف للمزود
+function infographicImagePrompt(d: InfographicData): string {
+  const sections = (d.sections || [])
+    .slice(0, 4)
+    .map((s, i) => `${i + 1}. العنوان: "${s.heading}" — ${s.line1}${s.line2 ? ` — ${s.line2}` : ""}${s.stat ? ` (${s.stat})` : ""}`)
+    .join("\n");
+  return `أنشئ صورة إنفوغراف عمودي احترافي عالي الدقة باللغة العربية (اتجاه RTL).
+العنوان الرئيسي أعلى الصورة: "${d.title}"
+العنوان الفرعي: "${d.subtitle}"
+أربعة أقسام مرتبة عمودياً:
+${sections}
+أسفل الصورة: "${d.source}"
+المواصفات الإلزامية: تدرج أخضر مؤسسي (#166A45 إلى #25935F) في الترويسة، بطاقات بيضاء نظيفة بحدود خفيفة، أيقونات خطية بسيطة لكل قسم، خط عربي كبير وواضح ومقروء تماماً بدون قصّ أو تشويه، تصميم رسمي راقٍ، دقة عالية جداً.
+اكتب كل النصوص العربية أعلاه حرفياً كما هي دون أي تغيير أو اختصار.`;
+}
+
 // ── SVG renderers (programmatic — no AI coordinates) ─────────────────────
 
 // DGA Madkhel exact tokens (design.dga.gov.sa/guidelines)
@@ -88,6 +177,22 @@ const BAR_COLORS = [PALM, "#DBA102", "#80519F", "#2E90FA", PALM_DARK, PALM_DEEP]
 function trunc(s: string, max: number): string {
   if (!s) return "";
   return s.length > max ? s.slice(0, max - 1) + "…" : s;
+}
+
+// Wrap text into up to two lines at word boundaries — no mid-word cuts
+function wrap2(s: string, maxPerLine: number): string[] {
+  const t = (s || "").trim();
+  if (t.length <= maxPerLine) return [t];
+  const words = t.split(/\s+/);
+  let line1 = "";
+  for (const w of words) {
+    const candidate = line1 ? `${line1} ${w}` : w;
+    if (candidate.length > maxPerLine && line1) break;
+    line1 = candidate;
+  }
+  const rest = t.slice(line1.length).trim();
+  if (!rest) return [line1];
+  return [line1, trunc(rest, maxPerLine)];
 }
 
 // ── Charts: 1200×628 (16:9, matches LinkedIn / Twitter / YouTube) ─────────
@@ -310,7 +415,7 @@ function renderMindMapSvg(d: MindMapData): string {
   const cy = HDR + Math.round((H - HDR) / 2); // 585 — geometric center of usable area
   // branchR=255 keeps 5 nodes (200px wide) ~100px apart — no overlap
   const branchR = 255;
-  const subR = 118;
+  const subR = 128; // wider sub-nodes need a bit more clearance
 
   // DGA mint scale for branch backgrounds, palm scale for borders
   const BRANCH_BG = [MINT, MINT_DEEP, "#C5EDD6", "#A8E0C0", "#8DD4AB"];
@@ -336,9 +441,14 @@ function renderMindMapSvg(d: MindMapData): string {
       `<path d="M ${cx} ${cy} Q ${qx} ${qy} ${bx} ${by}" fill="none" stroke="${BRANCH_BD[i]}" stroke-width="2" stroke-linecap="round" opacity="0.45"/>`
     );
 
+    // wrap to two lines instead of truncating — full labels stay readable
+    const bLines = wrap2(b.label, 15);
+    const bText = bLines.length === 1
+      ? `<text x="${bx}" y="${by + 5}" text-anchor="middle" font-family="${FONT}" font-size="14" font-weight="600" fill="${INK}">${bLines[0]}</text>`
+      : `<text x="${bx}" y="${by - 4}" text-anchor="middle" font-family="${FONT}" font-size="13" font-weight="600" fill="${INK}">${bLines[0]}<tspan x="${bx}" dy="17">${bLines[1]}</tspan></text>`;
     nodes.push(
       `<rect x="${bx - bw / 2}" y="${by - bh / 2}" width="${bw}" height="${bh}" rx="26" fill="${BRANCH_BG[i]}" stroke="${BRANCH_BD[i]}" stroke-width="1.8"/>
-<text x="${bx}" y="${by + 5}" text-anchor="middle" font-family="${FONT}" font-size="12" font-weight="600" fill="${INK}">${trunc(b.label, 16)}</text>`
+${bText}`
     );
 
     const subs = [b.sub1, b.sub2].filter(Boolean) as string[];
@@ -346,20 +456,24 @@ function renderMindMapSvg(d: MindMapData): string {
       const sa = a + (si === 0 ? -0.44 : 0.44); // ±25°
       const sx = Math.round(bx + subR * Math.cos(sa));
       const sy = Math.round(by + subR * Math.sin(sa));
-      // 138×36: holds up to 14 Arabic chars at 10px
-      const sw = 138, sh = 36;
+      // 160×40: holds up to 17 Arabic chars at 12px
+      const sw = 160, sh = 40;
       connectors.push(
         `<line x1="${bx}" y1="${by}" x2="${sx}" y2="${sy}" stroke="${BRANCH_BD[i]}" stroke-width="1.4" stroke-linecap="round" opacity="0.35"/>`
       );
       nodes.push(
-        `<rect x="${sx - sw / 2}" y="${sy - sh / 2}" width="${sw}" height="${sh}" rx="18" fill="${MINT}" stroke="${BRANCH_BD[i]}" stroke-width="1.2"/>
-<text x="${sx}" y="${sy + 4}" text-anchor="middle" font-family="${FONT}" font-size="10" fill="${INK_SEC}">${trunc(sub, 14)}</text>`
+        `<rect x="${sx - sw / 2}" y="${sy - sh / 2}" width="${sw}" height="${sh}" rx="20" fill="${MINT}" stroke="${BRANCH_BD[i]}" stroke-width="1.2"/>
+<text x="${sx}" y="${sy + 4}" text-anchor="middle" font-family="${FONT}" font-size="12" fill="${INK_SEC}">${trunc(sub, 17)}</text>`
       );
     });
   });
 
-  const headerTitle = trunc(d.title || d.center, 26);
+  const headerTitle = trunc(d.title || d.center, 44);
   const cr = 78;
+  const cLines = wrap2(d.center, 12);
+  const centerText = cLines.length === 1
+    ? `<text x="${cx}" y="${cy + 6}" text-anchor="middle" font-family="${FONT}" font-size="16" font-weight="600" fill="#fff">${cLines[0]}</text>`
+    : `<text x="${cx}" y="${cy - 3}" text-anchor="middle" font-family="${FONT}" font-size="15" font-weight="600" fill="#fff">${cLines[0]}<tspan x="${cx}" dy="20">${cLines[1]}</tspan></text>`;
 
   return `<svg width="100%" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
 <defs>
@@ -382,7 +496,7 @@ ${connectors.join("\n")}
 ${nodes.join("\n")}
 <circle cx="${cx}" cy="${cy}" r="${cr}" fill="${PALM}" filter="url(#nodeShad)"/>
 <circle cx="${cx}" cy="${cy}" r="${cr - 6}" fill="none" stroke="#fff" stroke-width="1.5" opacity="0.2"/>
-<text x="${cx}" y="${cy + 5}" text-anchor="middle" font-family="${FONT}" font-size="14" font-weight="600" fill="#fff">${trunc(d.center, 15)}</text>
+${centerText}
 </svg>`;
 }
 
@@ -577,6 +691,9 @@ export async function POST(request: Request) {
     try {
       const raw = await callClaude(apiKey, "claude-haiku-4-5-20251001", 600, mindMapDataPrompt(description));
       const data = parseJson<MindMapData>(raw);
+      // مزود صور خارجي (نانوبنانا / OpenAI) إن توفر مفتاحه — وإلا المحرك الداخلي
+      const aiUrl = await providerImage(mindMapImagePrompt(data), 1080, 1080);
+      if (aiUrl) return NextResponse.json({ imageUrl: aiUrl });
       const svgCode = renderMindMapSvg(data);
       return NextResponse.json({ svgCode });
     } catch (e) {
@@ -590,6 +707,9 @@ export async function POST(request: Request) {
     try {
       const raw = await callClaude(apiKey, "claude-haiku-4-5-20251001", 800, infographicDataPrompt(description));
       const data = parseJson<InfographicData>(raw);
+      // مزود صور خارجي (نانوبنانا / OpenAI) إن توفر مفتاحه — وإلا المحرك الداخلي
+      const aiUrl = await providerImage(infographicImagePrompt(data), 1024, 1536);
+      if (aiUrl) return NextResponse.json({ imageUrl: aiUrl });
       const svgCode = renderInfographicSvg(data);
       return NextResponse.json({ svgCode });
     } catch (e) {
@@ -620,6 +740,9 @@ Rules:
 Output ONLY the English prompt, nothing else.`
     );
     const [w, h] = getDimensions(dimensions);
+    // مزود صور خارجي (نانوبنانا / OpenAI) إن توفر مفتاحه — وإلا Flux المجاني
+    const aiUrl = await providerImage(promptRaw, w, h);
+    if (aiUrl) return NextResponse.json({ prompt: promptRaw, imageUrl: aiUrl });
     const seed = Date.now() % 99999;
     const imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(promptRaw)}?width=${w}&height=${h}&model=flux&nologo=true&safe=true&seed=${seed}`;
     return NextResponse.json({ prompt: promptRaw, imageUrl });
