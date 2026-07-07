@@ -2242,6 +2242,15 @@ export default function ContentStudioPage() {
           {/* قرار النشر */}
           <Panel>
             <SectionTitle title="نتائج التحليل" />
+            {review.analysisMode === "pattern-only" ? (
+              <div className="flex items-start gap-3 rounded-lg border border-line bg-paper p-3">
+                <AlertTriangle size={18} className="mt-0.5 shrink-0 text-ink/50" aria-hidden="true" />
+                <div>
+                  <p className="text-sm font-semibold text-ink/75">التحليل غير مكتمل — أعد التحليل</p>
+                  <p className="mt-0.5 text-xs leading-5 text-ink/65">تعذر إكمال التحليل بسبب عطل، ولا تصدر أي توصية نشر قبل إعادة التحليل بنجاح.</p>
+                </div>
+              </div>
+            ) : (
             <div
               className={`flex items-start gap-3 rounded-lg border p-3 ${
                 review.publicationDecision.recommended
@@ -2273,6 +2282,7 @@ export default function ContentStudioPage() {
                 </p>
               </div>
             </div>
+            )}
           </Panel>
 
           {/* بطاقة الامتثال */}

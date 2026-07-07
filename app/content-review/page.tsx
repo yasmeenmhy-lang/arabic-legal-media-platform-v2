@@ -616,20 +616,35 @@ export default function ContentReviewPage() {
                     : "border-t-amber-400 bg-amber-50/40"
             }`}
           >
-            <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-              <div>
-                <p className="text-xs font-bold uppercase tracking-wider text-slate-400">2. قرار النشر</p>
-                <h2 className="mt-2 text-xl font-bold">{review.publicationDecision.label}</h2>
-                <p className="mt-3 max-w-4xl leading-8 text-ink/75">{review.publicationDecision.reason}</p>
+            {review.analysisMode === "pattern-only" ? (
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-wider text-slate-400">2. قرار النشر</p>
+                  <h2 className="mt-2 text-xl font-bold">التحليل غير مكتمل — أعد التحليل</h2>
+                  <p className="mt-3 max-w-4xl leading-8 text-ink/75">تعذر إكمال التحليل بسبب عطل، ولا تصدر أي توصية نشر قبل إعادة التحليل بنجاح.</p>
+                </div>
+                <div className="flex shrink-0 flex-wrap gap-2">
+                  <StatusBadge tone="neutral">أعد التحليل</StatusBadge>
+                </div>
               </div>
-              <div className="flex shrink-0 flex-wrap gap-2">
-                <StatusBadge tone={decisionTone(review)}>{review.publicationDecision.label}</StatusBadge>
-              </div>
-            </div>
-            <div className="mt-5 grid gap-4 lg:grid-cols-2">
-              <div className="rounded-lg bg-white/70 p-4 ring-1 ring-line"><p className="text-xs text-ink/55">لماذا هذه التوصية؟</p><p className="mt-2 leading-8">{review.confidence.reason}</p></div>
-              <div className="rounded-lg bg-white/70 p-4 ring-1 ring-line"><p className="text-xs text-ink/55">ما المطلوب قبل النشر؟</p><ul className="mt-2 list-disc space-y-2 pr-5 leading-7">{review.readinessDecision.blockers.length ? review.readinessDecision.blockers.map((item) => <li key={item}>{item}</li>) : <li>لا توجد متطلبات مانعة متبقية.</li>}</ul></div>
-            </div>
+            ) : (
+              <>
+                <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-wider text-slate-400">2. قرار النشر</p>
+                    <h2 className="mt-2 text-xl font-bold">{review.publicationDecision.label}</h2>
+                    <p className="mt-3 max-w-4xl leading-8 text-ink/75">{review.publicationDecision.reason}</p>
+                  </div>
+                  <div className="flex shrink-0 flex-wrap gap-2">
+                    <StatusBadge tone={decisionTone(review)}>{review.publicationDecision.label}</StatusBadge>
+                  </div>
+                </div>
+                <div className="mt-5 grid gap-4 lg:grid-cols-2">
+                  <div className="rounded-lg bg-white/70 p-4 ring-1 ring-line"><p className="text-xs text-ink/55">لماذا هذه التوصية؟</p><p className="mt-2 leading-8">{review.confidence.reason}</p></div>
+                  <div className="rounded-lg bg-white/70 p-4 ring-1 ring-line"><p className="text-xs text-ink/55">ما المطلوب قبل النشر؟</p><ul className="mt-2 list-disc space-y-2 pr-5 leading-7">{review.readinessDecision.blockers.length ? review.readinessDecision.blockers.map((item) => <li key={item}>{item}</li>) : <li>لا توجد متطلبات مانعة متبقية.</li>}</ul></div>
+                </div>
+              </>
+            )}
           </Panel>
 
           <section id="analysis-summary" aria-labelledby="supporting-indicators-title" className="space-y-4 scroll-mt-24">
