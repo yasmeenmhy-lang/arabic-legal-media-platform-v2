@@ -28,7 +28,9 @@ import {
   Share2,
   ShieldAlert,
   Sparkles,
+  Trash2,
   TrendingUp,
+  Upload,
   User,
   Users,
   Video,
@@ -211,6 +213,127 @@ export default function ContentReviewPage() {
   const [shareMessage, setShareMessage] = useState("");
   const [specialty, setSpecialty] = useState("");
   const [charLimit, setCharLimit] = useState<number | null>(null);
+
+  // حقول متطلبات نوع المحتوى — مطابقة لقسم السياق في الاستوديو
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreviewUrl, setImagePreviewUrl] = useState("");
+  const [imageStyle, setImageStyle] = useState("");
+  const [imageDimensions, setImageDimensions] = useState("");
+  const [visualMode, setVisualMode] = useState<"upload" | "describe">("upload");
+  const [imageDesc, setImageDesc] = useState("");
+  const [imageGenLoading, setImageGenLoading] = useState(false);
+  const [imageGenUrl, setImageGenUrl] = useState("");
+  const [imageGenPrompt, setImageGenPrompt] = useState("");
+  const [imageGenError, setImageGenError] = useState("");
+  const [imageGenEditText, setImageGenEditText] = useState("");
+  const [campaignName, setCampaignName] = useState("");
+  const [campaignDuration, setCampaignDuration] = useState("");
+  const [campaignGoal, setCampaignGoal] = useState("");
+  const [adCta, setAdCta] = useState("");
+  const [adStyle, setAdStyle] = useState("");
+  const [scriptDuration, setScriptDuration] = useState("");
+  const [scriptStyle, setScriptStyle] = useState("");
+  const [articleLength, setArticleLength] = useState("");
+  const [infographicStyle, setInfographicStyle] = useState("");
+  const [infographicSubType, setInfographicSubType] = useState<"infographic" | "chart" | "mindmap">("infographic");
+  const [infographicChartType, setInfographicChartType] = useState("");
+  const [infographicMindStyle, setInfographicMindStyle] = useState("");
+  const [infographicDesc, setInfographicDesc] = useState("");
+  const [planFrequency, setPlanFrequency] = useState("");
+  const [planDateRange, setPlanDateRange] = useState("");
+
+  function clearTypeSpecificFields() {
+    if (imagePreviewUrl) URL.revokeObjectURL(imagePreviewUrl);
+    setImageFile(null);
+    setImagePreviewUrl("");
+    setImageStyle("");
+    setImageDimensions("");
+    setVisualMode("upload");
+    setImageDesc("");
+    setImageGenLoading(false);
+    setImageGenUrl("");
+    setImageGenPrompt("");
+    setImageGenError("");
+    setImageGenEditText("");
+    setCampaignName("");
+    setCampaignDuration("");
+    setCampaignGoal("");
+    setAdCta("");
+    setAdStyle("");
+    setScriptDuration("");
+    setScriptStyle("");
+    setArticleLength("");
+    setInfographicStyle("");
+    setInfographicSubType("infographic");
+    setInfographicChartType("");
+    setInfographicMindStyle("");
+    setInfographicDesc("");
+    setPlanFrequency("");
+    setPlanDateRange("");
+  }
+
+  function handleKindChange(newKind: ContentKind) {
+    if (newKind !== kind) clearTypeSpecificFields();
+    setKind(newKind);
+  }
+
+  function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (imagePreviewUrl) URL.revokeObjectURL(imagePreviewUrl);
+    setImageFile(file);
+    setImagePreviewUrl(URL.createObjectURL(file));
+  }
+
+  async function downloadUrlAsPng(url: string, filename: string) {
+    try {
+      const res = await fetch(url);
+      const blob = await res.blob();
+      const objectUrl = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = objectUrl;
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(objectUrl);
+    } catch {
+      window.open(url, "_blank");
+    }
+  }
+
+  async function generateImage(descOverride?: string, editInstruction?: string) {
+    const description = descOverride ?? imageDesc;
+    if (!description.trim()) return;
+    setImageGenLoading(true);
+    setImageGenError("");
+    setImageGenUrl("");
+    setImageGenPrompt("");
+    try {
+      const res = await fetch("/api/content-studio/generate-image", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          description: description.trim(),
+          visualType: "image",
+          style: imageStyle || undefined,
+          dimensions: imageDimensions || undefined,
+          channel: channel || undefined,
+          editInstruction: editInstruction?.trim() || undefined,
+        }),
+      });
+      const data = (await res.json()) as { imageUrl?: string; prompt?: string; error?: string };
+      if (!res.ok) {
+        setImageGenError(data.error ?? "فشل في إنشاء الصورة");
+        return;
+      }
+      setImageGenUrl(data.imageUrl ?? "");
+      setImageGenPrompt(data.prompt ?? "");
+      setImageGenEditText("");
+    } catch {
+      setImageGenError("تعذر الاتصال بخدمة إنشاء الصور");
+    } finally {
+      setImageGenLoading(false);
+    }
+  }
 
   useEffect(() => {
     const selection = getActiveContentSelection();
@@ -582,11 +705,419 @@ export default function ContentReviewPage() {
           <p className="mb-2 text-sm text-ink/65">نوع المحتوى</p>
           <div className="flex flex-wrap gap-2">
             {contentTypes.map((item) => (
-              <button key={item.value} type="button" onClick={() => setKind(item.value as ContentKind)} className={`${chipBase} ${kind === item.value ? chipSelected : chipIdle}`}>
+              <button key={item.value} type="button" onClick={() => handleKindChange(item.value as ContentKind)} className={`${chipBase} ${kind === item.value ? chipSelected : chipIdle}`}>
                 {contentTypeIcons[item.value]}{item.label}
               </button>
             ))}
           </div>
+        </div>
+
+        <div className={Boolean(review) && !isEditing ? "pointer-events-none opacity-60" : ""}>
+        {/* محتوى بصري — رفع تصميم أو وصف للذكاء الاصطناعي */}
+        {kind === "visual_content" && (
+          <div className="mb-4 overflow-hidden rounded-xl border border-palm/20 bg-mint/30">
+            <div className="flex items-center gap-2 border-b border-palm/10 bg-mint/60 px-4 py-3">
+              <ImageIcon size={14} className="text-palm" />
+              <p className="text-sm font-semibold text-palm">متطلبات المحتوى البصري</p>
+            </div>
+            <div className="space-y-4 p-4">
+              <div className="flex gap-2">
+                <button type="button" onClick={() => setVisualMode("upload")} className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition ${visualMode === "upload" ? "border-palm bg-white text-palm shadow-[0_0_0_1px_theme(colors.palm)]" : "border-line bg-white/60 text-ink/55 hover:border-palm hover:text-palm"}`}>
+                  <Upload size={12} />
+                  رفع تصميم
+                </button>
+                <button type="button" onClick={() => setVisualMode("describe")} className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition ${visualMode === "describe" ? "border-palm bg-white text-palm shadow-[0_0_0_1px_theme(colors.palm)]" : "border-line bg-white/60 text-ink/55 hover:border-palm hover:text-palm"}`}>
+                  <Sparkles size={12} />
+                  وصف للذكاء الاصطناعي
+                </button>
+              </div>
+
+              {visualMode === "upload" && (
+                <div>
+                  <p className="mb-2 text-xs font-medium text-ink/65">
+                    الصورة أو التصميم <span className="font-bold text-red-500">*</span>
+                  </p>
+                  {imagePreviewUrl ? (
+                    <div className="relative inline-block">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={imagePreviewUrl} alt="معاينة التصميم" className="max-h-48 rounded-lg border border-line object-contain shadow-sm" />
+                      <button type="button" onClick={() => { setImageFile(null); setImagePreviewUrl(""); }} className="absolute -left-2 -top-2 rounded-full bg-red-500 p-0.5 text-white shadow-md transition hover:bg-red-600" aria-label="إزالة الصورة">
+                        <XCircle size={16} />
+                      </button>
+                      <p className="mt-1.5 text-xs text-ink/50">{imageFile?.name}</p>
+                    </div>
+                  ) : (
+                    <label className="flex cursor-pointer flex-col items-center gap-3 rounded-xl border-2 border-dashed border-palm/30 bg-white p-6 text-center transition hover:border-palm hover:bg-mint/40">
+                      <Upload size={28} className="text-palm/50" />
+                      <div>
+                        <p className="text-sm text-ink/70">
+                          اسحب التصميم هنا أو <span className="font-semibold text-palm">اختر من جهازك</span>
+                        </p>
+                        <p className="mt-1 text-xs text-ink/40">PNG · JPG · SVG · WebP — حتى ١٠ ميجابايت</p>
+                      </div>
+                      <input type="file" accept="image/*,.svg" onChange={handleImageUpload} className="hidden" />
+                    </label>
+                  )}
+                </div>
+              )}
+
+              {visualMode === "describe" && (
+                <div className="space-y-3">
+                  <div>
+                    <p className="mb-2 text-xs font-medium text-ink/65">
+                      صف التصميم المطلوب <span className="font-bold text-red-500">*</span>
+                    </p>
+                    <textarea
+                      value={imageDesc}
+                      onChange={(e) => { setImageDesc(e.target.value); setImageGenUrl(""); setImageGenError(""); }}
+                      placeholder="مثال: تصميم احترافي بخلفية فاتحة يشرح خطوات تسوية النزاعات العمالية بأسلوب بصري منظم، مناسب لـ LinkedIn..."
+                      className="min-h-24 w-full rounded-lg border border-line bg-white p-3 text-sm leading-7"
+                    />
+                  </div>
+
+                  <button type="button" onClick={() => void generateImage()} disabled={!imageDesc.trim() || imageGenLoading} className="inline-flex items-center gap-2 rounded-lg bg-palm px-4 py-2 text-sm font-medium text-white transition hover:bg-palm/90 disabled:cursor-not-allowed disabled:opacity-50">
+                    <ImageIcon size={14} />
+                    {imageGenLoading ? "جارٍ الإنشاء..." : "إنشاء صورة"}
+                  </button>
+
+                  {imageGenLoading && (
+                    <div className="flex flex-col items-center gap-3 rounded-xl border border-line bg-white py-10">
+                      <div className="h-10 w-10 animate-spin rounded-full border-4 border-palm/20 border-t-palm" />
+                      <p className="text-xs text-ink/50">الذكاء الاصطناعي يُنشئ الصورة — قد يستغرق ١٠–٣٠ ثانية</p>
+                    </div>
+                  )}
+
+                  {imageGenUrl && !imageGenLoading && (
+                    <div className="overflow-hidden rounded-xl border border-line bg-white">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={imageGenUrl} alt="الصورة المُنشأة" className="w-full object-cover" onError={() => setImageGenError("تعذر تحميل الصورة — حاول مرة أخرى")} />
+                      <div className="flex flex-wrap items-center justify-between gap-2 border-t border-line px-3 py-2.5">
+                        <p className="text-xs text-ink/40">صورة مُنشأة بالذكاء الاصطناعي</p>
+                        <div className="flex flex-wrap gap-2">
+                          <a href={imageGenUrl} target="_blank" rel="noopener noreferrer" download="generated-image.jpg" className="shrink-0 whitespace-nowrap rounded-lg border border-line bg-paper px-3 py-1 text-xs font-medium text-ink/70 transition hover:border-palm hover:text-palm">JPG</a>
+                          <button type="button" onClick={() => void downloadUrlAsPng(imageGenUrl, "generated-image.png")} className="shrink-0 whitespace-nowrap rounded-lg border border-line bg-paper px-3 py-1 text-xs font-medium text-ink/70 transition hover:border-palm hover:text-palm">PNG</button>
+                          <button type="button" onClick={() => void generateImage()} className="shrink-0 whitespace-nowrap rounded-lg border border-line bg-paper px-3 py-1 text-xs font-medium text-ink/70 transition hover:border-palm hover:text-palm">إعادة الإنشاء</button>
+                          <button type="button" onClick={() => { setImageGenUrl(""); setImageGenPrompt(""); setImageGenError(""); }} className="flex shrink-0 items-center gap-1 whitespace-nowrap rounded-lg border border-line bg-paper px-3 py-1 text-xs font-medium text-red-500/70 transition hover:border-red-300 hover:text-red-600" title="مسح الصورة">
+                            <Trash2 size={12} />
+                            مسح
+                          </button>
+                        </div>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-2 border-t border-line bg-paper/60 px-3 py-2.5">
+                        <input
+                          type="text"
+                          value={imageGenEditText}
+                          onChange={(e) => setImageGenEditText(e.target.value)}
+                          placeholder="اطلبي تعديلاً — مثال: خلفية أفتح، زاوية مختلفة، إضاءة أقوى..."
+                          className="min-w-40 flex-1 rounded-lg border border-line bg-white px-3 py-1.5 text-xs focus:border-palm focus:outline-none"
+                        />
+                        <button type="button" onClick={() => void generateImage(undefined, imageGenEditText)} disabled={!imageGenEditText.trim()} className="shrink-0 whitespace-nowrap rounded-lg bg-palm px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-palm/90 disabled:opacity-40">
+                          تطبيق التعديل
+                        </button>
+                      </div>
+                      {imageGenPrompt && (
+                        <details className="border-t border-line">
+                          <summary className="cursor-pointer px-3 py-2 text-xs text-ink/40 hover:text-ink/60">Prompt المستخدم (للاستخدام مع DALL-E أو Midjourney)</summary>
+                          <p className="select-all px-3 pb-3 pt-1 text-xs leading-5 text-ink/55">{imageGenPrompt}</p>
+                        </details>
+                      )}
+                    </div>
+                  )}
+
+                  {imageGenError && <p className="text-xs text-red-600">{imageGenError}</p>}
+                </div>
+              )}
+
+              <div>
+                <p className="mb-2 text-xs font-medium text-ink/65">أسلوب التصميم</p>
+                <div className="flex flex-wrap gap-2">
+                  {["احترافي رسمي", "إبداعي ملوّن", "بسيط ونظيف", "إخباري صارم"].map((s) => (
+                    <button key={s} type="button" onClick={() => setImageStyle(imageStyle === s ? "" : s)} className={`${chipBase} text-xs ${imageStyle === s ? chipSelected : chipIdle}`}>
+                      {s}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <p className="mb-2 text-xs font-medium text-ink/65">نسبة الأبعاد</p>
+                <div className="flex flex-wrap gap-2">
+                  {[
+                    { key: "1:1", label: "مربع ١:١", hint: "منشورات" },
+                    { key: "16:9", label: "أفقي ١٦:٩", hint: "بانرات" },
+                    { key: "9:16", label: "عمودي ٩:١٦", hint: "قصص" },
+                    { key: "4:5", label: "٤:٥", hint: "إنستغرام" },
+                  ].map((d) => (
+                    <button key={d.key} type="button" onClick={() => setImageDimensions(imageDimensions === d.key ? "" : d.key)} className={`${chipBase} text-xs ${imageDimensions === d.key ? chipSelected : chipIdle}`}>
+                      {d.label}
+                      <span className="opacity-40">·</span>
+                      <span className="opacity-50">{d.hint}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* حملة — اسم ومدة وهدف */}
+        {kind === "campaign" && (
+          <div className="mb-4 overflow-hidden rounded-xl border border-palm/20 bg-mint/30">
+            <div className="flex items-center gap-2 border-b border-palm/10 bg-mint/60 px-4 py-3">
+              <Layers size={14} className="text-palm" />
+              <p className="text-sm font-semibold text-palm">إعداد الحملة</p>
+            </div>
+            <div className="space-y-4 p-4">
+              <div>
+                <p className="mb-2 text-xs font-medium text-ink/65">
+                  اسم الحملة <span className="font-bold text-red-500">*</span>
+                </p>
+                <input type="text" value={campaignName} onChange={(e) => setCampaignName(e.target.value)} placeholder="مثال: حملة الوعي بحقوق العمال ٢٠٢٥" className="w-full rounded-lg border border-line bg-white px-4 py-2.5 text-sm transition focus:border-palm focus:outline-none" />
+              </div>
+              <div>
+                <p className="mb-2 text-xs font-medium text-ink/65">مدة الحملة</p>
+                <div className="flex flex-wrap gap-2">
+                  {["أسبوع", "أسبوعان", "شهر", "شهران", "ثلاثة أشهر"].map((d) => (
+                    <button key={d} type="button" onClick={() => setCampaignDuration(campaignDuration === d ? "" : d)} className={`${chipBase} text-xs ${campaignDuration === d ? chipSelected : chipIdle}`}>
+                      {d}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <p className="mb-2 text-xs font-medium text-ink/65">هدف الحملة</p>
+                <div className="flex flex-wrap gap-2">
+                  {["تعزيز الوعي القانوني", "توليد عملاء محتملين", "إطلاق خدمة جديدة", "ترسيخ العلامة المهنية", "تثقيف قانوني متخصص"].map((g) => (
+                    <button key={g} type="button" onClick={() => setCampaignGoal(campaignGoal === g ? "" : g)} className={`${chipBase} text-xs ${campaignGoal === g ? chipSelected : chipIdle}`}>
+                      {g}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* إعلان — نداء الإجراء وأسلوب الإعلان */}
+        {kind === "advertisement" && (
+          <div className="mb-4 overflow-hidden rounded-xl border border-palm/20 bg-mint/30">
+            <div className="flex items-center gap-2 border-b border-palm/10 bg-mint/60 px-4 py-3">
+              <Megaphone size={14} className="text-palm" />
+              <p className="text-sm font-semibold text-palm">إعداد الإعلان المهني</p>
+            </div>
+            <div className="space-y-4 p-4">
+              <div>
+                <p className="mb-2 text-xs font-medium text-ink/65">نداء الإجراء (CTA)</p>
+                <div className="flex flex-wrap gap-2">
+                  {["تواصل معنا", "احجز استشارة مجانية", "اقرأ المقال كاملاً", "زر الموقع الإلكتروني", "شاهد الفيديو"].map((cta) => (
+                    <button key={cta} type="button" onClick={() => setAdCta(adCta === cta ? "" : cta)} className={`${chipBase} text-xs ${adCta === cta ? chipSelected : chipIdle}`}>
+                      {cta}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <p className="mb-2 text-xs font-medium text-ink/65">أسلوب الإعلان</p>
+                <div className="flex flex-wrap gap-2">
+                  {["مهني رسمي", "احترافي محايد", "توعوي تثقيفي", "ترويجي جذاب"].map((s) => (
+                    <button key={s} type="button" onClick={() => setAdStyle(adStyle === s ? "" : s)} className={`${chipBase} text-xs ${adStyle === s ? chipSelected : chipIdle}`}>
+                      {s}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* نص فيديو — مدة وأسلوب */}
+        {kind === "script" && (
+          <div className="mb-4 overflow-hidden rounded-xl border border-palm/20 bg-mint/30">
+            <div className="flex items-center gap-2 border-b border-palm/10 bg-mint/60 px-4 py-3">
+              <Video size={14} className="text-palm" />
+              <p className="text-sm font-semibold text-palm">إعداد نص الفيديو</p>
+            </div>
+            <div className="space-y-4 p-4">
+              <div>
+                <p className="mb-2 text-xs font-medium text-ink/65">المدة المستهدفة للفيديو</p>
+                <div className="flex flex-wrap gap-2">
+                  {["٣٠ ثانية", "دقيقة واحدة", "٣ دقائق", "٥ دقائق", "+١٠ دقائق"].map((d) => (
+                    <button key={d} type="button" onClick={() => setScriptDuration(scriptDuration === d ? "" : d)} className={`${chipBase} text-xs ${scriptDuration === d ? chipSelected : chipIdle}`}>
+                      {d}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <p className="mb-2 text-xs font-medium text-ink/65">أسلوب النص</p>
+                <div className="flex flex-wrap gap-2">
+                  {["تقديمي رسمي", "حواري تفاعلي", "توضيحي خطوة بخطوة", "إعلامي إخباري"].map((s) => (
+                    <button key={s} type="button" onClick={() => setScriptStyle(scriptStyle === s ? "" : s)} className={`${chipBase} text-xs ${scriptStyle === s ? chipSelected : chipIdle}`}>
+                      {s}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* مقال — الطول المستهدف */}
+        {kind === "article" && (
+          <div className="mb-4 overflow-hidden rounded-xl border border-palm/20 bg-mint/30">
+            <div className="flex items-center gap-2 border-b border-palm/10 bg-mint/60 px-4 py-3">
+              <BookOpen size={14} className="text-palm" />
+              <p className="text-sm font-semibold text-palm">إعداد المقال</p>
+            </div>
+            <div className="p-4">
+              <p className="mb-2 text-xs font-medium text-ink/65">الطول المستهدف</p>
+              <div className="flex flex-wrap gap-2">
+                {[
+                  { key: "short", label: "قصير", hint: "٥٠٠–٨٠٠ كلمة" },
+                  { key: "medium", label: "متوسط", hint: "٨٠٠–١٥٠٠ كلمة" },
+                  { key: "long", label: "معمّق", hint: "+١٥٠٠ كلمة" },
+                ].map((l) => (
+                  <button key={l.key} type="button" onClick={() => setArticleLength(articleLength === l.key ? "" : l.key)} className={`${chipBase} flex-col items-start gap-0.5 py-2 text-xs ${articleLength === l.key ? chipSelected : chipIdle}`}>
+                    <span className="font-medium">{l.label}</span>
+                    <span className="opacity-55">{l.hint}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* رسم توضيحي / بياني / خريطة ذهنية */}
+        {kind === "infographic" && (
+          <div className="mb-4 overflow-hidden rounded-xl border border-palm/20 bg-mint/30">
+            <div className="flex items-center gap-2 border-b border-palm/10 bg-mint/60 px-4 py-3">
+              <BarChart2 size={14} className="text-palm" />
+              <p className="text-sm font-semibold text-palm">إعداد المرئيات والمخططات</p>
+            </div>
+            <div className="space-y-4 p-4">
+              <div>
+                <p className="mb-2 text-xs font-medium text-ink/65">نوع المرئي</p>
+                <div className="flex flex-wrap gap-2">
+                  {[
+                    { key: "infographic" as const, label: "إنفوغراف" },
+                    { key: "chart" as const, label: "رسم بياني / شارت" },
+                    { key: "mindmap" as const, label: "خريطة ذهنية" },
+                  ].map((t) => (
+                    <button
+                      key={t.key}
+                      type="button"
+                      onClick={() => {
+                        setInfographicSubType(t.key);
+                        setInfographicChartType("");
+                        setInfographicMindStyle("");
+                      }}
+                      className={`rounded-lg border px-3 py-1.5 text-xs font-medium transition ${infographicSubType === t.key ? "border-palm bg-white text-palm shadow-[0_0_0_1px_theme(colors.palm)]" : "border-line bg-white/60 text-ink/55 hover:border-palm hover:text-palm"}`}
+                    >
+                      {t.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {infographicSubType === "infographic" && (
+                <div>
+                  <p className="mb-2 text-xs font-medium text-ink/65">نوع التخطيط</p>
+                  <div className="flex flex-wrap gap-2">
+                    {["خطوات متسلسلة", "إحصائيات ومقارنات", "شجرة قرارات", "خط زمني", "قائمة بصرية"].map((s) => (
+                      <button key={s} type="button" onClick={() => setInfographicStyle(infographicStyle === s ? "" : s)} className={`${chipBase} text-xs ${infographicStyle === s ? chipSelected : chipIdle}`}>
+                        {s}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {infographicSubType === "chart" && (
+                <div>
+                  <p className="mb-2 text-xs font-medium text-ink/65">نوع الرسم البياني</p>
+                  <div className="flex flex-wrap gap-2">
+                    {[
+                      { key: "أعمدة", hint: "Bar" },
+                      { key: "خطي", hint: "Line" },
+                      { key: "دائري", hint: "Pie" },
+                      { key: "حلقي", hint: "Donut" },
+                      { key: "مساحة", hint: "Area" },
+                      { key: "أعمدة أفقية", hint: "H-Bar" },
+                    ].map((c) => (
+                      <button key={c.key} type="button" onClick={() => setInfographicChartType(infographicChartType === c.key ? "" : c.key)} className={`${chipBase} text-xs ${infographicChartType === c.key ? chipSelected : chipIdle}`}>
+                        {c.key}
+                        <span className="opacity-40">·</span>
+                        <span className="opacity-50">{c.hint}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {infographicSubType === "mindmap" && (
+                <div>
+                  <p className="mb-2 text-xs font-medium text-ink/65">أسلوب الخريطة</p>
+                  <div className="flex flex-wrap gap-2">
+                    {["إشعاعي من المركز", "هرمي من الأعلى", "شجرة أفقية", "عنقودي"].map((s) => (
+                      <button key={s} type="button" onClick={() => setInfographicMindStyle(infographicMindStyle === s ? "" : s)} className={`${chipBase} text-xs ${infographicMindStyle === s ? chipSelected : chipIdle}`}>
+                        {s}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div>
+                <p className="mb-2 text-xs font-medium text-ink/65">
+                  صف المحتوى المطلوب <span className="font-bold text-red-500">*</span>
+                </p>
+                <textarea
+                  value={infographicDesc}
+                  onChange={(e) => setInfographicDesc(e.target.value)}
+                  placeholder={
+                    infographicSubType === "infographic"
+                      ? "مثال: إنفوغراف يوضح خطوات إنهاء عقد العمل وفق نظام العمل السعودي..."
+                      : infographicSubType === "chart"
+                      ? "مثال: رسم بياني يُظهر توزيع أنواع النزاعات العمالية عبر خمس سنوات..."
+                      : "مثال: خريطة ذهنية تُلخص حقوق المستثمر الأجنبي في نظام الاستثمار السعودي..."
+                  }
+                  className="min-h-24 w-full rounded-lg border border-line bg-white p-3 text-sm leading-7"
+                />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* خطة نشر — مدة وتكرار */}
+        {kind === "publishing_plan" && (
+          <div className="mb-4 overflow-hidden rounded-xl border border-palm/20 bg-mint/30">
+            <div className="flex items-center gap-2 border-b border-palm/10 bg-mint/60 px-4 py-3">
+              <CalendarDays size={14} className="text-palm" />
+              <p className="text-sm font-semibold text-palm">إعداد خطة النشر</p>
+            </div>
+            <div className="space-y-4 p-4">
+              <div>
+                <p className="mb-2 text-xs font-medium text-ink/65">المدة الزمنية للخطة</p>
+                <div className="flex flex-wrap gap-2">
+                  {["أسبوع", "أسبوعان", "شهر", "ثلاثة أشهر", "ستة أشهر"].map((d) => (
+                    <button key={d} type="button" onClick={() => setPlanDateRange(planDateRange === d ? "" : d)} className={`${chipBase} text-xs ${planDateRange === d ? chipSelected : chipIdle}`}>
+                      {d}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <p className="mb-2 text-xs font-medium text-ink/65">تكرار النشر</p>
+                <div className="flex flex-wrap gap-2">
+                  {["يومي", "مرتان أسبوعياً", "أسبوعي", "كل أسبوعين"].map((f) => (
+                    <button key={f} type="button" onClick={() => setPlanFrequency(planFrequency === f ? "" : f)} className={`${chipBase} text-xs ${planFrequency === f ? chipSelected : chipIdle}`}>
+                      {f}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
         </div>
 
         {/* القناة */}
