@@ -91,12 +91,15 @@ export function buildPublicationDecision({
   findings: ReviewFinding[];
   riskLevel: RiskLevel;
 }): PublicationDecision {
-  const critical = findings.filter((finding) => finding.businessSeverity === "critical" && !finding.resolved);
-  if (critical.length > 0 || riskLevel === "بالغ" || riskLevel === "حرج") {
+  // أي مخالفة غير معالجة ⇒ غير موصى بالنشر — النشر غير مسموح قبل المعالجة
+  const unresolved = findings.filter((finding) => !finding.resolved);
+  if (unresolved.length > 0 || riskLevel === "بالغ" || riskLevel === "حرج") {
     return {
       outcome: "NOT_RECOMMENDED",
       label: "غير موصى بالنشر",
-      reason: "توجد ملاحظات حرجة قد تُنشئ تعرضاً مهنياً أو قانونياً ولا ينبغي النشر قبل معالجتها وإعادة التقييم.",
+      reason: unresolved.length > 0
+        ? "المحتوى غير ملتزم بقواعد السلوك المهني للمحامين أو اللائحة التنفيذية لنظام المحاماة — النشر غير مسموح قبل معالجة المخالفات وإعادة التقييم."
+        : "مستوى المخاطر لا يسمح بالنشر قبل المعالجة وإعادة التقييم.",
       blockers: readiness.blockers,
       actions: readiness.actions,
       recommended: false
