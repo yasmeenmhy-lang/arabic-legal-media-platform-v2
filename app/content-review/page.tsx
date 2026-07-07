@@ -8,6 +8,7 @@ import {
   Award,
   BarChart2,
   BookOpen,
+  Briefcase,
   Building2,
   CalendarDays,
   CheckCircle2,
@@ -16,6 +17,8 @@ import {
   FileDown,
   FileText,
   Globe,
+  GraduationCap,
+  HeartHandshake,
   Image as ImageIcon,
   Layers,
   Megaphone,
@@ -71,7 +74,16 @@ const contentTypes = contentKindOptions.filter((item) =>
 );
 const channels = ["LinkedIn", "X", "Instagram", "TikTok", "Snapchat", "YouTube", "الموقع الإلكتروني"];
 const audiences = ["عملاء محتملون من الأفراد", "منشآت ورواد أعمال", "زملاء وقطاع قانوني", "الجمهور العام"];
-const purposes = ["تثقيف الجمهور حول موضوع قانوني", "رفع الوعي بالخدمات المهنية", "تعزيز الحضور المهني والثقة", "حملة توعوية"];
+const purposes = [
+  "تثقيف الجمهور حول موضوع قانوني",
+  "رفع الوعي بالخدمات المهنية",
+  "تعزيز الحضور المهني والثقة",
+  "حملة توعوية",
+  "التعليق على المستجدات النظامية والقضائية",
+  "مشاركة معرفية وأكاديمية",
+  "التعريف بالخبرات والمشاركات المهنية",
+  "مساهمة مجتمعية وعمل تطوعي قانوني"
+];
 
 const contentTypeIcons: Record<string, React.ReactNode> = {
   post: <FileText size={13} />,
@@ -106,7 +118,11 @@ const purposeIcons: Record<string, React.ReactNode> = {
   "تثقيف الجمهور حول موضوع قانوني": <BookOpen size={13} />,
   "رفع الوعي بالخدمات المهنية": <TrendingUp size={13} />,
   "تعزيز الحضور المهني والثقة": <Award size={13} />,
-  "حملة توعوية": <Megaphone size={13} />
+  "حملة توعوية": <Megaphone size={13} />,
+  "التعليق على المستجدات النظامية والقضائية": <Scale size={13} />,
+  "مشاركة معرفية وأكاديمية": <GraduationCap size={13} />,
+  "التعريف بالخبرات والمشاركات المهنية": <Briefcase size={13} />,
+  "مساهمة مجتمعية وعمل تطوعي قانوني": <HeartHandshake size={13} />
 };
 
 const chipBase = "inline-flex cursor-pointer items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm transition focus-ring";

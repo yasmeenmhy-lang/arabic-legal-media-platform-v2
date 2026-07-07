@@ -8,6 +8,7 @@ import {
   BarChart2,
   BookOpen,
   Bot,
+  Briefcase,
   Building2,
   CalendarDays,
   CheckCircle2,
@@ -16,6 +17,8 @@ import {
   FileCheck2,
   FileText,
   Globe,
+  GraduationCap,
+  HeartHandshake,
   Image as ImageIcon,
   Layers,
   Megaphone,
@@ -94,6 +97,10 @@ const purposes = [
   "رفع الوعي بالخدمات المهنية",
   "تعزيز الحضور المهني والثقة",
   "حملة توعوية",
+  "التعليق على المستجدات النظامية والقضائية",
+  "مشاركة معرفية وأكاديمية",
+  "التعريف بالخبرات والمشاركات المهنية",
+  "مساهمة مجتمعية وعمل تطوعي قانوني",
 ];
 const specialties = [
   "قانون الأعمال والتجارة",
@@ -267,6 +274,10 @@ const purposeIcons: Record<string, React.ReactNode> = {
   "رفع الوعي بالخدمات المهنية": <TrendingUp size={13} />,
   "تعزيز الحضور المهني والثقة": <Award size={13} />,
   "حملة توعوية": <Megaphone size={13} />,
+  "التعليق على المستجدات النظامية والقضائية": <Scale size={13} />,
+  "مشاركة معرفية وأكاديمية": <GraduationCap size={13} />,
+  "التعريف بالخبرات والمشاركات المهنية": <Briefcase size={13} />,
+  "مساهمة مجتمعية وعمل تطوعي قانوني": <HeartHandshake size={13} />,
 };
 
 // ── Helpers ────────────────────────────────────────────────────────────────
