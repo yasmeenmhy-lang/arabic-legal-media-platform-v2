@@ -671,7 +671,7 @@ export default function ContentReviewPage() {
           ) : null}
 
           <section id="findings" className="space-y-4 scroll-mt-24">
-            <SectionTitle title="3. الملاحظات حسب الأولوية" subtitle="الملاحظات الحرجة أولاً، ثم العالية والمتوسطة والمنخفضة. لا يعتمد العرض على ترتيب الاكتشاف." />
+            <SectionTitle title="3. الملاحظات" subtitle="جميع الملاحظات واجبة المعالجة قبل النشر — لا أولوية بينها." />
             {sortedFindings.length ? <FindingsList findings={sortedFindings} /> : (() => {
               const hasOtherIssues = review.publicationDecision.outcome === "NOT_RECOMMENDED"
                 || ["بالغ", "حرج", "مرتفع"].includes(review.riskLevel)
