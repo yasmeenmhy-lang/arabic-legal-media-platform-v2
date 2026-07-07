@@ -78,22 +78,28 @@ function parseJson<T>(raw: string): T {
 async function nanoBananaImage(prompt: string): Promise<string | null> {
   const key = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
   if (!key) return null;
-  const res = await fetch(
-    "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent",
-    {
-      method: "POST",
-      headers: { "x-goog-api-key": key, "content-type": "application/json" },
-      body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }),
-    }
-  );
-  if (!res.ok) throw new Error(`Gemini ${res.status}`);
-  const data = (await res.json()) as {
-    candidates?: { content?: { parts?: { inlineData?: { mimeType?: string; data?: string } }[] } }[];
-  };
-  const part = data.candidates?.[0]?.content?.parts?.find((p) => p.inlineData?.data);
-  return part?.inlineData?.data
-    ? `data:${part.inlineData.mimeType ?? "image/png"};base64,${part.inlineData.data}`
-    : null;
+  // النموذج الأساسي ثم البديل — أسماء إصدارات Google تتغير
+  const models = ["gemini-2.5-flash-image", "gemini-2.5-flash-image-preview"];
+  for (const model of models) {
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
+      {
+        method: "POST",
+        headers: { "x-goog-api-key": key, "content-type": "application/json" },
+        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }),
+      }
+    );
+    if (res.status === 404) continue;
+    if (!res.ok) throw new Error(`Gemini ${res.status}`);
+    const data = (await res.json()) as {
+      candidates?: { content?: { parts?: { inlineData?: { mimeType?: string; data?: string } }[] } }[];
+    };
+    const part = data.candidates?.[0]?.content?.parts?.find((p) => p.inlineData?.data);
+    return part?.inlineData?.data
+      ? `data:${part.inlineData.mimeType ?? "image/png"};base64,${part.inlineData.data}`
+      : null;
+  }
+  return null;
 }
 
 async function openAiImage(prompt: string, w: number, h: number): Promise<string | null> {
