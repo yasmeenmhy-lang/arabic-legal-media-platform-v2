@@ -648,20 +648,6 @@ export default function ContentReviewPage() {
             </div>
           </section>
 
-          <nav aria-label="أقسام نتيجة مراجعة المحتوى" className="sticky top-2 z-10 flex gap-2 overflow-x-auto rounded-lg border border-line bg-white/95 p-2 shadow-sm backdrop-blur">
-            {reviewTabs.map((tab) => (
-              <button
-                key={tab.key}
-                type="button"
-                onClick={() => navigateToReviewSection(tab.key)}
-                aria-current={activeTab === tab.key ? "page" : undefined}
-                className={`shrink-0 rounded-md px-4 py-2 text-xs transition focus-ring sm:text-sm ${activeTab === tab.key ? "bg-palm text-white" : "text-ink/70 hover:bg-paper hover:text-ink"}`}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </nav>
-
           <>
           <section id="findings" className="space-y-4 scroll-mt-24">
             <SectionTitle title="3. الملاحظات" subtitle="جميع الملاحظات واجبة المعالجة قبل النشر — لا أولوية بينها." />
