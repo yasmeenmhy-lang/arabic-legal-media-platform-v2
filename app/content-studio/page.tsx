@@ -2316,6 +2316,13 @@ export default function ContentStudioPage() {
 
           {/* بطاقة المخاطر */}
           {(() => {
+            if (review.analysisMode === "pattern-only") return (
+              <Panel className={`border-t-4 shadow-md ${toneBorder("neutral")}`}>
+                <p className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-400">المخاطر</p>
+                <StatusBadge tone="neutral">تعذّر التحليل</StatusBadge>
+                <p className="mt-4 text-sm leading-7 text-slate-500">التحليل غير مكتمل بسبب عطل — أعد التحليل قبل الاعتماد على هذه النتيجة.</p>
+              </Panel>
+            );
             // تقييم متعذر ≠ منخفض: يُعرض محايداً رمادياً لا أخضر
             const assessmentFailed = (review.riskScoreExplanation.explanation ?? "").includes("تعذّر");
             const tone = assessmentFailed ? ("neutral" as const) : riskKpiTone(review.riskLevel);
@@ -2364,6 +2371,13 @@ export default function ContentStudioPage() {
 
           {/* بطاقة الكتابة المهنية */}
           {(() => {
+            if (review.analysisMode === "pattern-only") return (
+              <Panel className={`border-t-4 shadow-md ${toneBorder("neutral")}`}>
+                <p className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-400">الكتابة المهنية</p>
+                <StatusBadge tone="neutral">تعذّر التحليل</StatusBadge>
+                <p className="mt-4 text-sm leading-7 text-slate-500">التحليل غير مكتمل بسبب عطل — أعد التحليل قبل الاعتماد على هذه النتيجة.</p>
+              </Panel>
+            );
             const tone = professionalismKpiTone(review.professionalismScore);
             const passed = review.professionalismScore >= 80;
             const { explanation, action } = professionalismExplanation(review.professionalismScore);
@@ -2382,6 +2396,13 @@ export default function ContentStudioPage() {
 
           {/* بطاقة اللغة والإملاء */}
           {(() => {
+            if (review.analysisMode === "pattern-only") return (
+              <Panel className={`border-t-4 shadow-md ${toneBorder("neutral")}`}>
+                <p className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-400">اللغة والإملاء</p>
+                <StatusBadge tone="neutral">تعذّر التحليل</StatusBadge>
+                <p className="mt-4 text-sm leading-7 text-slate-500">التحليل غير مكتمل بسبب عطل — أعد التحليل قبل الاعتماد على هذه النتيجة.</p>
+              </Panel>
+            );
             const issues = review.languageQuality.issues;
             // ثنائي: أخطاء ⇒ أحمر، لا أخطاء ⇒ أخضر — لا حالة وسطى
             const hasIssues = issues.length > 0 || !review.languageQuality.passed;
@@ -2412,6 +2433,13 @@ export default function ContentStudioPage() {
 
           {/* بطاقة جودة المحتوى */}
           {(() => {
+            if (review.analysisMode === "pattern-only") return (
+              <Panel className={`border-t-4 shadow-md ${toneBorder("neutral")}`}>
+                <p className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-400">جودة المحتوى</p>
+                <StatusBadge tone="neutral">تعذّر التحليل</StatusBadge>
+                <p className="mt-4 text-sm leading-7 text-slate-500">التحليل غير مكتمل بسبب عطل — أعد التحليل قبل الاعتماد على هذه النتيجة.</p>
+              </Panel>
+            );
             const exp = review.contentQualityScoreExplanation;
             const hasViolations = review.findings.length > 0;
             const statusTone = (exp.redLine || hasViolations) ? "danger" as const : review.contentQualityScore >= 80 ? "good" as const : "gold" as const;
@@ -2447,6 +2475,13 @@ export default function ContentStudioPage() {
 
           {/* بطاقة جاهزية النشر */}
           {(() => {
+            if (review.analysisMode === "pattern-only") return (
+              <Panel className={`border-t-4 shadow-md ${toneBorder("neutral")}`}>
+                <p className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-400">جاهزية النشر</p>
+                <StatusBadge tone="neutral">تعذّر التحليل</StatusBadge>
+                <p className="mt-4 text-sm leading-7 text-slate-500">التحليل غير مكتمل بسبب عطل — أعد التحليل قبل الاعتماد على هذه النتيجة.</p>
+              </Panel>
+            );
             const tone = review.analysisMode === "pattern-only" ? "neutral" as const
               : review.publicationDecision.outcome === "RECOMMENDED" ? "good" as const
               : review.publicationDecision.outcome === "NOT_RECOMMENDED" ? "danger" as const

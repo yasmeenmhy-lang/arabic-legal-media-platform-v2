@@ -119,7 +119,19 @@ export function ComplianceIndicatorCard({ review }: { review: ReviewResult }) {
   );
 }
 
+// بطاقة موحدة لحالة العطل — العطل يؤثر على كل النتائج
+function DegradedNotice({ id, title }: { id?: string; title: string }) {
+  return (
+    <Panel id={id} className={`scroll-mt-24 border-t-4 shadow-md ${toneBorder("neutral")}`}>
+      <p className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-400">{title}</p>
+      <StatusBadge tone="neutral">تعذّر التحليل</StatusBadge>
+      <p className="mt-4 text-sm leading-7 text-slate-500">التحليل غير مكتمل بسبب عطل — أعد التحليل قبل الاعتماد على هذه النتيجة.</p>
+    </Panel>
+  );
+}
+
 export function RiskIndicatorCard({ review }: { review: ReviewResult }) {
+  if (review.analysisMode === "pattern-only") return <DegradedNotice id="risk" title="المخاطر" />;
   // تقييم متعذر ≠ منخفض: يُعرض محايداً رمادياً لا أخضر
   const assessmentFailed = (review.riskScoreExplanation.explanation ?? "").includes("تعذّر");
   const tone = assessmentFailed ? ("neutral" as const) : riskKpiTone(review.riskLevel);
@@ -172,6 +184,7 @@ export function RiskIndicatorCard({ review }: { review: ReviewResult }) {
 }
 
 export function ProfessionalismIndicatorCard({ review }: { review: ReviewResult }) {
+  if (review.analysisMode === "pattern-only") return <DegradedNotice title="الكتابة المهنية" />;
   const tone = professionalismKpiTone(review.professionalismScore);
   const passed = review.professionalismScore >= 80;
   const { explanation, action } = professionalismExplanation(review.professionalismScore);
@@ -189,6 +202,7 @@ export function ProfessionalismIndicatorCard({ review }: { review: ReviewResult 
 }
 
 export function LanguageIndicatorCard({ review }: { review: ReviewResult }) {
+  if (review.analysisMode === "pattern-only") return <DegradedNotice title="اللغة والإملاء" />;
   const issues = review.languageQuality.issues;
   // ثنائي: أخطاء ⇒ أحمر، لا أخطاء ⇒ أخضر — لا حالة وسطى
   const hasIssues = issues.length > 0 || !review.languageQuality.passed;
@@ -218,6 +232,7 @@ export function LanguageIndicatorCard({ review }: { review: ReviewResult }) {
 }
 
 export function ContentQualityIndicatorCard({ review }: { review: ReviewResult }) {
+  if (review.analysisMode === "pattern-only") return <DegradedNotice title="جودة المحتوى" />;
   const exp = review.contentQualityScoreExplanation ?? { redLine: false, factors: [] };
   const hasViolations = review.findings.length > 0;
   const statusTone = (exp.redLine || hasViolations) ? "danger" as const : review.contentQualityScore >= 80 ? "good" as const : "gold" as const;
@@ -252,6 +267,7 @@ export function ContentQualityIndicatorCard({ review }: { review: ReviewResult }
 }
 
 export function ReadinessIndicatorCard({ review }: { review: ReviewResult }) {
+  if (review.analysisMode === "pattern-only") return <DegradedNotice title="جاهزية النشر" />;
   const tone = readinessKpiTone(review);
   const gates = review.publishingReadinessExplanation.gates;
   return (
