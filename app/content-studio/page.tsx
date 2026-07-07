@@ -2278,11 +2278,14 @@ export default function ContentStudioPage() {
           {/* بطاقة الامتثال */}
           {(() => {
             const isCompliant = review.findings.length === 0;
+            // عطل التحليل + لا مخالفات مرصودة ⇒ لا يجوز ادعاء "ملتزم" — تظهر محايدة
+            const degraded = review.analysisMode === "pattern-only" && isCompliant;
+            const tone = degraded ? ("neutral" as const) : isCompliant ? ("good" as const) : ("danger" as const);
             return (
-              <Panel className={`border-t-4 shadow-md ${toneBorder(isCompliant ? "good" : "danger")}`}>
+              <Panel className={`border-t-4 shadow-md ${toneBorder(tone)}`}>
                 <p className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-400">الامتثال</p>
-                <StatusBadge tone={isCompliant ? "good" : "danger"}>
-                  {isCompliant ? "ملتزم" : "غير ملتزم"}
+                <StatusBadge tone={tone}>
+                  {degraded ? "تعذّر التحليل" : isCompliant ? "ملتزم" : "غير ملتزم"}
                 </StatusBadge>
                 {review.findings.length > 0 ? (
                   <div className="mt-4 space-y-2">
@@ -2292,6 +2295,8 @@ export default function ContentStudioPage() {
                       </div>
                     ))}
                   </div>
+                ) : degraded ? (
+                  <p className="mt-4 text-sm leading-7 text-slate-500">التحليل غير مكتمل بسبب عطل — أعد التحليل قبل الاعتماد على نتيجة الامتثال.</p>
                 ) : (
                   <p className="mt-4 text-sm leading-7 text-slate-500">لم ترصد مخالفات مرتبطة بالمراجع المسجلة.</p>
                 )}
