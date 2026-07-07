@@ -109,7 +109,7 @@ export function buildPublicationDecision({
     return {
       outcome: "LEGAL_REVIEW_REQUIRED",
       label: "يتطلب مراجعة قانونية إضافية",
-      reason: "الأدلة أو مستوى المخاطر لا يسمحان بتوصية نهائية آمنة دون مراجعة بشرية إضافية.",
+      reason: "الأدلة أو مستوى المخاطر لا يسمحان بتوصية نهائية آمنة دون مراجعة المحامي أو المستخدم وفق القواعد واللوائح ذات العلاقة.",
       blockers: readiness.blockers,
       actions: readiness.actions,
       recommended: false

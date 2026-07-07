@@ -125,11 +125,10 @@ type ReviewTab = (typeof reviewTabs)[number]["key"];
 
 function decisionTone(review: ReviewResult) {
   if (review.analysisMode === "pattern-only") return "neutral" as const;
-  return review.publicationDecision.outcome === "RECOMMENDED"
-    ? "good" as const
-    : review.publicationDecision.outcome === "RECOMMENDED_AFTER_FINDINGS"
-      ? "neutral" as const
-      : "gold" as const;
+  if (review.publicationDecision.outcome === "RECOMMENDED") return "good" as const;
+  if (review.publicationDecision.outcome === "RECOMMENDED_AFTER_FINDINGS") return "neutral" as const;
+  // غير موصى بالنشر / يتطلب مراجعة — كلاهما حالة "لا نشر قبل المعالجة" بالأحمر
+  return "danger" as const;
 }
 
 function downloadBlob(name: string, type: string, body: string) {
@@ -612,7 +611,7 @@ export default function ContentReviewPage() {
                 ? "border-t-slate-300 bg-white"
                 : review.publicationDecision.outcome === "RECOMMENDED"
                   ? "border-t-green-400 bg-green-50/40"
-                  : review.publicationDecision.outcome === "NOT_RECOMMENDED"
+                  : review.publicationDecision.outcome === "NOT_RECOMMENDED" || review.publicationDecision.outcome === "LEGAL_REVIEW_REQUIRED"
                     ? "border-t-red-400 bg-red-50/40"
                     : "border-t-amber-400 bg-amber-50/40"
             }`}
