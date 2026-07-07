@@ -42,7 +42,7 @@ import {
   socialBrandIcons,
   socialBrandStyles
 } from "@/components/social-icons";
-import { OfficialLogo, officialEntityFromUrl } from "@/components/official-logos";
+import { aiSuggestionDisclaimer, confidentialityNotice } from "@/lib/governance";
 import { contentKindOptions } from "@/lib/content-types";
 import {
   approveContentVersion,
@@ -746,9 +746,10 @@ export default function ContentReviewPage() {
                     onChange={(e) => setAiSuggestion(e.target.value)}
                     className="min-h-36 w-full rounded-lg border border-line p-4 leading-8 text-sm"
                   />
-                  <p className="text-xs leading-6 text-ink/55">
-                    يمكنك تعديل الصياغة قبل تطبيقها. هذا المقترح استرشادي وتظل مسؤولية الاعتماد والنشر على المستخدم.
-                  </p>
+                  <div className="space-y-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs leading-6 text-amber-900">
+                    <p className="font-semibold">{aiSuggestionDisclaimer}</p>
+                    <p>{confidentialityNotice}</p>
+                  </div>
                   <div className="flex flex-wrap gap-3">
                     <button
                       type="button"
