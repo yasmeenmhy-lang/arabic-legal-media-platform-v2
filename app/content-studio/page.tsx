@@ -280,7 +280,7 @@ function qualLabel(score: number) {
 
 function toneBorder(tone: "good" | "gold" | "danger" | "neutral") {
   if (tone === "good") return "border-t-green-400";
-  if (tone === "gold") return "border-t-warningBase";
+  if (tone === "gold") return "border-t-amber-400";
   if (tone === "danger") return "border-t-red-400";
   return "border-t-slate-300";
 }

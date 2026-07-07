@@ -106,7 +106,7 @@ type Tone = "neutral" | "good" | "gold" | "danger";
 const toneStyles: Record<Tone, { soft: string; text: string; border: string; solid: string }> = {
   good: { soft: "bg-mint", text: "text-palm", border: "border-palm/25", solid: "bg-palm" },
   neutral: { soft: "bg-warmGraySoft", text: "text-warmGrayText", border: "border-warmGrayBorder", solid: "bg-warmGray" },
-  gold: { soft: "bg-warningSoft", text: "text-warningDark", border: "border-warningBorder", solid: "bg-warningBase" },
+  gold: { soft: "bg-goldSoft", text: "text-gold", border: "border-goldBorder", solid: "bg-gold" },
   danger: { soft: "bg-red-50", text: "text-red-700", border: "border-red-200", solid: "bg-red-600" }
 };
 
