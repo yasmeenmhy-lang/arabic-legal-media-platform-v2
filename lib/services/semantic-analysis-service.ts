@@ -153,7 +153,7 @@ ${validRefs}
     "evidenceExcerpt": "العبارة الحرفية من النص التي تُثبت المخالفة",
     "violationType": "صريح" أو "ضمني" أو "سياقي",
     "severity": "حرج" أو "مرتفع" أو "متوسط" أو "منخفض",
-    "explanation": "شرح موجز لسبب المخالفة",
+    "explanation": "شرح توعوي تعليمي (جملتان إلى ثلاث) يوضح للمحامي لماذا تُعد العبارة مخالفة، والغاية التي تحميها القاعدة، والأثر المهني أو القانوني المحتمل — بأسلوب إرشادي واضح لا تقني",
     "advice": "التوصية التطبيقية للمحامي"
   }
 ]`;
@@ -251,7 +251,7 @@ function buildSemanticFinding(
     articleTitle,
     articleTextExcerpt: entry?.fullText ?? "",
     explanation: violation.explanation,
-    legalExplanation: `رصد التحليل عبارة «${evidence}» بوصفها مخالفة ${violation.violationType} لـ${legalReference} من ${sourceDocument}. ${violation.explanation}`,
+    legalExplanation: `العبارة «${evidence}» تُعد مخالفة ${violation.violationType} لـ${legalReference} من ${sourceDocument}: ${violation.explanation}`,
     reviewOutcome: "رصدت ملاحظة" as const,
     confidenceLevel: violation.confidenceLevel,
     sourceUrl,
