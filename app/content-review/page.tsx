@@ -598,10 +598,10 @@ export default function ContentReviewPage() {
             <div
               dir="rtl"
               role="alert"
-              className="sticky top-0 z-20 flex items-start gap-3 rounded-b-lg border border-amber-300 bg-amber-50 px-5 py-3 text-sm text-amber-900 shadow-sm"
+              className="sticky top-0 z-20 flex items-start gap-3 rounded-b-lg border-2 border-red-700 bg-red-600 px-5 py-4 text-base font-semibold text-white shadow-lg"
             >
-              <span aria-hidden="true" className="mt-0.5 shrink-0">⚠️</span>
-              <span>{"تنبيه: يوجد عطل، والتحليل غير مكتمل حالياً، وقد لا تشمل النتيجة كل المخالفات."}</span>
+              <span aria-hidden="true" className="mt-0.5 shrink-0 text-xl">⚠️</span>
+              <span>{"تنبيه: يوجد عطل، والتحليل غير مكتمل حالياً، وقد لا تشمل النتيجة كل المخالفات — أعد التحليل قبل الاعتماد على هذه النتيجة."}</span>
             </div>
           ) : null}
 
