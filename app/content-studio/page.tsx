@@ -116,6 +116,12 @@ const specialties = [
 
 type SourceEntry = { key: string; label: string; icon: string; subs?: { key: string; label: string }[] };
 
+// بنية المرئي المُعادة من محرك الرسم — تُستخدم لبناء PowerPoint بعناصر أصلية قابلة للتعديل
+type VisualStructure =
+  | { type: "chart"; chartType: string; data: { title: string; yLabel: string; data: { label: string; value: number }[] } }
+  | { type: "mindmap"; data: { title?: string; center: string; branches: { label: string; sub1?: string; sub2?: string }[] } }
+  | { type: "infographic"; data: { title: string; subtitle: string; sections: { heading: string; line1: string; line2: string; line3?: string; stat?: string }[]; source: string } };
+
 const contentSources: SourceEntry[] = [
   { key: "ai-original", label: "ابتكر من الذكاء الاصطناعي", icon: "🤖" },
   {
@@ -429,6 +435,8 @@ export default function ContentStudioPage() {
   const [vtLoading, setVtLoading] = useState(false);
   const [vtSvg, setVtSvg] = useState("");
   const [vtUrl, setVtUrl] = useState("");
+  // البنية الهيكلية للمرئي — تُمكّن تصدير PowerPoint بعناصر أصلية قابلة للتعديل
+  const [vtVisual, setVtVisual] = useState<VisualStructure | null>(null);
   const [vtError, setVtError] = useState("");
   const [vtSuggesting, setVtSuggesting] = useState(false);
   const [vtSuggestionReason, setVtSuggestionReason] = useState("");
@@ -509,6 +517,7 @@ export default function ContentStudioPage() {
       // Reset any previous visual translation when new text is generated
       setVtSvg("");
       setVtUrl("");
+      setVtVisual(null);
       setVtError("");
     } finally {
       setGenerating(false);
@@ -674,6 +683,7 @@ export default function ContentStudioPage() {
     setVtLoading(false);
     setVtSvg("");
     setVtUrl("");
+    setVtVisual(null);
     setVtError("");
     setVtSuggesting(false);
     setVtSuggestionReason("");
@@ -748,6 +758,7 @@ export default function ContentStudioPage() {
     setVtError("");
     setVtSvg("");
     setVtUrl("");
+    setVtVisual(null);
     try {
       const res = await fetch("/api/content-studio/generate-image", {
         method: "POST",
@@ -762,10 +773,14 @@ export default function ContentStudioPage() {
           editInstruction: editInstruction?.trim() || undefined,
         }),
       });
-      const data = (await res.json()) as { svgCode?: string; imageUrl?: string; error?: string };
+      const data = (await res.json()) as { svgCode?: string; imageUrl?: string; visual?: VisualStructure; error?: string };
       if (!res.ok) { setVtError(data.error ?? "فشل في إنشاء المرئي"); return; }
-      if (data.svgCode) setVtSvg(data.svgCode);
-      else setVtUrl(data.imageUrl ?? "");
+      if (data.svgCode) {
+        setVtSvg(data.svgCode);
+        setVtVisual(data.visual ?? null);
+      } else {
+        setVtUrl(data.imageUrl ?? "");
+      }
       setVtEditText("");
     } catch {
       setVtError("تعذر الاتصال بخدمة إنشاء المرئيات");
@@ -832,13 +847,173 @@ export default function ContentStudioPage() {
     });
   }
 
-  async function downloadPptx(source: { svg?: string; url?: string }, filename: string) {
+  // ألوان العلامة داخل PowerPoint (hex بدون #)
+  const PPT = {
+    palm: "25935F", palmDeep: "166A45", ink: "0D121C", inkSec: "384250",
+    line: "E5E7EB", bg: "F4F7F6", white: "FFFFFF",
+    accents: ["25935F", "DBA102", "80519F", "2E90FA", "1B8354"],
+  };
+  const PPT_W = 13.33, PPT_H = 7.5;
+
+  function pptxHeader(slide: any, title: string) {
+    slide.background = { color: PPT.bg };
+    slide.addShape("rect", { x: 0, y: 0, w: PPT_W, h: 0.85, fill: { color: PPT.palmDeep } });
+    slide.addText(title, {
+      x: 0.4, y: 0, w: PPT_W - 0.8, h: 0.85, align: "center", valign: "middle",
+      color: PPT.white, bold: true, fontSize: 20, rtlMode: true, lang: "ar-SA",
+    });
+  }
+
+  // خط مستقيم بين نقطتين — pptxgenjs يرسم داخل صندوق، لذا نحسب flip
+  function pptxLine(slide: any, x1: number, y1: number, x2: number, y2: number, color: string, width = 1.5) {
+    slide.addShape("line", {
+      x: Math.min(x1, x2), y: Math.min(y1, y2),
+      w: Math.abs(x2 - x1) || 0.01, h: Math.abs(y2 - y1) || 0.01,
+      flipV: (x2 - x1) * (y2 - y1) < 0,
+      line: { color, width },
+    });
+  }
+
+  function buildChartSlide(pptx: any, v: Extract<VisualStructure, { type: "chart" }>) {
+    const slide = pptx.addSlide();
+    pptxHeader(slide, v.data.title);
+    const t = (v.chartType || "").toLowerCase();
+    let chartName: string = pptx.ChartType.bar;
+    let barDir: "col" | "bar" = "col";
+    if (t.includes("خطي") || t.includes("line")) chartName = pptx.ChartType.line;
+    else if (t.includes("دائري") || t.includes("pie")) chartName = pptx.ChartType.pie;
+    else if (t.includes("حلقي") || t.includes("donut") || t.includes("doughnut")) chartName = pptx.ChartType.doughnut;
+    else if (t.includes("مساحة") || t.includes("area")) chartName = pptx.ChartType.area;
+    else if (t.includes("أفقية") || t.includes("hbar") || t.includes("h-bar")) barDir = "bar";
+    const isRound = chartName === pptx.ChartType.pie || chartName === pptx.ChartType.doughnut;
+    slide.addChart(chartName, [{
+      name: v.data.yLabel || v.data.title,
+      labels: v.data.data.map((p) => p.label),
+      values: v.data.data.map((p) => p.value),
+    }], {
+      x: 0.7, y: 1.15, w: PPT_W - 1.4, h: PPT_H - 1.7,
+      barDir,
+      chartColors: isRound ? PPT.accents : [PPT.palm],
+      showValue: true,
+      dataLabelColor: PPT.inkSec, dataLabelFontSize: 12,
+      catAxisLabelColor: PPT.inkSec, valAxisLabelColor: PPT.inkSec,
+      showLegend: isRound, legendPos: "b", legendColor: PPT.inkSec,
+      showTitle: false,
+    });
+  }
+
+  function buildMindMapSlides(pptx: any, v: Extract<VisualStructure, { type: "mindmap" }>) {
+    const slide = pptx.addSlide();
+    pptxHeader(slide, v.data.title || v.data.center);
+    const branches = (v.data.branches || []).slice(0, 5);
+    const top = 1.1, areaH = PPT_H - top - 0.3;
+    const rootW = 2.4, rootH = 1.0, rootX = PPT_W - 0.4 - rootW, rootCy = top + areaH / 2;
+    const brW = 2.9, brH = 0.8, brX = rootX - 0.55 - brW;
+    const subW = 3.3, subH = 0.62, subX = brX - 0.55 - subW;
+    const n = Math.max(branches.length, 1);
+    const groupH = areaH / n;
+
+    branches.forEach((b, i) => {
+      const acc = PPT.accents[i % PPT.accents.length];
+      const gy = top + groupH * (i + 0.5);
+      pptxLine(slide, brX + brW, gy, rootX, rootCy, acc, 1.75);
+      slide.addText(b.label, {
+        shape: "roundRect", rectRadius: 0.12,
+        x: brX, y: gy - brH / 2, w: brW, h: brH,
+        fill: { color: PPT.white }, line: { color: acc, width: 1.5 },
+        align: "center", valign: "middle", color: PPT.ink, bold: true,
+        fontSize: 13, rtlMode: true, lang: "ar-SA", shadow: { type: "outer", blur: 3, offset: 1, angle: 90, color: "9AA4B2", opacity: 0.35 },
+      });
+      const subs = [b.sub1, b.sub2].filter(Boolean) as string[];
+      subs.forEach((s, si) => {
+        const scy = subs.length === 1 ? gy : gy + (si === 0 ? -(subH / 2 + 0.06) : subH / 2 + 0.06);
+        pptxLine(slide, subX + subW, scy, brX, gy, acc, 1.1);
+        slide.addText(s, {
+          shape: "roundRect", rectRadius: 0.08,
+          x: subX, y: scy - subH / 2, w: subW, h: subH,
+          fill: { color: PPT.white }, line: { color: PPT.line, width: 1 },
+          align: "center", valign: "middle", color: PPT.inkSec,
+          fontSize: 11, rtlMode: true, lang: "ar-SA",
+        });
+      });
+    });
+
+    slide.addText(v.data.center, {
+      shape: "roundRect", rectRadius: 0.18,
+      x: rootX, y: rootCy - rootH / 2, w: rootW, h: rootH,
+      fill: { color: PPT.palm }, line: { color: PPT.palmDeep, width: 1.5 },
+      align: "center", valign: "middle", color: PPT.white, bold: true,
+      fontSize: 15, rtlMode: true, lang: "ar-SA", shadow: { type: "outer", blur: 4, offset: 2, angle: 90, color: PPT.palmDeep, opacity: 0.4 },
+    });
+  }
+
+  function buildInfographicSlides(pptx: any, v: Extract<VisualStructure, { type: "infographic" }>) {
+    // شريحة غلاف
+    const cover = pptx.addSlide();
+    cover.background = { color: PPT.palmDeep };
+    cover.addText(v.data.title, {
+      x: 0.8, y: 2.3, w: PPT_W - 1.6, h: 1.4, align: "center", valign: "middle",
+      color: PPT.white, bold: true, fontSize: 34, rtlMode: true, lang: "ar-SA",
+    });
+    cover.addText(v.data.subtitle, {
+      x: 0.8, y: 3.9, w: PPT_W - 1.6, h: 0.9, align: "center", valign: "middle",
+      color: "DFF6E7", fontSize: 18, rtlMode: true, lang: "ar-SA",
+    });
+    // شريحة لكل قسم — نص أصلي قابل للتعديل بالكامل
+    const sections = (v.data.sections || []).slice(0, 6);
+    sections.forEach((s, i) => {
+      const slide = pptx.addSlide();
+      pptxHeader(slide, v.data.title);
+      const acc = PPT.accents[i % PPT.accents.length];
+      slide.addShape("rect", { x: PPT_W - 0.55, y: 1.3, w: 0.14, h: 1.1, fill: { color: acc } });
+      slide.addText(s.heading, {
+        x: 0.7, y: 1.25, w: PPT_W - 1.6, h: 0.9, align: "right", valign: "middle",
+        color: PPT.ink, bold: true, fontSize: 24, rtlMode: true, lang: "ar-SA",
+      });
+      if (s.stat) {
+        slide.addText(s.stat, {
+          x: 0.7, y: 2.3, w: PPT_W - 1.6, h: 0.8, align: "right", valign: "middle",
+          color: acc, bold: true, fontSize: 30, rtlMode: true, lang: "ar-SA",
+        });
+      }
+      const lines = [s.line1, s.line2, s.line3].filter(Boolean) as string[];
+      slide.addText(lines.map((l) => ({ text: l, options: { bullet: { code: "2022" }, breakLine: true } })), {
+        x: 0.7, y: s.stat ? 3.3 : 2.5, w: PPT_W - 1.6, h: 3.2, align: "right", valign: "top",
+        color: PPT.inkSec, fontSize: 16, rtlMode: true, lang: "ar-SA", lineSpacing: 30,
+      });
+      if (i === sections.length - 1 && v.data.source) {
+        slide.addText(v.data.source, {
+          x: 0.7, y: PPT_H - 0.75, w: PPT_W - 1.4, h: 0.5, align: "center", valign: "middle",
+          color: "6C737F", fontSize: 11, rtlMode: true, lang: "ar-SA",
+        });
+      }
+    });
+  }
+
+  async function downloadPptx(
+    source: { svg?: string; url?: string; visual?: VisualStructure | null },
+    filename: string
+  ) {
     try {
       const PptxGen = await loadPptxGen();
+      const pptx = new PptxGen();
+
+      // بنية معروفة → عناصر PowerPoint أصلية (نصوص وأشكال ورسوم بيانية قابلة للتعديل)
+      if (source.visual) {
+        pptx.defineLayout({ name: "VIS_WIDE", width: PPT_W, height: PPT_H });
+        pptx.layout = "VIS_WIDE";
+        pptx.rtlMode = true;
+        if (source.visual.type === "chart") buildChartSlide(pptx, source.visual);
+        else if (source.visual.type === "mindmap") buildMindMapSlides(pptx, source.visual);
+        else buildInfographicSlides(pptx, source.visual);
+        await pptx.writeFile({ fileName: filename });
+        return;
+      }
+
+      // صور المزودات (فوتوغرافية) — لا بنية لها، تُدرج كصورة
       const { dataUrl, w, h } = source.svg
         ? await svgToPngData(source.svg)
         : await urlToPngData(source.url ?? "");
-      const pptx = new PptxGen();
       pptx.defineLayout({ name: "VIS", width: 10, height: 7.5 });
       pptx.layout = "VIS";
       const slide = pptx.addSlide();
@@ -873,6 +1048,7 @@ export default function ContentStudioPage() {
       if (data.reason) setVtSuggestionReason(data.reason);
       setVtSvg("");
       setVtUrl("");
+      setVtVisual(null);
       setVtError("");
       setVtConfirming(false);
     } catch {
@@ -1905,7 +2081,7 @@ export default function ContentStudioPage() {
             <SectionTitle title="3. المحتوى المقترح" subtitle="راجع وعدّل قبل التحليل القانوني." />
             <button
               type="button"
-              onClick={() => { setGeneratedText(""); setTopic(""); setVtSvg(""); setVtUrl(""); setVtError(""); setVtConfirming(false); setVtSuggestionReason(""); }}
+              onClick={() => { setGeneratedText(""); setTopic(""); setVtSvg(""); setVtUrl(""); setVtVisual(null); setVtError(""); setVtConfirming(false); setVtSuggestionReason(""); }}
               className="text-xs text-ink/50 transition hover:text-ink"
             >
               أعد الإنشاء
@@ -1980,7 +2156,7 @@ export default function ContentStudioPage() {
                   <button
                     key={t.key}
                     type="button"
-                    onClick={() => { setVtType(t.key); setVtSvg(""); setVtUrl(""); setVtError(""); setVtConfirming(false); setVtSuggestionReason(""); }}
+                    onClick={() => { setVtType(t.key); setVtSvg(""); setVtUrl(""); setVtVisual(null); setVtError(""); setVtConfirming(false); setVtSuggestionReason(""); }}
                     className={`rounded-lg border px-3 py-1.5 text-xs font-medium transition ${
                       vtType === t.key
                         ? "border-palm bg-white text-palm shadow-[0_0_0_1px_theme(colors.palm)]"
@@ -2124,12 +2300,12 @@ export default function ContentStudioPage() {
                         className="shrink-0 whitespace-nowrap rounded-lg border border-line bg-paper px-3 py-1 text-xs font-medium text-ink/70 transition hover:border-palm hover:text-palm">SVG</button>
                       <button type="button" onClick={() => downloadSvgAsPng(vtSvg, `${vtType}.svg`)}
                         className="shrink-0 whitespace-nowrap rounded-lg border border-line bg-paper px-3 py-1 text-xs font-medium text-ink/70 transition hover:border-palm hover:text-palm">PNG</button>
-                      <button type="button" onClick={() => void downloadPptx({ svg: vtSvg }, `${vtType}.pptx`)}
+                      <button type="button" onClick={() => void downloadPptx({ svg: vtSvg, visual: vtVisual }, `${vtType}.pptx`)}
                         className="shrink-0 whitespace-nowrap rounded-lg border border-line bg-paper px-3 py-1 text-xs font-medium text-ink/70 transition hover:border-palm hover:text-palm"
                         title="تنزيل شريحة PowerPoint قابلة للتحرير">PowerPoint</button>
                       <button type="button" onClick={() => { setVtSvg(""); setVtUrl(""); void generateVisualTranslation(); }}
                         className="shrink-0 whitespace-nowrap rounded-lg border border-line bg-paper px-3 py-1 text-xs font-medium text-ink/70 transition hover:border-palm hover:text-palm">إعادة الإنشاء</button>
-                      <button type="button" onClick={() => { setVtSvg(""); setVtUrl(""); setVtError(""); }}
+                      <button type="button" onClick={() => { setVtSvg(""); setVtUrl(""); setVtVisual(null); setVtError(""); }}
                         className="flex shrink-0 items-center gap-1 whitespace-nowrap rounded-lg border border-line bg-paper px-3 py-1 text-xs font-medium text-red-500/70 transition hover:border-red-300 hover:text-red-600"
                         title="مسح المرئي">
                         <Trash2 size={12} />
@@ -2173,7 +2349,7 @@ export default function ContentStudioPage() {
                         title="تنزيل شريحة PowerPoint قابلة للتحرير">PowerPoint</button>
                       <button type="button" onClick={() => { setVtSvg(""); setVtUrl(""); void generateVisualTranslation(); }}
                         className="shrink-0 whitespace-nowrap rounded-lg border border-line bg-paper px-3 py-1 text-xs font-medium text-ink/70 transition hover:border-palm hover:text-palm">إعادة الإنشاء</button>
-                      <button type="button" onClick={() => { setVtSvg(""); setVtUrl(""); setVtError(""); }}
+                      <button type="button" onClick={() => { setVtSvg(""); setVtUrl(""); setVtVisual(null); setVtError(""); }}
                         className="flex shrink-0 items-center gap-1 whitespace-nowrap rounded-lg border border-line bg-paper px-3 py-1 text-xs font-medium text-red-500/70 transition hover:border-red-300 hover:text-red-600"
                         title="مسح الصورة">
                         <Trash2 size={12} />
@@ -2217,7 +2393,7 @@ export default function ContentStudioPage() {
             <Button onClick={runReview} disabled={generatedText.trim().length < 5} leadingIcon={<FileCheck2 size={16} aria-hidden="true" />}>
               راجع قانونياً
             </Button>
-            <Button variant="secondary-gray" onClick={() => { setGeneratedText(""); setTopic(""); setVtSvg(""); setVtUrl(""); setVtError(""); setVtConfirming(false); setVtSuggestionReason(""); }} leadingIcon={<Edit3 size={16} />}>
+            <Button variant="secondary-gray" onClick={() => { setGeneratedText(""); setTopic(""); setVtSvg(""); setVtUrl(""); setVtVisual(null); setVtError(""); setVtConfirming(false); setVtSuggestionReason(""); }} leadingIcon={<Edit3 size={16} />}>
               عدّل الطلب
             </Button>
           </div>

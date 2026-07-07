@@ -187,6 +187,24 @@ function trunc(s: string, max: number): string {
   return s.length > max ? s.slice(0, max - 1) + "…" : s;
 }
 
+// Full word-wrap: returns ALL lines — no truncation, no data loss
+function wrapFull(s: string, maxPerLine: number): string[] {
+  const words = (s || "").trim().split(/\s+/).filter(Boolean);
+  const lines: string[] = [];
+  let cur = "";
+  for (const w of words) {
+    const candidate = cur ? `${cur} ${w}` : w;
+    if (candidate.length > maxPerLine && cur) {
+      lines.push(cur);
+      cur = w;
+    } else {
+      cur = candidate;
+    }
+  }
+  if (cur) lines.push(cur);
+  return lines.length ? lines : [""];
+}
+
 // Wrap text into up to two lines at word boundaries — no mid-word cuts
 function wrap2(s: string, maxPerLine: number): string[] {
   const t = (s || "").trim();
@@ -414,76 +432,138 @@ function renderChartSvg(data: ChartData, chartType: string): string {
   return renderBarChartSvg(data);
 }
 
-// ── Mind map: 1080×1080 (square — Instagram / general social) ─────────────
+// ── Mind map: 1240×dynamic — RTL horizontal tree ──────────────────────────
+// الجذر يمين، الفروع عمود أوسط، التفاصيل عمود يسار. لا قصّ للنصوص إطلاقاً:
+// كل عقدة تلتفّ أسطراً كاملة ويتكيّف حجمها وارتفاع اللوحة مع المحتوى.
+
+// Per-branch accent hues — same brand palette already used by the charts
+const MM_ACCENTS = [PALM, "#DBA102", "#80519F", "#2E90FA", PALM_DARK];
+
+// Average Arabic glyph width ≈ 0.56 × font-size (IBM Plex Sans Arabic)
+function mmCharW(fontSize: number): number {
+  return fontSize * 0.56;
+}
+
+// Centered multi-line <text> block around a vertical midpoint
+function mmText(
+  x: number, cyMid: number, lines: string[], fontSize: number, lineH: number,
+  weight: number, fill: string, anchor: "middle" | "end" = "middle"
+): string {
+  const y0 = cyMid - ((lines.length - 1) * lineH) / 2 + fontSize * 0.35;
+  const tspans = lines.slice(1).map((l) => `<tspan x="${x}" dy="${lineH}">${l}</tspan>`).join("");
+  return `<text x="${x}" y="${Math.round(y0)}" text-anchor="${anchor}" font-family="${FONT}" font-size="${fontSize}" font-weight="${weight}" fill="${fill}">${lines[0]}${tspans}</text>`;
+}
 
 function renderMindMapSvg(d: MindMapData): string {
-  const W = 1080, H = 1080;
-  const HDR = 90;
-  const cx = 540;
-  const cy = HDR + Math.round((H - HDR) / 2); // 585 — geometric center of usable area
-  // branchR=255 keeps 5 nodes (200px wide) ~100px apart — no overlap
-  const branchR = 255;
-  const subR = 128; // wider sub-nodes need a bit more clearance
-
-  // DGA mint scale for branch backgrounds, palm scale for borders
-  const BRANCH_BG = [MINT, MINT_DEEP, "#C5EDD6", "#A8E0C0", "#8DD4AB"];
-  const BRANCH_BD = [PALM, PALM_DARK, PALM_DEEP, PALM, PALM_DARK];
+  const W = 1240;
   const branches = (d.branches || []).slice(0, 5);
-  const BASE_ANGLES = [-90, -18, 54, 126, 198]; // degrees, 0° = rightward
+
+  // Node metrics per level: [fontSize, lineHeight, maxWidth, padX, padY, minWidth]
+  const ROOT = { fs: 20, lh: 30, maxW: 260, padX: 22, padY: 17, minW: 170 };
+  const BR   = { fs: 17, lh: 26, maxW: 320, padX: 20, padY: 14, minW: 150 };
+  const SUB  = { fs: 14.5, lh: 22, maxW: 340, padX: 18, padY: 11, minW: 130 };
+
+  type NodeBox = { lines: string[]; w: number; h: number };
+  const measure = (text: string, m: typeof ROOT): NodeBox => {
+    const cw = mmCharW(m.fs);
+    const maxChars = Math.floor((m.maxW - 2 * m.padX) / cw);
+    const lines = wrapFull(text, Math.max(maxChars, 8));
+    const longest = Math.max(...lines.map((l) => l.length));
+    const w = Math.max(m.minW, Math.min(m.maxW, Math.ceil(longest * cw) + 2 * m.padX));
+    const h = lines.length * m.lh + 2 * m.padY;
+    return { lines, w, h };
+  };
+
+  const rootBox = measure(d.center || d.title || "", ROOT);
+  const branchBoxes = branches.map((b) => measure(b.label, BR));
+  const subBoxes = branches.map((b) =>
+    ([b.sub1, b.sub2].filter(Boolean) as string[]).map((s) => measure(s, SUB))
+  );
+
+  // Header — wraps instead of truncating; band grows for two lines
+  const hLines = wrapFull(d.title || d.center || "", 78);
+  const HDR = hLines.length > 1 ? 132 : 96;
+
+  // Vertical rhythm: each branch group = branch node + its sub nodes
+  const SUB_GAP = 14, GROUP_GAP = 38, TOP_PAD = 54, BOT_PAD = 54;
+  const groupHs = branches.map((_, i) => {
+    const subsTotal = subBoxes[i].reduce((acc, s) => acc + s.h, 0)
+      + Math.max(subBoxes[i].length - 1, 0) * SUB_GAP;
+    return Math.max(branchBoxes[i].h, subsTotal);
+  });
+  const contentH = groupHs.reduce((a, b) => a + b, 0) + Math.max(branches.length - 1, 0) * GROUP_GAP;
+  const H = Math.max(HDR + TOP_PAD + contentH + BOT_PAD, HDR + TOP_PAD + rootBox.h + BOT_PAD, 560);
+
+  // Columns (right-anchored — RTL): root | branches | subs
+  const rootRight = W - 56;
+  const branchRight = 830;
+  const subRight = 420;
+
+  const rootCy = HDR + TOP_PAD + Math.max(contentH, rootBox.h) / 2;
+  const rootLeft = rootRight - rootBox.w;
 
   const connectors: string[] = [];
   const nodes: string[] = [];
 
+  let yCursor = HDR + TOP_PAD;
   branches.forEach((b, i) => {
-    const a = (BASE_ANGLES[i] * Math.PI) / 180;
-    const bx = Math.round(cx + branchR * Math.cos(a));
-    const by = Math.round(cy + branchR * Math.sin(a));
-    // 200×52: holds up to 16 Arabic chars at 12px comfortably
-    const bw = 200, bh = 52;
+    const acc = MM_ACCENTS[i % MM_ACCENTS.length];
+    const gH = groupHs[i];
+    const gy = Math.round(yCursor + gH / 2);
+    const bb = branchBoxes[i];
+    const bLeft = branchRight - bb.w;
 
-    const perpX = -Math.sin(a) * 18;
-    const perpY =  Math.cos(a) * 18;
-    const qx = Math.round((cx + bx) / 2 + perpX);
-    const qy = Math.round((cy + by) / 2 + perpY);
+    // root → branch: smooth horizontal bezier
     connectors.push(
-      `<path d="M ${cx} ${cy} Q ${qx} ${qy} ${bx} ${by}" fill="none" stroke="${BRANCH_BD[i]}" stroke-width="2" stroke-linecap="round" opacity="0.45"/>`
+      `<path d="M ${rootLeft} ${Math.round(rootCy)} C ${rootLeft - 70} ${Math.round(rootCy)}, ${branchRight + 70} ${gy}, ${branchRight} ${gy}" fill="none" stroke="${acc}" stroke-width="2.5" stroke-linecap="round" opacity="0.7"/>`
     );
 
-    // wrap to two lines instead of truncating — full labels stay readable
-    const bLines = wrap2(b.label, 15);
-    const bText = bLines.length === 1
-      ? `<text x="${bx}" y="${by + 5}" text-anchor="middle" font-family="${FONT}" font-size="14" font-weight="600" fill="${INK}">${bLines[0]}</text>`
-      : `<text x="${bx}" y="${by - 4}" text-anchor="middle" font-family="${FONT}" font-size="13" font-weight="600" fill="${INK}">${bLines[0]}<tspan x="${bx}" dy="17">${bLines[1]}</tspan></text>`;
+    // branch node: white card, accent border + soft accent tint, junction dot
+    const bRx = bb.lines.length === 1 ? Math.round(bb.h / 2) : 18;
     nodes.push(
-      `<rect x="${bx - bw / 2}" y="${by - bh / 2}" width="${bw}" height="${bh}" rx="26" fill="${BRANCH_BG[i]}" stroke="${BRANCH_BD[i]}" stroke-width="1.8"/>
-${bText}`
+      `<g filter="url(#cardShad)">
+<rect x="${bLeft}" y="${gy - Math.round(bb.h / 2)}" width="${bb.w}" height="${bb.h}" rx="${bRx}" fill="#FFFFFF"/>
+<rect x="${bLeft}" y="${gy - Math.round(bb.h / 2)}" width="${bb.w}" height="${bb.h}" rx="${bRx}" fill="${acc}" opacity="0.08"/>
+<rect x="${bLeft}" y="${gy - Math.round(bb.h / 2)}" width="${bb.w}" height="${bb.h}" rx="${bRx}" fill="none" stroke="${acc}" stroke-opacity="0.6" stroke-width="1.8"/>
+</g>
+${mmText(branchRight - Math.round(bb.w / 2), gy, bb.lines, BR.fs, BR.lh, 600, INK)}
+<circle cx="${branchRight}" cy="${gy}" r="4.5" fill="${acc}" stroke="#FFFFFF" stroke-width="1.5"/>`
     );
 
-    const subs = [b.sub1, b.sub2].filter(Boolean) as string[];
-    subs.forEach((sub, si) => {
-      const sa = a + (si === 0 ? -0.44 : 0.44); // ±25°
-      const sx = Math.round(bx + subR * Math.cos(sa));
-      const sy = Math.round(by + subR * Math.sin(sa));
-      // 160×40: holds up to 17 Arabic chars at 12px
-      const sw = 160, sh = 40;
+    // sub nodes stacked and centered within the group
+    const sbs = subBoxes[i];
+    const subsTotal = sbs.reduce((acc2, s) => acc2 + s.h, 0) + Math.max(sbs.length - 1, 0) * SUB_GAP;
+    let sy = gy - subsTotal / 2;
+    sbs.forEach((sb) => {
+      const scy = Math.round(sy + sb.h / 2);
+      const sLeft = subRight - sb.w;
       connectors.push(
-        `<line x1="${bx}" y1="${by}" x2="${sx}" y2="${sy}" stroke="${BRANCH_BD[i]}" stroke-width="1.4" stroke-linecap="round" opacity="0.35"/>`
+        `<path d="M ${bLeft} ${gy} C ${bLeft - 50} ${gy}, ${subRight + 50} ${scy}, ${subRight} ${scy}" fill="none" stroke="${acc}" stroke-width="1.8" stroke-linecap="round" opacity="0.5"/>`
       );
       nodes.push(
-        `<rect x="${sx - sw / 2}" y="${sy - sh / 2}" width="${sw}" height="${sh}" rx="20" fill="${MINT}" stroke="${BRANCH_BD[i]}" stroke-width="1.2"/>
-<text x="${sx}" y="${sy + 4}" text-anchor="middle" font-family="${FONT}" font-size="12" fill="${INK_SEC}">${trunc(sub, 17)}</text>`
+        `<g filter="url(#cardShad)"><rect x="${sLeft}" y="${scy - Math.round(sb.h / 2)}" width="${sb.w}" height="${sb.h}" rx="12" fill="#FFFFFF" stroke="${LINE}" stroke-width="1.2"/></g>
+<circle cx="${subRight - 14}" cy="${scy}" r="3.5" fill="${acc}"/>
+${mmText(subRight - Math.round(sb.w / 2) - 6, scy, sb.lines, SUB.fs, SUB.lh, 400, INK_SEC)}`
       );
+      sy += sb.h + SUB_GAP;
     });
+
+    yCursor += gH + GROUP_GAP;
   });
 
-  const headerTitle = trunc(d.title || d.center, 44);
-  const cr = 78;
-  const cLines = wrap2(d.center, 12);
-  const centerText = cLines.length === 1
-    ? `<text x="${cx}" y="${cy + 6}" text-anchor="middle" font-family="${FONT}" font-size="16" font-weight="600" fill="#fff">${cLines[0]}</text>`
-    : `<text x="${cx}" y="${cy - 3}" text-anchor="middle" font-family="${FONT}" font-size="15" font-weight="600" fill="#fff">${cLines[0]}<tspan x="${cx}" dy="20">${cLines[1]}</tspan></text>`;
+  // Root node — gradient card, fully wrapped text
+  const rootRx = rootBox.lines.length === 1 ? Math.round(rootBox.h / 2) : 22;
+  const rootNode = `<g filter="url(#rootShad)">
+<rect x="${rootLeft}" y="${Math.round(rootCy - rootBox.h / 2)}" width="${rootBox.w}" height="${rootBox.h}" rx="${rootRx}" fill="url(#rootGrad)"/>
+<rect x="${rootLeft + 4}" y="${Math.round(rootCy - rootBox.h / 2) + 4}" width="${rootBox.w - 8}" height="${rootBox.h - 8}" rx="${Math.max(rootRx - 4, 8)}" fill="none" stroke="#FFFFFF" stroke-width="1.2" opacity="0.25"/>
+</g>
+${mmText(rootRight - Math.round(rootBox.w / 2), Math.round(rootCy), rootBox.lines, ROOT.fs, ROOT.lh, 700, "#FFFFFF")}`;
 
-  return `<svg width="100%" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
+  const headerText = hLines.length === 1
+    ? `<text x="${W / 2}" y="${Math.round(HDR * 0.62)}" text-anchor="middle" font-family="${FONT}" font-size="24" font-weight="700" fill="#fff">${hLines[0]}</text>`
+    : `<text x="${W / 2}" y="${Math.round(HDR * 0.42)}" text-anchor="middle" font-family="${FONT}" font-size="23" font-weight="700" fill="#fff">${hLines[0]}<tspan x="${W / 2}" dy="32">${hLines.slice(1).join(" ")}</tspan></text>`;
+
+  return `<svg width="100%" viewBox="0 0 ${W} ${Math.round(H)}" xmlns="http://www.w3.org/2000/svg" direction="rtl">
 <defs>
   <pattern id="dotGrid" x="0" y="0" width="28" height="28" patternUnits="userSpaceOnUse">
     <circle cx="14" cy="14" r="1" fill="${PALM}" opacity="0.06"/>
@@ -492,19 +572,24 @@ ${bText}`
     <stop offset="0%" stop-color="${PALM_DEEP}"/>
     <stop offset="100%" stop-color="${PALM}"/>
   </linearGradient>
-  <filter id="nodeShad" x="-30%" y="-30%" width="160%" height="160%">
-    <feDropShadow dx="0" dy="3" stdDeviation="6" flood-color="${PALM}" flood-opacity="0.13"/>
+  <linearGradient id="rootGrad" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0%" stop-color="${PALM}"/>
+    <stop offset="100%" stop-color="${PALM_DEEP}"/>
+  </linearGradient>
+  <filter id="cardShad" x="-20%" y="-20%" width="140%" height="140%">
+    <feDropShadow dx="0" dy="2" stdDeviation="4" flood-color="${INK}" flood-opacity="0.10"/>
+  </filter>
+  <filter id="rootShad" x="-25%" y="-25%" width="150%" height="150%">
+    <feDropShadow dx="0" dy="4" stdDeviation="8" flood-color="${PALM_DEEP}" flood-opacity="0.30"/>
   </filter>
 </defs>
-<rect width="${W}" height="${H}" fill="${CANVAS_BG}"/>
-<rect width="${W}" height="${H}" fill="url(#dotGrid)"/>
+<rect width="${W}" height="${Math.round(H)}" fill="${CANVAS_BG}"/>
+<rect width="${W}" height="${Math.round(H)}" fill="url(#dotGrid)"/>
 <rect width="${W}" height="${HDR}" fill="url(#mmHdr)"/>
-<text x="${W / 2}" y="${Math.round(HDR * 0.64)}" text-anchor="middle" font-family="${FONT}" font-size="20" font-weight="600" fill="#fff">${headerTitle}</text>
+${headerText}
 ${connectors.join("\n")}
 ${nodes.join("\n")}
-<circle cx="${cx}" cy="${cy}" r="${cr}" fill="${PALM}" filter="url(#nodeShad)"/>
-<circle cx="${cx}" cy="${cy}" r="${cr - 6}" fill="none" stroke="#fff" stroke-width="1.5" opacity="0.2"/>
-${centerText}
+${rootNode}
 </svg>`;
 }
 
@@ -692,7 +777,8 @@ export async function POST(request: Request) {
       const raw = await callClaude(apiKey, "claude-haiku-4-5-20251001", 600, chartDataPrompt(effectiveDescription, chartType ?? ""));
       const data = parseJson<ChartData>(raw);
       const svgCode = renderChartSvg(data, chartType ?? "");
-      return NextResponse.json({ svgCode });
+      // visual: بيانات البنية لتصدير PowerPoint قابل للتعديل عنصراً عنصراً
+      return NextResponse.json({ svgCode, visual: { type: "chart", chartType: chartType ?? "", data } });
     } catch (e) {
       console.error("[chart]", e);
       return NextResponse.json({ error: "فشل إنشاء الرسم البياني" }, { status: 500 });
@@ -704,11 +790,9 @@ export async function POST(request: Request) {
     try {
       const raw = await callClaude(apiKey, "claude-haiku-4-5-20251001", 600, mindMapDataPrompt(effectiveDescription));
       const data = parseJson<MindMapData>(raw);
-      // مزود صور خارجي (نانوبنانا / OpenAI) إن توفر مفتاحه — وإلا المحرك الداخلي
-      const aiUrl = await providerImage(mindMapImagePrompt(data), 1080, 1080);
-      if (aiUrl) return NextResponse.json({ imageUrl: aiUrl });
+      // المحرك الداخلي دائماً: يتيح تصدير PowerPoint بعناصر قابلة للتعديل (لا صورة مسطحة)
       const svgCode = renderMindMapSvg(data);
-      return NextResponse.json({ svgCode });
+      return NextResponse.json({ svgCode, visual: { type: "mindmap", data } });
     } catch (e) {
       console.error("[mindmap]", e);
       return NextResponse.json({ error: "فشل إنشاء الخريطة الذهنية" }, { status: 500 });
@@ -720,11 +804,9 @@ export async function POST(request: Request) {
     try {
       const raw = await callClaude(apiKey, "claude-haiku-4-5-20251001", 800, infographicDataPrompt(effectiveDescription));
       const data = parseJson<InfographicData>(raw);
-      // مزود صور خارجي (نانوبنانا / OpenAI) إن توفر مفتاحه — وإلا المحرك الداخلي
-      const aiUrl = await providerImage(infographicImagePrompt(data), 1024, 1536);
-      if (aiUrl) return NextResponse.json({ imageUrl: aiUrl });
+      // المحرك الداخلي دائماً: يتيح تصدير PowerPoint بعناصر قابلة للتعديل (لا صورة مسطحة)
       const svgCode = renderInfographicSvg(data);
-      return NextResponse.json({ svgCode });
+      return NextResponse.json({ svgCode, visual: { type: "infographic", data } });
     } catch (e) {
       console.error("[infographic]", e);
       return NextResponse.json({ error: "فشل إنشاء الإنفوغراف" }, { status: 500 });
