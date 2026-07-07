@@ -167,6 +167,7 @@ export default function ContentReviewPage() {
   const [aiSuggestion, setAiSuggestion] = useState<string | null>(null);
   const [suggestingAI, setSuggestingAI] = useState(false);
   const [suggestionError, setSuggestionError] = useState<string | null>(null);
+  const [shareMessage, setShareMessage] = useState("");
 
   useEffect(() => {
     const selection = getActiveContentSelection();
@@ -392,9 +393,20 @@ export default function ContentReviewPage() {
   }
 
   function prepareSharing() {
-    if (!approved || !contentId || !versionNumber) return;
+    if (!approved) {
+      setShareMessage("المشاركة متاحة بعد اعتماد النسخة — اعتمد النسخة من قسم اعتماد النسخة أولاً.");
+      return;
+    }
+    if (!contentId || !versionNumber) {
+      setShareMessage("لا توجد نسخة محفوظة مرتبطة بهذه المراجعة — أعد التحليل ثم اعتمد النسخة وحاول مجدداً.");
+      return;
+    }
     const shared = markContentShared(contentId, versionNumber);
-    if (!shared) return;
+    if (!shared) {
+      setShareMessage("تعذر تجهيز المشاركة: النسخة المحفوظة غير معتمدة — اعتمد النسخة ثم حاول مجدداً.");
+      return;
+    }
+    setShareMessage("");
     setMessage("تم تجهيز النسخة المعتمدة للمشاركة وتسجيل الإجراء.");
     router.push("/social-media");
   }
@@ -813,12 +825,16 @@ export default function ContentReviewPage() {
               <button type="button" onClick={prepareSharing} disabled={!approved} className="inline-flex items-center gap-2 rounded-md bg-palm px-4 py-2.5 text-white disabled:opacity-40"><Share2 size={16} />المشاركة</button>
             </div>
             {!approved ? <div className="mt-4 flex items-center gap-2 rounded-lg bg-gold/10 p-4 text-sm"><AlertTriangle size={17} className="text-gold" />يجب اعتماد المخرج قبل إتاحة المشاركة والتصدير.</div> : null}
+            {shareMessage ? <div className="mt-4 flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 p-4 text-sm leading-7 text-red-700"><AlertTriangle size={17} className="mt-0.5 shrink-0" />{shareMessage}</div> : null}
           </Panel>
           </>
 
-          <p className="rounded-lg border border-line bg-white p-4 text-xs leading-7 text-ink/60">
-            هذا المقترح استرشادي، تم إنشاؤه بناءً على البيانات المدخلة ونتائج المراجعة والمراجع المهنية المسجلة في المنصة. يظل قرار التعديل أو الاعتماد أو النشر مسؤولية المستخدم.
-          </p>
+          <div className="flex gap-3 rounded-lg border border-amber-200 bg-amber-50 p-4">
+            <AlertTriangle size={18} className="mt-0.5 shrink-0 text-amber-500" aria-hidden="true" />
+            <p className="text-sm font-medium leading-7 text-amber-900">
+              هذا المقترح استرشادي، تم إنشاؤه بناءً على البيانات المدخلة ونتائج المراجعة والمراجع المهنية المسجلة في المنصة. يظل قرار التعديل أو الاعتماد أو النشر مسؤولية المستخدم.
+            </p>
+          </div>
         </>
       ) : null}
     </div>
