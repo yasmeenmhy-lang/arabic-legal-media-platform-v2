@@ -121,8 +121,9 @@ export function ComplianceIndicatorCard({ review }: { review: ReviewResult }) {
 export function RiskIndicatorCard({ review }: { review: ReviewResult }) {
   const tone = riskKpiTone(review.riskLevel);
   const parties = review.riskScoreExplanation.affectedParties ?? [];
-  const riskLevels = ["منخفض", "متوسط", "مرتفع", "بالغ"];
-  const activeCount = riskLevels.indexOf(review.riskLevel) + 1;
+  // ثلاثة مستويات معتمدة فقط — بعدد الجهات المتضررة
+  const riskLevels = ["منخفض", "متوسط", "مرتفع"];
+  const activeCount = riskLevels.indexOf(riskDisplayLabel(review.riskLevel)) + 1;
   const partyIcon = (p: RiskAffectedParty) => {
     if (p === "الموكل") return <User size={13} aria-hidden="true" />;
     if (p === "المحامي") return <Scale size={13} aria-hidden="true" />;

@@ -2308,8 +2308,9 @@ export default function ContentStudioPage() {
           {(() => {
             const tone = riskKpiTone(review.riskLevel);
             const parties = review.riskScoreExplanation.affectedParties ?? [];
-            const riskLevels = ["منخفض", "متوسط", "مرتفع", "بالغ"];
-            const activeCount = riskLevels.indexOf(review.riskLevel) + 1;
+            // ثلاثة مستويات معتمدة فقط — بعدد الجهات المتضررة
+            const riskLevels = ["منخفض", "متوسط", "مرتفع"];
+            const activeCount = riskLevels.indexOf(riskDisplayLabel(review.riskLevel)) + 1;
             return (
               <Panel className={`border-t-4 shadow-md ${toneBorder(tone)}`}>
                 <p className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-400">المخاطر</p>
