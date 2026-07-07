@@ -2329,6 +2329,7 @@ export default function ContentStudioPage() {
                   <div className="flex flex-wrap gap-2">
                     {(["الموكل", "المحامي", "المهنة"] as RiskAffectedParty[]).map((p) => {
                       const affected = parties.includes(p);
+                      const label = p === "الموكل" ? "المستفيد" : p;
                       return (
                         <span
                           key={p}
@@ -2338,7 +2339,7 @@ export default function ContentStudioPage() {
                               : "border-line bg-paper text-ink/40"
                           }`}
                         >
-                          {partyIcon(p)}{p}
+                          {partyIcon(p)}{label}
                         </span>
                       );
                     })}

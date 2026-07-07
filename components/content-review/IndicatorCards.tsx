@@ -147,6 +147,7 @@ export function RiskIndicatorCard({ review }: { review: ReviewResult }) {
         <div className="flex flex-wrap gap-2">
           {(["الموكل", "المحامي", "المهنة"] as RiskAffectedParty[]).map((p) => {
             const affected = parties.includes(p);
+            const label = p === "الموكل" ? "المستفيد" : p;
             return (
               <span
                 key={p}
@@ -156,7 +157,7 @@ export function RiskIndicatorCard({ review }: { review: ReviewResult }) {
                     : "border-line bg-paper text-ink/40"
                 }`}
               >
-                {partyIcon(p)}{p}
+                {partyIcon(p)}{label}
               </span>
             );
           })}
