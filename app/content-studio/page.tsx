@@ -453,6 +453,11 @@ export default function ContentStudioPage() {
   const [reviewError, setReviewError] = useState("");
   const [contentId, setContentId] = useState<string | undefined>();
 
+  // AI full-rewrite suggestion (نص مقترح محسّن)
+  const [improvedLoading, setImprovedLoading] = useState(false);
+  const [improvedTextAI, setImprovedTextAI] = useState("");
+  const [improvedError, setImprovedError] = useState("");
+
   // Action feedback
   const [actionMsg, setActionMsg] = useState("");
 
@@ -511,6 +516,8 @@ export default function ContentStudioPage() {
     setReviewing(true);
     setReviewError("");
     setReview(null);
+    setImprovedTextAI("");
+    setImprovedError("");
     const contentTypeLabel = contentKindLabels[kind];
     try {
       const res = await fetch("/api/reviews", {
@@ -542,6 +549,49 @@ export default function ContentStudioPage() {
       setReviewError(error instanceof Error ? error.message : "تعذر إكمال المراجعة.");
     } finally {
       setReviewing(false);
+    }
+  }
+
+  // ── AI full rewrite of the reviewed content ──
+
+  async function requestImprovedText() {
+    if (!review || improvedLoading) return;
+    setImprovedLoading(true);
+    setImprovedError("");
+    setImprovedTextAI("");
+    try {
+      const res = await fetch("/api/reformulate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          text: activeText,
+          contentType: kind ? contentKindLabels[kind] : undefined,
+          channel: channel || undefined,
+          audience: audience || undefined,
+          purpose: purpose || undefined,
+          findings: review.findings.map((f) => ({
+            issue: f.issue,
+            evidence: f.evidence,
+            suggestedSaferWording: f.suggestedSaferWording,
+            legalReference: f.legalReference,
+          })),
+          languageIssues: review.languageQuality.issues.map((i) => ({
+            message: i.message,
+            excerpt: i.excerpt ?? "",
+            suggestion: i.suggestion ?? "",
+          })),
+        }),
+      });
+      const payload = (await res.json().catch(() => null)) as { data?: { suggestedText?: string }; error?: string } | null;
+      if (!res.ok || !payload?.data?.suggestedText) {
+        setImprovedError(payload?.error ?? "تعذر إنشاء الصياغة المقترحة — حاول مرة أخرى.");
+        return;
+      }
+      setImprovedTextAI(payload.data.suggestedText.trim());
+    } catch {
+      setImprovedError("تعذر الاتصال بخدمة الصياغة.");
+    } finally {
+      setImprovedLoading(false);
     }
   }
 
@@ -2395,11 +2445,11 @@ export default function ContentStudioPage() {
             );
           })()}
 
-          {/* ── نص مقترح محسّن — يظهر فقط عند مراجعة نص كتبه المستخدم ── */}
+          {/* ── نص مقترح محسّن — إعادة صياغة كاملة بالذكاء الاصطناعي ── */}
           {(() => {
             if (path === "create") return null;
-            const improvedText = review.governedRewrites?.[0]?.suggestedText ?? review.languageQuality?.improvedDraft;
-            if (!improvedText) return null;
+            const hasIssues = review.findings.length > 0 || review.languageQuality.issues.length > 0;
+            if (!hasIssues) return null;
             return (
               <Panel className="border-violetBorder bg-violetSoft">
                 <div className="mb-3 flex items-center gap-2">
@@ -2407,17 +2457,46 @@ export default function ContentStudioPage() {
                   <p className="text-sm font-semibold text-violetText">نص مقترح محسّن</p>
                 </div>
                 <p className="mb-3 text-xs leading-6 text-violetText/70">
-                  نص معاد صياغته وفق قواعد السلوك المهني للمحامي — يمكنك استخدامه مباشرة أو تعديله.
+                  إعادة صياغة كاملة للمحتوى تعالج جميع الملاحظات وفق قواعد السلوك المهني واللائحة التنفيذية، وتُفحص آلياً عبر محرك الامتثال قبل عرضها.
                 </p>
-                <p className="text-sm leading-8 text-violetText">{improvedText}</p>
-                <button
-                  type="button"
-                  onClick={() => { setReviewText(improvedText); setReview(null); setPath("review"); }}
-                  className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-violetBorder bg-white px-4 py-2 text-sm font-medium text-violetText transition hover:border-violet hover:bg-white/80 focus-ring"
-                >
-                  <Edit3 size={14} aria-hidden="true" />
-                  استخدم هذا النص
-                </button>
+                {improvedTextAI ? (
+                  <>
+                    <p className="whitespace-pre-wrap rounded-lg bg-white/70 p-4 text-sm leading-8 text-violetText">{improvedTextAI}</p>
+                    <div className="mt-3 flex flex-wrap gap-3">
+                      <button
+                        type="button"
+                        onClick={() => { setReviewText(improvedTextAI); setReview(null); setPath("review"); }}
+                        className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-violetBorder bg-white px-4 py-2 text-sm font-medium text-violetText transition hover:border-violet hover:bg-white/80 focus-ring"
+                      >
+                        <Edit3 size={14} aria-hidden="true" />
+                        استخدم هذا النص
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => void requestImprovedText()}
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-violetBorder bg-white/60 px-4 py-2 text-sm text-violetText/80 transition hover:border-violet hover:text-violetText focus-ring"
+                      >
+                        <Sparkles size={14} aria-hidden="true" />
+                        صياغة جديدة
+                      </button>
+                    </div>
+                  </>
+                ) : improvedLoading ? (
+                  <div className="flex items-center gap-3 rounded-lg bg-white/70 p-4 text-sm leading-7 text-violetText/75">
+                    <span className="inline-block h-5 w-5 shrink-0 animate-spin rounded-full border-2 border-violet/20 border-t-violet" />
+                    جارٍ إعادة صياغة المحتوى والتحقق من التزامه بالقواعد — قد يستغرق حتى دقيقة...
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => void requestImprovedText()}
+                    className="inline-flex items-center gap-2 rounded-lg bg-violet px-4 py-2.5 text-sm font-medium text-white transition hover:bg-violetDark focus-ring"
+                  >
+                    <Sparkles size={15} aria-hidden="true" />
+                    أعد صياغة المحتوى
+                  </button>
+                )}
+                {improvedError && <p className="mt-3 text-xs leading-6 text-red-600">{improvedError}</p>}
               </Panel>
             );
           })()}

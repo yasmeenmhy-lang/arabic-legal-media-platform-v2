@@ -791,22 +791,6 @@ export default function ContentReviewPage() {
               )}
             </div>
 
-            {/* الصياغات من نظام المراجعة */}
-            {review.governedRewrites.length ? review.governedRewrites.map((rewrite) => {
-              const enhancedRewrite = review.aiEnhancement?.rewriteSuggestions.find((item) => item.rewriteId === rewrite.id);
-              return (
-              <div key={rewrite.id} className="rounded-xl border border-line p-5">
-                {enhancedRewrite?.explanation ? <p className="mb-3 rounded-lg bg-mint/50 p-3 text-xs leading-6 text-palm">{enhancedRewrite.explanation}</p> : null}
-                <p className="leading-8">{enhancedRewrite?.suggestedText ?? rewrite.suggestedText}</p>
-                <p className="mt-3 rounded-lg bg-paper p-3 text-xs leading-6 text-ink/65">النص المقترح لغرض التعليم والمساعدة فقط، وتظل مسؤولية النشر والمشاركة والاعتماد على المستخدم.</p>
-                <div className="mt-4 grid gap-3 md:grid-cols-2">
-                  <div className="rounded-lg bg-paper p-4"><p className="text-xs text-ink/55">قبل التوصية</p><p className="mt-2">المخاطر {riskDisplayLabel(rewrite.originalRiskLevel as RiskLevel)}</p></div>
-                  <div className="rounded-lg bg-mint p-4"><p className="text-xs text-palm">الأثر المتوقع بعد التطبيق</p><p className="mt-2">المخاطر المتوقعة {riskDisplayLabel(rewrite.proposedRiskLevel as RiskLevel)}</p></div>
-                </div>
-                <button type="button" onClick={applyRewrite} disabled={loading} className="mt-4 inline-flex items-center gap-2 rounded-md bg-palm px-4 py-2.5 text-white"><Sparkles size={16} />تطبيق الصياغة وإعادة التقييم</button>
-              </div>
-            );
-            }) : null}
           </Panel>
           </section>
 
