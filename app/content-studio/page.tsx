@@ -411,6 +411,9 @@ export default function ContentStudioPage() {
   // Visual translation panel (step 3 — works for all content kinds)
   const [vtType, setVtType] = useState<"infographic" | "chart" | "mindmap" | "image">("infographic");
   const [vtChartType, setVtChartType] = useState("");
+  const [vtStyle, setVtStyle] = useState("");
+  const [vtDimensions, setVtDimensions] = useState("");
+  const [vtEditText, setVtEditText] = useState("");
   const [vtConfirming, setVtConfirming] = useState(false);
   const [vtLoading, setVtLoading] = useState(false);
   const [vtSvg, setVtSvg] = useState("");
@@ -418,6 +421,7 @@ export default function ContentStudioPage() {
   const [vtError, setVtError] = useState("");
   const [vtSuggesting, setVtSuggesting] = useState(false);
   const [vtSuggestionReason, setVtSuggestionReason] = useState("");
+  const [imageGenEditText, setImageGenEditText] = useState("");
   const [planFrequency, setPlanFrequency] = useState("");
   const [planDateRange, setPlanDateRange] = useState("");
   const [visualMode, setVisualMode] = useState<"upload" | "describe">("upload");
@@ -602,6 +606,9 @@ export default function ContentStudioPage() {
     setImageGenSvg("");
     setVtType("infographic");
     setVtChartType("");
+    setVtStyle("");
+    setVtDimensions("");
+    setVtEditText("");
     setVtConfirming(false);
     setVtLoading(false);
     setVtSvg("");
@@ -609,6 +616,7 @@ export default function ContentStudioPage() {
     setVtError("");
     setVtSuggesting(false);
     setVtSuggestionReason("");
+    setImageGenEditText("");
   }
 
   function buildInfographicDesc(): string {
@@ -673,7 +681,7 @@ export default function ContentStudioPage() {
     }
   }
 
-  async function generateVisualTranslation() {
+  async function generateVisualTranslation(editInstruction?: string) {
     if (!generatedText.trim()) return;
     setVtLoading(true);
     setVtError("");
@@ -687,17 +695,82 @@ export default function ContentStudioPage() {
           description: generatedText.trim(),
           visualType: vtType,
           chartType: vtType === "chart" ? (vtChartType || undefined) : undefined,
+          style: vtType === "image" ? (vtStyle || undefined) : undefined,
+          dimensions: vtType === "image" ? (vtDimensions || undefined) : undefined,
           channel: channel || undefined,
+          editInstruction: editInstruction?.trim() || undefined,
         }),
       });
       const data = (await res.json()) as { svgCode?: string; imageUrl?: string; error?: string };
       if (!res.ok) { setVtError(data.error ?? "فشل في إنشاء المرئي"); return; }
       if (data.svgCode) setVtSvg(data.svgCode);
       else setVtUrl(data.imageUrl ?? "");
+      setVtEditText("");
     } catch {
       setVtError("تعذر الاتصال بخدمة إنشاء المرئيات");
     } finally {
       setVtLoading(false);
+    }
+  }
+
+  // ── PPTX export: renders the visual into a PowerPoint slide ──
+
+  function svgToPngData(svg: string): Promise<{ dataUrl: string; w: number; h: number }> {
+    return new Promise((resolve, reject) => {
+      const match = svg.match(/viewBox="0 0 (\d+) (\d+)"/);
+      const W = match ? parseInt(match[1]) : 1200;
+      const H = match ? parseInt(match[2]) : 628;
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        canvas.width = W;
+        canvas.height = H;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) { reject(new Error("canvas")); return; }
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, W, H);
+        ctx.drawImage(img, 0, 0, W, H);
+        resolve({ dataUrl: canvas.toDataURL("image/png"), w: W, h: H });
+      };
+      img.onerror = () => reject(new Error("svg"));
+      img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
+    });
+  }
+
+  function urlToPngData(url: string): Promise<{ dataUrl: string; w: number; h: number }> {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        canvas.width = img.naturalWidth || 1024;
+        canvas.height = img.naturalHeight || 1024;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) { reject(new Error("canvas")); return; }
+        ctx.drawImage(img, 0, 0);
+        resolve({ dataUrl: canvas.toDataURL("image/png"), w: canvas.width, h: canvas.height });
+      };
+      img.onerror = () => reject(new Error("image"));
+      img.src = url;
+    });
+  }
+
+  async function downloadPptx(source: { svg?: string; url?: string }, filename: string) {
+    try {
+      const PptxGen = (await import("pptxgenjs")).default;
+      const { dataUrl, w, h } = source.svg
+        ? await svgToPngData(source.svg)
+        : await urlToPngData(source.url ?? "");
+      const pptx = new PptxGen();
+      pptx.defineLayout({ name: "VIS", width: 10, height: 7.5 });
+      pptx.layout = "VIS";
+      const slide = pptx.addSlide();
+      const hIn = Math.min(7.5, (h / w) * 10);
+      const wIn = hIn >= 7.5 ? (w / h) * 7.5 : 10;
+      slide.addImage({ data: dataUrl, x: (10 - wIn) / 2, y: (7.5 - hIn) / 2, w: wIn, h: hIn });
+      await pptx.writeFile({ fileName: filename });
+    } catch {
+      flash("تعذر إنشاء ملف PowerPoint");
     }
   }
 
@@ -732,7 +805,7 @@ export default function ContentStudioPage() {
     }
   }
 
-  async function generateImage(descOverride?: string) {
+  async function generateImage(descOverride?: string, editInstruction?: string) {
     const description = descOverride ?? imageDesc;
     if (!description.trim()) return;
 
@@ -761,6 +834,7 @@ export default function ContentStudioPage() {
           style: imageStyle || undefined,
           dimensions: imageDimensions || undefined,
           channel: channel || undefined,
+          editInstruction: editInstruction?.trim() || undefined,
         }),
       });
       const data = (await res.json()) as { svgCode?: string; imageUrl?: string; prompt?: string; error?: string };
@@ -774,6 +848,7 @@ export default function ContentStudioPage() {
         setImageGenUrl(data.imageUrl ?? "");
         setImageGenPrompt(data.prompt ?? "");
       }
+      setImageGenEditText("");
     } catch {
       setImageGenError("تعذر الاتصال بخدمة إنشاء الصور");
     } finally {
@@ -993,6 +1068,14 @@ export default function ContentStudioPage() {
                           </button>
                           <button
                             type="button"
+                            onClick={() => void downloadPptx({ url: imageGenUrl }, "generated-image.pptx")}
+                            className="shrink-0 whitespace-nowrap rounded-lg border border-line bg-paper px-3 py-1 text-xs font-medium text-ink/70 transition hover:border-palm hover:text-palm"
+                            title="تنزيل شريحة PowerPoint قابلة للتحرير"
+                          >
+                            PowerPoint
+                          </button>
+                          <button
+                            type="button"
                             onClick={() => generateImage()}
                             className="shrink-0 whitespace-nowrap rounded-lg border border-line bg-paper px-3 py-1 text-xs font-medium text-ink/70 transition hover:border-palm hover:text-palm"
                           >
@@ -1008,6 +1091,24 @@ export default function ContentStudioPage() {
                             مسح
                           </button>
                         </div>
+                      </div>
+                      {/* طلب تعديل على الصورة الحالية */}
+                      <div className="flex flex-wrap items-center gap-2 border-t border-line bg-paper/60 px-3 py-2.5">
+                        <input
+                          type="text"
+                          value={imageGenEditText}
+                          onChange={(e) => setImageGenEditText(e.target.value)}
+                          placeholder="اطلبي تعديلاً — مثال: خلفية أفتح، زاوية مختلفة، إضاءة أقوى..."
+                          className="min-w-40 flex-1 rounded-lg border border-line bg-white px-3 py-1.5 text-xs focus:border-palm focus:outline-none"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => void generateImage(undefined, imageGenEditText)}
+                          disabled={!imageGenEditText.trim()}
+                          className="shrink-0 whitespace-nowrap rounded-lg bg-palm px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-palm/90 disabled:opacity-40"
+                        >
+                          تطبيق التعديل
+                        </button>
                       </div>
                       {imageGenPrompt && (
                         <details className="border-t border-line">
@@ -1836,6 +1937,51 @@ export default function ContentStudioPage() {
                 </div>
               )}
 
+              {/* Image options: style + dimensions */}
+              {vtType === "image" && (
+                <>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-xs text-ink/45">الأسلوب:</span>
+                    {["احترافي رسمي", "إبداعي ملوّن", "بسيط ونظيف", "إخباري صارم"].map((s) => (
+                      <button
+                        key={s}
+                        type="button"
+                        onClick={() => setVtStyle(vtStyle === s ? "" : s)}
+                        className={`rounded-lg border px-2.5 py-1 text-xs transition ${
+                          vtStyle === s
+                            ? "border-palm bg-white text-palm"
+                            : "border-line bg-white/60 text-ink/50 hover:border-palm hover:text-palm"
+                        }`}
+                      >
+                        {s}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-xs text-ink/45">الأبعاد:</span>
+                    {[
+                      { key: "1:1", label: "مربع ١:١" },
+                      { key: "16:9", label: "أفقي ١٦:٩" },
+                      { key: "9:16", label: "عمودي ٩:١٦" },
+                      { key: "4:5", label: "٤:٥ إنستغرام" },
+                    ].map((d) => (
+                      <button
+                        key={d.key}
+                        type="button"
+                        onClick={() => setVtDimensions(vtDimensions === d.key ? "" : d.key)}
+                        className={`rounded-lg border px-2.5 py-1 text-xs transition ${
+                          vtDimensions === d.key
+                            ? "border-palm bg-white text-palm"
+                            : "border-line bg-white/60 text-ink/50 hover:border-palm hover:text-palm"
+                        }`}
+                      >
+                        {d.label}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+
               {/* Generate / confirm / loading / result */}
               {!vtLoading && !vtSvg && !vtUrl && !vtConfirming && (
                 <button
@@ -1901,6 +2047,9 @@ export default function ContentStudioPage() {
                         className="shrink-0 whitespace-nowrap rounded-lg border border-line bg-paper px-3 py-1 text-xs font-medium text-ink/70 transition hover:border-palm hover:text-palm">SVG</button>
                       <button type="button" onClick={() => downloadSvgAsPng(vtSvg, `${vtType}.svg`)}
                         className="shrink-0 whitespace-nowrap rounded-lg border border-line bg-paper px-3 py-1 text-xs font-medium text-ink/70 transition hover:border-palm hover:text-palm">PNG</button>
+                      <button type="button" onClick={() => void downloadPptx({ svg: vtSvg }, `${vtType}.pptx`)}
+                        className="shrink-0 whitespace-nowrap rounded-lg border border-line bg-paper px-3 py-1 text-xs font-medium text-ink/70 transition hover:border-palm hover:text-palm"
+                        title="تنزيل شريحة PowerPoint قابلة للتحرير">PowerPoint</button>
                       <button type="button" onClick={() => { setVtSvg(""); setVtUrl(""); void generateVisualTranslation(); }}
                         className="shrink-0 whitespace-nowrap rounded-lg border border-line bg-paper px-3 py-1 text-xs font-medium text-ink/70 transition hover:border-palm hover:text-palm">إعادة الإنشاء</button>
                       <button type="button" onClick={() => { setVtSvg(""); setVtUrl(""); setVtError(""); }}
@@ -1910,6 +2059,24 @@ export default function ContentStudioPage() {
                         مسح
                       </button>
                     </div>
+                  </div>
+                  {/* طلب تعديل على المرئي الحالي */}
+                  <div className="flex flex-wrap items-center gap-2 border-t border-line bg-paper/60 px-3 py-2.5">
+                    <input
+                      type="text"
+                      value={vtEditText}
+                      onChange={(e) => setVtEditText(e.target.value)}
+                      placeholder="اطلبي تعديلاً — مثال: كبّر الخط، غيّر الألوان، بسّط المحتوى..."
+                      className="min-w-40 flex-1 rounded-lg border border-line bg-white px-3 py-1.5 text-xs focus:border-palm focus:outline-none"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => void generateVisualTranslation(vtEditText)}
+                      disabled={!vtEditText.trim()}
+                      className="shrink-0 whitespace-nowrap rounded-lg bg-palm px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-palm/90 disabled:opacity-40"
+                    >
+                      تطبيق التعديل
+                    </button>
                   </div>
                 </div>
               )}
@@ -1924,6 +2091,9 @@ export default function ContentStudioPage() {
                         className="shrink-0 whitespace-nowrap rounded-lg border border-line bg-paper px-3 py-1 text-xs font-medium text-ink/70 transition hover:border-palm hover:text-palm">JPG</a>
                       <button type="button" onClick={() => void downloadUrlAsPng(vtUrl, "visual.png")}
                         className="shrink-0 whitespace-nowrap rounded-lg border border-line bg-paper px-3 py-1 text-xs font-medium text-ink/70 transition hover:border-palm hover:text-palm">PNG</button>
+                      <button type="button" onClick={() => void downloadPptx({ url: vtUrl }, "visual.pptx")}
+                        className="shrink-0 whitespace-nowrap rounded-lg border border-line bg-paper px-3 py-1 text-xs font-medium text-ink/70 transition hover:border-palm hover:text-palm"
+                        title="تنزيل شريحة PowerPoint قابلة للتحرير">PowerPoint</button>
                       <button type="button" onClick={() => { setVtSvg(""); setVtUrl(""); void generateVisualTranslation(); }}
                         className="shrink-0 whitespace-nowrap rounded-lg border border-line bg-paper px-3 py-1 text-xs font-medium text-ink/70 transition hover:border-palm hover:text-palm">إعادة الإنشاء</button>
                       <button type="button" onClick={() => { setVtSvg(""); setVtUrl(""); setVtError(""); }}
@@ -1933,6 +2103,24 @@ export default function ContentStudioPage() {
                         مسح
                       </button>
                     </div>
+                  </div>
+                  {/* طلب تعديل على الصورة الحالية */}
+                  <div className="flex flex-wrap items-center gap-2 border-t border-line bg-paper/60 px-3 py-2.5">
+                    <input
+                      type="text"
+                      value={vtEditText}
+                      onChange={(e) => setVtEditText(e.target.value)}
+                      placeholder="اطلبي تعديلاً — مثال: خلفية أفتح، ألوان زرقاء، أسلوب أبسط..."
+                      className="min-w-40 flex-1 rounded-lg border border-line bg-white px-3 py-1.5 text-xs focus:border-palm focus:outline-none"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => void generateVisualTranslation(vtEditText)}
+                      disabled={!vtEditText.trim()}
+                      className="shrink-0 whitespace-nowrap rounded-lg bg-palm px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-palm/90 disabled:opacity-40"
+                    >
+                      تطبيق التعديل
+                    </button>
                   </div>
                 </div>
               )}

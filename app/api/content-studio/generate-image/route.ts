@@ -12,6 +12,8 @@ const schema = z.object({
   style: z.string().optional(),
   dimensions: z.string().optional(),
   channel: z.string().optional(),
+  // طلب تعديل على مرئي سبق إنشاؤه — يُطبق على البيانات والتصميم معاً
+  editInstruction: z.string().max(500).optional(),
 });
 
 // ── Types ─────────────────────────────────────────────────────────────────
@@ -663,7 +665,12 @@ export async function POST(request: Request) {
   const parsed = schema.safeParse(await request.json());
   if (!parsed.success) return badRequest("المدخلات غير مكتملة");
 
-  const { description, visualType, chartType, style, dimensions, channel } = parsed.data;
+  const { description, visualType, chartType, style, dimensions, channel, editInstruction } = parsed.data;
+
+  // عند طلب تعديل: يُلحق الطلب بالوصف فيُطبق على البيانات المولدة والتصميم
+  const effectiveDescription = editInstruction?.trim()
+    ? `${description}\n\nطلب تعديل من المستخدم يجب تطبيقه حرفياً على النتيجة: ${editInstruction.trim()}`
+    : description;
 
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
@@ -676,7 +683,7 @@ export async function POST(request: Request) {
   // ── Chart ─────────────────────────────────────────────────────────────────
   if (visualType === "chart") {
     try {
-      const raw = await callClaude(apiKey, "claude-haiku-4-5-20251001", 600, chartDataPrompt(description, chartType ?? ""));
+      const raw = await callClaude(apiKey, "claude-haiku-4-5-20251001", 600, chartDataPrompt(effectiveDescription, chartType ?? ""));
       const data = parseJson<ChartData>(raw);
       const svgCode = renderChartSvg(data, chartType ?? "");
       return NextResponse.json({ svgCode });
@@ -689,7 +696,7 @@ export async function POST(request: Request) {
   // ── Mind map ──────────────────────────────────────────────────────────────
   if (visualType === "mindmap") {
     try {
-      const raw = await callClaude(apiKey, "claude-haiku-4-5-20251001", 600, mindMapDataPrompt(description));
+      const raw = await callClaude(apiKey, "claude-haiku-4-5-20251001", 600, mindMapDataPrompt(effectiveDescription));
       const data = parseJson<MindMapData>(raw);
       // مزود صور خارجي (نانوبنانا / OpenAI) إن توفر مفتاحه — وإلا المحرك الداخلي
       const aiUrl = await providerImage(mindMapImagePrompt(data), 1080, 1080);
@@ -705,7 +712,7 @@ export async function POST(request: Request) {
   // ── Infographic ───────────────────────────────────────────────────────────
   if (visualType === "infographic") {
     try {
-      const raw = await callClaude(apiKey, "claude-haiku-4-5-20251001", 800, infographicDataPrompt(description));
+      const raw = await callClaude(apiKey, "claude-haiku-4-5-20251001", 800, infographicDataPrompt(effectiveDescription));
       const data = parseJson<InfographicData>(raw);
       // مزود صور خارجي (نانوبنانا / OpenAI) إن توفر مفتاحه — وإلا المحرك الداخلي
       const aiUrl = await providerImage(infographicImagePrompt(data), 1024, 1536);
@@ -725,7 +732,7 @@ export async function POST(request: Request) {
       "claude-haiku-4-5-20251001",
       300,
       `Convert this Arabic legal media description into a high-quality English prompt for the Flux image generation model.
-Description: ${description}
+Description: ${effectiveDescription}
 Style: ${style ?? "professional, clean, corporate"}
 Platform: ${channel ?? "social media"}
 Format: ${dimensions ?? "square"}
