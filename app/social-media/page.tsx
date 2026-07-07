@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { Clipboard, Download, Edit3, FileDown, Share2 } from "lucide-react";
+import { AlertTriangle, Clipboard, Download, Edit3, FileDown, Share2 } from "lucide-react";
 import { Button, PageHeader, Panel, SectionTitle, StatusBadge } from "@/components/ui";
 import { socialBrandIcons, socialBrandStyles } from "@/components/social-icons";
 import { getActiveContentSelection, loadContentRecords, setActiveContentSelection, type StoredContentRecord } from "@/lib/content-record-store";
@@ -39,6 +39,22 @@ export default function SocialMediaPage() {
   const [records, setRecords] = useState<StoredContentRecord[]>([]);
   const [selectedId, setSelectedId] = useState("");
   const [message, setMessage] = useState("");
+  // تأكيد قياسي قبل كل مشاركة أو نسخ — التنبيه يظهر للمستخدم ولا يدخل النص المشارك
+  const [confirmShare, setConfirmShare] = useState<
+    { label: string; href?: string } | null
+  >(null);
+
+  async function executeConfirmedShare() {
+    if (!confirmShare) return;
+    if (confirmShare.href) {
+      window.open(confirmShare.href, "_blank", "noopener,noreferrer");
+      setMessage(`فُتحت نافذة المشاركة لقناة ${confirmShare.label}.`);
+    } else {
+      await navigator.clipboard.writeText(prepareChannelCopy({ body }));
+      setMessage(`تم نسخ نص المحتوى لقناة ${confirmShare.label}. افتح التطبيق وأكمل النشر.`);
+    }
+    setConfirmShare(null);
+  }
 
   useEffect(() => {
     const loaded = loadContentRecords();
@@ -127,20 +143,16 @@ export default function SocialMediaPage() {
                     <p className="mt-4 text-sm leading-7">{recommendation?.reason ?? "يمكن إعداد نسخة لهذه القناة بعد تكييف الصيغة بصرياً ومراجعتها."}</p>
                     <p className="mt-3 text-xs leading-6 text-ink/60">{recommendation?.risks ?? "راجع طول النص والخصوصية وسياسات المنصة قبل النشر."}</p>
                     {platform.share ? (
-                      <a
-                        href={platform.share(prepareChannelCopy({ body }))}
-                        target="_blank"
-                        rel="noopener noreferrer"
+                      <button
+                        type="button"
+                        onClick={() => setConfirmShare({ label: platform.label, href: platform.share!(prepareChannelCopy({ body })) })}
                         className="mt-4 inline-flex items-center gap-2 rounded-lg bg-palm px-[11px] py-[9px] text-sm font-medium text-white transition hover:bg-palmDark focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-palm"
-                      ><Share2 size={15} />فتح المشاركة</a>
+                      ><Share2 size={15} />فتح المشاركة</button>
                     ) : (
                       <Button
                         variant="secondary-gray"
                         className="mt-4"
-                        onClick={async () => {
-                          await navigator.clipboard.writeText(prepareChannelCopy({ body }));
-                          setMessage(`تم نسخ نص المحتوى لقناة ${platform.label}. افتح التطبيق وأكمل النشر.`);
-                        }}
+                        onClick={() => setConfirmShare({ label: platform.label })}
                         leadingIcon={<Clipboard size={15} />}
                       >نسخ للتجهيز</Button>
                     )}
@@ -159,6 +171,31 @@ export default function SocialMediaPage() {
           </div>
         </Panel>
       )}
+
+      {/* تأكيد قياسي قبل كل مشاركة */}
+      {confirmShare ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 p-4" role="dialog" aria-modal="true">
+          <div className="w-full max-w-md rounded-xl border border-line bg-white p-5 shadow-lg">
+            <div className="flex items-start gap-3">
+              <AlertTriangle size={22} className="mt-0.5 shrink-0 text-amber-500" aria-hidden="true" />
+              <div>
+                <p className="text-base font-semibold">تأكيد المشاركة — {confirmShare.label}</p>
+                <p className="mt-2 text-sm leading-7 text-ink/75">
+                  راجع النسخة النهائية داخل التطبيق المستهدف قبل النشر — تبقى مسؤولية النشر على المستخدم.
+                </p>
+              </div>
+            </div>
+            <div className="mt-5 flex flex-wrap justify-start gap-3">
+              <Button onClick={() => void executeConfirmedShare()} leadingIcon={<Share2 size={15} />}>
+                متابعة المشاركة
+              </Button>
+              <Button variant="secondary-gray" onClick={() => setConfirmShare(null)}>
+                إلغاء
+              </Button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
