@@ -350,7 +350,7 @@ export default function ContentManagementPage() {
                   return (
                     <>
                       <tr key={record.id} className="border-b border-line/60 transition hover:bg-paper last:border-none">
-                        <td className="px-4 py-4 text-xs font-bold text-ink/40">{index + 1}</td>
+                        <td className="whitespace-nowrap px-4 py-4 text-xs font-bold tabular-nums text-ink/40">{index + 1}</td>
                         <td className="px-4 py-4">
                           <p className="font-medium text-ink">{record.title}</p>
                           {current && <p className="mt-0.5 text-xs text-ink/50">{current.contentTypeLabel} · {current.channel}</p>}
