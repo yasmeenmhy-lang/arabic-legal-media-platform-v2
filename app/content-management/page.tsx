@@ -196,10 +196,9 @@ export default function ContentManagementPage() {
 
         {/* رسالة طمأنة: السجل وسيلة وقائية داخلية — لا استخدام تأديبياً وسرية تامة */}
         <div className="rounded-xl border border-infoBorder bg-infoSoft p-4">
-          <p className="text-sm leading-7 text-ink/80">
-            <span className="font-semibold text-infoDark">سجلك وقائي وسري:</span>{" "}
-            هذا السجل أداة مراجعة داخلية لدعم التزامك المهني قبل النشر. لا تُستخدم بياناتك أو نتائج التحليل
-            لأي إجراء تأديبي أو رقابي، ولا تُشارك مع أي جهة — محتواك ومعلوماتك سرية وتُحفظ في متصفحك فقط.
+          <p className="text-sm font-semibold text-infoDark">وقائي، لا رقابي · سري، لا يُشارك</p>
+          <p className="mt-1 text-sm leading-7 text-ink/80">
+            غاية السجل دعم التزامك قبل النشر — نتائج التحليل لا تُستخدم تأديبياً، ومعلوماتك تبقى على جهازك.
           </p>
         </div>
         <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-line bg-white py-16 shadow-sm">
