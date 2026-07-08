@@ -219,6 +219,15 @@ export default function ContentManagementPage() {
         action={<ButtonLink href="/content-review">إعداد محتوى جديد</ButtonLink>}
       />
 
+      {/* رسالة طمأنة: السجل وسيلة وقائية داخلية — لا استخدام تأديبياً وسرية تامة */}
+      <div className="rounded-xl border border-infoBorder bg-infoSoft p-4">
+        <p className="text-sm font-semibold text-infoDark">المراجعة وسيلة وقائية لا رقابية</p>
+        <p className="mt-1 text-sm leading-7 text-ink/80">
+          الغرض من هذا السجل التثبّت من سلامة المحتوى قبل نشره ودعم الامتثال الذاتي. لا تُوظَّف نتائج
+          الفحص لأي إجراء تأديبي أو مساءلة، وتظل بياناتك ومحتواك في سرية تامة دون اطلاع أي جهة عليها.
+        </p>
+      </div>
+
       <nav aria-label="تصفية سجل المحتوى" className="flex w-full gap-2 overflow-x-auto rounded-lg border border-line bg-white p-2 shadow-sm">
         {([
           ["all", `الكل (${counts.all})`],
