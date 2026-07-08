@@ -14,6 +14,8 @@ const schema = z.object({
   channel: z.string().optional(),
   // طلب تعديل على مرئي سبق إنشاؤه — يُطبق على البيانات والتصميم معاً
   editInstruction: z.string().max(500).optional(),
+  // البنية الحالية للرسم — التعديل يُطبَّق عليها بدل إعادة التوليد من الصفر
+  previousVisual: z.object({ type: z.string(), chartType: z.string().optional(), data: z.unknown() }).optional(),
 });
 
 // ── Types ─────────────────────────────────────────────────────────────────
@@ -596,69 +598,91 @@ ${rootNode}
 // ── Infographic: 1080×dynamic portrait — safe for all platforms ───────────
 
 function renderInfographicSvg(d: InfographicData): string {
-  const W = 1080;
-  const PAD = 48;
+  // إنفوغراف عمودي عالي الجودة: التفاف كامل للنصوص بلا قصّ، ارتفاعات متكيفة،
+  // لون مميز لكل قسم من لوحة العلامة، وظلال بطاقات — بنفس مستوى الخريطة الذهنية.
+  const W = 1080, PAD = 56;
+  const ACCENTS = MM_ACCENTS;
+  const CARD_W = W - 2 * PAD;
+  const BAR_W = 10;
+  const TR = W - PAD - 34;              // مرساة النص يمين (RTL) داخل البطاقة
+  const textMax = CARD_W - 34 - 120;    // مساحة النص: نطرح الشريط ورقم الخلفية
+
+  const chars = (fs: number) => Math.max(Math.floor(textMax / (fs * 0.56)), 12);
   const sections = (d.sections || []).slice(0, 4);
-  const HEADER_H = 170;
-  const SUB_H    = 88;
-  const SEC_H    = 240;
-  const FOOTER_H = 72;
-  const H = HEADER_H + SUB_H + sections.length * SEC_H + FOOTER_H;
 
-  // Section accent colours — DGA palm scale
-  const ACCENTS = [PALM, PALM_DARK, PALM_DEEP, PALM];
-  const CARD_W  = W - 2 * PAD;
-  const ACCENT_W = 10;
-  // Text is right-aligned at the RIGHT edge of the card (RTL Arabic)
-  const TR = W - PAD;   // text right anchor (text-anchor="end" → right edge at TR)
+  // الترويسة والعنوان الفرعي يلتفان بدل القص
+  const titleLines = wrapFull(d.title, Math.floor((W - 160) / (30 * 0.56)));
+  const HEADER_H = 96 + titleLines.length * 42;
+  const subLines = wrapFull(d.subtitle, Math.floor((W - 160) / (16 * 0.56)));
+  const SUB_H = 40 + subLines.length * 26;
 
-  const sectionBlocks = sections.map((sec, i) => {
-    const y0    = HEADER_H + SUB_H + i * SEC_H + 14;
-    const cardH = SEC_H - 28;
-    const bg    = i % 2 === 0 ? MINT : "#ffffff";
-    const ac    = ACCENTS[i % 4];
+  // قياس كل قسم حسب محتواه الفعلي
+  type Sec = { heading: string[]; lines: string[][]; stat: string; h: number };
+  const measured: Sec[] = sections.map((sec) => {
+    const heading = wrapFull(sec.heading, chars(20));
+    const lines = [sec.line1, sec.line2, sec.line3].filter(Boolean).map((l) => wrapFull(l as string, chars(14.5)));
+    const bodyLines = lines.reduce((a, l) => a + l.length, 0);
+    const h = Math.max(26 + heading.length * 30 + 10 + bodyLines * 25 + (sec.stat ? 34 : 0) + 26, 150);
+    return { heading, lines, stat: sec.stat ?? "", h };
+  });
 
-    // Large translucent background number — decorative only
-    const numBgX = PAD + ACCENT_W + 52;
-    const numBgY = y0 + cardH / 2 + 22;
+  const GAP = 24;
+  const srcLines = wrapFull(d.source, 70);
+  const FOOTER_H = 40 + srcLines.length * 22;
+  const bodyH = measured.reduce((a, m) => a + m.h, 0) + GAP * (measured.length + 1);
+  const H = HEADER_H + SUB_H + bodyH + FOOTER_H;
 
-    const line3 = sec.line3
-      ? `<text x="${TR}" y="${y0 + 120}" text-anchor="end" font-family="${FONT}" font-size="12" fill="${INK_TER}">${trunc(sec.line3, 36)}</text>`
+  let y = HEADER_H + SUB_H + GAP;
+  const blocks = measured.map((m, i) => {
+    const ac = ACCENTS[i % ACCENTS.length];
+    const y0 = y;
+    y += m.h + GAP;
+    let ty = y0 + 26 + 20;
+    const headingText = `<text x="${TR}" y="${ty}" text-anchor="end" font-family="${FONT}" font-size="20" font-weight="700" fill="${INK}">${m.heading[0]}${m.heading.slice(1).map(() => "").join("")}${m.heading.slice(1).map((l) => `<tspan x="${TR}" dy="30">${l}</tspan>`).join("")}</text>`;
+    ty += (m.heading.length - 1) * 30 + 10;
+    const bodyText = m.lines.map((wrapped) => {
+      const first = ty + 25;
+      const t = `<text x="${TR}" y="${first}" text-anchor="end" font-family="${FONT}" font-size="14.5" fill="${INK_SEC}">${wrapped[0]}${wrapped.slice(1).map((l) => `<tspan x="${TR}" dy="25">${l}</tspan>`).join("")}</text>`;
+      ty = first + (wrapped.length - 1) * 25;
+      return t;
+    }).join("\n");
+    const statText = m.stat
+      ? `<text x="${TR}" y="${ty + 32}" text-anchor="end" font-family="${FONT}" font-size="15" font-weight="700" fill="${ac}">${m.stat}</text>`
       : "";
-    const stat  = sec.stat
-      ? `<text x="${TR}" y="${y0 + (sec.line3 ? 144 : 126)}" text-anchor="end" font-family="${FONT}" font-size="12" fill="${ac}" font-weight="600">${trunc(sec.stat, 34)}</text>`
-      : "";
-
-    return `<rect x="${PAD}" y="${y0}" width="${CARD_W}" height="${cardH}" rx="16" fill="${bg}" stroke="${LINE}" stroke-width="1.5"/>
-<rect x="${PAD}" y="${y0}" width="${ACCENT_W}" height="${cardH}" rx="5" fill="${ac}"/>
-<circle cx="${PAD + ACCENT_W / 2}" cy="${y0 + 28}" r="3" fill="#fff" opacity="0.45"/>
-<circle cx="${PAD + ACCENT_W / 2}" cy="${y0 + cardH - 28}" r="3" fill="#fff" opacity="0.45"/>
-<text x="${numBgX}" y="${numBgY}" text-anchor="middle" font-family="${FONT}" font-size="96" font-weight="600" fill="${ac}" opacity="0.07">${i + 1}</text>
-<text x="${TR}" y="${y0 + 48}" text-anchor="end" font-family="${FONT}" font-size="17" font-weight="600" fill="${INK}">${trunc(sec.heading, 26)}</text>
-<text x="${TR}" y="${y0 + 74}" text-anchor="end" font-family="${FONT}" font-size="13" fill="${INK_SEC}">${trunc(sec.line1, 36)}</text>
-<text x="${TR}" y="${y0 + 96}" text-anchor="end" font-family="${FONT}" font-size="13" fill="${INK_SEC}">${trunc(sec.line2, 36)}</text>
-${line3}${stat}`;
+    return `<g filter="url(#infShad)"><rect x="${PAD}" y="${y0}" width="${CARD_W}" height="${m.h}" rx="16" fill="#FFFFFF" stroke="${LINE}" stroke-width="1"/></g>
+<rect x="${W - PAD - BAR_W}" y="${y0}" width="${BAR_W}" height="${m.h}" rx="5" fill="${ac}"/>
+<text x="${PAD + 64}" y="${y0 + m.h / 2 + 30}" text-anchor="middle" font-family="${FONT}" font-size="92" font-weight="700" fill="${ac}" opacity="0.09">${i + 1}</text>
+${headingText}
+${bodyText}
+${statText}`;
   }).join("\n");
 
+  const titleText = `<text x="${W / 2}" y="${64 + 21}" text-anchor="middle" font-family="${FONT}" font-size="30" font-weight="700" fill="#fff">${titleLines[0]}${titleLines.slice(1).map((l) => `<tspan x="${W / 2}" dy="42">${l}</tspan>`).join("")}</text>`;
+  const subText = `<text x="${W / 2}" y="${HEADER_H + 34}" text-anchor="middle" font-family="${FONT}" font-size="16" fill="${PALM_DARK}">${subLines[0]}${subLines.slice(1).map((l) => `<tspan x="${W / 2}" dy="26">${l}</tspan>`).join("")}</text>`;
   const footerY = H - FOOTER_H;
+  const srcText = `<text x="${W / 2}" y="${footerY + 30}" text-anchor="middle" font-family="${FONT}" font-size="12.5" fill="${INK_TER}">${srcLines[0]}${srcLines.slice(1).map((l) => `<tspan x="${W / 2}" dy="22">${l}</tspan>`).join("")}</text>`;
+
   return `<svg width="100%" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
 <defs>
   <linearGradient id="hdrGrad" x1="0" y1="0" x2="1" y2="0">
     <stop offset="0%" stop-color="${PALM_DEEP}"/>
     <stop offset="100%" stop-color="${PALM}"/>
   </linearGradient>
+  <filter id="infShad" x="-20%" y="-20%" width="140%" height="140%">
+    <feDropShadow dx="0" dy="2" stdDeviation="5" flood-color="${INK}" flood-opacity="0.08"/>
+  </filter>
 </defs>
-<rect width="${W}" height="${H}" fill="#fff"/>
+<rect width="${W}" height="${H}" fill="${CANVAS_BG}"/>
 <rect width="${W}" height="${HEADER_H}" fill="url(#hdrGrad)"/>
-<text x="${W / 2}" y="${HEADER_H / 2 + 8}" text-anchor="middle" font-family="${FONT}" font-size="28" font-weight="600" fill="#fff">${trunc(d.title, 24)}</text>
+${titleText}
 <rect y="${HEADER_H}" width="${W}" height="${SUB_H}" fill="${MINT}"/>
-<text x="${W / 2}" y="${HEADER_H + 50}" text-anchor="middle" font-family="${FONT}" font-size="15" fill="${PALM_DARK}">${trunc(d.subtitle, 42)}</text>
-${sectionBlocks}
+${subText}
+${blocks}
 <rect x="0" y="${footerY}" width="${W}" height="${FOOTER_H}" fill="${MINT}"/>
-<line x1="${PAD}" y1="${footerY + 1}" x2="${W - PAD}" y2="${footerY + 1}" stroke="${LINE}" stroke-width="1"/>
-<text x="${W / 2}" y="${footerY + 42}" text-anchor="middle" font-family="${FONT}" font-size="12" fill="${INK_TER}">${trunc(d.source, 60)}</text>
+${srcText}
 </svg>`;
 }
+
 
 // ── Data prompts ───────────────────────────────────────────────────────────
 
@@ -756,11 +780,15 @@ export async function POST(request: Request) {
   const parsed = schema.safeParse(await request.json());
   if (!parsed.success) return badRequest("المدخلات غير مكتملة");
 
-  const { description, visualType, chartType, style, dimensions, channel, editInstruction } = parsed.data;
+  const { description, visualType, chartType, style, dimensions, channel, editInstruction, previousVisual } = parsed.data;
 
   // عند طلب تعديل: يُلحق الطلب بالوصف فيُطبق على البيانات المولدة والتصميم
+  // عند وجود بنية سابقة: التعديل يُطبَّق عليها حرفياً وكل ما عداه يبقى كما هو
+  const editGrounding = editInstruction?.trim() && previousVisual?.data
+    ? `\n\nالبنية الحالية المعتمدة للرسم (أعد نفس هذه البيانات حرفياً مع تطبيق طلب التعديل فقط — لا تغيّر أي نص أو قيمة لم يشملها الطلب):\n${JSON.stringify(previousVisual.data)}`
+    : "";
   const effectiveDescription = editInstruction?.trim()
-    ? `${description}\n\nطلب تعديل من المستخدم يجب تطبيقه حرفياً على النتيجة: ${editInstruction.trim()}`
+    ? `${description}\n\nطلب تعديل من المستخدم يجب تطبيقه حرفياً على النتيجة: ${editInstruction.trim()}${editGrounding}`
     : description;
 
   const apiKey = process.env.ANTHROPIC_API_KEY;

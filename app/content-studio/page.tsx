@@ -780,6 +780,8 @@ export default function ContentStudioPage() {
           dimensions: vtType === "image" ? (vtDimensions || undefined) : undefined,
           channel: channel || undefined,
           editInstruction: editInstruction?.trim() || undefined,
+          // البنية الحالية تُرسل مع طلب التعديل ليُطبَّق عليها لا أن يعاد التوليد من الصفر
+          previousVisual: editInstruction?.trim() && vtVisual ? vtVisual : undefined,
         }),
       });
       const data = (await res.json()) as { svgCode?: string; imageUrl?: string; visual?: VisualStructure; error?: string };
