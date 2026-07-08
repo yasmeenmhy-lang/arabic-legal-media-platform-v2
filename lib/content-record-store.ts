@@ -183,6 +183,7 @@ export function referencesFromReview(review: ReviewResult): ProfessionalOfficial
 
 export function saveContentDraft(input: {
   contentId: string;
+  title?: string;
   body: string;
   contentType: ContentKind;
   contentTypeLabel: string;
@@ -230,7 +231,7 @@ export function saveContentDraft(input: {
     version.updatedAt = timestamp;
   }
 
-  record.title = input.body.trim().slice(0, 72) || record.title;
+  record.title = input.title?.trim() || input.body.trim().slice(0, 72) || record.title;
   record.status = "مسودة";
   if (!record.approvedVersion) record.sharingStatus = "غير متاح";
   record.updatedAt = timestamp;
@@ -251,6 +252,7 @@ export function saveContentDraft(input: {
 
 export function upsertAnalyzedVersion(input: {
   contentId?: string;
+  title?: string;
   body: string;
   contentType: ContentKind;
   contentTypeLabel: string;
@@ -267,7 +269,7 @@ export function upsertAnalyzedVersion(input: {
   if (!record) {
     record = {
       id: contentId,
-      title: input.body.trim().slice(0, 72) || "محتوى دون عنوان",
+      title: input.title?.trim() || input.body.trim().slice(0, 72) || "محتوى دون عنوان",
       currentVersion: 1,
       status: "قيد التحليل",
       versions: [],
@@ -338,7 +340,7 @@ export function upsertAnalyzedVersion(input: {
       : "يحتاج إلى تعديل";
   version.updatedAt = timestamp;
   record.status = version.status;
-  record.title = input.body.trim().slice(0, 72) || record.title;
+  record.title = input.title?.trim() || input.body.trim().slice(0, 72) || record.title;
   record.updatedAt = timestamp;
   record.actions.unshift({
     id: makeId("action"),

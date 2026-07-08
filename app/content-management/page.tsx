@@ -10,7 +10,8 @@ import {
   setActiveContentSelection,
   type StoredContentRecord
 } from "@/lib/content-record-store";
-import { riskDisplayLabel, type RiskLevel } from "@/lib/types";
+import { riskDisplayLabel, type ReviewResult, type RiskLevel } from "@/lib/types";
+import { normalizeReviewResult } from "@/lib/review-normalizer";
 
 function formatDate(value?: string) {
   if (!value) return "غير متاح";
@@ -28,6 +29,13 @@ function complianceLabel(findings?: { resolved?: boolean }[]): "ملتزم" | "�
 function complianceTone(findings?: { resolved?: boolean }[]): "good" | "danger" | "neutral" {
   if (!findings) return "neutral";
   return findings.length === 0 ? "good" : "danger";
+}
+
+function displayStatus(storedStatus: string, analysis?: ReviewResult): { label: string; tone: "good" | "danger" | "neutral" } {
+  if (!analysis) return { label: "مسودة", tone: "neutral" }; // لا جاهزية ولا اعتماد بلا تحليل
+  const unresolved = analysis.findings.filter((f) => !f.resolved).length;
+  if (unresolved > 0) return { label: "يحتاج إلى تعديل", tone: "danger" };
+  return { label: storedStatus, tone: storedStatus === "معتمد" ? "good" : "neutral" };
 }
 
 function riskTone(level?: RiskLevel): "good" | "gold" | "danger" | "neutral" {
@@ -221,10 +229,12 @@ export default function ContentManagementPage() {
           <div className="md:hidden rounded-xl border border-line bg-white overflow-hidden">
             {filteredRecords.map((record, index) => {
               const current = record.versions.find((v) => v.version === record.currentVersion);
-              const findings = current?.analysis?.findings;
+              const analysis = current?.analysis ? normalizeReviewResult(current.analysis) : undefined;
+              const findings = analysis?.findings;
               const cLabel = complianceLabel(findings);
               const cTone = complianceTone(findings);
-              const risk = current?.analysis?.riskLevel;
+              const risk = analysis?.riskLevel;
+              const st = displayStatus(record.status, analysis);
               const isOpen = expanded === record.id;
               const showDetails = detailsId === record.id;
 
@@ -256,7 +266,7 @@ export default function ContentManagementPage() {
                         <div className="grid grid-cols-2 gap-x-4 gap-y-3 mb-4">
                           <div>
                             <p className="text-[10px] font-semibold text-ink/40 mb-1">الحالة</p>
-                            <StatusBadge tone={record.status === "معتمد" ? "good" : "neutral"}>{record.status}</StatusBadge>
+                            <StatusBadge tone={st.tone}>{st.label}</StatusBadge>
                           </div>
                           <div>
                             <p className="text-[10px] font-semibold text-ink/40 mb-1">الامتثال</p>
@@ -330,10 +340,12 @@ export default function ContentManagementPage() {
                 {filteredRecords.map((record, index) => {
                   const current = record.versions.find((v) => v.version === record.currentVersion);
                   const isExpanded = expanded === record.id;
-                  const findings = current?.analysis?.findings;
+                  const analysis = current?.analysis ? normalizeReviewResult(current.analysis) : undefined;
+                  const findings = analysis?.findings;
                   const cLabel = complianceLabel(findings);
                   const cTone = complianceTone(findings);
-                  const risk = current?.analysis?.riskLevel;
+                  const risk = analysis?.riskLevel;
+                  const st = displayStatus(record.status, analysis);
 
                   return (
                     <>
@@ -344,7 +356,7 @@ export default function ContentManagementPage() {
                           {current && <p className="mt-0.5 text-xs text-ink/50">{current.contentTypeLabel} · {current.channel}</p>}
                         </td>
                         <td className="px-4 py-4">
-                          <StatusBadge tone={record.status === "معتمد" ? "good" : "neutral"}>{record.status}</StatusBadge>
+                          <StatusBadge tone={st.tone}>{st.label}</StatusBadge>
                         </td>
                         <td className="px-4 py-4">
                           {cLabel
@@ -353,7 +365,7 @@ export default function ContentManagementPage() {
                         </td>
                         <td className="px-4 py-4">
                           {risk
-                            ? <StatusBadge tone={riskTone(risk)}>{risk}</StatusBadge>
+                            ? <StatusBadge tone={riskTone(risk)}>{riskDisplayLabel(risk)}</StatusBadge>
                             : <span className="text-ink/40">—</span>}
                         </td>
                         <td className="px-4 py-4 text-ink/70">{record.versions.length}</td>

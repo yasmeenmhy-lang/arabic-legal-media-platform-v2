@@ -1,6 +1,6 @@
 import { ExternalLink, FileText, Globe } from "lucide-react";
 import { ButtonLink, PageHeader, Panel, SectionTitle } from "@/components/ui";
-import { ReviewContextSummary, ReviewReferencesSection } from "@/components/review-context-summary";
+import { ReviewReferencesSection } from "@/components/review-context-summary";
 
 // ── بيانات الجهات وروابطها ─────────────────────────────────────────────────
 
@@ -68,7 +68,6 @@ export default function LibraryPage() {
         action={<ButtonLink href="/content-review">مراجعة محتوى</ButtonLink>}
       />
 
-      <ReviewContextSummary focus="references" />
       <ReviewReferencesSection />
 
       <Panel>

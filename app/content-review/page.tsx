@@ -188,6 +188,7 @@ function downloadBlob(name: string, type: string, body: string) {
 export default function ContentReviewPage() {
   const router = useRouter();
   const [text, setText] = useState("");
+  const [contentTitle, setContentTitle] = useState("");
   const [kind, setKind] = useState<ContentKind | "">("");
   const [channel, setChannel] = useState("");
   const [audience, setAudience] = useState("");
@@ -351,6 +352,7 @@ export default function ContentReviewPage() {
     if (!record || !version) return;
     setContentId(record.id);
     setVersionNumber(version.version);
+    setContentTitle(record.title === "محتوى دون عنوان" ? "" : record.title);
     setText(version.body);
     setKind(version.contentType);
     setChannel(version.channel);
@@ -401,6 +403,7 @@ export default function ContentReviewPage() {
       saveLatestReviewSnapshot(result);
       const saved = upsertAnalyzedVersion({
         contentId,
+        title: contentTitle,
         body: text,
         contentType: kind,
         contentTypeLabel,
@@ -442,6 +445,7 @@ export default function ContentReviewPage() {
       saveLatestReviewSnapshot(result);
       const saved = upsertAnalyzedVersion({
         contentId,
+        title: contentTitle,
         body: rewriteText,
         contentType: kind,
         contentTypeLabel,
@@ -485,6 +489,7 @@ export default function ContentReviewPage() {
     }
     const saved = saveContentDraft({
       contentId,
+      title: contentTitle,
       body: text,
       contentType: kind,
       contentTypeLabel,
@@ -1225,6 +1230,18 @@ export default function ContentReviewPage() {
         {!hasReviewContext ? (
           <p className="mt-2 text-xs leading-6 text-ink/60">اختر نوع المحتوى والقناة والجمهور والهدف حتى يكون التحليل مرتبطًا بالسياق الصحيح.</p>
         ) : null}
+        <label className="mt-4 block text-sm">
+          <span>عنوان المحتوى <span className="text-ink/40">(لتسهيل البحث في السجل ومركز التخطيط)</span></span>
+          <input
+            type="text"
+            value={contentTitle}
+            disabled={Boolean(review) && !isEditing}
+            onChange={(event) => setContentTitle(event.target.value)}
+            placeholder="مثال: توعية بحقوق العامل عند انتهاء العقد"
+            className="mt-2 w-full rounded-lg border border-line p-3 text-sm leading-7 transition disabled:bg-paper disabled:text-ink/65"
+            maxLength={90}
+          />
+        </label>
         <label className="mt-4 block text-sm">
           <span className="flex flex-wrap items-center justify-between gap-2">
             <span>النص محل المراجعة</span>

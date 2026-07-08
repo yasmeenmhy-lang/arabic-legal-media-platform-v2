@@ -61,6 +61,10 @@ function saveTargetDate(id: string, date: string) {
   window.localStorage.setItem(`lawyer-media:target-publication-date:${id}`, date);
 }
 
+function removeTargetDate(id: string) {
+  window.localStorage.removeItem(`lawyer-media:target-publication-date:${id}`);
+}
+
 function getDisplayStatus(record: StoredContentRecord, targetDate: string): DisplayStatus {
   if (record.sharingStatus === "تمت المشاركة") return "منشورة";
   if (record.status === "معتمد" && targetDate) return "مجدولة";
@@ -875,17 +879,28 @@ function ContentPanel({
 
 function DayPanel({
   date,
-  items,
+  records,
   targetDates,
   onClose,
   onSelectRecord,
+  onSchedule,
+  onUnschedule,
 }: {
   date: string;
-  items: StoredContentRecord[];
+  records: StoredContentRecord[];
   targetDates: Record<string, string>;
   onClose: () => void;
   onSelectRecord: (id: string) => void;
+  onSchedule: (id: string) => void;
+  onUnschedule: (id: string) => void;
 }) {
+  const [pickerQuery, setPickerQuery] = useState("");
+  // عناصر اليوم تُشتق مباشرة من تواريخ الجدولة — تتحدث فور الجدولة أو الإلغاء
+  const items = records.filter((r) => (targetDates[r.id] ?? "") === date);
+  const candidates = records.filter((r) =>
+    (targetDates[r.id] ?? "") !== date &&
+    (!pickerQuery.trim() || r.title.includes(pickerQuery.trim()))
+  ).slice(0, 8);
   const d = new Date(date + "T12:00:00");
   const hijriLabel = d.toLocaleDateString("ar-SA-u-ca-islamic", {
     weekday: "long", year: "numeric", month: "long", day: "numeric",
@@ -911,7 +926,7 @@ function DayPanel({
 
         <div className="p-4">
           {items.length === 0 ? (
-            <div className="rounded-lg border border-dashed border-line bg-paper py-10 text-center">
+            <div className="rounded-lg border border-dashed border-line bg-paper py-6 text-center">
               <p className="text-sm text-ink/40">لا يوجد محتوى مجدول لهذا اليوم</p>
             </div>
           ) : (
@@ -920,25 +935,61 @@ function DayPanel({
                 const ds = getDisplayStatus(r, targetDates[r.id] ?? "");
                 const c = STATUS_COLORS[ds];
                 return (
-                  <button
-                    key={r.id}
-                    onClick={() => { onSelectRecord(r.id); onClose(); }}
-                    className="w-full rounded-lg border border-line p-3 text-right transition hover:border-palm hover:shadow-sm focus-ring"
-                  >
-                    <p className="font-medium leading-6">{r.title}</p>
-                    <div className="mt-1.5 flex items-center gap-2">
-                      <span className={`rounded-full px-2 py-0.5 text-xs ${c.bg} ${c.text}`}>{ds}</span>
-                      {r.approvedVersion && (
-                        <span className="flex items-center gap-1 text-xs text-palm">
-                          <CheckCircle2 size={11} /> معتمد
-                        </span>
-                      )}
-                    </div>
-                  </button>
+                  <div key={r.id} className="rounded-lg border border-line p-3 transition hover:border-palm hover:shadow-sm">
+                    <button onClick={() => { onSelectRecord(r.id); onClose(); }} className="w-full text-right focus-ring">
+                      <p className="font-medium leading-6">{r.title}</p>
+                      <div className="mt-1.5 flex items-center gap-2">
+                        <span className={`rounded-full px-2 py-0.5 text-xs ${c.bg} ${c.text}`}>{ds}</span>
+                        {r.approvedVersion ? (
+                          <span className="flex items-center gap-1 text-xs text-palm">
+                            <CheckCircle2 size={11} /> معتمد
+                          </span>
+                        ) : (
+                          <span className="text-xs text-ink/45">بانتظار الاعتماد قبل احتسابه مجدولاً</span>
+                        )}
+                      </div>
+                    </button>
+                    <button
+                      onClick={() => onUnschedule(r.id)}
+                      className="mt-2 text-xs text-red-500/80 transition hover:text-red-600 focus-ring"
+                    >
+                      إلغاء الجدولة من هذا اليوم
+                    </button>
+                  </div>
                 );
               })}
             </div>
           )}
+
+          {/* جدولة محتوى من المستخدم — قائمة بحث سهلة من سجل المحتوى */}
+          <div className="mt-5 border-t border-line pt-4">
+            <p className="mb-2 text-sm font-semibold text-ink/80">جدولة محتوى لهذا اليوم</p>
+            <input
+              type="text"
+              value={pickerQuery}
+              onChange={(e) => setPickerQuery(e.target.value)}
+              placeholder="ابحث بعنوان المحتوى..."
+              className="mb-2 w-full rounded-lg border border-line p-2.5 text-sm focus-ring"
+            />
+            {candidates.length === 0 ? (
+              <p className="rounded-lg bg-paper p-3 text-xs text-ink/45">
+                {records.length === 0 ? "لا يوجد محتوى في السجل بعد — أنشئ محتوى من الاستوديو أولاً." : "لا نتائج مطابقة للبحث."}
+              </p>
+            ) : (
+              <div className="space-y-1.5">
+                {candidates.map((r) => (
+                  <button
+                    key={r.id}
+                    onClick={() => onSchedule(r.id)}
+                    className="flex w-full items-center justify-between gap-2 rounded-lg border border-line bg-white p-2.5 text-right text-sm transition hover:border-palm hover:bg-mint/40 focus-ring"
+                  >
+                    <span className="min-w-0 flex-1 truncate">{r.title}</span>
+                    <span className="shrink-0 rounded-full bg-mint px-2 py-0.5 text-xs text-palm">جدولة</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </>
@@ -1452,8 +1503,10 @@ export default function CalendarV2Page() {
       {/* Day Panel */}
       {dayPanel && (
         <DayPanel
+          records={records}
+          onSchedule={(id) => handleSaveDate(id, dayPanel.date)}
+          onUnschedule={(id) => { removeTargetDate(id); setTargetDates((prev) => ({ ...prev, [id]: "" })); }}
           date={dayPanel.date}
-          items={dayPanel.items}
           targetDates={targetDates}
           onClose={() => setDayPanel(null)}
           onSelectRecord={(id) => { setSelectedId(id); setDayPanel(null); }}
