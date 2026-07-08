@@ -189,6 +189,7 @@ export default function ContentReviewPage() {
   const router = useRouter();
   const [text, setText] = useState("");
   const [contentTitle, setContentTitle] = useState("");
+  const [titleSuggesting, setTitleSuggesting] = useState(false);
   const [kind, setKind] = useState<ContentKind | "">("");
   const [channel, setChannel] = useState("");
   const [audience, setAudience] = useState("");
@@ -1231,7 +1232,31 @@ export default function ContentReviewPage() {
           <p className="mt-2 text-xs leading-6 text-ink/60">اختر نوع المحتوى والقناة والجمهور والهدف حتى يكون التحليل مرتبطًا بالسياق الصحيح.</p>
         ) : null}
         <label className="mt-4 block text-sm">
-          <span>عنوان المحتوى <span className="text-ink/40">(لتسهيل البحث في السجل ومركز التخطيط)</span></span>
+          <span className="flex flex-wrap items-center justify-between gap-2">
+            <span>عنوان المحتوى <span className="text-ink/40">(اختياري — للبحث في السجل ومركز التخطيط)</span></span>
+            <Button
+              size="sm"
+              variant="secondary-gray"
+              disabled={text.trim().length < 20 || titleSuggesting || (Boolean(review) && !isEditing)}
+              onClick={async () => {
+                setTitleSuggesting(true);
+                try {
+                  const res = await fetch("/api/suggest-title", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ text }),
+                  });
+                  const data = (await res.json()) as { title?: string };
+                  if (res.ok && data.title) setContentTitle(data.title);
+                } catch { /* يبقى الحقل كما هو */ } finally {
+                  setTitleSuggesting(false);
+                }
+              }}
+              leadingIcon={<Sparkles size={14} aria-hidden="true" />}
+            >
+              {titleSuggesting ? "جارٍ الاقتراح..." : "اقتراح تلقائي"}
+            </Button>
+          </span>
           <input
             type="text"
             value={contentTitle}
