@@ -715,6 +715,43 @@ export default function ContentReviewPage() {
           </div>
         </div>
 
+        <label className="mb-4 block text-sm">
+          <span className="flex flex-wrap items-center justify-between gap-2">
+            <span>عنوان المحتوى <span className="text-ink/40">(اختياري — للبحث في السجل ومركز التخطيط)</span></span>
+            <Button
+              size="sm"
+              variant="secondary-gray"
+              disabled={text.trim().length < 20 || titleSuggesting || (Boolean(review) && !isEditing)}
+              onClick={async () => {
+                setTitleSuggesting(true);
+                try {
+                  const res = await fetch("/api/suggest-title", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ text }),
+                  });
+                  const data = (await res.json()) as { title?: string };
+                  if (res.ok && data.title) setContentTitle(data.title);
+                } catch { /* يبقى الحقل كما هو */ } finally {
+                  setTitleSuggesting(false);
+                }
+              }}
+              leadingIcon={<Sparkles size={14} aria-hidden="true" />}
+            >
+              {titleSuggesting ? "جارٍ الاقتراح..." : "اقتراح تلقائي"}
+            </Button>
+          </span>
+          <input
+            type="text"
+            value={contentTitle}
+            disabled={Boolean(review) && !isEditing}
+            onChange={(event) => setContentTitle(event.target.value)}
+            placeholder="مثال: توعية بحقوق العامل عند انتهاء العقد"
+            className="mt-2 w-full rounded-lg border border-line p-3 text-sm leading-7 transition disabled:bg-paper disabled:text-ink/65"
+            maxLength={90}
+          />
+        </label>
+
         {/* نوع المحتوى */}
         <div className={`mb-4 ${Boolean(review) && !isEditing ? "pointer-events-none opacity-60" : ""}`}>
           <p className="mb-2 text-sm text-ink/65">نوع المحتوى</p>
@@ -1231,42 +1268,6 @@ export default function ContentReviewPage() {
         {!hasReviewContext ? (
           <p className="mt-2 text-xs leading-6 text-ink/60">اختر نوع المحتوى والقناة والجمهور والهدف حتى يكون التحليل مرتبطًا بالسياق الصحيح.</p>
         ) : null}
-        <label className="mt-4 block text-sm">
-          <span className="flex flex-wrap items-center justify-between gap-2">
-            <span>عنوان المحتوى <span className="text-ink/40">(اختياري — للبحث في السجل ومركز التخطيط)</span></span>
-            <Button
-              size="sm"
-              variant="secondary-gray"
-              disabled={text.trim().length < 20 || titleSuggesting || (Boolean(review) && !isEditing)}
-              onClick={async () => {
-                setTitleSuggesting(true);
-                try {
-                  const res = await fetch("/api/suggest-title", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ text }),
-                  });
-                  const data = (await res.json()) as { title?: string };
-                  if (res.ok && data.title) setContentTitle(data.title);
-                } catch { /* يبقى الحقل كما هو */ } finally {
-                  setTitleSuggesting(false);
-                }
-              }}
-              leadingIcon={<Sparkles size={14} aria-hidden="true" />}
-            >
-              {titleSuggesting ? "جارٍ الاقتراح..." : "اقتراح تلقائي"}
-            </Button>
-          </span>
-          <input
-            type="text"
-            value={contentTitle}
-            disabled={Boolean(review) && !isEditing}
-            onChange={(event) => setContentTitle(event.target.value)}
-            placeholder="مثال: توعية بحقوق العامل عند انتهاء العقد"
-            className="mt-2 w-full rounded-lg border border-line p-3 text-sm leading-7 transition disabled:bg-paper disabled:text-ink/65"
-            maxLength={90}
-          />
-        </label>
         <label className="mt-4 block text-sm">
           <span className="flex flex-wrap items-center justify-between gap-2">
             <span>النص محل المراجعة</span>
