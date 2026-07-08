@@ -193,6 +193,15 @@ export default function ContentManagementPage() {
           description="السجل الدائم لكل محتوى وإصداراته وتحليلاته ومراجعه واعتماداته وتحركاته."
           action={<ButtonLink href="/content-review">إعداد محتوى جديد</ButtonLink>}
         />
+
+        {/* رسالة طمأنة: السجل وسيلة وقائية داخلية — لا استخدام تأديبياً وسرية تامة */}
+        <div className="rounded-xl border border-infoBorder bg-infoSoft p-4">
+          <p className="text-sm leading-7 text-ink/80">
+            <span className="font-semibold text-infoDark">سجلك وقائي وسري:</span>{" "}
+            هذا السجل أداة مراجعة داخلية لدعم التزامك المهني قبل النشر. لا تُستخدم بياناتك أو نتائج التحليل
+            لأي إجراء تأديبي أو رقابي، ولا تُشارك مع أي جهة — محتواك ومعلوماتك سرية وتُحفظ في متصفحك فقط.
+          </p>
+        </div>
         <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-line bg-white py-16 shadow-sm">
           <DgaSpinner size="lg" />
           <span className="text-sm text-ink/50">جاري تحميل السجل...</span>
