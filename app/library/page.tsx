@@ -1,6 +1,5 @@
 import { ExternalLink, FileText, Globe } from "lucide-react";
 import { ButtonLink, PageHeader, Panel, SectionTitle } from "@/components/ui";
-import { ReviewReferencesSection } from "@/components/review-context-summary";
 
 // ── بيانات الجهات وروابطها ─────────────────────────────────────────────────
 
@@ -64,11 +63,9 @@ export default function LibraryPage() {
       <PageHeader
         eyebrow="الوصول السريع والمراجع"
         title="المراجع المهنية والرسمية"
-        description="المراجع المرتبطة بالمحتوى والإصدار الحالي وآخر تحليل، مع روابط مباشرة إلى الجهات والمصادر الرسمية المحددة."
+        description="روابط مباشرة إلى الجهات والمصادر الرسمية المعتمدة في التحليل والمراجعة."
         action={<ButtonLink href="/content-review">مراجعة محتوى</ButtonLink>}
       />
-
-      <ReviewReferencesSection />
 
       <Panel>
         <SectionTitle
