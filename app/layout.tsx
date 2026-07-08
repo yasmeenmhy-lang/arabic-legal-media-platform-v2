@@ -31,13 +31,16 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           dir="ltr"
           style={{
             position: "fixed",
-            bottom: 4,
-            left: 6,
+            bottom: 3,
+            left: 4,
             zIndex: 50,
-            fontSize: "10px",
-            lineHeight: 1,
-            color: "#9AA4B2",
-            opacity: 0.55,
+            fontSize: "9px",
+            lineHeight: 1.4,
+            color: "#6C737F",
+            background: "rgba(244,247,246,0.88)",
+            border: "1px solid rgba(229,231,235,0.9)",
+            borderRadius: 6,
+            padding: "1px 6px",
             pointerEvents: "none",
             fontFamily: "monospace",
           }}

@@ -58,6 +58,7 @@ import {
   saveContentDraft,
   upsertAnalyzedVersion
 } from "@/lib/content-record-store";
+import { normalizeReviewResult } from "@/lib/review-normalizer";
 import { saveLatestReviewSnapshot } from "@/components/review-context-summary";
 import { riskDisplayLabel, type ContentKind, type ReviewResult, type RiskLevel } from "@/lib/types";
 import { FindingsList } from "@/components/content-review/FindingCard";
@@ -355,7 +356,8 @@ export default function ContentReviewPage() {
     setChannel(version.channel);
     setAudience(version.audience);
     setPurpose(version.purpose);
-    setReview(version.analysis ?? null);
+    // التحليلات المحفوظة تُطبَّع وقت العرض: القواعد الحالية تسري على النسخ القديمة أيضاً
+    setReview(version.analysis ? normalizeReviewResult(version.analysis) : null);
     setApproved(Boolean(version.approvedAt));
     if (!version.analysis) {
       setMessage("تم فتح محتوى محفوظ من إصدار سابق. أعد تحليل المحتوى لعرض قرار النشر والنتائج بصيغتها الحالية.");
