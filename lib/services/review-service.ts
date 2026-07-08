@@ -122,6 +122,12 @@ export async function reviewContent(text: string, kind: ContentKind = "post", co
   const languageQuality = mapToLanguageQualityResult(contentEval.language);
   const compliance = rebuildComplianceFromFindings(semanticFindings, profile);
 
+  // تعذّر تقييم الذكاء (fallback): يُعلَّم صراحةً حتى تعكسه جودة المحتوى وجاهزية النشر
+  // والقرار — بدل أن تُحسب من قيم افتراضية توحي بنتيجة إيجابية زائفة.
+  const evaluationIncomplete =
+    (contentEval.risks.explanation ?? "").startsWith("تعذّر") ||
+    (contentEval.professionalWriting.explanation ?? "").startsWith("تعذّر");
+
   // Override risk values with AI-based evaluation (affected parties model).
   // Compliance findings guarantee two affected parties (المحامي والمهنة), so the
   // risk level is floored per the agreed parties rule — never "منخفض" with violations.
@@ -252,7 +258,8 @@ export async function reviewContent(text: string, kind: ContentKind = "post", co
     decisionWorkflow,
     analysisMode,
     semanticAvailable: analysisMode === "full",
-    degradedReason
+    degradedReason,
+    evaluationIncomplete
   };
 }
 

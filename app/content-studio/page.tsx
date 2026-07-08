@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   AlertTriangle,
@@ -483,10 +483,19 @@ export default function ContentStudioPage() {
   const contextScore = [kind, channel, audience, purpose].filter(Boolean).length;
   const activeText = path === "create" ? generatedText : reviewText;
 
+  // رسالة نقص السياق تُمسح تلقائياً فور اكتمال الاختيار — لا تبقى معلّقة بعد استيفاء الشرط
+  useEffect(() => {
+    if (kind && channel && audience && purpose) {
+      setReviewError((prev) => (prev.startsWith("اختر نوع المحتوى") ? "" : prev));
+    }
+  }, [kind, channel, audience, purpose]);
+
   // ── Generate content ──
 
   async function generateContent() {
-    if (!source || topic.trim().length < 3) return;
+    // «ابتكر من الذكاء الاصطناعي»: الموضوع اختياري — الذكاء يبتكره من مدخلات السياق
+    if (!source) return;
+    if (source !== "ai-original" && topic.trim().length < 3) return;
     setGenerating(true);
     setGenerateError("");
     try {
@@ -2037,13 +2046,18 @@ export default function ContentStudioPage() {
             </div>
           )}
 
-          {/* Topic */}
+          {/* Topic — اختياري مع «ابتكر من الذكاء الاصطناعي» */}
           <div className="mb-4">
-            <p className="mb-2 text-sm text-ink/65">الموضوع أو الفكرة</p>
+            <p className="mb-2 text-sm text-ink/65">
+              الموضوع أو الفكرة
+              {source === "ai-original" && <span className="text-ink/40"> (اختياري — الذكاء يبتكر الموضوع من السياق أعلاه)</span>}
+            </p>
             <textarea
               value={topic}
               onChange={(e) => setTopic(e.target.value)}
-              placeholder="اكتب موضوعك هنا... الذكاء يفهم ويُنشئ تلقائياً"
+              placeholder={source === "ai-original"
+                ? "اتركه فارغاً ليبتكر الذكاء موضوعاً بناءً على نوع المحتوى والقناة والجمهور والهدف والتخصص أعلاه — أو اكتب فكرة لتوجيهه"
+                : "اكتب موضوعك هنا... الذكاء يفهم ويُنشئ تلقائياً"}
               className="min-h-24 w-full rounded-lg border border-line p-4 leading-8"
             />
           </div>
@@ -2051,7 +2065,7 @@ export default function ContentStudioPage() {
           <button
             type="button"
             onClick={generateContent}
-            disabled={!source || topic.trim().length < 3}
+            disabled={!source || (source !== "ai-original" && topic.trim().length < 3)}
             className="inline-flex items-center gap-2 rounded-lg bg-violet px-[11px] py-[9px] text-sm font-medium text-white transition hover:bg-violetDark focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet disabled:cursor-not-allowed disabled:opacity-50"
           >
             <Sparkles size={16} aria-hidden="true" />
@@ -2429,7 +2443,7 @@ export default function ContentStudioPage() {
           {/* قرار النشر */}
           <Panel>
             <SectionTitle title="نتائج التحليل" />
-            {review.analysisMode === "pattern-only" ? (
+            {review.analysisMode === "pattern-only" || review.evaluationIncomplete ? (
               <div className="flex items-start gap-3 rounded-lg border border-line bg-paper p-3">
                 <AlertTriangle size={18} className="mt-0.5 shrink-0 text-ink/50" aria-hidden="true" />
                 <div>
@@ -2620,7 +2634,7 @@ export default function ContentStudioPage() {
 
           {/* بطاقة جودة المحتوى */}
           {(() => {
-            if (review.analysisMode === "pattern-only") return (
+            if (review.analysisMode === "pattern-only" || review.evaluationIncomplete) return (
               <Panel className={`border-t-4 shadow-md ${toneBorder("neutral")}`}>
                 <p className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-400">جودة المحتوى</p>
                 <StatusBadge tone="neutral">تعذّر التحليل</StatusBadge>
@@ -2662,7 +2676,7 @@ export default function ContentStudioPage() {
 
           {/* بطاقة جاهزية النشر */}
           {(() => {
-            if (review.analysisMode === "pattern-only") return (
+            if (review.analysisMode === "pattern-only" || review.evaluationIncomplete) return (
               <Panel className={`border-t-4 shadow-md ${toneBorder("neutral")}`}>
                 <p className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-400">جاهزية النشر</p>
                 <StatusBadge tone="neutral">تعذّر التحليل</StatusBadge>

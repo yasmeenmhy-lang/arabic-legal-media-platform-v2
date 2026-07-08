@@ -10,7 +10,8 @@ const schema = z.object({
   purpose: z.string().min(1),
   specialty: z.string().optional(),
   source: z.string().min(1),
-  topic: z.string().min(3),
+  // اختياري: مع مصدر «ابتكر من الذكاء الاصطناعي» يبتكر النموذج الموضوع من السياق
+  topic: z.string().trim().optional().default(""),
 });
 
 export async function POST(request: Request) {
@@ -79,7 +80,9 @@ export async function POST(request: Request) {
 الجمهور المستهدف: ${audience}
 الهدف: ${purpose}${specialty ? `\nالتخصص القانوني: ${specialty}` : ""}
 مصدر الإلهام: ${source}
-الموضوع أو الفكرة: ${topic}
+${topic.length >= 3
+  ? `الموضوع أو الفكرة: ${topic}`
+  : `الموضوع: لم يحدد المستخدم موضوعاً — ابتكر أنت موضوعاً قانونياً واحداً محدداً ومناسباً بالاعتماد على المدخلات أعلاه (نوع المحتوى والقناة والجمهور والهدف${specialty ? " والتخصص" : ""})، واكتب المحتوى حوله.`}
 
 المطلوب:
 - محتوى عالي الجودة يليق بمحامٍ متخصص ومرموق

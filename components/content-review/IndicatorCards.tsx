@@ -232,7 +232,8 @@ export function LanguageIndicatorCard({ review }: { review: ReviewResult }) {
 }
 
 export function ContentQualityIndicatorCard({ review }: { review: ReviewResult }) {
-  if (review.analysisMode === "pattern-only") return <DegradedNotice title="جودة المحتوى" />;
+  // تعذّر تقييم أي مؤشر ينعكس هنا: لا تُعرض جودة محسوبة من قيم افتراضية
+  if (review.analysisMode === "pattern-only" || review.evaluationIncomplete) return <DegradedNotice title="جودة المحتوى" />;
   const exp = review.contentQualityScoreExplanation ?? { redLine: false, factors: [] };
   const hasViolations = review.findings.length > 0;
   const statusTone = (exp.redLine || hasViolations) ? "danger" as const : review.contentQualityScore >= 80 ? "good" as const : "gold" as const;
@@ -267,7 +268,8 @@ export function ContentQualityIndicatorCard({ review }: { review: ReviewResult }
 }
 
 export function ReadinessIndicatorCard({ review }: { review: ReviewResult }) {
-  if (review.analysisMode === "pattern-only") return <DegradedNotice title="جاهزية النشر" />;
+  // تعذّر تقييم أي مؤشر ينعكس هنا: لا تُعرض جاهزية محسوبة من قيم افتراضية
+  if (review.analysisMode === "pattern-only" || review.evaluationIncomplete) return <DegradedNotice title="جاهزية النشر" />;
   const tone = readinessKpiTone(review);
   const gates = review.publishingReadinessExplanation.gates;
   return (

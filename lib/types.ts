@@ -405,6 +405,8 @@ export type ReviewResult = {
   analysisMode: "full" | "pattern-only";
   semanticAvailable: boolean;
   degradedReason?: "missing-key" | "api-error" | "timeout";
+  /** تعذّر تقييم الذكاء (مخاطر/رصانة/لغة) — يجب أن ينعكس على الجودة والجاهزية والقرار لا أن يظهر إيجاباً زائفاً */
+  evaluationIncomplete?: boolean;
 };
 
 export type AIEnhancement = {

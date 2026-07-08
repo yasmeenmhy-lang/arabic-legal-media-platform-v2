@@ -167,7 +167,7 @@ const reviewTabs = [
 type ReviewTab = (typeof reviewTabs)[number]["key"];
 
 function decisionTone(review: ReviewResult) {
-  if (review.analysisMode === "pattern-only") return "neutral" as const;
+  if (review.analysisMode === "pattern-only" || review.evaluationIncomplete) return "neutral" as const;
   if (review.publicationDecision.outcome === "RECOMMENDED") return "good" as const;
   if (review.publicationDecision.outcome === "RECOMMENDED_AFTER_FINDINGS") return "neutral" as const;
   // غير موصى بالنشر / يتطلب مراجعة — كلاهما حالة "لا نشر قبل المعالجة" بالأحمر
@@ -334,6 +334,13 @@ export default function ContentReviewPage() {
       setImageGenLoading(false);
     }
   }
+
+  // رسالة نقص السياق تُمسح تلقائياً فور اكتمال الاختيار — لا تبقى معلّقة بعد استيفاء الشرط
+  useEffect(() => {
+    if (kind && channel && audience && purpose) {
+      setMessage((prev) => (prev.startsWith("اختر نوع المحتوى") ? "" : prev));
+    }
+  }, [kind, channel, audience, purpose]);
 
   useEffect(() => {
     const selection = getActiveContentSelection();
@@ -1272,7 +1279,7 @@ export default function ContentReviewPage() {
           <Panel
             id="decision"
             className={`border-t-4 shadow-md ${
-              review.analysisMode === "pattern-only"
+              review.analysisMode === "pattern-only" || review.evaluationIncomplete
                 ? "border-t-slate-300 bg-white"
                 : review.publicationDecision.outcome === "RECOMMENDED"
                   ? "border-t-green-400 bg-green-50/40"
@@ -1281,7 +1288,7 @@ export default function ContentReviewPage() {
                     : "border-t-amber-400 bg-amber-50/40"
             }`}
           >
-            {review.analysisMode === "pattern-only" ? (
+            {review.analysisMode === "pattern-only" || review.evaluationIncomplete ? (
               <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                 <div>
                   <p className="text-xs font-bold uppercase tracking-wider text-slate-400">2. قرار النشر</p>
