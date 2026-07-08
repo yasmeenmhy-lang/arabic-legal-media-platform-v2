@@ -70,22 +70,56 @@ export function normalizeReviewResult(review: ReviewResult): ReviewResult {
       languageScore
     });
 
-    // ٣) بوابة المخاطر في جاهزية النشر تعكس المستوى المُرضَّى (بقية البوابات كما خُزّنت)
+    // ٣) بوابات جاهزية النشر تُعاد بناؤها كاملةً من الدرجات المخزّنة بقواعد اليوم —
+    // النصوص المخزّنة قد تكون بعتبات قديمة فتناقض البطاقات (سليم لغوياً مقابل ✗ أخطاء لغوية)
     const storedReadiness = review.publishingReadinessExplanation;
     let publishingReadinessExplanation = storedReadiness;
     if (storedReadiness?.gates) {
-      const gates = storedReadiness.gates.map((gate) =>
-        gate.key === "risk"
-          ? {
-              ...gate,
-              passed: riskScore < 20,
-              sourceValue: riskScore,
-              reason: riskScore < 20
-                ? "مستوى المخاطر منخفض جداً ومناسب للنشر."
-                : "المحتوى يحتوي على مخاطر عالية."
-            }
-          : gate
-      );
+      const languagePassed = review.languageQuality?.passed ?? languageScore >= 75;
+      const professionalismScore = review.professionalismScore ?? 0;
+      const gates = storedReadiness.gates.map((gate) => {
+        if (gate.key === "compliance") {
+          const passed = review.complianceScore === 100;
+          return {
+            ...gate,
+            passed,
+            sourceValue: review.complianceScore,
+            reason: passed
+              ? "لا توجد مخالفات قانونية — النص ملتزم بالكامل."
+              : "يوجد مخالفات قانونية يجب إصلاحها قبل النشر."
+          };
+        }
+        if (gate.key === "risk") {
+          return {
+            ...gate,
+            passed: riskScore < 20,
+            sourceValue: riskScore,
+            reason: riskScore < 20
+              ? "مستوى المخاطر منخفض جداً ومناسب للنشر."
+              : "المحتوى يحتوي على مخاطر عالية."
+          };
+        }
+        if (gate.key === "professionalism") {
+          const passed = professionalismScore >= 80;
+          return {
+            ...gate,
+            passed,
+            sourceValue: professionalismScore,
+            reason: passed ? "الأسلوب يليق بمحامٍ مهني." : "الأسلوب لا يليق بمحامٍ."
+          };
+        }
+        if (gate.key === "language") {
+          return {
+            ...gate,
+            passed: languagePassed,
+            sourceValue: languageScore,
+            reason: languagePassed
+              ? "اللغة سليمة ومناسبة للنشر."
+              : "يوجد أخطاء لغوية يجب تصحيحها."
+          };
+        }
+        return gate;
+      });
       const allPassed = gates.every((gate) => gate.passed);
       publishingReadinessExplanation = {
         ...storedReadiness,
