@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { badRequest } from "@/lib/api";
+import { generatePremiumImage, providerStatus } from "@/lib/image-providers";
 
 // توليد الصور عبر مزودين خارجيين قد يستغرق حتى دقيقة
 export const maxDuration = 60;
@@ -16,7 +17,84 @@ const schema = z.object({
   editInstruction: z.string().max(500).optional(),
   // البنية الحالية للرسم — التعديل يُطبَّق عليها بدل إعادة التوليد من الصفر
   previousVisual: z.object({ type: z.string(), chartType: z.string().optional(), data: z.unknown() }).optional(),
+  // وضع الإخراج: البنية القابلة للتعديل (الافتراضي — السلوك القائم) أو صورة احترافية أو الاثنان
+  outputMode: z.enum(["editable_svg", "premium_image", "both"]).default("editable_svg"),
+  audience: z.string().optional(),
+  purpose: z.string().optional(),
 });
+
+// ── الموجز البصري + المسار الاحترافي ─────────────────────────────────────
+// الموجز يكثّف النص الطويل إلى بنية موجهة للتصميم — وعند فشله نعود للوصف الخام.
+
+type VisualBrief = {
+  centralMessage: string;
+  objective: string;
+  targetAudience: string;
+  channel: string;
+  visualType: string;
+  planningType: string;
+  keyPoints: string[];
+  suggestedSections: string[];
+  importantNumbers: string[];
+  complianceSensitivePhrases: string[];
+  recommendedTone: string;
+  rtlArabicNotes: string;
+};
+
+async function generateVisualBrief(
+  apiKey: string,
+  description: string,
+  ctx: { channel?: string; audience?: string; purpose?: string; visualType: string; planningType?: string }
+): Promise<VisualBrief | null> {
+  try {
+    const prompt = `حوّل النص التالي إلى موجز بصري JSON مضغوط لتصميم مرئي قانوني احترافي. أخرج JSON فقط بالمفاتيح:
+{"centralMessage":"الرسالة المركزية بجملة واحدة","objective":"هدف المرئي","targetAudience":"الجمهور","channel":"القناة","visualType":"نوع المرئي","planningType":"نمط التخطيط","keyPoints":["3-5 نقاط موجزة"],"suggestedSections":["أقسام مقترحة"],"importantNumbers":["أرقام أو مواد نظامية مهمة"],"complianceSensitivePhrases":["أي عبارات في النص تعد وعداً بنتيجة أو تفوقاً أو نسب نجاح — انقلها حرفياً لتجنبها"],"recommendedTone":"النبرة","rtlArabicNotes":"ملاحظات اتجاه/خط عربي"}
+السياق: القناة ${ctx.channel ?? "عام"} — الجمهور ${ctx.audience ?? "عام"} — الهدف ${ctx.purpose ?? "توعية"} — النوع ${ctx.visualType}${ctx.planningType ? ` — النمط ${ctx.planningType}` : ""}
+النص:
+${description.slice(0, 2500)}`;
+    const raw = await callClaude(apiKey, "claude-haiku-4-5-20251001", 900, prompt);
+    const brief = parseJson<VisualBrief>(raw);
+    if (!brief?.centralMessage) return null;
+    return brief;
+  } catch (e) {
+    console.error("[visual-brief]", e);
+    return null;
+  }
+}
+
+// مقاسات القناة للمسار الاحترافي
+function premiumDims(channel?: string): { w: number; h: number; label: string } {
+  const c = (channel ?? "").toLowerCase();
+  if (c.includes("instagram")) return { w: 1024, h: 1024, label: "مربع 1:1" };
+  if (c.includes("tiktok") || c.includes("snap") || c.includes("story")) return { w: 1024, h: 1536, label: "طولي 9:16" };
+  return { w: 1536, h: 1024, label: "عرضي 16:9" }; // LinkedIn / X / YouTube / عام
+}
+
+// مطالبة الصورة الاحترافية — عربية RTL، أسلوب تحريري مصقول، بلا شعارات رسمية ولا وعود
+function premiumImagePrompt(brief: VisualBrief | null, description: string, ctx: { channel?: string; audience?: string; purpose?: string; visualType: string; style?: string }, dims: { label: string }): string {
+  const avoid = [
+    "نضمن", "مضمون", "أفضل محامي", "الأفضل", "100%", "١٠٠٪", "نسبة نجاح", "تعويض مضمون", "حكم مضمون",
+    ...(brief?.complianceSensitivePhrases ?? []),
+  ].filter(Boolean);
+  const core = brief
+    ? `الرسالة المركزية: "${brief.centralMessage}"
+الهدف: ${brief.objective} — الجمهور: ${brief.targetAudience}
+النقاط الأساسية (نص قليل داخل الصورة، اختر الأهم فقط):
+${(brief.keyPoints ?? []).slice(0, 5).map((k, i) => `${i + 1}. ${k}`).join("\n")}
+${(brief.importantNumbers ?? []).length ? `أرقام/مواد يجوز إبرازها: ${(brief.importantNumbers ?? []).slice(0, 3).join("، ")}` : ""}
+النبرة: ${brief.recommendedTone || "مهنية رصينة"} — ${brief.rtlArabicNotes || ""}`
+    : `الموضوع: ${description.slice(0, 600)}`;
+  return `أنشئ ${ctx.visualType === "image" ? "صورة" : "إنفوغرافيك"} تحريرياً مصقولاً عالي الجودة باللغة العربية، اتجاه RTL كامل.
+${core}
+القناة: ${ctx.channel ?? "عام"} — التنسيق: ${dims.label}${ctx.style ? ` — الأسلوب: ${ctx.style}` : ""}
+مواصفات إلزامية: تصميم مؤسسي سعودي احترافي راقٍ، خط عربي نظيف كبير مقروء تماماً بلا أي تشويه أو قص، تسلسل بصري واضح، نص محدود داخل الصورة، هوامش وتباعد سخي، لوحة خضراء مؤسسية (#166A45 إلى #25935F) مع محايدات هادئة.
+ممنوع منعاً باتاً: أي شعارات أو أختام أو علامات حكومية رسمية، أي إيحاء باعتماد رسمي، أي وعد بنتيجة قانونية أو ضمان أو نسب نجاح أو ادعاء أفضلية${avoid.length ? `، وتجنب حرفياً هذه العبارات: ${avoid.slice(0, 10).join(" ، ")}` : ""}.`;
+}
+
+// حالة المزودين للواجهة — لا تكشف أي مفاتيح
+export async function GET() {
+  return NextResponse.json(providerStatus());
+}
 
 // ── Types ─────────────────────────────────────────────────────────────────
 
@@ -780,7 +858,7 @@ export async function POST(request: Request) {
   const parsed = schema.safeParse(await request.json());
   if (!parsed.success) return badRequest("المدخلات غير مكتملة");
 
-  const { description, visualType, chartType, style, dimensions, channel, editInstruction, previousVisual } = parsed.data;
+  const { description, visualType, chartType, style, dimensions, channel, editInstruction, previousVisual, outputMode, audience, purpose } = parsed.data;
 
   // عند طلب تعديل: يُلحق الطلب بالوصف فيُطبق على البيانات المولدة والتصميم
   // عند وجود بنية سابقة: التعديل يُطبَّق عليها حرفياً وكل ما عداه يبقى كما هو
@@ -792,7 +870,36 @@ export async function POST(request: Request) {
     : description;
 
   const apiKey = process.env.ANTHROPIC_API_KEY;
+
+  // ── المسار الاحترافي (premium_image / both) — يعمل بجانب المحركات دون مساسها
+  let premiumExtras: Record<string, unknown> = {};
+  if (outputMode !== "editable_svg") {
+    const dims = premiumDims(channel);
+    const brief = apiKey
+      ? await generateVisualBrief(apiKey, effectiveDescription, { channel, audience, purpose, visualType })
+      : null;
+    const pPrompt = premiumImagePrompt(brief, effectiveDescription, { channel, audience, purpose, visualType, style }, dims);
+    const img = await generatePremiumImage(pPrompt, dims.w, dims.h);
+    premiumExtras = Object.fromEntries(Object.entries({
+      imageBase64: img.imageBase64,
+      imageUrl: img.imageUrl,
+      provider: img.provider,
+      brief,
+      qualityNotes: brief
+        ? "صورة مبنية على موجز بصري مركّز (رسالة مركزية، نقاط، محاذير امتثال تُتجنب حرفياً)."
+        : "تعذر توليد الموجز البصري — استُخدم الوصف مباشرة دون كسر التدفق.",
+    }).filter(([, v]) => v !== undefined && v !== null));
+    if (outputMode === "premium_image") return NextResponse.json(premiumExtras);
+  }
+
   if (!apiKey) {
+    // وضع both: لا نُسقط الصورة الاحترافية الناجحة بسبب تعطل فرع البنية
+    if (outputMode === "both" && Object.keys(premiumExtras).length) {
+      return NextResponse.json({
+        ...premiumExtras,
+        svgError: "تعذر توليد البنية القابلة للتعديل (ANTHROPIC_API_KEY غير مهيأ) — الصورة الاحترافية جاهزة.",
+      });
+    }
     return NextResponse.json(
       { error: "خدمة الإنشاء غير مهيأة — تأكد من ضبط ANTHROPIC_API_KEY" },
       { status: 503 }
@@ -806,7 +913,7 @@ export async function POST(request: Request) {
       const data = parseJson<ChartData>(raw);
       const svgCode = renderChartSvg(data, chartType ?? "");
       // visual: بيانات البنية لتصدير PowerPoint قابل للتعديل عنصراً عنصراً
-      return NextResponse.json({ svgCode, visual: { type: "chart", chartType: chartType ?? "", data } });
+      return NextResponse.json({ svgCode, visual: { type: "chart", chartType: chartType ?? "", data }, ...premiumExtras });
     } catch (e) {
       console.error("[chart]", e);
       return NextResponse.json({ error: "فشل إنشاء الرسم البياني" }, { status: 500 });
@@ -820,7 +927,7 @@ export async function POST(request: Request) {
       const data = parseJson<MindMapData>(raw);
       // المحرك الداخلي دائماً: يتيح تصدير PowerPoint بعناصر قابلة للتعديل (لا صورة مسطحة)
       const svgCode = renderMindMapSvg(data);
-      return NextResponse.json({ svgCode, visual: { type: "mindmap", data } });
+      return NextResponse.json({ svgCode, visual: { type: "mindmap", data }, ...premiumExtras });
     } catch (e) {
       console.error("[mindmap]", e);
       return NextResponse.json({ error: "فشل إنشاء الخريطة الذهنية" }, { status: 500 });
@@ -834,7 +941,7 @@ export async function POST(request: Request) {
       const data = parseJson<InfographicData>(raw);
       // المحرك الداخلي دائماً: يتيح تصدير PowerPoint بعناصر قابلة للتعديل (لا صورة مسطحة)
       const svgCode = renderInfographicSvg(data);
-      return NextResponse.json({ svgCode, visual: { type: "infographic", data } });
+      return NextResponse.json({ svgCode, visual: { type: "infographic", data }, ...premiumExtras });
     } catch (e) {
       console.error("[infographic]", e);
       return NextResponse.json({ error: "فشل إنشاء الإنفوغراف" }, { status: 500 });

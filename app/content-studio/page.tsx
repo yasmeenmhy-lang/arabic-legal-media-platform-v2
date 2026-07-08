@@ -437,6 +437,11 @@ export default function ContentStudioPage() {
   const [vtUrl, setVtUrl] = useState("");
   // البنية الهيكلية للمرئي — تُمكّن تصدير PowerPoint بعناصر أصلية قابلة للتعديل
   const [vtVisual, setVtVisual] = useState<VisualStructure | null>(null);
+  // وضع الإخراج: قابل للتعديل (الافتراضي) / صورة احترافية / الاثنان
+  const [vtOutputMode, setVtOutputMode] = useState<"editable_svg" | "premium_image" | "both">("editable_svg");
+  const [vtPremiumUrl, setVtPremiumUrl] = useState("");
+  const [vtProvider, setVtProvider] = useState("");
+  const [providerInfo, setProviderInfo] = useState<{ openai: boolean; gemini: boolean; premiumAvailable: boolean } | null>(null);
   const [vtError, setVtError] = useState("");
   const [vtSuggesting, setVtSuggesting] = useState(false);
   const [vtSuggestionReason, setVtSuggestionReason] = useState("");
@@ -482,6 +487,13 @@ export default function ContentStudioPage() {
 
   const contextScore = [kind, channel, audience, purpose].filter(Boolean).length;
   const activeText = path === "create" ? generatedText : reviewText;
+
+  useEffect(() => {
+    fetch("/api/content-studio/generate-image")
+      .then((r) => r.json())
+      .then((d) => setProviderInfo(d))
+      .catch(() => setProviderInfo(null));
+  }, []);
 
   // رسالة نقص السياق تُمسح تلقائياً فور اكتمال الاختيار — لا تبقى معلّقة بعد استيفاء الشرط
   useEffect(() => {
@@ -768,6 +780,8 @@ export default function ContentStudioPage() {
     setVtSvg("");
     setVtUrl("");
     setVtVisual(null);
+    setVtPremiumUrl("");
+    setVtProvider("");
     try {
       const res = await fetch("/api/content-studio/generate-image", {
         method: "POST",
@@ -782,16 +796,22 @@ export default function ContentStudioPage() {
           editInstruction: editInstruction?.trim() || undefined,
           // البنية الحالية تُرسل مع طلب التعديل ليُطبَّق عليها لا أن يعاد التوليد من الصفر
           previousVisual: editInstruction?.trim() && vtVisual ? vtVisual : undefined,
+          outputMode: vtOutputMode,
+          audience: audience || undefined,
+          purpose: purpose || undefined,
         }),
       });
-      const data = (await res.json()) as { svgCode?: string; imageUrl?: string; visual?: VisualStructure; error?: string };
+      const data = (await res.json()) as { svgCode?: string; imageUrl?: string; imageBase64?: string; provider?: string; visual?: VisualStructure; error?: string };
       if (!res.ok) { setVtError(data.error ?? "فشل في إنشاء المرئي"); return; }
       if (data.svgCode) {
         setVtSvg(data.svgCode);
         setVtVisual(data.visual ?? null);
-      } else {
+      } else if (!data.imageBase64 && !data.provider) {
         setVtUrl(data.imageUrl ?? "");
       }
+      // الصورة الاحترافية (premium_image أو both)
+      setVtPremiumUrl(data.imageBase64 ?? (data.provider ? data.imageUrl ?? "" : ""));
+      setVtProvider(data.provider ?? "");
       setVtEditText("");
     } catch {
       setVtError("تعذر الاتصال بخدمة إنشاء المرئيات");
@@ -2172,7 +2192,7 @@ export default function ContentStudioPage() {
                   <button
                     key={t.key}
                     type="button"
-                    onClick={() => { setVtType(t.key); setVtSvg(""); setVtUrl(""); setVtVisual(null); setVtError(""); setVtConfirming(false); setVtSuggestionReason(""); }}
+                    onClick={() => { setVtType(t.key); setVtSvg(""); setVtUrl(""); setVtVisual(null); setVtPremiumUrl(""); setVtProvider(""); setVtError(""); setVtConfirming(false); setVtSuggestionReason(""); }}
                     className={`rounded-lg border px-3 py-1.5 text-xs font-medium transition ${
                       vtType === t.key
                         ? "border-palm bg-white text-palm shadow-[0_0_0_1px_theme(colors.palm)]"
@@ -2184,6 +2204,37 @@ export default function ContentStudioPage() {
                     <span className="opacity-50">{t.hint}</span>
                   </button>
                 ))}
+              </div>
+
+              {/* وضع الإخراج: قابل للتعديل / صورة احترافية / الاثنان */}
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-xs text-ink/50">الإخراج:</span>
+                {([
+                  { key: "editable_svg" as const,  label: "قابل للتعديل SVG" },
+                  { key: "premium_image" as const, label: "صورة احترافية بالذكاء الاصطناعي" },
+                  { key: "both" as const,          label: "الاثنان معًا" },
+                ]).map((m) => (
+                  <button key={m.key} type="button"
+                    onClick={() => setVtOutputMode(m.key)}
+                    className={`rounded-lg border px-3 py-1.5 text-xs font-medium transition ${
+                      vtOutputMode === m.key
+                        ? "border-palm bg-white text-palm shadow-[0_0_0_1px_theme(colors.palm)]"
+                        : "border-line bg-white/70 text-ink/55 hover:border-palm hover:text-palm"
+                    }`}>
+                    {m.label}
+                  </button>
+                ))}
+                {vtOutputMode !== "editable_svg" && providerInfo && (
+                  providerInfo.premiumAvailable ? (
+                    <span className="text-xs text-palm">
+                      المزود: {providerInfo.openai ? "OpenAI متاح" : ""}{providerInfo.openai && providerInfo.gemini ? " · " : ""}{providerInfo.gemini ? "Gemini / Nano Banana متاح" : ""}
+                    </span>
+                  ) : (
+                    <span className="rounded-lg bg-warningSoft px-2 py-1 text-xs font-medium text-warningDark">
+                      لا يوجد مزود صور احترافي مهيأ — سيُستخدم الوضع الاحتياطي/التجريبي
+                    </span>
+                  )
+                )}
               </div>
 
               {/* Chart sub-type */}
@@ -2306,6 +2357,18 @@ export default function ContentStudioPage() {
                 </div>
               )}
 
+              {/* الصورة الاحترافية بالذكاء الاصطناعي */}
+              {vtPremiumUrl && !vtLoading && (
+                <div className="overflow-hidden rounded-xl border border-line bg-white">
+                  <img src={vtPremiumUrl} alt="صورة احترافية بالذكاء الاصطناعي" className="w-full" />
+                  <div className="flex flex-wrap items-center gap-2 border-t border-line bg-paper/60 px-3 py-2">
+                    <span className="text-xs text-ink/55">صورة احترافية — المزود: {vtProvider === "openai" ? "OpenAI" : vtProvider === "gemini" ? "Gemini / Nano Banana" : vtProvider === "pollinations" ? "احتياطي" : "تجريبي"}</span>
+                    <a href={vtPremiumUrl} download="premium-visual.png" target="_blank" rel="noopener noreferrer"
+                      className="mr-auto shrink-0 whitespace-nowrap rounded-lg border border-line bg-white px-3 py-1 text-xs font-medium text-ink/70 transition hover:border-palm hover:text-palm">تنزيل</a>
+                  </div>
+                </div>
+              )}
+
               {vtSvg && !vtLoading && (
                 <div className="overflow-hidden rounded-xl border border-line bg-white">
                   <div className="w-full p-2" dangerouslySetInnerHTML={{ __html: vtSvg }} />
@@ -2321,7 +2384,7 @@ export default function ContentStudioPage() {
                         title="تنزيل شريحة PowerPoint قابلة للتحرير">PowerPoint</button>
                       <button type="button" onClick={() => { setVtSvg(""); setVtUrl(""); void generateVisualTranslation(); }}
                         className="shrink-0 whitespace-nowrap rounded-lg border border-line bg-paper px-3 py-1 text-xs font-medium text-ink/70 transition hover:border-palm hover:text-palm">إعادة الإنشاء</button>
-                      <button type="button" onClick={() => { setVtSvg(""); setVtUrl(""); setVtVisual(null); setVtError(""); }}
+                      <button type="button" onClick={() => { setVtSvg(""); setVtUrl(""); setVtVisual(null); setVtPremiumUrl(""); setVtProvider(""); setVtError(""); }}
                         className="flex shrink-0 items-center gap-1 whitespace-nowrap rounded-lg border border-line bg-paper px-3 py-1 text-xs font-medium text-red-500/70 transition hover:border-red-300 hover:text-red-600"
                         title="مسح المرئي">
                         <Trash2 size={12} />
@@ -2365,7 +2428,7 @@ export default function ContentStudioPage() {
                         title="تنزيل شريحة PowerPoint قابلة للتحرير">PowerPoint</button>
                       <button type="button" onClick={() => { setVtSvg(""); setVtUrl(""); void generateVisualTranslation(); }}
                         className="shrink-0 whitespace-nowrap rounded-lg border border-line bg-paper px-3 py-1 text-xs font-medium text-ink/70 transition hover:border-palm hover:text-palm">إعادة الإنشاء</button>
-                      <button type="button" onClick={() => { setVtSvg(""); setVtUrl(""); setVtVisual(null); setVtError(""); }}
+                      <button type="button" onClick={() => { setVtSvg(""); setVtUrl(""); setVtVisual(null); setVtPremiumUrl(""); setVtProvider(""); setVtError(""); }}
                         className="flex shrink-0 items-center gap-1 whitespace-nowrap rounded-lg border border-line bg-paper px-3 py-1 text-xs font-medium text-red-500/70 transition hover:border-red-300 hover:text-red-600"
                         title="مسح الصورة">
                         <Trash2 size={12} />
