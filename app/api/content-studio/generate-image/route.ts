@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { badRequest } from "@/lib/api";
 import { generatePremiumImage, providerStatus } from "@/lib/image-providers";
+import { generateVisualPlan, planToEngineDescription, type VisualPlan } from "@/lib/visual-translator";
 
 // توليد الصور عبر مزودين خارجيين قد يستغرق حتى دقيقة
 export const maxDuration = 60;
@@ -871,13 +872,38 @@ export async function POST(request: Request) {
 
   const apiKey = process.env.ANTHROPIC_API_KEY;
 
+  // ── المرحلة ١: المترجم التحريري — خطة بصرية موحدة تعيد صياغة النص نصوصاً
+  // قصيرة مصقولة. فشلها لا يكسر شيئاً (سقوط للنص الخام)، وتُتخطى أثناء التعديل.
+  const isEditFlow = Boolean(editInstruction?.trim() && previousVisual?.data);
+  const visualPlan: VisualPlan | null = apiKey && !isEditFlow && visualType !== "image"
+    ? await generateVisualPlan(apiKey, description, { channel, audience, purpose, visualType })
+    : null;
+  const engineDescription = visualPlan
+    ? `${planToEngineDescription(visualPlan)}${editInstruction?.trim() ? `\n\nطلب تعديل يجب تطبيقه: ${editInstruction.trim()}` : ""}`
+    : effectiveDescription;
+
   // ── المسار الاحترافي (premium_image / both) — يعمل بجانب المحركات دون مساسها
   let premiumExtras: Record<string, unknown> = {};
   if (outputMode !== "editable_svg") {
     const dims = premiumDims(channel);
-    const brief = apiKey
-      ? await generateVisualBrief(apiKey, effectiveDescription, { channel, audience, purpose, visualType })
-      : null;
+    const brief = visualPlan
+      ? {
+          centralMessage: visualPlan.centralMessage,
+          objective: visualPlan.objective,
+          targetAudience: visualPlan.audience,
+          channel: channel ?? "",
+          visualType,
+          planningType: visualPlan.layoutStrategy,
+          keyPoints: visualPlan.keySections.flatMap((k) => [k.heading, ...k.bullets.slice(0, 1)]).slice(0, 5),
+          suggestedSections: visualPlan.keySections.map((k) => k.heading),
+          importantNumbers: visualPlan.importantNumbers ?? [],
+          complianceSensitivePhrases: visualPlan.complianceSensitivePhrases ?? [],
+          recommendedTone: visualPlan.visualStyle === "تعليمي" ? "تعليمية حديثة" : "مهنية رصينة",
+          rtlArabicNotes: visualPlan.rtlArabicNotes ?? "",
+        }
+      : apiKey
+        ? await generateVisualBrief(apiKey, effectiveDescription, { channel, audience, purpose, visualType })
+        : null;
     const pPrompt = premiumImagePrompt(brief, effectiveDescription, { channel, audience, purpose, visualType, style }, dims);
     const img = await generatePremiumImage(pPrompt, dims.w, dims.h);
     premiumExtras = Object.fromEntries(Object.entries({
@@ -909,11 +935,11 @@ export async function POST(request: Request) {
   // ── Chart ─────────────────────────────────────────────────────────────────
   if (visualType === "chart") {
     try {
-      const raw = await callClaude(apiKey, "claude-haiku-4-5-20251001", 600, chartDataPrompt(effectiveDescription, chartType ?? ""));
+      const raw = await callClaude(apiKey, "claude-haiku-4-5-20251001", 600, chartDataPrompt(engineDescription, chartType ?? ""));
       const data = parseJson<ChartData>(raw);
       const svgCode = renderChartSvg(data, chartType ?? "");
       // visual: بيانات البنية لتصدير PowerPoint قابل للتعديل عنصراً عنصراً
-      return NextResponse.json({ svgCode, visual: { type: "chart", chartType: chartType ?? "", data }, ...premiumExtras });
+      return NextResponse.json({ svgCode, visual: { type: "chart", chartType: chartType ?? "", data }, visualPlan: visualPlan ?? undefined, ...premiumExtras });
     } catch (e) {
       console.error("[chart]", e);
       return NextResponse.json({ error: "فشل إنشاء الرسم البياني" }, { status: 500 });
@@ -923,11 +949,11 @@ export async function POST(request: Request) {
   // ── Mind map ──────────────────────────────────────────────────────────────
   if (visualType === "mindmap") {
     try {
-      const raw = await callClaude(apiKey, "claude-haiku-4-5-20251001", 600, mindMapDataPrompt(effectiveDescription));
+      const raw = await callClaude(apiKey, "claude-haiku-4-5-20251001", 600, mindMapDataPrompt(engineDescription));
       const data = parseJson<MindMapData>(raw);
       // المحرك الداخلي دائماً: يتيح تصدير PowerPoint بعناصر قابلة للتعديل (لا صورة مسطحة)
       const svgCode = renderMindMapSvg(data);
-      return NextResponse.json({ svgCode, visual: { type: "mindmap", data }, ...premiumExtras });
+      return NextResponse.json({ svgCode, visual: { type: "mindmap", data }, visualPlan: visualPlan ?? undefined, ...premiumExtras });
     } catch (e) {
       console.error("[mindmap]", e);
       return NextResponse.json({ error: "فشل إنشاء الخريطة الذهنية" }, { status: 500 });
@@ -937,11 +963,11 @@ export async function POST(request: Request) {
   // ── Infographic ───────────────────────────────────────────────────────────
   if (visualType === "infographic") {
     try {
-      const raw = await callClaude(apiKey, "claude-haiku-4-5-20251001", 800, infographicDataPrompt(effectiveDescription));
+      const raw = await callClaude(apiKey, "claude-haiku-4-5-20251001", 800, infographicDataPrompt(engineDescription));
       const data = parseJson<InfographicData>(raw);
       // المحرك الداخلي دائماً: يتيح تصدير PowerPoint بعناصر قابلة للتعديل (لا صورة مسطحة)
       const svgCode = renderInfographicSvg(data);
-      return NextResponse.json({ svgCode, visual: { type: "infographic", data }, ...premiumExtras });
+      return NextResponse.json({ svgCode, visual: { type: "infographic", data }, visualPlan: visualPlan ?? undefined, ...premiumExtras });
     } catch (e) {
       console.error("[infographic]", e);
       return NextResponse.json({ error: "فشل إنشاء الإنفوغراف" }, { status: 500 });
