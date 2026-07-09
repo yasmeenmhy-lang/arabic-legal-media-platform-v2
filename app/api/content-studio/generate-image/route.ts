@@ -948,22 +948,34 @@ export async function POST(request: Request) {
     const photoAllowed = isPhotoExplicitlyRequested(effectiveDescription);
     const pPrompt = premiumImagePrompt(brief, effectiveDescription, { channel, audience, purpose, visualType, style, photoAllowed }, dims);
     const img = await generatePremiumImage(pPrompt, dims.w, dims.h);
-    premiumExtras = Object.fromEntries(Object.entries({
-      imageBase64: img.imageBase64,
-      imageUrl: img.imageUrl,
-      provider: img.provider,
-      providerNote: img.failureNote,
-      brief,
-      qualityNotes: brief
-        ? "صورة مبنية على موجز بصري مركّز (رسالة مركزية، نقاط، محاذير امتثال تُتجنب حرفياً)."
-        : "تعذر توليد الموجز البصري — استُخدم الوصف مباشرة دون كسر التدفق.",
-    }).filter(([, v]) => v !== undefined && v !== null));
-    if (outputMode === "premium_image") return NextResponse.json(premiumExtras);
+    const premiumOk = Boolean(img.imageBase64 || img.imageUrl);
+    if (premiumOk) {
+      premiumExtras = Object.fromEntries(Object.entries({
+        imageBase64: img.imageBase64,
+        imageUrl: img.imageUrl,
+        provider: img.provider,
+        providerNote: img.failureNote,
+        brief,
+        qualityNotes: brief
+          ? "صورة مبنية على موجز بصري مركّز (رسالة مركزية، نقاط، محاذير امتثال تُتجنب حرفياً)."
+          : "تعذر توليد الموجز البصري — استُخدم الوصف مباشرة دون كسر التدفق.",
+      }).filter(([, v]) => v !== undefined && v !== null));
+    } else {
+      // فشل المزود الحقيقي: بطاقة حالة صادقة فقط — لا صورة احتياطية تُعرض للاعتماد
+      const ps = providerStatus();
+      const who = ps.openai ? "OpenAI" : ps.gemini ? "Gemini" : "مزود الصور";
+      premiumExtras = Object.fromEntries(Object.entries({
+        premiumError: `تعذر توليد المرئي الاحترافي لأن ${who} لم يعمل.`,
+        providerNote: img.failureNote,
+      }).filter(([, v]) => v !== undefined && v !== null));
+    }
+    // نوع «صورة» لا محرك SVG له — المساران premium_image وboth يعودان هنا (نجاحاً أو بطاقة حالة)
+    if (outputMode === "premium_image" || visualType === "image") return NextResponse.json(premiumExtras);
   }
 
   if (!apiKey) {
     // وضع both: لا نُسقط الصورة الاحترافية الناجحة بسبب تعطل فرع البنية
-    if (outputMode === "both" && Object.keys(premiumExtras).length) {
+    if (outputMode === "both" && (premiumExtras.imageBase64 || premiumExtras.imageUrl)) {
       return NextResponse.json({
         ...premiumExtras,
         svgError: "تعذر توليد البنية القابلة للتعديل (ANTHROPIC_API_KEY غير مهيأ) — الصورة الاحترافية جاهزة.",

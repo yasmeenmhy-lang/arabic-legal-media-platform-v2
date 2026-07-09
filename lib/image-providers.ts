@@ -1,12 +1,13 @@
-// طبقة مزودي توليد الصور الاحترافية — اختيار عبر متغيرات البيئة مع تسلسل احتياطي.
+// طبقة مزودي توليد الصور الاحترافية — اختيار عبر متغيرات البيئة، بلا احتياط بصري خفي.
 // IMAGE_PROVIDER=openai | gemini | auto | mock (الافتراضي auto)
 // النماذج: OPENAI_IMAGE_MODEL (افتراضي gpt-image-1)، GEMINI_IMAGE_MODEL (افتراضي gemini-2.5-flash-image)
+// عند فشل المزودين الحقيقيين يُعاد فشل صادق (provider="none") — لا صورة بديلة إلا بوضع mock الصريح.
 
 export type PremiumImageResult = {
   imageBase64?: string; // data URL
   imageUrl?: string;
-  provider: "openai" | "gemini" | "pollinations" | "mock";
-  /** سبب سقوط المزودين الرئيسيين إن حدث — أكواد حالة فقط، لا أسرار */
+  provider: "openai" | "gemini" | "mock" | "none";
+  /** سبب فشل المزودين المهيَّئين إن حدث — أكواد حالة ورسائل إرشادية فقط، لا أسرار */
   failureNote?: string;
 };
 
@@ -17,6 +18,7 @@ export type ProviderStatus = {
   premiumAvailable: boolean;
 };
 
+// وجود المفتاح لا يعني صلاحيته — الحالة تعني «مهيأ» فقط، والتحقق الفعلي يحدث عند أول توليد
 export function providerStatus(): ProviderStatus {
   const mode = (process.env.IMAGE_PROVIDER ?? "auto").toLowerCase();
   const openai = Boolean(process.env.OPENAI_API_KEY);
@@ -73,50 +75,57 @@ async function geminiGenerate(prompt: string): Promise<PremiumImageResult | null
   return null;
 }
 
-function pollinationsGenerate(prompt: string, w: number, h: number): PremiumImageResult {
-  const seed = Math.floor(Math.random() * 1e6);
-  return {
-    imageUrl: `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=${w}&height=${h}&model=flux&nologo=true&safe=true&seed=${seed}`,
-    provider: "pollinations",
-  };
-}
-
-// عنصر نائب حتمي بلا شبكة — لوضع mock وللاختبارات
+// عنصر نائب حتمي بلا شبكة — لوضع mock الصريح (demo) وللاختبارات فقط
 function mockGenerate(w: number, h: number): PremiumImageResult {
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"><rect width="${w}" height="${h}" fill="#F4F7F6"/><rect x="24" y="24" width="${w - 48}" height="${h - 48}" rx="24" fill="#FFFFFF" stroke="#DFF6E7" stroke-width="3"/><text x="${w / 2}" y="${h / 2}" text-anchor="middle" font-family="Tahoma" font-size="${Math.round(w / 28)}" fill="#166A45">وضع تجريبي — لا مزود صور مهيأ</text></svg>`;
   return { imageBase64: `data:image/svg+xml;base64,${Buffer.from(svg).toString("base64")}`, provider: "mock" };
 }
 
-// التوليد الاحترافي وفق IMAGE_PROVIDER مع تسلسل احتياطي آمن — لا يرمي أبداً
+// تحويل أكواد الفشل إلى رسائل عربية دقيقة تنسب الخطأ لمزوده الصحيح — لا أسرار
+function describeFailure(name: "openai" | "gemini", e: unknown): string {
+  const raw = e instanceof Error ? e.message : "خطأ غير معروف";
+  const msg = raw.replace(/Bearer\s+\S+/gi, "").slice(0, 60);
+  if (name === "openai") {
+    if (/\b401\b/.test(msg)) return "OpenAI 401 — المفتاح غير صالح أو غير مخوّل. تحقق من OPENAI_API_KEY في Vercel.";
+    if (/\b403\b/.test(msg)) return "OpenAI 403 — الحساب غير مخوّل لهذا النموذج. قد يلزم توثيق المؤسسة (Verify Organization) في OpenAI.";
+    if (/\b429\b/.test(msg)) return "OpenAI 429 — تجاوز حد الاستخدام أو نفاد الرصيد. تحقق من رصيد حساب OpenAI.";
+    return `OpenAI: ${msg}`;
+  }
+  if (/\b40[13]\b/.test(msg)) return "Gemini — المفتاح غير صالح أو غير مخوّل. تحقق من GEMINI_API_KEY في Vercel.";
+  return `Gemini: ${msg}`;
+}
+
+// التوليد الاحترافي وفق IMAGE_PROVIDER — لا يرمي أبداً، والفشل يُعاد فشلاً صادقاً بلا صورة بديلة
 export async function generatePremiumImage(prompt: string, w: number, h: number): Promise<PremiumImageResult> {
   const mode = (process.env.IMAGE_PROVIDER ?? "auto").toLowerCase();
   if (mode === "mock") return mockGenerate(w, h);
 
-  const attempts: Array<() => Promise<PremiumImageResult | null>> =
-    mode === "openai" ? [() => openAiGenerate(prompt, w, h)]
-    : mode === "gemini" ? [() => geminiGenerate(prompt)]
-    : [() => openAiGenerate(prompt, w, h), () => geminiGenerate(prompt)]; // auto
+  // المحاولات تُبنى فقط للمزودين المهيَّئين فعلاً — لا يُنسب فشل لمزود غير مفعّل
+  const attempts: Array<{ name: "openai" | "gemini"; run: () => Promise<PremiumImageResult | null> }> = [];
+  if ((mode === "openai" || mode === "auto") && process.env.OPENAI_API_KEY) {
+    attempts.push({ name: "openai", run: () => openAiGenerate(prompt, w, h) });
+  }
+  if ((mode === "gemini" || mode === "auto") && (process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY)) {
+    attempts.push({ name: "gemini", run: () => geminiGenerate(prompt) });
+  }
 
   const failures: string[] = [];
-  const names = mode === "openai" ? ["openai"] : mode === "gemini" ? ["gemini"] : ["openai", "gemini"];
-  for (let i = 0; i < attempts.length; i++) {
+  if (!attempts.length) {
+    failures.push(
+      mode === "openai" ? "OPENAI_API_KEY غير مهيأ في Vercel"
+      : mode === "gemini" ? "GEMINI_API_KEY غير مهيأ في Vercel"
+      : "لا يوجد مفتاح مزود صور مهيأ (OPENAI_API_KEY أو GEMINI_API_KEY)"
+    );
+  }
+  for (const a of attempts) {
     try {
-      const r = await attempts[i]();
+      const r = await a.run();
       if (r) return r;
-      failures.push(`${names[i]}: بلا نتيجة`);
+      failures.push(`${a.name === "openai" ? "OpenAI" : "Gemini"}: استجابة بلا صورة`);
     } catch (e) {
-      // نلتقط كود الحالة فقط (مثل OpenAI 403) — لا رؤوس ولا مفاتيح
-      const msg = e instanceof Error ? e.message : "خطأ";
-      failures.push(msg.replace(/Bearer\s+\S+/gi, "").slice(0, 60));
-      console.error("[image-provider]", msg);
+      failures.push(describeFailure(a.name, e));
+      console.error("[image-provider]", a.name, e instanceof Error ? e.message : e);
     }
   }
-  const failureNote = failures.join(" | ") || undefined;
-  // احتياط auto القائم: Pollinations ثم mock — التطبيق لا ينهار بلا مفاتيح
-  if (mode === "auto") {
-    try {
-      return { ...pollinationsGenerate(prompt, w, h), failureNote };
-    } catch { /* fallthrough */ }
-  }
-  return { ...mockGenerate(w, h), failureNote };
+  return { provider: "none", failureNote: failures.join(" | ") || "سبب غير معروف" };
 }
