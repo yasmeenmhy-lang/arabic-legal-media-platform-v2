@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { badRequest } from "@/lib/api";
-import { generatePremiumImage, providerStatus } from "@/lib/image-providers";
+import { generatePremiumImage, providerStatus, verifyOpenAIKey } from "@/lib/image-providers";
 import { generateVisualPlan, planToEngineDescription, type VisualPlan } from "@/lib/visual-translator";
 
 // توليد الصور عبر مزودين خارجيين قد يستغرق حتى دقيقة
@@ -124,9 +124,15 @@ ${core}
 ممنوع منعاً باتاً: ${ctx.visualType !== "image" ? "أي صور أشخاص أو وجوه أو شخصيات — التصميم معلوماتي تخطيطي بحت (بطاقات، أيقونات خطية، أرقام)، " : ""}أي شعارات أو أختام أو علامات حكومية رسمية، أي إيحاء باعتماد رسمي، أي وعد بنتيجة قانونية أو ضمان أو نسب نجاح أو ادعاء أفضلية${avoid.length ? `، وتجنب حرفياً هذه العبارات: ${avoid.slice(0, 10).join(" ، ")}` : ""}.`;
 }
 
-// حالة المزودين للواجهة — لا تكشف أي مفاتيح
+// حالة المزودين للواجهة — لا تكشف أي مفاتيح، وتتضمن تحققاً فعلياً من مفتاح OpenAI
 export async function GET() {
-  return NextResponse.json(providerStatus());
+  const status = providerStatus();
+  const openaiCheck = status.openai && status.mode !== "mock" ? await verifyOpenAIKey() : null;
+  return NextResponse.json({
+    ...status,
+    openaiVerified: openaiCheck?.verified ?? false,
+    verifyNote: openaiCheck?.note,
+  });
 }
 
 // ── Types ─────────────────────────────────────────────────────────────────
