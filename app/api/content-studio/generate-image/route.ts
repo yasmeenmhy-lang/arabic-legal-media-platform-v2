@@ -74,8 +74,23 @@ function premiumDims(channel?: string): { w: number; h: number; label: string } 
   return { w: 1536, h: 1024, label: "عرضي 16:9" }; // LinkedIn / X / YouTube / عام
 }
 
-// مطالبة الصورة الاحترافية — عربية RTL، أسلوب تحريري مصقول، بلا شعارات رسمية ولا وعود
-function premiumImagePrompt(brief: VisualBrief | null, description: string, ctx: { channel?: string; audience?: string; purpose?: string; visualType: string; style?: string }, dims: { label: string }): string {
+// المرئي الاحترافي أصل اتصال بصري مُصمَّم — لا صورة فوتوغرافية إلا بطلب صريح
+function isPhotoExplicitlyRequested(text: string): boolean {
+  const t = text.toLowerCase();
+  return ["صورة فوتوغرافية", "فوتوغرافي", "مشهد واقعي", "صورة واقعية", "realistic photo", "photorealistic", "portrait"]
+    .some((k) => t.includes(k));
+}
+
+const PREMIUM_TYPE_STYLE: Record<string, string> = {
+  mindmap: "mind map / node diagram: عقد وفروع متصلة بخطوط، تسلسل هرمي واضح",
+  infographic: "infographic layout: أقسام وبطاقات وأيقونات خطية وأرقام بارزة",
+  chart: "chart / data visual: أعمدة أو منحنيات أو نسب مع محاور وقيم واضحة",
+  executive: "KPI / report visual: مؤشرات ودوائر نسب وبطاقات أرقام تنفيذية",
+  image: "poster/card design: ملصق تصميمي بعناصر نصية ورسومية — ليس صورة فوتوغرافية",
+};
+
+// مطالبة المرئي الاحترافي — تصميم اتصالي عربي RTL، بلا صور واقعية افتراضياً
+function premiumImagePrompt(brief: VisualBrief | null, description: string, ctx: { channel?: string; audience?: string; purpose?: string; visualType: string; style?: string; photoAllowed?: boolean }, dims: { label: string }): string {
   const avoid = [
     "نضمن", "مضمون", "أفضل محامي", "الأفضل", "100%", "١٠٠٪", "نسبة نجاح", "تعويض مضمون", "حكم مضمون",
     ...(brief?.complianceSensitivePhrases ?? []),
@@ -88,7 +103,18 @@ ${(brief.keyPoints ?? []).slice(0, 5).map((k, i) => `${i + 1}. ${k}`).join("\n")
 ${(brief.importantNumbers ?? []).length ? `أرقام/مواد يجوز إبرازها: ${(brief.importantNumbers ?? []).slice(0, 3).join("، ")}` : ""}
 النبرة: ${brief.recommendedTone || "مهنية رصينة"} — ${brief.rtlArabicNotes || ""}`
     : `الموضوع: ${description.slice(0, 600)}`;
-  return `أنشئ ${ctx.visualType === "image" ? "صورة" : "إنفوغرافيك"} تحريرياً مصقولاً عالي الجودة باللغة العربية، اتجاه RTL كامل.
+  const photoAllowed = ctx.photoAllowed === true;
+  const typeStyle = PREMIUM_TYPE_STYLE[ctx.visualType] ?? PREMIUM_TYPE_STYLE.infographic;
+  const designDirectives = photoAllowed ? "" : `
+This is a designed visual communication asset, not a photorealistic image.
+Do not generate photorealistic photos.
+Do not generate realistic people, portraits, buildings, courthouses, monuments, judges, lawyers, or dramatic legal scenes unless explicitly requested by the user.
+Use infographic, vector, editorial, flat design, diagrammatic, or layout-based visual style.
+Use Arabic RTL layout. Use short Arabic text blocks.
+Use icons, cards, sections, nodes, charts, lines, diagrams, abstract shapes, and clear visual hierarchy.
+The result must look like a professional designed visual, not a stock photo.
+نمط هذا المخرج تحديداً: ${typeStyle}.`;
+  return `أنشئ مرئياً تصميمياً تحريرياً مصقولاً عالي الجودة باللغة العربية، اتجاه RTL كامل.${designDirectives}
 ${core}
 القناة: ${ctx.channel ?? "عام"} — التنسيق: ${dims.label}${ctx.style ? ` — الأسلوب: ${ctx.style}` : ""}
 مواصفات إلزامية: تصميم مؤسسي سعودي احترافي راقٍ، خط عربي نظيف كبير مقروء تماماً بلا أي تشويه أو قص، تسلسل بصري واضح، نص محدود داخل الصورة، هوامش وتباعد سخي، لوحة خضراء مؤسسية (#166A45 إلى #25935F) مع محايدات هادئة.
@@ -915,12 +941,15 @@ export async function POST(request: Request) {
       : apiKey
         ? await generateVisualBrief(apiKey, effectiveDescription, { channel, audience, purpose, visualType })
         : null;
-    const pPrompt = premiumImagePrompt(brief, effectiveDescription, { channel, audience, purpose, visualType, style }, dims);
+    // photoAllowed=false افتراضياً — يُفتح فقط بطلب صريح في الوصف أو التعديل
+    const photoAllowed = isPhotoExplicitlyRequested(effectiveDescription);
+    const pPrompt = premiumImagePrompt(brief, effectiveDescription, { channel, audience, purpose, visualType, style, photoAllowed }, dims);
     const img = await generatePremiumImage(pPrompt, dims.w, dims.h);
     premiumExtras = Object.fromEntries(Object.entries({
       imageBase64: img.imageBase64,
       imageUrl: img.imageUrl,
       provider: img.provider,
+      providerNote: img.failureNote,
       brief,
       qualityNotes: brief
         ? "صورة مبنية على موجز بصري مركّز (رسالة مركزية، نقاط، محاذير امتثال تُتجنب حرفياً)."
