@@ -108,13 +108,16 @@ ${(brief.importantNumbers ?? []).length ? `أرقام/مواد يجوز إبرا
   const designDirectives = photoAllowed ? "" : `
 This is a designed visual communication asset, not a photorealistic image.
 Do not generate photorealistic photos.
-Do not generate realistic people, portraits, buildings, courthouses, monuments, judges, lawyers, or dramatic legal scenes unless explicitly requested by the user.
+Do not generate realistic people, portraits, buildings, city skylines, courthouses, monuments, judges, lawyers, or dramatic legal scenes unless explicitly requested by the user.
+No city, no buildings, no skyline, no photo, no dramatic scene — diagram, infographic layout, cards, nodes, sections, icons, and charts only.
 Use infographic, vector, editorial, flat design, diagrammatic, or layout-based visual style.
 Use Arabic RTL layout. Use short Arabic text blocks.
 Use icons, cards, sections, nodes, charts, lines, diagrams, abstract shapes, and clear visual hierarchy.
 The result must look like a professional designed visual, not a stock photo.
 نمط هذا المخرج تحديداً: ${typeStyle}.`;
-  return `أنشئ مرئياً تصميمياً تحريرياً مصقولاً عالي الجودة باللغة العربية، اتجاه RTL كامل.${designDirectives}
+  const alwaysBan = `
+Never include, under any circumstance: any invented or fake logo, brand mark, seal, stamp, official/government mark, any entity or organization name, any random foreign/Latin filler text, any watermark, and any source line or footer text not explicitly provided by the user.`;
+  return `أنشئ مرئياً تصميمياً تحريرياً مصقولاً عالي الجودة باللغة العربية، اتجاه RTL كامل.${alwaysBan}${designDirectives}
 ${core}
 القناة: ${ctx.channel ?? "عام"} — التنسيق: ${dims.label}${ctx.style ? ` — الأسلوب: ${ctx.style}` : ""}
 مواصفات إلزامية: تصميم مؤسسي سعودي احترافي راقٍ، خط عربي نظيف كبير مقروء تماماً بلا أي تشويه أو قص، تسلسل بصري واضح، نص محدود داخل الصورة، هوامش وتباعد سخي، لوحة خضراء مؤسسية (#166A45 إلى #25935F) مع محايدات هادئة.
