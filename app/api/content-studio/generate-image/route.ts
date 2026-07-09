@@ -744,7 +744,7 @@ ${statText}`;
   const footerY = H - FOOTER_H;
   const srcText = `<text x="${W / 2}" y="${footerY + 30}" text-anchor="middle" font-family="${FONT}" font-size="12.5" fill="${INK_TER}">${srcLines[0]}${srcLines.slice(1).map((l) => `<tspan x="${W / 2}" dy="22">${l}</tspan>`).join("")}</text>`;
 
-  return `<svg width="100%" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
+  return `<svg width="100%" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" direction="ltr" style="direction:ltr">
 <defs>
   <linearGradient id="hdrGrad" x1="0" y1="0" x2="1" y2="0">
     <stop offset="0%" stop-color="${PALM_DEEP}"/>
