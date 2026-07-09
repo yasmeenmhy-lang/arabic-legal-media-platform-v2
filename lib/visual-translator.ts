@@ -1,0 +1,82 @@
+// المترجم التحريري البصري — قلب «محرك ترجمة المحتوى إلى مرئيات».
+// يفهم النص القانوني العربي ويعيد كتابته نصوصاً بصرية قصيرة مصقولة ضمن
+// خطة موحدة (VisualPlan) تغذي محركات SVG والمسار الاحترافي.
+// ملاحظة معمارية ثابتة: لا يُحقن AI_CONSTITUTION هنا (عائلة الاستخراج).
+
+export type VisualPlanSection = {
+  heading: string;          // ≤ 6 كلمات
+  bullets: string[];        // 1-3 نقاط، كل نقطة ≤ 12 كلمة
+  stat?: string;            // رقم/نسبة/مادة نظامية إن وجدت
+  icon?: string;            // اقتراح أيقونة بالعربية (مثل: ميزان، وثيقة، ساعة)
+};
+
+export type VisualPlan = {
+  centralMessage: string;
+  objective: string;
+  audience: string;
+  recommendedOutputFormat: "infographic" | "chart" | "mindmap" | "image" | "executive" | "carousel" | "storyboard";
+  visualStyle: "رسمي" | "تعليمي";
+  layoutStrategy: string;   // مثل: خطوات متسلسلة / مقارنة / إحصائي / زمني
+  title: string;            // ≤ 8 كلمات
+  subtitle: string;         // ≤ 12 كلمة
+  shortVisualCopy: string;  // الرسالة بصياغة بصرية ≤ 20 كلمة
+  keySections: VisualPlanSection[];      // 3-5 أقسام
+  importantNumbers: string[];            // "٦٠ يوماً — مهلة الإشعار"
+  iconsSuggestions: string[];
+  complianceSensitivePhrases: string[];  // تُنقل حرفياً من النص لتُتجنب
+  complianceNotes: string;
+  rtlArabicNotes: string;
+};
+
+const PLAN_PROMPT_RULES = `أنت محرر تحريري بصري محترف للمحتوى القانوني العربي. لا تنسخ الجمل الطويلة —
+أعد الكتابة: عنوان ≤ ٨ كلمات، عنوان فرعي ≤ ١٢ كلمة، عناوين أقسام ≤ ٦ كلمات،
+كل نقطة ≤ ١٢ كلمة بصياغة رسمية رصينة، أبرز الأرقام والمواد النظامية كقيم مستقلة،
+ولا تدخل أي وعد بنتيجة أو تفوق أو نسب نجاح في النصوص المعاد صياغتها.`;
+
+export async function generateVisualPlan(
+  apiKey: string,
+  text: string,
+  ctx: { channel?: string; audience?: string; purpose?: string; visualType?: string }
+): Promise<VisualPlan | null> {
+  try {
+    const prompt = `${PLAN_PROMPT_RULES}
+
+حوّل النص إلى خطة بصرية JSON فقط بالمفاتيح التالية حرفياً:
+{"centralMessage":"","objective":"","audience":"","recommendedOutputFormat":"infographic|chart|mindmap|image|executive","visualStyle":"رسمي|تعليمي","layoutStrategy":"خطوات متسلسلة|مقارنة|إحصائي|زمني|تفرعي","title":"","subtitle":"","shortVisualCopy":"","keySections":[{"heading":"","bullets":[""],"stat":"","icon":""}],"importantNumbers":[""],"iconsSuggestions":[""],"complianceSensitivePhrases":["انقل حرفياً أي وعد بنتيجة/تفوق/نسبة نجاح وردت في النص"],"complianceNotes":"","rtlArabicNotes":""}
+
+السياق: القناة ${ctx.channel ?? "عام"} — الجمهور ${ctx.audience ?? "عام"} — الهدف ${ctx.purpose ?? "توعية"}${ctx.visualType ? ` — الصيغة المطلوبة ${ctx.visualType}` : ""}
+النص:
+${text.slice(0, 3500)}`;
+
+    const res = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: { "x-api-key": apiKey, "anthropic-version": "2023-06-01", "content-type": "application/json" },
+      body: JSON.stringify({ model: "claude-sonnet-5", max_tokens: 1600, messages: [{ role: "user", content: prompt }] }),
+    });
+    if (!res.ok) throw new Error(`plan ${res.status}`);
+    const payload = (await res.json()) as { content?: { type: string; text: string }[]; stop_reason?: string };
+    if (payload.stop_reason === "max_tokens") throw new Error("plan truncated");
+    const raw = payload.content?.find((c) => c.type === "text")?.text?.trim() ?? "";
+    const cleaned = raw.replace(/^```json\s*/i, "").replace(/^```\s*/i, "").replace(/\s*```$/i, "").trim();
+    const plan = JSON.parse(cleaned) as VisualPlan;
+    if (!plan?.centralMessage || !plan?.title || !Array.isArray(plan.keySections)) return null;
+    return plan;
+  } catch (e) {
+    console.error("[visual-plan]", e);
+    return null;
+  }
+}
+
+// وصف مُعاد الصياغة يُغذّى لمحركات الاستخراج القائمة بدل النص الخام الطويل
+export function planToEngineDescription(plan: VisualPlan): string {
+  const sections = plan.keySections
+    .map((s, i) => `${i + 1}. ${s.heading}: ${s.bullets.join(" · ")}${s.stat ? ` (${s.stat})` : ""}`)
+    .join("\n");
+  return `العنوان: ${plan.title}
+العنوان الفرعي: ${plan.subtitle}
+الرسالة: ${plan.shortVisualCopy || plan.centralMessage}
+الأقسام:
+${sections}
+${plan.importantNumbers?.length ? `أرقام بارزة: ${plan.importantNumbers.join(" | ")}` : ""}
+استخدم هذه الصياغات القصيرة كما هي — لا تُطِل النصوص.`;
+}

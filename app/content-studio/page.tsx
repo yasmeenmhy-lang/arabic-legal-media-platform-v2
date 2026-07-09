@@ -44,6 +44,7 @@ import {
   YouTubeIcon,
 } from "@/components/social-icons";
 import { contentKindOptions, contentKindLabels } from "@/lib/content-types";
+import type { VisualPlan } from "@/lib/visual-translator";
 import {
   DEMO_USER_NAME,
   loadContentRecords,
@@ -437,6 +438,15 @@ export default function ContentStudioPage() {
   const [vtUrl, setVtUrl] = useState("");
   // البنية الهيكلية للمرئي — تُمكّن تصدير PowerPoint بعناصر أصلية قابلة للتعديل
   const [vtVisual, setVtVisual] = useState<VisualStructure | null>(null);
+  // وضع الإخراج: قابل للتعديل (الافتراضي) / صورة احترافية / الاثنان
+  const [vtOutputMode, setVtOutputMode] = useState<"editable_svg" | "premium_image" | "both">("editable_svg");
+  const [vtPremiumUrl, setVtPremiumUrl] = useState("");
+  const [vtProvider, setVtProvider] = useState("");
+  const [providerInfo, setProviderInfo] = useState<{ openai: boolean; gemini: boolean; premiumAvailable: boolean } | null>(null);
+  // الخطة البصرية المقترحة — تُراجع وتُعدل ثم تُعتمد قبل التوليد
+  const [vtPlan, setVtPlan] = useState<VisualPlan | null>(null);
+  const [vtPlanEditing, setVtPlanEditing] = useState(false);
+  const [vtPlanLoading, setVtPlanLoading] = useState(false);
   const [vtError, setVtError] = useState("");
   const [vtSuggesting, setVtSuggesting] = useState(false);
   const [vtSuggestionReason, setVtSuggestionReason] = useState("");
@@ -482,6 +492,13 @@ export default function ContentStudioPage() {
 
   const contextScore = [kind, channel, audience, purpose].filter(Boolean).length;
   const activeText = path === "create" ? generatedText : reviewText;
+
+  useEffect(() => {
+    fetch("/api/content-studio/generate-image")
+      .then((r) => r.json())
+      .then((d) => setProviderInfo(d))
+      .catch(() => setProviderInfo(null));
+  }, []);
 
   // رسالة نقص السياق تُمسح تلقائياً فور اكتمال الاختيار — لا تبقى معلّقة بعد استيفاء الشرط
   useEffect(() => {
@@ -761,19 +778,57 @@ export default function ContentStudioPage() {
     }
   }
 
-  async function generateVisualTranslation(editInstruction?: string) {
+  function patchPlan(patch: Partial<VisualPlan>) {
+    setVtPlan((prev) => (prev ? { ...prev, ...patch } : prev));
+  }
+
+  async function generateVisualPlanStep() {
     if (!generatedText.trim()) return;
-    setVtLoading(true);
+    setVtPlanLoading(true);
     setVtError("");
-    setVtSvg("");
-    setVtUrl("");
-    setVtVisual(null);
     try {
       const res = await fetch("/api/content-studio/generate-image", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           description: generatedText.trim(),
+          visualType: vtType,
+          channel: channel || undefined,
+          audience: audience || undefined,
+          purpose: purpose || undefined,
+          outputMode: "editable_svg",
+          planOnly: true,
+        }),
+      });
+      const data = (await res.json()) as { visualPlan?: VisualPlan; error?: string };
+      if (!res.ok || !data.visualPlan) { setVtError(data.error ?? "تعذر توليد الخطة البصرية"); return; }
+      setVtPlan(data.visualPlan);
+      setVtPlanEditing(false);
+    } catch {
+      setVtError("تعذر الاتصال بخدمة الخطة البصرية");
+    } finally {
+      setVtPlanLoading(false);
+    }
+  }
+
+  async function generateVisualTranslation(editInstruction?: string, approvedPlan?: VisualPlan | null) {
+    if (!generatedText.trim() && !approvedPlan) return;
+    setVtLoading(true);
+    setVtError("");
+    setVtSvg("");
+    setVtUrl("");
+    setVtVisual(null);
+    setVtPremiumUrl("");
+    setVtProvider("");
+    if (!approvedPlan) { setVtPlan(null); setVtPlanEditing(false); }
+    try {
+      const res = await fetch("/api/content-studio/generate-image", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          // بعد اعتماد الخطة لا يُرسل النص الخام — الخطة مصدر الحقيقة
+          description: approvedPlan ? `${approvedPlan.title} — ${approvedPlan.centralMessage}`.slice(0, 400) : generatedText.trim(),
+          approvedPlan: approvedPlan ?? undefined,
           visualType: vtType,
           chartType: vtType === "chart" ? (vtChartType || undefined) : undefined,
           style: vtType === "image" ? (vtStyle || undefined) : undefined,
@@ -782,16 +837,22 @@ export default function ContentStudioPage() {
           editInstruction: editInstruction?.trim() || undefined,
           // البنية الحالية تُرسل مع طلب التعديل ليُطبَّق عليها لا أن يعاد التوليد من الصفر
           previousVisual: editInstruction?.trim() && vtVisual ? vtVisual : undefined,
+          outputMode: vtOutputMode,
+          audience: audience || undefined,
+          purpose: purpose || undefined,
         }),
       });
-      const data = (await res.json()) as { svgCode?: string; imageUrl?: string; visual?: VisualStructure; error?: string };
+      const data = (await res.json()) as { svgCode?: string; imageUrl?: string; imageBase64?: string; provider?: string; visual?: VisualStructure; error?: string };
       if (!res.ok) { setVtError(data.error ?? "فشل في إنشاء المرئي"); return; }
       if (data.svgCode) {
         setVtSvg(data.svgCode);
         setVtVisual(data.visual ?? null);
-      } else {
+      } else if (!data.imageBase64 && !data.provider) {
         setVtUrl(data.imageUrl ?? "");
       }
+      // الصورة الاحترافية (premium_image أو both)
+      setVtPremiumUrl(data.imageBase64 ?? (data.provider ? data.imageUrl ?? "" : ""));
+      setVtProvider(data.provider ?? "");
       setVtEditText("");
     } catch {
       setVtError("تعذر الاتصال بخدمة إنشاء المرئيات");
@@ -2172,7 +2233,7 @@ export default function ContentStudioPage() {
                   <button
                     key={t.key}
                     type="button"
-                    onClick={() => { setVtType(t.key); setVtSvg(""); setVtUrl(""); setVtVisual(null); setVtError(""); setVtConfirming(false); setVtSuggestionReason(""); }}
+                    onClick={() => { setVtType(t.key); setVtSvg(""); setVtUrl(""); setVtVisual(null); setVtPremiumUrl(""); setVtProvider(""); setVtPlan(null); setVtPlanEditing(false); setVtError(""); setVtConfirming(false); setVtSuggestionReason(""); }}
                     className={`rounded-lg border px-3 py-1.5 text-xs font-medium transition ${
                       vtType === t.key
                         ? "border-palm bg-white text-palm shadow-[0_0_0_1px_theme(colors.palm)]"
@@ -2184,6 +2245,37 @@ export default function ContentStudioPage() {
                     <span className="opacity-50">{t.hint}</span>
                   </button>
                 ))}
+              </div>
+
+              {/* وضع الإخراج: قابل للتعديل / صورة احترافية / الاثنان */}
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-xs text-ink/50">الإخراج:</span>
+                {([
+                  { key: "editable_svg" as const,  label: "قابل للتعديل SVG" },
+                  { key: "premium_image" as const, label: "صورة احترافية بالذكاء الاصطناعي" },
+                  { key: "both" as const,          label: "الاثنان معًا" },
+                ]).map((m) => (
+                  <button key={m.key} type="button"
+                    onClick={() => setVtOutputMode(m.key)}
+                    className={`rounded-lg border px-3 py-1.5 text-xs font-medium transition ${
+                      vtOutputMode === m.key
+                        ? "border-palm bg-white text-palm shadow-[0_0_0_1px_theme(colors.palm)]"
+                        : "border-line bg-white/70 text-ink/55 hover:border-palm hover:text-palm"
+                    }`}>
+                    {m.label}
+                  </button>
+                ))}
+                {vtOutputMode !== "editable_svg" && providerInfo && (
+                  providerInfo.premiumAvailable ? (
+                    <span className="text-xs text-palm">
+                      المزود: {providerInfo.openai ? "OpenAI متاح" : ""}{providerInfo.openai && providerInfo.gemini ? " · " : ""}{providerInfo.gemini ? "Gemini / Nano Banana متاح" : ""}
+                    </span>
+                  ) : (
+                    <span className="rounded-lg bg-warningSoft px-2 py-1 text-xs font-medium text-warningDark">
+                      لا يوجد مزود صور احترافي مهيأ — سيُستخدم الوضع الاحتياطي/التجريبي
+                    </span>
+                  )
+                )}
               </div>
 
               {/* Chart sub-type */}
@@ -2306,6 +2398,99 @@ export default function ContentStudioPage() {
                 </div>
               )}
 
+              {/* الخطة البصرية المقترحة — مراجعة وتعديل واعتماد قبل التوليد */}
+              {!vtPlan && !vtSvg && !vtPremiumUrl && !vtLoading && (
+                <button type="button" onClick={() => void generateVisualPlanStep()} disabled={vtPlanLoading || !generatedText.trim()}
+                  className="inline-flex items-center gap-2 rounded-lg border border-palm bg-mint px-3 py-2 text-sm font-medium text-palm transition hover:bg-mint/70 disabled:opacity-50">
+                  <Sparkles size={14} /> {vtPlanLoading ? "جارٍ توليد الخطة..." : "توليد الخطة البصرية"}
+                </button>
+              )}
+              {vtPlan && (
+                <div className="rounded-xl border border-infoBorder bg-infoSoft p-4">
+                  <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                    <p className="text-sm font-semibold text-infoDark">الخطة البصرية المقترحة</p>
+                    <div className="flex flex-wrap gap-2">
+                      <button type="button" onClick={() => setVtPlanEditing((v) => !v)}
+                        className="rounded-lg border border-line bg-white px-3 py-1 text-xs font-medium text-ink/70 hover:border-palm hover:text-palm">
+                        {vtPlanEditing ? "إنهاء التعديل" : "تعديل الخطة"}
+                      </button>
+                      <button type="button" disabled={vtPlanLoading} onClick={() => void generateVisualPlanStep()}
+                        className="rounded-lg border border-line bg-white px-3 py-1 text-xs font-medium text-ink/70 hover:border-palm hover:text-palm disabled:opacity-50">
+                        {vtPlanLoading ? "..." : "إعادة توليد الخطة"}
+                      </button>
+                      <button type="button" onClick={() => { setVtPlanEditing(false); void generateVisualTranslation(undefined, vtPlan); }}
+                        className="rounded-lg bg-palm px-3 py-1 text-xs font-medium text-white hover:bg-palmDark">
+                        اعتماد الخطة وتوليد المرئي
+                      </button>
+                    </div>
+                  </div>
+                  {(() => {
+                    const ro = !vtPlanEditing;
+                    const inp = "w-full rounded-lg border border-line bg-white p-2 text-sm disabled:bg-paper/60 disabled:text-ink/70";
+                    return (
+                      <div className="space-y-2.5 text-sm">
+                        <div className="grid gap-2.5 sm:grid-cols-2">
+                          <label className="block"><span className="text-xs text-ink/55">العنوان</span>
+                            <input disabled={ro} className={inp} value={vtPlan.title} onChange={(e) => patchPlan({ title: e.target.value })} /></label>
+                          <label className="block"><span className="text-xs text-ink/55">العنوان الفرعي</span>
+                            <input disabled={ro} className={inp} value={vtPlan.subtitle} onChange={(e) => patchPlan({ subtitle: e.target.value })} /></label>
+                        </div>
+                        <label className="block"><span className="text-xs text-ink/55">الرسالة المركزية</span>
+                          <input disabled={ro} className={inp} value={vtPlan.centralMessage} onChange={(e) => patchPlan({ centralMessage: e.target.value })} /></label>
+                        <label className="block"><span className="text-xs text-ink/55">النص القصير داخل المرئي</span>
+                          <input disabled={ro} className={inp} value={vtPlan.shortVisualCopy} onChange={(e) => patchPlan({ shortVisualCopy: e.target.value })} /></label>
+                        <div className="grid gap-2.5 sm:grid-cols-3">
+                          <label className="block"><span className="text-xs text-ink/55">نوع المخرج</span>
+                            <select disabled={ro} className={inp} value={vtPlan.recommendedOutputFormat}
+                              onChange={(e) => patchPlan({ recommendedOutputFormat: e.target.value as VisualPlan["recommendedOutputFormat"] })}>
+                              {["infographic", "chart", "mindmap", "image"].map((o) => <option key={o} value={o}>{o === "infographic" ? "إنفوغراف" : o === "chart" ? "رسم بياني" : o === "mindmap" ? "خريطة ذهنية" : "صورة"}</option>)}
+                            </select></label>
+                          <label className="block"><span className="text-xs text-ink/55">النمط البصري</span>
+                            <select disabled={ro} className={inp} value={vtPlan.visualStyle}
+                              onChange={(e) => patchPlan({ visualStyle: e.target.value as VisualPlan["visualStyle"] })}>
+                              <option value="رسمي">رسمي</option><option value="تعليمي">تعليمي</option>
+                            </select></label>
+                          <label className="block"><span className="text-xs text-ink/55">استراتيجية التخطيط</span>
+                            <input disabled={ro} className={inp} value={vtPlan.layoutStrategy} onChange={(e) => patchPlan({ layoutStrategy: e.target.value })} /></label>
+                        </div>
+                        <div>
+                          <span className="text-xs text-ink/55">الأقسام (عنوان القسم ثم نقاطه — نقطة في كل سطر)</span>
+                          <div className="mt-1 space-y-2">
+                            {vtPlan.keySections.map((sec, i) => (
+                              <div key={i} className="rounded-lg border border-line bg-white p-2">
+                                <input disabled={ro} className={inp + " mb-1.5 font-medium"} value={sec.heading}
+                                  onChange={(e) => { const ks = [...vtPlan.keySections]; ks[i] = { ...ks[i], heading: e.target.value }; patchPlan({ keySections: ks }); }} />
+                                <textarea disabled={ro} className={inp + " min-h-16 leading-6"} value={sec.bullets.join("\n")}
+                                  onChange={(e) => { const ks = [...vtPlan.keySections]; ks[i] = { ...ks[i], bullets: e.target.value.split("\n").filter(Boolean) }; patchPlan({ keySections: ks }); }} />
+                                <input disabled={ro} className={inp + " mt-1.5"} placeholder="رقم/مادة بارزة (اختياري)" value={sec.stat ?? ""}
+                                  onChange={(e) => { const ks = [...vtPlan.keySections]; ks[i] = { ...ks[i], stat: e.target.value }; patchPlan({ keySections: ks }); }} />
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                        <label className="block"><span className="text-xs text-ink/55">الأرقام المهمة (سطر لكل رقم)</span>
+                          <textarea disabled={ro} className={inp + " min-h-14 leading-6"} value={(vtPlan.importantNumbers ?? []).join("\n")}
+                            onChange={(e) => patchPlan({ importantNumbers: e.target.value.split("\n").filter(Boolean) })} /></label>
+                        <label className="block"><span className="text-xs text-ink/55">ملاحظات الامتثال</span>
+                          <input disabled={ro} className={inp} value={vtPlan.complianceNotes} onChange={(e) => patchPlan({ complianceNotes: e.target.value })} /></label>
+                      </div>
+                    );
+                  })()}
+                </div>
+              )}
+
+              {/* الصورة الاحترافية بالذكاء الاصطناعي */}
+              {vtPremiumUrl && !vtLoading && (
+                <div className="overflow-hidden rounded-xl border border-line bg-white">
+                  <img src={vtPremiumUrl} alt="صورة احترافية بالذكاء الاصطناعي" className="w-full" />
+                  <div className="flex flex-wrap items-center gap-2 border-t border-line bg-paper/60 px-3 py-2">
+                    <span className="text-xs text-ink/55">صورة احترافية — المزود: {vtProvider === "openai" ? "OpenAI" : vtProvider === "gemini" ? "Gemini / Nano Banana" : vtProvider === "pollinations" ? "احتياطي" : "تجريبي"}</span>
+                    <a href={vtPremiumUrl} download="premium-visual.png" target="_blank" rel="noopener noreferrer"
+                      className="mr-auto shrink-0 whitespace-nowrap rounded-lg border border-line bg-white px-3 py-1 text-xs font-medium text-ink/70 transition hover:border-palm hover:text-palm">تنزيل</a>
+                  </div>
+                </div>
+              )}
+
               {vtSvg && !vtLoading && (
                 <div className="overflow-hidden rounded-xl border border-line bg-white">
                   <div className="w-full p-2" dangerouslySetInnerHTML={{ __html: vtSvg }} />
@@ -2321,7 +2506,7 @@ export default function ContentStudioPage() {
                         title="تنزيل شريحة PowerPoint قابلة للتحرير">PowerPoint</button>
                       <button type="button" onClick={() => { setVtSvg(""); setVtUrl(""); void generateVisualTranslation(); }}
                         className="shrink-0 whitespace-nowrap rounded-lg border border-line bg-paper px-3 py-1 text-xs font-medium text-ink/70 transition hover:border-palm hover:text-palm">إعادة الإنشاء</button>
-                      <button type="button" onClick={() => { setVtSvg(""); setVtUrl(""); setVtVisual(null); setVtError(""); }}
+                      <button type="button" onClick={() => { setVtSvg(""); setVtUrl(""); setVtVisual(null); setVtPremiumUrl(""); setVtProvider(""); setVtPlan(null); setVtPlanEditing(false); setVtError(""); }}
                         className="flex shrink-0 items-center gap-1 whitespace-nowrap rounded-lg border border-line bg-paper px-3 py-1 text-xs font-medium text-red-500/70 transition hover:border-red-300 hover:text-red-600"
                         title="مسح المرئي">
                         <Trash2 size={12} />
@@ -2365,7 +2550,7 @@ export default function ContentStudioPage() {
                         title="تنزيل شريحة PowerPoint قابلة للتحرير">PowerPoint</button>
                       <button type="button" onClick={() => { setVtSvg(""); setVtUrl(""); void generateVisualTranslation(); }}
                         className="shrink-0 whitespace-nowrap rounded-lg border border-line bg-paper px-3 py-1 text-xs font-medium text-ink/70 transition hover:border-palm hover:text-palm">إعادة الإنشاء</button>
-                      <button type="button" onClick={() => { setVtSvg(""); setVtUrl(""); setVtVisual(null); setVtError(""); }}
+                      <button type="button" onClick={() => { setVtSvg(""); setVtUrl(""); setVtVisual(null); setVtPremiumUrl(""); setVtProvider(""); setVtPlan(null); setVtPlanEditing(false); setVtError(""); }}
                         className="flex shrink-0 items-center gap-1 whitespace-nowrap rounded-lg border border-line bg-paper px-3 py-1 text-xs font-medium text-red-500/70 transition hover:border-red-300 hover:text-red-600"
                         title="مسح الصورة">
                         <Trash2 size={12} />
