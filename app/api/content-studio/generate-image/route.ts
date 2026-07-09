@@ -20,6 +20,9 @@ const schema = z.object({
   previousVisual: z.object({ type: z.string(), chartType: z.string().optional(), data: z.unknown() }).optional(),
   // وضع الإخراج: البنية القابلة للتعديل (الافتراضي — السلوك القائم) أو صورة احترافية أو الاثنان
   outputMode: z.enum(["editable_svg", "premium_image", "both"]).default("editable_svg"),
+  // توليد الخطة فقط (خطوة المراجعة) / خطة معتمدة من المستخدم — تُستخدم كما هي دون النص الخام
+  planOnly: z.boolean().optional(),
+  approvedPlan: z.custom<import("@/lib/visual-translator").VisualPlan>().optional(),
   audience: z.string().optional(),
   purpose: z.string().optional(),
 });
@@ -859,7 +862,7 @@ export async function POST(request: Request) {
   const parsed = schema.safeParse(await request.json());
   if (!parsed.success) return badRequest("المدخلات غير مكتملة");
 
-  const { description, visualType, chartType, style, dimensions, channel, editInstruction, previousVisual, outputMode, audience, purpose } = parsed.data;
+  const { description, visualType, chartType, style, dimensions, channel, editInstruction, previousVisual, outputMode, audience, purpose, planOnly, approvedPlan } = parsed.data;
 
   // عند طلب تعديل: يُلحق الطلب بالوصف فيُطبق على البيانات المولدة والتصميم
   // عند وجود بنية سابقة: التعديل يُطبَّق عليها حرفياً وكل ما عداه يبقى كما هو
@@ -875,9 +878,17 @@ export async function POST(request: Request) {
   // ── المرحلة ١: المترجم التحريري — خطة بصرية موحدة تعيد صياغة النص نصوصاً
   // قصيرة مصقولة. فشلها لا يكسر شيئاً (سقوط للنص الخام)، وتُتخطى أثناء التعديل.
   const isEditFlow = Boolean(editInstruction?.trim() && previousVisual?.data);
-  const visualPlan: VisualPlan | null = apiKey && !isEditFlow && visualType !== "image"
-    ? await generateVisualPlan(apiKey, description, { channel, audience, purpose, visualType })
-    : null;
+  // خطة معتمدة من المستخدم = مصدر الحقيقة الوحيد؛ وإلا تُولَّد (وتُتخطى في التعديل)
+  const visualPlan: VisualPlan | null = approvedPlan
+    ? approvedPlan
+    : apiKey && !isEditFlow && visualType !== "image"
+      ? await generateVisualPlan(apiKey, description, { channel, audience, purpose, visualType })
+      : null;
+  // خطوة المراجعة: إرجاع الخطة فقط دون توليد مرئي
+  if (planOnly) {
+    if (!visualPlan) return NextResponse.json({ error: "تعذر توليد الخطة البصرية — حاول مجدداً" }, { status: 502 });
+    return NextResponse.json({ visualPlan });
+  }
   const engineDescription = visualPlan
     ? `${planToEngineDescription(visualPlan)}${editInstruction?.trim() ? `\n\nطلب تعديل يجب تطبيقه: ${editInstruction.trim()}` : ""}`
     : effectiveDescription;
