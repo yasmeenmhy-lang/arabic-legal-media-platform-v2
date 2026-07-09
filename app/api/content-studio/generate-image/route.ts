@@ -938,7 +938,7 @@ export async function POST(request: Request) {
       });
     }
     return NextResponse.json(
-      { error: "خدمة الإنشاء غير مهيأة — تأكد من ضبط ANTHROPIC_API_KEY" },
+      { error: "هذه النسخة من المنصة غير مهيأة بمفاتيح الذكاء الاصطناعي. افتح المنصة من الرابط الأساسي: arabic-legal-media-platform-v2.vercel.app — وإن استمرت الرسالة هناك فأبلغ مسؤول المنصة بضبط المفاتيح في إعدادات Vercel ثم إعادة النشر." },
       { status: 503 }
     );
   }
