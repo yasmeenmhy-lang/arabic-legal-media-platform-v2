@@ -46,18 +46,23 @@ export async function generateVisualPlan(
 
 السياق: القناة ${ctx.channel ?? "عام"} — الجمهور ${ctx.audience ?? "عام"} — الهدف ${ctx.purpose ?? "توعية"}${ctx.visualType ? ` — الصيغة المطلوبة ${ctx.visualType}` : ""}
 النص:
-${text.slice(0, 3500)}`;
+${text.slice(0, 3500)}
+
+أخرج كائن JSON فقط — لا أي نص قبله أو بعده.`;
 
     const res = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: { "x-api-key": apiKey, "anthropic-version": "2023-06-01", "content-type": "application/json" },
-      body: JSON.stringify({ model: "claude-sonnet-5", max_tokens: 1600, messages: [{ role: "user", content: prompt }] }),
+      body: JSON.stringify({ model: "claude-sonnet-5", max_tokens: 3200, messages: [{ role: "user", content: prompt }] }),
     });
     if (!res.ok) throw new Error(`plan ${res.status}`);
     const payload = (await res.json()) as { content?: { type: string; text: string }[]; stop_reason?: string };
     if (payload.stop_reason === "max_tokens") throw new Error("plan truncated");
     const raw = payload.content?.find((c) => c.type === "text")?.text?.trim() ?? "";
-    const cleaned = raw.replace(/^```json\s*/i, "").replace(/^```\s*/i, "").replace(/\s*```$/i, "").trim();
+    let cleaned = raw.replace(/^```json\s*/i, "").replace(/^```\s*/i, "").replace(/\s*```$/i, "").trim();
+    const first = cleaned.indexOf("{");
+    const last = cleaned.lastIndexOf("}");
+    if (first > 0 || (last !== -1 && last < cleaned.length - 1)) cleaned = cleaned.slice(first, last + 1);
     const plan = JSON.parse(cleaned) as VisualPlan;
     if (!plan?.centralMessage || !plan?.title || !Array.isArray(plan.keySections)) return null;
     return plan;
