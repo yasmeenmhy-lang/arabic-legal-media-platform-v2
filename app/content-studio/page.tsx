@@ -444,6 +444,8 @@ export default function ContentStudioPage() {
   const [vtProvider, setVtProvider] = useState("");
   const [vtProviderNote, setVtProviderNote] = useState("");
   const [vtPremiumError, setVtPremiumError] = useState("");
+  // المرئي مكمّل للنص: القسم يظهر مباشرة للأنواع البصرية فقط، وبقية الأنواع تفتحه اختيارياً بعد النص
+  const [vtSectionOpen, setVtSectionOpen] = useState(false);
   const [vtPlanCollapsed, setVtPlanCollapsed] = useState(false);
   const [providerInfo, setProviderInfo] = useState<{ mode?: string; openai: boolean; gemini: boolean; premiumAvailable: boolean } | null>(null);
   // الخطة البصرية المقترحة — تُراجع وتُعدل ثم تُعتمد قبل التوليد
@@ -495,6 +497,8 @@ export default function ContentStudioPage() {
 
   const contextScore = [kind, channel, audience, purpose].filter(Boolean).length;
   const activeText = path === "create" ? generatedText : reviewText;
+  // «محتوى بصري» و«رسم توضيحي» فقط: الترجمة البصرية مرحلة رئيسية — لبقية الأنواع مخرج داعم اختياري
+  const isVisualKind = kind === "visual_content" || kind === "infographic";
 
   useEffect(() => {
     fetch("/api/content-studio/generate-image")
@@ -717,6 +721,15 @@ export default function ContentStudioPage() {
     setVtSuggesting(false);
     setVtSuggestionReason("");
     setImageGenEditText("");
+    setVtSectionOpen(false);
+    setVtOutputMode("editable_svg");
+    setVtPremiumUrl("");
+    setVtProvider("");
+    setVtProviderNote("");
+    setVtPremiumError("");
+    setVtPlan(null);
+    setVtPlanEditing(false);
+    setVtPlanCollapsed(false);
   }
 
   function buildInfographicDesc(): string {
@@ -1193,6 +1206,10 @@ export default function ContentStudioPage() {
     if (kind === "visual_content" && visualMode === "describe" && imageDesc.trim() && !topic) {
       setTopic(imageDesc.trim());
     }
+    // «رسم توضيحي»: وصف المحتوى المطلوب هو أساس النص — يُمرَّر موضوعاً للتوليد
+    if (kind === "infographic" && infographicDesc.trim() && !topic) {
+      setTopic(infographicDesc.trim());
+    }
     setPath("create");
   }
 
@@ -1242,7 +1259,7 @@ export default function ContentStudioPage() {
 
         {/* Content type */}
         <div className="mb-4">
-          <p className="mb-2 text-sm text-ink/65">نوع المحتوى</p>
+          <p className="mb-2 text-sm text-ink/65">نوع المحتوى <span className="text-xs text-ink/40">— ماذا تريد أن تنشئ أولًا</span></p>
           <div className="flex flex-wrap gap-2">
             {studioContentTypes.map((item) => (
               <button
@@ -1362,6 +1379,11 @@ export default function ContentStudioPage() {
                     <ImageIcon size={14} />
                     {imageGenLoading ? "جارٍ الإنشاء..." : "إنشاء مرئي"}
                   </button>
+                  {!imageDesc.trim() && (
+                    <p className="text-xs leading-5 text-ink/45">
+                      أدخل وصف المحتوى المطلوب أولًا؛ لأن المرئي يجب أن يكون مبنيًا على النص.
+                    </p>
+                  )}
 
                   {/* Loading skeleton */}
                   {imageGenLoading && (
@@ -2166,7 +2188,7 @@ export default function ContentStudioPage() {
             <SectionTitle title="3. المحتوى المقترح" subtitle="راجع وعدّل قبل التحليل القانوني." />
             <button
               type="button"
-              onClick={() => { setGeneratedText(""); setTopic(""); setVtSvg(""); setVtUrl(""); setVtVisual(null); setVtError(""); setVtConfirming(false); setVtSuggestionReason(""); }}
+              onClick={() => { setGeneratedText(""); setTopic(""); setVtSvg(""); setVtUrl(""); setVtVisual(null); setVtError(""); setVtConfirming(false); setVtSuggestionReason(""); setVtSectionOpen(false); setVtPremiumUrl(""); setVtProvider(""); setVtProviderNote(""); setVtPremiumError(""); setVtPlan(null); setVtPlanEditing(false); }}
               className="text-xs text-ink/50 transition hover:text-ink"
             >
               أعد الإنشاء
@@ -2198,15 +2220,57 @@ export default function ContentStudioPage() {
             </div>
           )}
 
-          {/* ── Universal visual translation — works for every content kind ── */}
-          <div className="mt-5 overflow-hidden rounded-xl border border-palm/20 bg-mint/10">
-            <div className="border-b border-palm/10 bg-mint/30 px-4 py-3">
-              <p className="flex items-center gap-1.5 text-xs font-semibold text-palm">
+          {/* ── المرئي مكمّل للنص: مرحلة رئيسية لـ«محتوى بصري/رسم توضيحي» فقط، ومخرج داعم اختياري لبقية الأنواع ── */}
+          {!isVisualKind && !vtSectionOpen && (
+            <div className="mt-5 rounded-xl border border-dashed border-palm/30 bg-mint/10 p-4">
+              <button
+                type="button"
+                onClick={() => setVtSectionOpen(true)}
+                disabled={!generatedText.trim()}
+                className="flex items-center gap-1.5 rounded-lg border border-palm bg-white px-4 py-2 text-xs font-semibold text-palm transition hover:bg-mint disabled:cursor-not-allowed disabled:opacity-50"
+              >
                 <BarChart2 size={13} aria-hidden="true" />
-                ترجمة المحتوى بصرياً — اختر الأسلوب
+                {kind === "script" ? "مخرجات بصرية داعمة للنص (اختياري)" : "حوّل هذا النص إلى مرئي داعم (اختياري)"}
+              </button>
+              <p className="mt-2 text-xs leading-5 text-ink/45">
+                {generatedText.trim()
+                  ? "المحتوى هو الأصل — المرئي مخرج داعم يوضّح النص ولا يحل محله."
+                  : "أدخل المحتوى أو ولّد النص أولًا؛ لأن المرئي يجب أن يكون مبنيًا على النص."}
               </p>
             </div>
+          )}
+          {(isVisualKind || vtSectionOpen) && (
+          <div className="mt-5 overflow-hidden rounded-xl border border-palm/20 bg-mint/10">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-palm/10 bg-mint/30 px-4 py-3">
+              <p className="flex items-center gap-1.5 text-xs font-semibold text-palm">
+                <BarChart2 size={13} aria-hidden="true" />
+                {isVisualKind
+                  ? "ترجمة المحتوى بصرياً — تحويل نص موجود إلى مرئي"
+                  : kind === "script"
+                  ? "مخرجات بصرية داعمة للنص"
+                  : "مرئي داعم للنص — ترجمة المحتوى بصرياً"}
+              </p>
+              {!isVisualKind && (
+                <button
+                  type="button"
+                  onClick={() => setVtSectionOpen(false)}
+                  className="text-xs text-ink/50 transition hover:text-ink"
+                >
+                  إخفاء القسم
+                </button>
+              )}
+            </div>
             <div className="space-y-3 p-4">
+              {!generatedText.trim() && (
+                <p className="rounded-lg bg-warningSoft px-3 py-2 text-xs font-medium text-warningDark">
+                  أدخل المحتوى أو ولّد النص أولًا؛ لأن المرئي يجب أن يكون مبنيًا على النص.
+                </p>
+              )}
+              {kind === "script" && (
+                <p className="text-xs leading-5 text-ink/45">
+                  المتاح حالياً: تحويل نص الفيديو إلى إنفوغراف أو خريطة ذهنية أو رسم بياني داعم. قريباً: صورة غلاف · ستوري بورد · بطاقات مشاهد · موشن جرافيك.
+                </p>
+              )}
               {/* AI suggestion row */}
               <div className="flex flex-wrap items-center gap-2">
                 <button
@@ -2636,6 +2700,7 @@ export default function ContentStudioPage() {
               {vtError && <p className="text-xs text-red-600">{vtError}</p>}
             </div>
           </div>
+          )}
 
           <div className="mt-3 flex gap-3 rounded-lg border border-amber-200 bg-amber-50 p-4">
             <AlertTriangle size={18} className="mt-0.5 shrink-0 text-amber-500" aria-hidden="true" />
@@ -2648,7 +2713,7 @@ export default function ContentStudioPage() {
             <Button onClick={runReview} disabled={generatedText.trim().length < 5} leadingIcon={<FileCheck2 size={16} aria-hidden="true" />}>
               راجع قانونياً
             </Button>
-            <Button variant="secondary-gray" onClick={() => { setGeneratedText(""); setTopic(""); setVtSvg(""); setVtUrl(""); setVtVisual(null); setVtError(""); setVtConfirming(false); setVtSuggestionReason(""); }} leadingIcon={<Edit3 size={16} />}>
+            <Button variant="secondary-gray" onClick={() => { setGeneratedText(""); setTopic(""); setVtSvg(""); setVtUrl(""); setVtVisual(null); setVtError(""); setVtConfirming(false); setVtSuggestionReason(""); setVtSectionOpen(false); setVtPremiumUrl(""); setVtProvider(""); setVtProviderNote(""); setVtPremiumError(""); setVtPlan(null); setVtPlanEditing(false); }} leadingIcon={<Edit3 size={16} />}>
               عدّل الطلب
             </Button>
           </div>
