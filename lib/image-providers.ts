@@ -30,7 +30,7 @@ async function openAiGenerate(prompt: string, w: number, h: number): Promise<Pre
   const res = await fetch("https://api.openai.com/v1/images/generations", {
     method: "POST",
     headers: { authorization: `Bearer ${key}`, "content-type": "application/json" },
-    body: JSON.stringify({ model, prompt, size, quality: "high", output_format: "png" }),
+    body: JSON.stringify({ model, prompt, size, quality: "medium", output_format: "png" }),
   });
   if (!res.ok) throw new Error(`OpenAI ${res.status}`);
   const data = (await res.json()) as { data?: { b64_json?: string }[] };
