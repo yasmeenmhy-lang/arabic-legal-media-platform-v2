@@ -842,7 +842,7 @@ export default function ContentStudioPage() {
           purpose: purpose || undefined,
         }),
       });
-      const data = (await res.json()) as { svgCode?: string; imageUrl?: string; imageBase64?: string; provider?: string; visual?: VisualStructure; error?: string };
+      const data = (await res.json()) as { svgCode?: string; imageUrl?: string; imageBase64?: string; provider?: string; providerNote?: string; visual?: VisualStructure; error?: string };
       if (!res.ok) { setVtError(data.error ?? "فشل في إنشاء المرئي"); return; }
       if (data.svgCode) {
         setVtSvg(data.svgCode);
@@ -852,7 +852,7 @@ export default function ContentStudioPage() {
       }
       // الصورة الاحترافية (premium_image أو both)
       setVtPremiumUrl(data.imageBase64 ?? (data.provider ? data.imageUrl ?? "" : ""));
-      setVtProvider(data.provider ?? "");
+      setVtProvider(data.provider ? `${data.provider}${data.providerNote ? ` — ${data.providerNote}` : ""}` : "");
       setVtEditText("");
     } catch {
       setVtError("تعذر الاتصال بخدمة إنشاء المرئيات");
@@ -1352,7 +1352,7 @@ export default function ContentStudioPage() {
                     className="inline-flex items-center gap-2 rounded-lg bg-palm px-4 py-2 text-sm font-medium text-white transition hover:bg-palm/90 disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     <ImageIcon size={14} />
-                    {imageGenLoading ? "جارٍ الإنشاء..." : "إنشاء صورة"}
+                    {imageGenLoading ? "جارٍ الإنشاء..." : "إنشاء مرئي"}
                   </button>
 
                   {/* Loading skeleton */}
@@ -2252,7 +2252,7 @@ export default function ContentStudioPage() {
                 <span className="text-xs text-ink/50">الإخراج:</span>
                 {([
                   { key: "editable_svg" as const,  label: "قابل للتعديل SVG" },
-                  { key: "premium_image" as const, label: "صورة احترافية بالذكاء الاصطناعي" },
+                  { key: "premium_image" as const, label: "مرئي احترافي بالذكاء الاصطناعي" },
                   { key: "both" as const,          label: "الاثنان معًا" },
                 ]).map((m) => (
                   <button key={m.key} type="button"
@@ -2272,7 +2272,7 @@ export default function ContentStudioPage() {
                     </span>
                   ) : (
                     <span className="rounded-lg bg-warningSoft px-2 py-1 text-xs font-medium text-warningDark">
-                      لا يوجد مزود صور احترافي مهيأ — سيُستخدم الوضع الاحتياطي/التجريبي
+                      لا يوجد مزود مرئيات احترافية مهيأ — سيُستخدم الوضع الاحتياطي/التجريبي
                     </span>
                   )
                 )}
@@ -2482,9 +2482,9 @@ export default function ContentStudioPage() {
               {/* الصورة الاحترافية بالذكاء الاصطناعي */}
               {vtPremiumUrl && !vtLoading && (
                 <div className="overflow-hidden rounded-xl border border-line bg-white">
-                  <img src={vtPremiumUrl} alt="صورة احترافية بالذكاء الاصطناعي" className="w-full" />
+                  <img src={vtPremiumUrl} alt="مرئي احترافي بالذكاء الاصطناعي" className="w-full" />
                   <div className="flex flex-wrap items-center gap-2 border-t border-line bg-paper/60 px-3 py-2">
-                    <span className="text-xs text-ink/55">صورة احترافية — المزود: {vtProvider === "openai" ? "OpenAI" : vtProvider === "gemini" ? "Gemini / Nano Banana" : vtProvider === "pollinations" ? "احتياطي" : "تجريبي"}</span>
+                    <span className="text-xs text-ink/55">مرئي احترافي — المزود: {vtProvider === "openai" ? "OpenAI" : vtProvider === "gemini" ? "Gemini / Nano Banana" : vtProvider === "pollinations" ? "احتياطي" : "تجريبي"}</span>
                     <a href={vtPremiumUrl} download="premium-visual.png" target="_blank" rel="noopener noreferrer"
                       className="mr-auto shrink-0 whitespace-nowrap rounded-lg border border-line bg-white px-3 py-1 text-xs font-medium text-ink/70 transition hover:border-palm hover:text-palm">تنزيل</a>
                   </div>

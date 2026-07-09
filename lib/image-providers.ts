@@ -6,6 +6,8 @@ export type PremiumImageResult = {
   imageBase64?: string; // data URL
   imageUrl?: string;
   provider: "openai" | "gemini" | "pollinations" | "mock";
+  /** سبب سقوط المزودين الرئيسيين إن حدث — أكواد حالة فقط، لا أسرار */
+  failureNote?: string;
 };
 
 export type ProviderStatus = {
@@ -95,19 +97,26 @@ export async function generatePremiumImage(prompt: string, w: number, h: number)
     : mode === "gemini" ? [() => geminiGenerate(prompt)]
     : [() => openAiGenerate(prompt, w, h), () => geminiGenerate(prompt)]; // auto
 
-  for (const attempt of attempts) {
+  const failures: string[] = [];
+  const names = mode === "openai" ? ["openai"] : mode === "gemini" ? ["gemini"] : ["openai", "gemini"];
+  for (let i = 0; i < attempts.length; i++) {
     try {
-      const r = await attempt();
+      const r = await attempts[i]();
       if (r) return r;
+      failures.push(`${names[i]}: بلا نتيجة`);
     } catch (e) {
-      console.error("[image-provider]", e);
+      // نلتقط كود الحالة فقط (مثل OpenAI 403) — لا رؤوس ولا مفاتيح
+      const msg = e instanceof Error ? e.message : "خطأ";
+      failures.push(msg.replace(/Bearer\s+\S+/gi, "").slice(0, 60));
+      console.error("[image-provider]", msg);
     }
   }
+  const failureNote = failures.join(" | ") || undefined;
   // احتياط auto القائم: Pollinations ثم mock — التطبيق لا ينهار بلا مفاتيح
   if (mode === "auto") {
     try {
-      return pollinationsGenerate(prompt, w, h);
+      return { ...pollinationsGenerate(prompt, w, h), failureNote };
     } catch { /* fallthrough */ }
   }
-  return mockGenerate(w, h);
+  return { ...mockGenerate(w, h), failureNote };
 }
