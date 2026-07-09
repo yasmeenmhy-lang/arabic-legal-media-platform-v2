@@ -18,12 +18,37 @@ export type ProviderStatus = {
   premiumAvailable: boolean;
 };
 
-// وجود المفتاح لا يعني صلاحيته — الحالة تعني «مهيأ» فقط، والتحقق الفعلي يحدث عند أول توليد
+// وجود المفتاح لا يعني صلاحيته — الحالة تعني «مهيأ» فقط، والتحقق الفعلي عبر verifyOpenAIKey
 export function providerStatus(): ProviderStatus {
   const mode = (process.env.IMAGE_PROVIDER ?? "auto").toLowerCase();
   const openai = Boolean(process.env.OPENAI_API_KEY);
   const gemini = Boolean(process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY);
   return { mode, openai, gemini, premiumAvailable: mode === "mock" ? false : openai || gemini };
+}
+
+// تحقق فعلي رخيص من صلاحية مفتاح OpenAI (قائمة النماذج — لا توليد ولا تكلفة صور)
+// يُخزَّن مؤقتاً ٥ دقائق حتى لا يتكرر مع كل تحميل صفحة
+let openaiVerifyCache: { at: number; verified: boolean; note?: string } | null = null;
+export async function verifyOpenAIKey(): Promise<{ verified: boolean; note?: string }> {
+  const key = process.env.OPENAI_API_KEY;
+  if (!key) return { verified: false, note: "OPENAI_API_KEY غير مهيأ في Vercel" };
+  const now = Date.now();
+  if (openaiVerifyCache && now - openaiVerifyCache.at < 5 * 60_000) {
+    return { verified: openaiVerifyCache.verified, note: openaiVerifyCache.note };
+  }
+  let out: { verified: boolean; note?: string };
+  try {
+    const res = await fetch("https://api.openai.com/v1/models", {
+      headers: { authorization: `Bearer ${key}` },
+    });
+    out = res.ok
+      ? { verified: true }
+      : { verified: false, note: describeFailure("openai", new Error(`OpenAI ${res.status}`)) };
+  } catch {
+    out = { verified: false, note: "تعذر الاتصال بـ OpenAI للتحقق من المفتاح" };
+  }
+  openaiVerifyCache = { at: now, ...out };
+  return out;
 }
 
 async function openAiGenerate(prompt: string, w: number, h: number): Promise<PremiumImageResult | null> {
