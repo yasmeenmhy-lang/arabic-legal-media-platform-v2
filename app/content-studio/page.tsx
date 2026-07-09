@@ -588,7 +588,7 @@ export default function ContentStudioPage() {
   }, []);
 
   // عند تعطل المرئي الاحترافي (مفتاح غير متحقق/401/403) يعود الإخراج قسرياً إلى SVG الافتراضي،
-  // ونوع «صورة» (مرتبط بالمزود الاحترافي حصراً) يعود إلى إنفوغراف حتى لا يسقط لمسار Flux القديم
+  // ونوع «صورة» (مرتبط بالمزود الاحترافي حصراً) يعود إلى إنفوغراف المتاح دائماً عبر SVG
   useEffect(() => {
     if (providerInfo && !premiumUsable) {
       if (vtOutputMode !== "editable_svg") setVtOutputMode("editable_svg");
@@ -1280,15 +1280,18 @@ export default function ContentStudioPage() {
           editInstruction: editInstruction?.trim() || undefined,
         }),
       });
-      const data = (await res.json()) as { svgCode?: string; imageUrl?: string; prompt?: string; error?: string };
+      const data = (await res.json()) as { svgCode?: string; imageUrl?: string; imageBase64?: string; premiumError?: string; providerNote?: string; prompt?: string; error?: string };
       if (!res.ok) {
         setImageGenError(data.error ?? "فشل في إنشاء الصورة");
         return;
       }
       if (data.svgCode) {
         setImageGenSvg(data.svgCode);
+      } else if (data.premiumError) {
+        // فشل المزود: بطاقة حالة صادقة فقط — لا صورة بديلة ولا احتياط قديم
+        setImageGenError(`${data.premiumError}${data.providerNote ? ` السبب: ${data.providerNote}` : ""}`);
       } else {
-        setImageGenUrl(data.imageUrl ?? "");
+        setImageGenUrl(data.imageBase64 ?? data.imageUrl ?? "");
         setImageGenPrompt(data.prompt ?? "");
       }
       setImageGenEditText("");
@@ -1452,7 +1455,7 @@ export default function ContentStudioPage() {
                 </div>
               )}
 
-              {/* Describe mode — AI generates a real image via Pollinations */}
+              {/* Describe mode — توليد عبر المزود الاحترافي الموحّد (بطاقة حالة عند الفشل، لا احتياط) */}
               {visualMode === "describe" && (
                 <div className="space-y-3">
                   <div>
@@ -1470,7 +1473,7 @@ export default function ContentStudioPage() {
                   <button
                     type="button"
                     onClick={() => generateImage()}
-                    disabled={!imageDesc.trim() || imageGenLoading}
+                    disabled={!imageDesc.trim() || imageGenLoading || Boolean(providerInfo && !premiumUsable && providerInfo.mode !== "mock")}
                     className="inline-flex items-center gap-2 rounded-lg bg-palm px-4 py-2 text-sm font-medium text-white transition hover:bg-palm/90 disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     <ImageIcon size={14} />
@@ -1479,6 +1482,12 @@ export default function ContentStudioPage() {
                   {!imageDesc.trim() && (
                     <p className="text-xs leading-5 text-ink/45">
                       أدخل وصف المحتوى المطلوب أولًا؛ لأن المرئي يجب أن يكون مبنيًا على النص.
+                    </p>
+                  )}
+                  {providerInfo && !premiumUsable && providerInfo.mode !== "mock" && (
+                    <p className="rounded-lg bg-warningSoft px-3 py-2 text-xs font-medium leading-5 text-warningDark">
+                      المرئي الاحترافي غير متاح حاليًا بسبب مشكلة في مفتاح OpenAI. استخدم SVG القابل للتعديل إلى أن يتم تصحيح OPENAI_API_KEY.
+                      {providerInfo.verifyNote ? ` السبب: ${providerInfo.verifyNote}` : ""}
                     </p>
                   )}
 
@@ -1576,7 +1585,9 @@ export default function ContentStudioPage() {
                   )}
 
                   {imageGenError && (
-                    <p className="text-xs text-red-600">{imageGenError}</p>
+                    <div className="rounded-xl border border-warningBorder bg-warningSoft p-3">
+                      <p className="text-xs font-medium leading-5 text-warningDark">{imageGenError}</p>
+                    </div>
                   )}
                 </div>
               )}

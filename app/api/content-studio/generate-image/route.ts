@@ -191,98 +191,6 @@ function parseJson<T>(raw: string): T {
   return JSON.parse(cleaned) as T;
 }
 
-// ── AI image providers: Nano Banana (Gemini) → OpenAI → Pollinations ──────
-// يُستخدم المزود المتاح حسب مفاتيح البيئة، مع الرجوع للمحرك الداخلي إن غابت.
-
-async function nanoBananaImage(prompt: string): Promise<string | null> {
-  const key = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
-  if (!key) return null;
-  // النموذج الأساسي ثم البديل — أسماء إصدارات Google تتغير
-  const models = ["gemini-2.5-flash-image", "gemini-2.5-flash-image-preview"];
-  for (const model of models) {
-    const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
-      {
-        method: "POST",
-        headers: { "x-goog-api-key": key, "content-type": "application/json" },
-        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }),
-      }
-    );
-    if (res.status === 404) continue;
-    if (!res.ok) throw new Error(`Gemini ${res.status}`);
-    const data = (await res.json()) as {
-      candidates?: { content?: { parts?: { inlineData?: { mimeType?: string; data?: string } }[] } }[];
-    };
-    const part = data.candidates?.[0]?.content?.parts?.find((p) => p.inlineData?.data);
-    return part?.inlineData?.data
-      ? `data:${part.inlineData.mimeType ?? "image/png"};base64,${part.inlineData.data}`
-      : null;
-  }
-  return null;
-}
-
-async function openAiImage(prompt: string, w: number, h: number): Promise<string | null> {
-  const key = process.env.OPENAI_API_KEY;
-  if (!key) return null;
-  const size = w > h ? "1536x1024" : h > w ? "1024x1536" : "1024x1024";
-  const res = await fetch("https://api.openai.com/v1/images/generations", {
-    method: "POST",
-    headers: { authorization: `Bearer ${key}`, "content-type": "application/json" },
-    body: JSON.stringify({ model: "gpt-image-1", prompt, size, quality: "medium", output_format: "jpeg" }),
-  });
-  if (!res.ok) throw new Error(`OpenAI ${res.status}`);
-  const data = (await res.json()) as { data?: { b64_json?: string }[] };
-  const b64 = data.data?.[0]?.b64_json;
-  return b64 ? `data:image/jpeg;base64,${b64}` : null;
-}
-
-async function providerImage(prompt: string, w: number, h: number): Promise<string | null> {
-  try {
-    const g = await nanoBananaImage(prompt);
-    if (g) return g;
-  } catch (e) {
-    console.error("[image][nanobanana]", e);
-  }
-  try {
-    const o = await openAiImage(prompt, w, h);
-    if (o) return o;
-  } catch (e) {
-    console.error("[image][openai]", e);
-  }
-  return null;
-}
-
-// وصف بنية الخريطة الذهنية للمزود — النصوص تُكتب حرفياً كما ولّدها المحرك
-function mindMapImagePrompt(d: MindMapData): string {
-  const branches = (d.branches || [])
-    .slice(0, 5)
-    .map((b, i) => `${i + 1}. "${b.label}"${b.sub1 ? ` — فرع فرعي: "${b.sub1}"` : ""}${b.sub2 ? ` و"${b.sub2}"` : ""}`)
-    .join("\n");
-  return `أنشئ صورة خريطة ذهنية إشعاعية احترافية عالية الدقة باللغة العربية (اتجاه RTL).
-العنوان أعلى الصورة: "${d.title ?? d.center}"
-الدائرة المركزية تحتوي: "${d.center}"
-خمسة فروع رئيسية حول المركز:
-${branches}
-المواصفات الإلزامية: خلفية بيضاء نظيفة، عقد بيضاوية بحدود خضراء (اللون #25935F)، خطوط ربط منحنية أنيقة، خط عربي كبير وواضح ومقروء تماماً، بدون قصّ أو تشويه لأي نص، تصميم مؤسسي رسمي، دقة عالية جداً.
-اكتب كل النصوص العربية أعلاه حرفياً كما هي دون أي تغيير أو اختصار.`;
-}
-
-// وصف بنية الإنفوغراف للمزود
-function infographicImagePrompt(d: InfographicData): string {
-  const sections = (d.sections || [])
-    .slice(0, 4)
-    .map((s, i) => `${i + 1}. العنوان: "${s.heading}" — ${s.line1}${s.line2 ? ` — ${s.line2}` : ""}${s.stat ? ` (${s.stat})` : ""}`)
-    .join("\n");
-  return `أنشئ صورة إنفوغراف عمودي احترافي عالي الدقة باللغة العربية (اتجاه RTL).
-العنوان الرئيسي أعلى الصورة: "${d.title}"
-العنوان الفرعي: "${d.subtitle}"
-أربعة أقسام مرتبة عمودياً:
-${sections}
-أسفل الصورة: "${d.source}"
-المواصفات الإلزامية: تدرج أخضر مؤسسي (#166A45 إلى #25935F) في الترويسة، بطاقات بيضاء نظيفة بحدود خفيفة، أيقونات خطية بسيطة لكل قسم، خط عربي كبير وواضح ومقروء تماماً بدون قصّ أو تشويه، تصميم رسمي راقٍ، دقة عالية جداً.
-اكتب كل النصوص العربية أعلاه حرفياً كما هي دون أي تغيير أو اختصار.`;
-}
-
 // ── SVG renderers (programmatic — no AI coordinates) ─────────────────────
 
 // DGA Madkhel exact tokens (design.dga.gov.sa/guidelines)
@@ -1035,13 +943,14 @@ export async function POST(request: Request) {
     }
   }
 
-  // ── Photo via Pollinations.ai ─────────────────────────────────────────────
+  // ── نوع «صورة» (مسار الوصف المباشر) — موحّد مع طبقة المزود الصادقة: لا Flux ولا احتياط خفي
   try {
+    // خطوة تحسين المطالبة اختيارية: فشلها لا يقطع المسار — يُستخدم الوصف مباشرة
     const promptRaw = await callClaude(
       apiKey,
       "claude-haiku-4-5-20251001",
       300,
-      `Convert this Arabic legal media description into a high-quality English prompt for the Flux image generation model.
+      `Convert this Arabic legal media description into a high-quality English prompt for a professional AI image generation model.
 Description: ${effectiveDescription}
 Style: ${style ?? "professional, clean, corporate"}
 Platform: ${channel ?? "social media"}
@@ -1050,19 +959,31 @@ Format: ${dimensions ?? "square"}
 Rules:
 - Professional corporate aesthetic — law office, justice, document, scale of justice themes
 - NO human faces or identifiable people
+- NO logos, official seals, government marks, or watermarks
 - Soft neutral backgrounds (light grey, off-white, or pale green)
 - Sharp details, clean lines, high resolution, professional studio lighting
-- Add quality boosters: "sharp focus, high detail, professional photography, clean composition"
+- Add quality boosters: "sharp focus, high detail, clean composition"
 - Maximum 120 words
 Output ONLY the English prompt, nothing else.`
-    );
+    ).catch(() => `Professional Saudi corporate legal visual design, clean composition, no people, no logos or official seals: ${effectiveDescription.slice(0, 300)}`);
     const [w, h] = getDimensions(dimensions);
-    // مزود صور خارجي (نانوبنانا / OpenAI) إن توفر مفتاحه — وإلا Flux المجاني
-    const aiUrl = await providerImage(promptRaw, w, h);
-    if (aiUrl) return NextResponse.json({ prompt: promptRaw, imageUrl: aiUrl });
-    const seed = Date.now() % 99999;
-    const imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(promptRaw)}?width=${w}&height=${h}&model=flux&nologo=true&safe=true&seed=${seed}`;
-    return NextResponse.json({ prompt: promptRaw, imageUrl });
+    const img = await generatePremiumImage(promptRaw, w, h);
+    if (img.imageBase64 || img.imageUrl) {
+      return NextResponse.json(Object.fromEntries(Object.entries({
+        prompt: promptRaw,
+        imageBase64: img.imageBase64,
+        imageUrl: img.imageUrl,
+        provider: img.provider,
+        providerNote: img.failureNote,
+      }).filter(([, v]) => v !== undefined && v !== null)));
+    }
+    // فشل المزود الحقيقي: بطاقة حالة صادقة فقط — لا صورة بديلة
+    const ps = providerStatus();
+    const who = ps.openai ? "OpenAI" : ps.gemini ? "Gemini" : "مزود الصور";
+    return NextResponse.json(Object.fromEntries(Object.entries({
+      premiumError: `تعذر توليد المرئي الاحترافي لأن ${who} لم يعمل.`,
+      providerNote: img.failureNote,
+    }).filter(([, v]) => v !== undefined && v !== null)));
   } catch (e) {
     console.error("[image]", e);
     return NextResponse.json({ error: "فشل إنشاء الصورة" }, { status: 500 });
