@@ -2,6 +2,11 @@
   "framework": "nextjs",
   "installCommand": "pnpm install --no-frozen-lockfile",
   "buildCommand": "pnpm run vercel-build",
+  "git": {
+    "deploymentEnabled": {
+      "claude/business-analysis-requirements-9edzut": false
+    }
+  },
   "functions": {
     "app/api/reviews/route.ts": { "maxDuration": 60 },
     "app/api/recommendations/route.ts": { "maxDuration": 60 },
