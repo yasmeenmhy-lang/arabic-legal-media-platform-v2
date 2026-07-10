@@ -57,7 +57,8 @@ import {
   loadContentRecords,
   markContentShared,
   saveContentDraft,
-  upsertAnalyzedVersion
+  upsertAnalyzedVersion,
+  type StoredVisual
 } from "@/lib/content-record-store";
 import { normalizeReviewResult } from "@/lib/review-normalizer";
 import { saveLatestReviewSnapshot } from "@/components/review-context-summary";
@@ -200,6 +201,8 @@ export default function ContentReviewPage() {
   const [message, setMessage] = useState("");
   const [contentId, setContentId] = useState<string>();
   const [versionNumber, setVersionNumber] = useState<number>();
+  // بقرار مالكة المنصة: المرئيات تنتقل مع المحتوى — تُعرض في المراجعة القانونية مع إصدارها
+  const [savedVisuals, setSavedVisuals] = useState<StoredVisual[]>([]);
   const [approved, setApproved] = useState(false);
   const [approving, setApproving] = useState(false);
   const [activeTab, setActiveTab] = useState<ReviewTab>("findings");
@@ -367,6 +370,14 @@ export default function ContentReviewPage() {
       setMessage("تم فتح محتوى محفوظ من إصدار سابق. أعد تحليل المحتوى لعرض قرار النشر والنتائج بصيغتها الحالية.");
     }
   }, []);
+
+  // المرئيات المحفوظة تتبع الإصدار الحالي — تُعاد قراءتها كلما تغيّر (تحليل جديد يرثها من سابقه)
+  useEffect(() => {
+    if (!contentId || !versionNumber) { setSavedVisuals([]); return; }
+    const record = loadContentRecords().find((item) => item.id === contentId);
+    const version = record?.versions.find((item) => item.version === versionNumber);
+    setSavedVisuals(version?.visuals ?? []);
+  }, [contentId, versionNumber]);
 
   const hasReviewContext = Boolean(kind && channel && audience && purpose);
   const contextScore = [kind, channel, audience, purpose].filter(Boolean).length;
@@ -1309,6 +1320,30 @@ export default function ContentReviewPage() {
             <p className="mt-1.5 text-xs leading-6 text-ink/70">{QUOTE_INTEGRITY_NOTICE.body}</p>
             <p className="mt-1.5 text-xs leading-6 text-ink/50">{QUOTE_INTEGRITY_NOTICE.disclaimer}</p>
           </div>
+        ) : null}
+        {/* بقرار مالكة المنصة: المرئيات المحفوظة تنتقل مع المحتوى وتظهر في المراجعة القانونية مع إصدارها */}
+        {savedVisuals.length ? (
+          <details className="mt-3 rounded-xl border border-line bg-white p-4" open>
+            <summary className="cursor-pointer text-sm font-semibold text-palm">
+              المرئيات المحفوظة مع هذا الإصدار ({savedVisuals.length})
+            </summary>
+            <div className="mt-3 grid gap-3 md:grid-cols-2">
+              {savedVisuals.map((visual) => (
+                <figure key={visual.id} className="rounded-md border border-line bg-white p-2">
+                  <figcaption className="mb-2 px-1 text-xs font-medium text-ink/70">{visual.visualTypeLabel}</figcaption>
+                  {visual.svg ? (
+                    <div className="flex justify-center rounded bg-paper/40 p-2 [&_svg]:h-auto [&_svg]:max-h-[360px] [&_svg]:w-auto [&_svg]:max-w-full"
+                      dangerouslySetInnerHTML={{ __html: visual.svg }} />
+                  ) : visual.imageUrl ? (
+                    /* eslint-disable-next-line @next/next/no-img-element */
+                    <div className="flex justify-center rounded bg-paper/40 p-2">
+                      <img src={visual.imageUrl} alt={visual.visualTypeLabel} className="max-h-[360px] w-auto max-w-full object-contain" />
+                    </div>
+                  ) : null}
+                </figure>
+              ))}
+            </div>
+          </details>
         ) : null}
         <div className="mt-4 flex flex-wrap gap-3">
           {!review || isEditing ? <Button size="lg" onClick={runReview} disabled={loading || text.trim().length < 5 || !hasReviewContext} leadingIcon={loading ? <DgaSpinner size="sm" tone="violet" /> : <FileText size={17} />}>{loading ? "جار التحليل..." : contentId ? "إعادة التحليل" : "تحليل المحتوى"}</Button> : null}
