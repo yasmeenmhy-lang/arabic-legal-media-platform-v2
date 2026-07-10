@@ -14,7 +14,7 @@ export type VisualPlan = {
   centralMessage: string;
   objective: string;
   audience: string;
-  recommendedOutputFormat: "infographic" | "chart" | "mindmap" | "image" | "executive" | "carousel" | "storyboard";
+  recommendedOutputFormat: "infographic" | "chart" | "mindmap" | "image" | "executive" | "carousel" | "storyboard" | "quote_card" | "motion_script";
   visualStyle: "رسمي" | "تعليمي";
   layoutStrategy: string;   // مثل: خطوات متسلسلة / مقارنة / إحصائي / زمني
   title: string;            // ≤ 8 كلمات

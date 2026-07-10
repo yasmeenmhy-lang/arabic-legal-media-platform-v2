@@ -86,7 +86,7 @@ type VisualOutputOption = {
   key: string;
   label: string;
   hint?: string;
-  engine?: "infographic" | "chart" | "mindmap" | "image";
+  engine?: "infographic" | "chart" | "mindmap" | "image" | "quote_card" | "carousel" | "storyboard" | "motion_script";
   premium?: boolean;
 };
 type VisualOutputsSpec = { title: string; optIn: string; options: VisualOutputOption[] };
@@ -120,9 +120,9 @@ const SUPPORTED_VISUAL_OUTPUTS: Partial<Record<ContentKind, VisualOutputsSpec>> 
     options: [
       { key: "scene_summary", label: "ملخص بصري للمشاهد", engine: "infographic" },
       { key: "video_cover", label: "صورة غلاف للفيديو", engine: "image", premium: true },
-      { key: "storyboard", label: "ستوري بورد" },
-      { key: "scene_cards", label: "بطاقات مشاهد" },
-      { key: "motion_graphics", label: "موشن جرافيك" },
+      { key: "storyboard", label: "ستوري بورد", engine: "storyboard" },
+      { key: "scene_cards", label: "بطاقات مشاهد", engine: "carousel" },
+      { key: "motion_graphics", label: "موشن جرافيك", hint: "مخطط لقطات", engine: "motion_script" },
     ],
   },
   article: {
@@ -132,8 +132,8 @@ const SUPPORTED_VISUAL_OUTPUTS: Partial<Record<ContentKind, VisualOutputsSpec>> 
       { key: "summary_infographic", label: "إنفوجرافيك ملخص", engine: "infographic" },
       { key: "concept_map", label: "خريطة مفاهيم", engine: "mindmap" },
       { key: "numbers_chart", label: "رسم بياني", hint: "إذا وجدت أرقام", engine: "chart" },
-      { key: "quote_card", label: "بطاقة اقتباس" },
-      { key: "carousel", label: "كاروسيل" },
+      { key: "quote_card", label: "بطاقة اقتباس", engine: "quote_card" },
+      { key: "carousel", label: "كاروسيل", engine: "carousel" },
     ],
   },
   post: {
@@ -142,8 +142,8 @@ const SUPPORTED_VISUAL_OUTPUTS: Partial<Record<ContentKind, VisualOutputsSpec>> 
     options: [
       { key: "simple_infographic", label: "إنفوجرافيك مبسط", engine: "infographic" },
       { key: "cover_image", label: "صورة غلاف", engine: "image", premium: true },
-      { key: "awareness_card", label: "بطاقة توعوية" },
-      { key: "short_carousel", label: "كاروسيل قصير" },
+      { key: "awareness_card", label: "بطاقة توعوية", engine: "quote_card" },
+      { key: "short_carousel", label: "كاروسيل قصير", engine: "carousel" },
     ],
   },
   // «محتوى بصري»: المرئي هو المنتج — الكتالوج الخلاق الكامل لترجمة النص المقترح،
@@ -156,10 +156,10 @@ const SUPPORTED_VISUAL_OUTPUTS: Partial<Record<ContentKind, VisualOutputsSpec>> 
       { key: "chart", label: "رسم بياني", hint: "Bar / Line / Pie", engine: "chart" },
       { key: "mindmap", label: "خريطة ذهنية", hint: "شبكة إشعاعية", engine: "mindmap" },
       { key: "image", label: "صورة", hint: "بالذكاء الاصطناعي", engine: "image", premium: true },
-      { key: "quote_card", label: "بطاقة اقتباس" },
-      { key: "carousel", label: "كاروسيل" },
-      { key: "storyboard", label: "ستوري بورد" },
-      { key: "motion_graphics", label: "موشن جرافيك", hint: "فيديو قصير" },
+      { key: "quote_card", label: "بطاقة اقتباس", engine: "quote_card" },
+      { key: "carousel", label: "كاروسيل", engine: "carousel" },
+      { key: "storyboard", label: "ستوري بورد", engine: "storyboard" },
+      { key: "motion_graphics", label: "موشن جرافيك", hint: "مخطط لقطات", engine: "motion_script" },
     ],
   },
 };
@@ -514,7 +514,7 @@ export default function ContentStudioPage() {
   const [infographicMindStyle, setInfographicMindStyle] = useState("");
   const [infographicDesc, setInfographicDesc] = useState("");
   // Visual translation panel (step 3 — works for all content kinds)
-  const [vtType, setVtType] = useState<"infographic" | "chart" | "mindmap" | "image">("infographic");
+  const [vtType, setVtType] = useState<"infographic" | "chart" | "mindmap" | "image" | "quote_card" | "carousel" | "storyboard" | "motion_script">("infographic");
   const [vtChartType, setVtChartType] = useState("");
   const [vtStyle, setVtStyle] = useState("");
   const [vtDimensions, setVtDimensions] = useState("");
@@ -1230,7 +1230,8 @@ export default function ContentStudioPage() {
       const pptx = new PptxGen();
 
       // بنية معروفة → عناصر PowerPoint أصلية (نصوص وأشكال ورسوم بيانية قابلة للتعديل)
-      if (source.visual) {
+      // البناة الأصليون للأنواع الثلاثة المعروفة فقط — الأنواع الجديدة تُصدَّر شريحة صورة من SVG
+      if (source.visual && ["chart", "mindmap", "infographic"].includes(source.visual.type)) {
         pptx.defineLayout({ name: "VIS_WIDE", width: PPT_W, height: PPT_H });
         pptx.layout = "VIS_WIDE";
         pptx.rtlMode = true;
@@ -2591,7 +2592,7 @@ export default function ContentStudioPage() {
                 <p className="rounded-lg bg-paper px-3 py-2 text-xs font-semibold text-ink/70">
                   الناتج المحدد للتوليد: {(() => {
                     const sel = visualOutputs.options.find((o) => (vtOutputChoice ? o.key === vtOutputChoice : o.engine === vtType));
-                    const base = sel?.label ?? (vtType === "chart" ? "رسم بياني" : vtType === "mindmap" ? "خريطة ذهنية" : vtType === "image" ? "صورة" : "إنفوغراف");
+                    const base = sel?.label ?? (vtType === "chart" ? "رسم بياني" : vtType === "mindmap" ? "خريطة ذهنية" : vtType === "image" ? "صورة" : vtType === "quote_card" ? "بطاقة اقتباس" : vtType === "carousel" ? "كاروسيل" : vtType === "storyboard" ? "ستوري بورد" : vtType === "motion_script" ? "مخطط موشن" : "إنفوغراف");
                     return `${base}${vtType === "chart" && vtChartType ? ` (${vtChartType})` : ""}`;
                   })()} — وضع الإخراج: {vtOutputMode === "editable_svg" ? "SVG قابل للتعديل" : vtOutputMode === "premium_image" ? "مرئي احترافي بالذكاء الاصطناعي" : "الاثنان معًا (SVG + مرئي احترافي)"}
                 </p>
@@ -2630,7 +2631,7 @@ export default function ContentStudioPage() {
                   {vtPlanCollapsed ? (
                     <p className="text-sm leading-7 text-ink/75">
                       <span className="font-medium">{vtPlan.title}</span> · {vtPlan.centralMessage} ·{" "}
-                      {vtPlan.recommendedOutputFormat === "mindmap" ? "خريطة ذهنية" : vtPlan.recommendedOutputFormat === "chart" ? "رسم بياني" : vtPlan.recommendedOutputFormat === "image" ? "صورة" : "إنفوغراف"} · {vtPlan.layoutStrategy}
+                      {vtPlan.recommendedOutputFormat === "mindmap" ? "خريطة ذهنية" : vtPlan.recommendedOutputFormat === "chart" ? "رسم بياني" : vtPlan.recommendedOutputFormat === "image" ? "صورة" : vtPlan.recommendedOutputFormat === "quote_card" ? "بطاقة اقتباس" : vtPlan.recommendedOutputFormat === "carousel" ? "كاروسيل" : vtPlan.recommendedOutputFormat === "storyboard" ? "ستوري بورد" : vtPlan.recommendedOutputFormat === "motion_script" ? "مخطط موشن" : "إنفوغراف"} · {vtPlan.layoutStrategy}
                     </p>
                   ) : (() => {
                     const ro = !vtPlanEditing;
@@ -2651,7 +2652,7 @@ export default function ContentStudioPage() {
                           <label className="block"><span className="text-xs text-ink/55">نوع المخرج</span>
                             <select disabled={ro} className={inp} value={vtPlan.recommendedOutputFormat}
                               onChange={(e) => patchPlan({ recommendedOutputFormat: e.target.value as VisualPlan["recommendedOutputFormat"] })}>
-                              {["infographic", "chart", "mindmap", "image"].map((o) => <option key={o} value={o}>{o === "infographic" ? "إنفوغراف" : o === "chart" ? "رسم بياني" : o === "mindmap" ? "خريطة ذهنية" : "صورة"}</option>)}
+                              {["infographic", "chart", "mindmap", "image", "quote_card", "carousel", "storyboard", "motion_script"].map((o) => <option key={o} value={o}>{o === "infographic" ? "إنفوغراف" : o === "chart" ? "رسم بياني" : o === "mindmap" ? "خريطة ذهنية" : o === "image" ? "صورة" : o === "quote_card" ? "بطاقة اقتباس" : o === "carousel" ? "كاروسيل" : o === "storyboard" ? "ستوري بورد" : "مخطط موشن"}</option>)}
                             </select></label>
                           <label className="block"><span className="text-xs text-ink/55">النمط البصري</span>
                             <select disabled={ro} className={inp} value={vtPlan.visualStyle}
