@@ -49,6 +49,7 @@ import {
 } from "@/components/social-icons";
 import { OfficialLogo, officialEntityFromUrl } from "@/components/official-logos";
 import { contentKindOptions } from "@/lib/content-types";
+import { hasQuotedMaterial, QUOTE_INTEGRITY_NOTICE } from "@/lib/quote-notice";
 import {
   approveContentVersion,
   clearActiveContentSelection,
@@ -621,6 +622,8 @@ export default function ContentReviewPage() {
           channel,
           audience,
           purpose,
+          // حد الأحرف الفعلي للقناة — الصياغة المقترحة تلتزم به مثل النص الأصلي
+          charLimit: charLimit ?? (channel ? CHANNEL_CHAR_LIMITS[channel] : undefined) ?? undefined,
           findings: review.findings.map((f) => ({
             issue: f.issue,
             evidence: f.evidence,
@@ -1299,6 +1302,14 @@ export default function ContentReviewPage() {
         <div className="mt-3">
           <InlineContentGuidance review={review} draftText={text} onApplyRewrite={applyRewrite} loading={loading} />
         </div>
+        {/* توعوي بحت عند رصد اقتباس في النص الملصق — كشف عرضي حتمي، لا يمس المؤشرات ولا محرك التحليل */}
+        {review && hasQuotedMaterial(text) ? (
+          <div className="mt-3 rounded-xl border border-infoBorder bg-infoSoft p-4">
+            <p className="text-sm font-semibold text-infoDark">{QUOTE_INTEGRITY_NOTICE.title}</p>
+            <p className="mt-1.5 text-xs leading-6 text-ink/70">{QUOTE_INTEGRITY_NOTICE.body}</p>
+            <p className="mt-1.5 text-xs leading-6 text-ink/50">{QUOTE_INTEGRITY_NOTICE.disclaimer}</p>
+          </div>
+        ) : null}
         <div className="mt-4 flex flex-wrap gap-3">
           {!review || isEditing ? <Button size="lg" onClick={runReview} disabled={loading || text.trim().length < 5 || !hasReviewContext} leadingIcon={loading ? <DgaSpinner size="sm" tone="violet" /> : <FileText size={17} />}>{loading ? "جار التحليل..." : contentId ? "إعادة التحليل" : "تحليل المحتوى"}</Button> : null}
           {review && !isEditing ? <Button variant="secondary" onClick={beginEditing} leadingIcon={<Edit3 size={16} />}>تعديل</Button> : null}

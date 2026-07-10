@@ -44,6 +44,7 @@ import {
   YouTubeIcon,
 } from "@/components/social-icons";
 import { contentKindOptions, contentKindLabels } from "@/lib/content-types";
+import { hasQuotedMaterial, QUOTE_INTEGRITY_NOTICE } from "@/lib/quote-notice";
 import type { VisualPlan } from "@/lib/visual-translator";
 import {
   DEMO_USER_NAME,
@@ -618,7 +619,9 @@ export default function ContentStudioPage() {
   // ── Generate content ──
 
   async function generateContent() {
-    // «ابتكر من الذكاء الاصطناعي»: الموضوع اختياري — الذكاء يبتكره من مدخلات السياق
+    // السياق الرباعي شرط للإنشاء دائماً (حتى مع ابتكار الذكاء) — الاختياري الوحيد هو صندوق الموضوع
+    if (!kind || !channel || !audience || !purpose) return;
+    // «ابتكر من الذكاء الاصطناعي»: الموضوع وحده اختياري — الذكاء يبتكره من مدخلات السياق
     if (!source) return;
     if (source !== "ai-original" && topic.trim().length < 3) return;
     setGenerating(true);
@@ -640,6 +643,19 @@ export default function ContentStudioPage() {
           specialty: specialty || undefined,
           source: sourceLabel,
           topic: topic.trim(),
+          // حد الأحرف الفعلي: ما اختاره المستخدم، وإلا الحد المعياري للقناة — ليلتزم به التوليد
+          charLimit: charLimit ?? (channel ? CHANNEL_CHAR_LIMITS[channel] : undefined) ?? undefined,
+          // إعدادات النوع تُرسل ليُبنى النص بمقاييس نوعه — السياق إطار للمحتوى لا تسمية
+          scriptDuration: kind === "script" ? (scriptDuration || undefined) : undefined,
+          scriptStyle: kind === "script" ? (scriptStyle || undefined) : undefined,
+          articleLength: kind === "article" ? (articleLength || undefined) : undefined,
+          adCta: kind === "advertisement" ? (adCta || undefined) : undefined,
+          adStyle: kind === "advertisement" ? (adStyle || undefined) : undefined,
+          campaignName: kind === "campaign" ? (campaignName || undefined) : undefined,
+          campaignDuration: kind === "campaign" ? (campaignDuration || undefined) : undefined,
+          campaignGoal: kind === "campaign" ? (campaignGoal || undefined) : undefined,
+          planFrequency: kind === "publishing_plan" ? (planFrequency || undefined) : undefined,
+          planDateRange: kind === "publishing_plan" ? (planDateRange || undefined) : undefined,
         }),
       });
       const data = (await res.json()) as { text?: string; error?: string };
@@ -723,6 +739,8 @@ export default function ContentStudioPage() {
           channel: channel || undefined,
           audience: audience || undefined,
           purpose: purpose || undefined,
+          // حد الأحرف الفعلي للقناة — الصياغة المقترحة تلتزم به مثل النص الأصلي
+          charLimit: charLimit ?? (channel ? CHANNEL_CHAR_LIMITS[channel] : undefined) ?? undefined,
           findings: review.findings.map((f) => ({
             issue: f.issue,
             evidence: f.evidence,
@@ -2278,12 +2296,17 @@ export default function ContentStudioPage() {
           <button
             type="button"
             onClick={generateContent}
-            disabled={!source || (source !== "ai-original" && topic.trim().length < 3)}
+            disabled={!kind || !channel || !audience || !purpose || !source || (source !== "ai-original" && topic.trim().length < 3)}
             className="inline-flex items-center gap-2 rounded-lg bg-violet px-[11px] py-[9px] text-sm font-medium text-white transition hover:bg-violetDark focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet disabled:cursor-not-allowed disabled:opacity-50"
           >
             <Sparkles size={16} aria-hidden="true" />
             إنشاء المحتوى
           </button>
+          {(!kind || !channel || !audience || !purpose) && (
+            <p className="mt-3 rounded-lg bg-warningSoft px-3 py-2 text-xs font-medium leading-5 text-warningDark">
+              أكمل السياق أولًا في القسم ١ — نوع المحتوى والقناة والجمهور والهدف مطلوبة قبل إنشاء المحتوى ليُكتب على مقاس سياقه.
+            </p>
+          )}
           {generateError && <p className="mt-3 text-sm text-red-600">{generateError}</p>}
         </Panel>
       )}
@@ -2806,6 +2829,14 @@ export default function ContentStudioPage() {
           <Panel>
             <SectionTitle title="النص المُحلَّل" />
             <p className="whitespace-pre-wrap text-sm leading-8">{activeText}</p>
+            {/* توعوي بحت عند رصد اقتباس — كشف عرضي حتمي، لا يمس المؤشرات ولا محرك التحليل */}
+            {hasQuotedMaterial(activeText) && (
+              <div className="mt-3 rounded-xl border border-infoBorder bg-infoSoft p-4">
+                <p className="text-sm font-semibold text-infoDark">{QUOTE_INTEGRITY_NOTICE.title}</p>
+                <p className="mt-1.5 text-xs leading-6 text-ink/70">{QUOTE_INTEGRITY_NOTICE.body}</p>
+                <p className="mt-1.5 text-xs leading-6 text-ink/50">{QUOTE_INTEGRITY_NOTICE.disclaimer}</p>
+              </div>
+            )}
             <button
               type="button"
               onClick={() => setReview(null)}
