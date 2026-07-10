@@ -208,7 +208,9 @@ type SourceEntry = { key: string; label: string; icon: string; subs?: { key: str
 type VisualStructure =
   | { type: "chart"; chartType: string; data: { title: string; yLabel: string; data: { label: string; value: number }[] } }
   | { type: "mindmap"; data: { title?: string; center: string; branches: { label: string; sub1?: string; sub2?: string }[] } }
-  | { type: "infographic"; data: { title: string; subtitle: string; sections: { heading: string; line1: string; line2: string; line3?: string; stat?: string }[]; source: string } };
+  | { type: "infographic"; data: { title: string; subtitle: string; sections: { heading: string; line1: string; line2: string; line3?: string; stat?: string }[]; source: string } }
+  | { type: "carousel" | "storyboard" | "motion_script"; data: { title: string; subtitle?: string; cards: { tag?: string; heading?: string; line1?: string; line2?: string; meta?: string }[] } }
+  | { type: "quote_card"; data: { title: string; quote: string; attribution?: string; note?: string } };
 
 const contentSources: SourceEntry[] = [
   { key: "ai-original", label: "ابتكر من الذكاء الاصطناعي", icon: "🤖" },
@@ -1178,6 +1180,48 @@ export default function ContentStudioPage() {
     });
   }
 
+  // كاروسيل/ستوري بورد/موشن: شريحة غلاف + شريحة مستقلة لكل بطاقة — جاهزة للنشر المتتابع
+  function buildCardsSlides(pptx: any, v: Extract<VisualStructure, { type: "carousel" | "storyboard" | "motion_script" }>) {
+    const cover = pptx.addSlide();
+    cover.background = { color: PPT.palmDeep };
+    cover.addText(v.data.title ?? "", {
+      x: 0.8, y: 2.3, w: PPT_W - 1.6, h: 1.4, align: "center", valign: "middle",
+      color: PPT.white, bold: true, fontSize: 34, rtlMode: true, lang: "ar-SA",
+    });
+    if (v.data.subtitle) cover.addText(v.data.subtitle, {
+      x: 0.8, y: 3.9, w: PPT_W - 1.6, h: 0.9, align: "center", valign: "middle",
+      color: "DFF6E7", fontSize: 18, rtlMode: true, lang: "ar-SA",
+    });
+    (v.data.cards ?? []).slice(0, 8).forEach((c, i) => {
+      const slide = pptx.addSlide();
+      const acc = PPT.accents[i % PPT.accents.length];
+      slide.background = { color: PPT.white };
+      slide.addShape("rect", { x: 0, y: 0, w: PPT_W, h: 0.55, fill: { color: PPT.palmDeep } });
+      slide.addText(c.tag ?? String(i + 1), {
+        x: PPT_W - 2.2, y: 0.08, w: 1.9, h: 0.4, align: "right",
+        color: PPT.white, bold: true, fontSize: 15, rtlMode: true, lang: "ar-SA",
+      });
+      if (c.meta) slide.addText(c.meta, {
+        x: 0.3, y: 0.08, w: 1.9, h: 0.4, align: "left",
+        color: "DFF6E7", fontSize: 13, rtlMode: true, lang: "ar-SA",
+      });
+      slide.addShape("rect", { x: PPT_W - 0.55, y: 1.15, w: 0.14, h: 1.1, fill: { color: acc } });
+      slide.addText(c.heading ?? "", {
+        x: 0.7, y: 1.1, w: PPT_W - 1.6, h: 1.0, align: "right", valign: "middle",
+        color: PPT.ink, bold: true, fontSize: 28, rtlMode: true, lang: "ar-SA",
+      });
+      if (c.line1) slide.addText(c.line1, {
+        x: 0.7, y: 2.4, w: PPT_W - 1.6, h: 1.6, align: "right", valign: "top",
+        color: PPT.inkSec, fontSize: 19, rtlMode: true, lang: "ar-SA",
+      });
+      if (c.line2) slide.addText(c.line2, {
+        x: 0.7, y: 4.1, w: PPT_W - 1.6, h: 1.4, align: "right", valign: "top",
+        color: "4D5761", fontSize: 17, italic: true, rtlMode: true, lang: "ar-SA",
+      });
+      slide.addShape("rect", { x: 0.7, y: PPT_H - 0.5, w: 1.1, h: 0.07, fill: { color: acc } });
+    });
+  }
+
   function buildInfographicSlides(pptx: any, v: Extract<VisualStructure, { type: "infographic" }>) {
     // شريحة غلاف
     const cover = pptx.addSlide();
@@ -1231,13 +1275,14 @@ export default function ContentStudioPage() {
 
       // بنية معروفة → عناصر PowerPoint أصلية (نصوص وأشكال ورسوم بيانية قابلة للتعديل)
       // البناة الأصليون للأنواع الثلاثة المعروفة فقط — الأنواع الجديدة تُصدَّر شريحة صورة من SVG
-      if (source.visual && ["chart", "mindmap", "infographic"].includes(source.visual.type)) {
+      if (source.visual && ["chart", "mindmap", "infographic", "carousel", "storyboard", "motion_script"].includes(source.visual.type)) {
         pptx.defineLayout({ name: "VIS_WIDE", width: PPT_W, height: PPT_H });
         pptx.layout = "VIS_WIDE";
         pptx.rtlMode = true;
         if (source.visual.type === "chart") buildChartSlide(pptx, source.visual);
         else if (source.visual.type === "mindmap") buildMindMapSlides(pptx, source.visual);
-        else buildInfographicSlides(pptx, source.visual);
+        else if (source.visual.type === "infographic") buildInfographicSlides(pptx, source.visual);
+        else buildCardsSlides(pptx, source.visual as Extract<VisualStructure, { type: "carousel" | "storyboard" | "motion_script" }>);
         await pptx.writeFile({ fileName: filename });
         return;
       }
