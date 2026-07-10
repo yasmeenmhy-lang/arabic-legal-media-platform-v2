@@ -91,7 +91,8 @@ type VisualOutputOption = {
 type VisualOutputsSpec = { title: string; optIn: string; options: VisualOutputOption[] };
 
 const VISUAL_KIND_OUTPUTS: VisualOutputsSpec = {
-  title: "ترجمة المحتوى بصرياً — تحويل نص موجود إلى مرئي",
+  // «رسم توضيحي»: امتداد قسم «إعداد المرئيات والمخططات» نفسه — لا قسم ترجمة منفصل
+  title: "إعداد المرئيات والمخططات — التوليد",
   optIn: "",
   options: [
     { key: "infographic", label: "إنفوغراف", hint: "بطاقات منظّمة", engine: "infographic" },
@@ -102,7 +103,7 @@ const VISUAL_KIND_OUTPUTS: VisualOutputsSpec = {
 };
 
 const GENERIC_TEXT_OUTPUTS: VisualOutputsSpec = {
-  title: "مرئي داعم للنص — ترجمة المحتوى بصرياً",
+  title: "حوّل هذا النص إلى مرئي داعم",
   optIn: "حوّل هذا النص إلى مرئي داعم (اختياري)",
   options: [
     { key: "infographic", label: "إنفوغراف داعم", hint: "بطاقات منظّمة", engine: "infographic" },
@@ -124,8 +125,8 @@ const SUPPORTED_VISUAL_OUTPUTS: Partial<Record<ContentKind, VisualOutputsSpec>> 
     ],
   },
   article: {
-    title: "حوّل المقال إلى مرئي داعم",
-    optIn: "حوّل المقال إلى مرئي داعم (اختياري)",
+    title: "حوّل هذا النص إلى مرئي داعم",
+    optIn: "حوّل هذا النص إلى مرئي داعم (اختياري)",
     options: [
       { key: "summary_infographic", label: "إنفوجرافيك ملخص", engine: "infographic" },
       { key: "concept_map", label: "خريطة مفاهيم", engine: "mindmap" },
@@ -135,8 +136,8 @@ const SUPPORTED_VISUAL_OUTPUTS: Partial<Record<ContentKind, VisualOutputsSpec>> 
     ],
   },
   post: {
-    title: "حوّل المنشور إلى مرئي داعم",
-    optIn: "حوّل المنشور إلى مرئي داعم (اختياري)",
+    title: "حوّل هذا النص إلى مرئي داعم",
+    optIn: "حوّل هذا النص إلى مرئي داعم (اختياري)",
     options: [
       { key: "simple_infographic", label: "إنفوجرافيك مبسط", engine: "infographic" },
       { key: "cover_image", label: "صورة غلاف", engine: "image", premium: true },
@@ -568,10 +569,14 @@ export default function ContentStudioPage() {
 
   const contextScore = [kind, channel, audience, purpose].filter(Boolean).length;
   const activeText = path === "create" ? generatedText : reviewText;
-  // «محتوى بصري» و«رسم توضيحي» فقط: الترجمة البصرية مرحلة رئيسية — لبقية الأنواع مخرج داعم اختياري
-  const isVisualKind = kind === "visual_content" || kind === "infographic";
+  // نوع المحتوى هو مصدر الحقيقة الوحيد — قسم بصري رئيسي واحد فقط لكل نوع:
+  // «رسم توضيحي»: قسم «إعداد المرئيات والمخططات» وامتداده التوليدي (مباشر بلا اختيار)
+  // «محتوى بصري»: قسم «متطلبات المحتوى البصري» وحده — لا قسم ترجمة إضافي إطلاقاً
+  // بقية الأنواع: قسم داعم اختياري واحد بعد توليد النص
+  const isVisualMain = kind === "infographic";
+  const showVisualSection = kind !== "visual_content";
   // المخرجات الداعمة المناسبة لنوع المحتوى المختار — من خريطة المواءمة
-  const visualOutputs: VisualOutputsSpec = isVisualKind
+  const visualOutputs: VisualOutputsSpec = isVisualMain
     ? VISUAL_KIND_OUTPUTS
     : (kind && SUPPORTED_VISUAL_OUTPUTS[kind]) || GENERIC_TEXT_OUTPUTS;
   // المرئي الاحترافي متاح فعلياً فقط بعد تحقق الخادم من مفتاح OpenAI (أو وجود Gemini وحده)
@@ -595,6 +600,13 @@ export default function ContentStudioPage() {
       if (vtType === "image") { setVtType("infographic"); setVtOutputChoice(""); }
     }
   }, [providerInfo, premiumUsable, vtOutputMode, vtType]);
+
+  // «رسم توضيحي»: قسم «إعداد المرئيات والمخططات» هو مصدر نوع المرئي — لا اختيار مكرر في التوليد
+  useEffect(() => {
+    if (kind !== "infographic") return;
+    setVtType(infographicSubType === "chart" ? "chart" : infographicSubType === "mindmap" ? "mindmap" : "infographic");
+    setVtChartType(infographicSubType === "chart" ? infographicChartType : "");
+  }, [kind, infographicSubType, infographicChartType]);
 
   // رسالة نقص السياق تُمسح تلقائياً فور اكتمال الاختيار — لا تبقى معلّقة بعد استيفاء الشرط
   useEffect(() => {
@@ -1486,8 +1498,8 @@ export default function ContentStudioPage() {
                   )}
                   {providerInfo && !premiumUsable && providerInfo.mode !== "mock" && (
                     <p className="rounded-lg bg-warningSoft px-3 py-2 text-xs font-medium leading-5 text-warningDark">
-                      المرئي الاحترافي غير متاح حاليًا بسبب مشكلة في مفتاح OpenAI. استخدم SVG القابل للتعديل إلى أن يتم تصحيح OPENAI_API_KEY.
-                      {providerInfo.verifyNote ? ` السبب: ${providerInfo.verifyNote}` : ""}
+                      OpenAI غير متاح حاليًا — استخدم SVG القابل للتعديل.
+                      {providerInfo.verifyNote ? ` ${providerInfo.verifyNote}` : ""}
                     </p>
                   )}
 
@@ -2328,8 +2340,8 @@ export default function ContentStudioPage() {
             </div>
           )}
 
-          {/* ── المرئي مكمّل للنص: مرحلة رئيسية لـ«محتوى بصري/رسم توضيحي» فقط، ومخرج داعم اختياري لبقية الأنواع ── */}
-          {!isVisualKind && !vtSectionOpen && (
+          {/* ── قسم بصري رئيسي واحد فقط حسب نوع المحتوى — «محتوى بصري» مساره قسم المتطلبات وحده ── */}
+          {showVisualSection && !isVisualMain && !vtSectionOpen && (
             <div className="mt-5 rounded-xl border border-dashed border-palm/30 bg-mint/10 p-4">
               <button
                 type="button"
@@ -2347,14 +2359,14 @@ export default function ContentStudioPage() {
               </p>
             </div>
           )}
-          {(isVisualKind || vtSectionOpen) && (
+          {showVisualSection && (isVisualMain || vtSectionOpen) && (
           <div className="mt-5 overflow-hidden rounded-xl border border-palm/20 bg-mint/10">
             <div className="flex flex-wrap items-center justify-between gap-2 border-b border-palm/10 bg-mint/30 px-4 py-3">
               <p className="flex items-center gap-1.5 text-xs font-semibold text-palm">
                 <BarChart2 size={13} aria-hidden="true" />
                 {visualOutputs.title}
               </p>
-              {!isVisualKind && (
+              {!isVisualMain && (
                 <button
                   type="button"
                   onClick={() => setVtSectionOpen(false)}
@@ -2370,32 +2382,8 @@ export default function ContentStudioPage() {
                   أدخل المحتوى أو ولّد النص أولًا؛ لأن المرئي يجب أن يكون مبنيًا على النص.
                 </p>
               )}
-              {/* AI suggestion row — للأنواع البصرية ذات القائمة الكاملة فقط */}
-              {isVisualKind && (
-                <div className="flex flex-wrap items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => void suggestVisualType()}
-                    disabled={vtSuggesting || !generatedText.trim()}
-                    className="flex items-center gap-1.5 rounded-lg border border-palm/40 bg-mint/60 px-3 py-1.5 text-xs font-medium text-palm transition hover:border-palm hover:bg-mint disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    {vtSuggesting ? (
-                      <span className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-palm/20 border-t-palm" />
-                    ) : (
-                      <Sparkles size={12} aria-hidden="true" />
-                    )}
-                    {vtSuggesting ? "جارٍ التحليل..." : "اقتراح الذكاء الاصطناعي"}
-                  </button>
-                  {vtSuggestionReason && !vtSuggesting && (
-                    <span className="flex items-center gap-1 rounded-full border border-palm/20 bg-mint px-2.5 py-1 text-xs text-palm">
-                      <CheckCircle2 size={11} aria-hidden="true" />
-                      {vtSuggestionReason}
-                    </span>
-                  )}
-                </div>
-              )}
-
-              {/* خيارات المخرج حسب نوع المحتوى — من خريطة contentType → supportedVisualOutputs */}
+              {/* خيارات المخرج حسب نوع المحتوى — «رسم توضيحي» نوعه محدد في إعداد المرئيات فلا اختيار مكرر */}
+              {!isVisualMain && (
               <div className="flex flex-wrap gap-2">
                 {visualOutputs.options.map((t) => {
                   const soon = !t.engine;
@@ -2428,9 +2416,10 @@ export default function ContentStudioPage() {
                   );
                 })}
               </div>
+              )}
 
-              {/* وضع الإخراج — للأنواع البصرية فقط؛ بقية الأنواع تلتزم SVG الافتراضي ضمنياً */}
-              {isVisualKind && (
+              {/* وضع الإخراج — لـ«رسم توضيحي» فقط؛ بقية الأنواع تلتزم SVG الافتراضي ضمنياً */}
+              {isVisualMain && (
                 <div className="space-y-1.5">
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="text-xs text-ink/50">الإخراج:</span>
@@ -2470,16 +2459,16 @@ export default function ContentStudioPage() {
                       </p>
                     ) : (
                       <p className="rounded-lg bg-warningSoft px-3 py-2 text-xs font-medium leading-5 text-warningDark">
-                        المرئي الاحترافي غير متاح حاليًا بسبب مشكلة في مفتاح OpenAI. استخدم SVG القابل للتعديل إلى أن يتم تصحيح OPENAI_API_KEY.
-                        {providerInfo.verifyNote ? ` السبب: ${providerInfo.verifyNote}` : ""}
+                        OpenAI غير متاح حاليًا — استخدم SVG القابل للتعديل.
+                        {providerInfo.verifyNote ? ` ${providerInfo.verifyNote}` : ""}
                       </p>
                     )
                   )}
                 </div>
               )}
 
-              {/* Chart sub-type */}
-              {vtType === "chart" && (
+              {/* Chart sub-type — «رسم توضيحي» يحدده في إعداد المرئيات فلا يتكرر هنا */}
+              {vtType === "chart" && !isVisualMain && (
                 <div className="flex flex-wrap gap-2">
                   {["أعمدة", "خطي", "دائري", "حلقي", "مساحة", "أعمدة أفقية"].map((c) => (
                     <button
@@ -2543,54 +2532,7 @@ export default function ContentStudioPage() {
                 </>
               )}
 
-              {/* Generate / confirm / loading / result */}
-              {!vtLoading && !vtSvg && !vtUrl && !vtConfirming && (
-                <button
-                  type="button"
-                  onClick={() => setVtConfirming(true)}
-                  disabled={!generatedText.trim()}
-                  className="flex items-center gap-1.5 rounded-lg border border-palm bg-palm px-4 py-2 text-xs font-semibold text-white transition hover:bg-palm/90 disabled:opacity-40"
-                >
-                  <Sparkles size={13} aria-hidden="true" />
-                  إنشاء مرئي من النص
-                </button>
-              )}
-
-              {vtConfirming && !vtLoading && (
-                <div className="rounded-xl border border-palm/30 bg-white p-4 shadow-sm">
-                  <p className="mb-1 text-xs font-semibold text-palm">
-                    هل تريد إنشاء{" "}
-                    {{
-                      infographic: "إنفوغراف",
-                      chart: `رسم بياني${vtChartType ? ` (${vtChartType})` : ""}`,
-                      mindmap: "خريطة ذهنية",
-                      image: "صورة بالذكاء الاصطناعي",
-                    }[vtType]}{" "}
-                    الآن؟
-                  </p>
-                  <p className="mb-4 line-clamp-2 rounded-lg bg-paper p-2.5 text-xs leading-6 text-ink/55">
-                    {generatedText.slice(0, 140)}{generatedText.length > 140 ? "…" : ""}
-                  </p>
-                  <div className="flex gap-2">
-                    <button
-                      type="button"
-                      onClick={() => { setVtConfirming(false); void generateVisualTranslation(); }}
-                      className="flex items-center gap-1.5 rounded-lg bg-palm px-4 py-2 text-xs font-semibold text-white transition hover:bg-palm/90"
-                    >
-                      <Sparkles size={12} aria-hidden="true" />
-                      نعم، أنشئ الآن
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setVtConfirming(false)}
-                      className="rounded-lg border border-line bg-paper px-4 py-2 text-xs text-ink/60 transition hover:border-ink/30 hover:text-ink"
-                    >
-                      إلغاء
-                    </button>
-                  </div>
-                </div>
-              )}
-
+              {/* المسار الوحيد للتوليد: خطة بصرية → مراجعة واعتماد → توليد (لا زر توليد عام) */}
               {vtLoading && (
                 <div className="flex flex-col items-center gap-3 rounded-xl border border-line bg-white py-8">
                   <div className="h-8 w-8 animate-spin rounded-full border-4 border-palm/20 border-t-palm" />
@@ -2624,7 +2566,8 @@ export default function ContentStudioPage() {
                       </button>
                       <button type="button" onClick={() => { setVtPlanEditing(false); setVtPlanCollapsed(true); void generateVisualTranslation(undefined, vtPlan); }}
                         className="rounded-lg bg-palm px-3 py-1 text-xs font-medium text-white hover:bg-palmDark">
-                        اعتماد الخطة وتوليد المرئي
+                        {/* التسمية بحسب الإخراج — الاحترافي لا يظهر كزر إلا وOpenAI يعمل فعلاً */}
+                        {vtOutputMode === "editable_svg" ? "اعتماد الخطة وتوليد SVG" : "اعتماد الخطة وتوليد المرئي الاحترافي"}
                       </button>
                     </div>
                   </div>
