@@ -825,7 +825,14 @@ export async function POST(request: Request) {
   const visualPlan: VisualPlan | null = approvedPlan
     ? approvedPlan
     : apiKey && !isEditFlow && visualType !== "image"
-      ? await generateVisualPlan(apiKey, description, { channel, audience, purpose, visualType })
+      ? await generateVisualPlan(apiKey, description, {
+          channel, audience, purpose,
+          // النوع يصل للخطة بتسميته العربية الدقيقة (مع نوع الشارت) لا بمفتاح خام — الخطة تعكس المطلوب حرفياً
+          // (نوع «صورة» لا يمر بالخطة أصلاً بحكم الشرط أعلاه)
+          visualType: visualType === "chart" ? `رسم بياني${chartType ? ` (${chartType})` : ""}`
+            : visualType === "mindmap" ? "خريطة ذهنية"
+            : "إنفوغراف",
+        })
       : null;
   // خطوة المراجعة: إرجاع الخطة فقط دون توليد مرئي
   if (planOnly) {
