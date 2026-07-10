@@ -49,7 +49,7 @@ import {
 } from "@/components/social-icons";
 import { OfficialLogo, officialEntityFromUrl } from "@/components/official-logos";
 import { contentKindOptions } from "@/lib/content-types";
-import { hasQuotedMaterial, QUOTE_INTEGRITY_NOTICE } from "@/lib/quote-notice";
+import { QUOTE_INTEGRITY_NOTICE } from "@/lib/quote-notice";
 import {
   approveContentVersion,
   clearActiveContentSelection,
@@ -1303,7 +1303,7 @@ export default function ContentReviewPage() {
           <InlineContentGuidance review={review} draftText={text} onApplyRewrite={applyRewrite} loading={loading} />
         </div>
         {/* توعوي بحت عند رصد اقتباس في النص الملصق — كشف عرضي حتمي، لا يمس المؤشرات ولا محرك التحليل */}
-        {review && hasQuotedMaterial(text) ? (
+        {review ? (
           <div className="mt-3 rounded-xl border border-infoBorder bg-infoSoft p-4">
             <p className="text-sm font-semibold text-infoDark">{QUOTE_INTEGRITY_NOTICE.title}</p>
             <p className="mt-1.5 text-xs leading-6 text-ink/70">{QUOTE_INTEGRITY_NOTICE.body}</p>

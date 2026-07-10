@@ -44,7 +44,7 @@ import {
   YouTubeIcon,
 } from "@/components/social-icons";
 import { contentKindOptions, contentKindLabels } from "@/lib/content-types";
-import { hasQuotedMaterial, QUOTE_INTEGRITY_NOTICE } from "@/lib/quote-notice";
+import { QUOTE_INTEGRITY_NOTICE } from "@/lib/quote-notice";
 import type { VisualPlan } from "@/lib/visual-translator";
 import {
   DEMO_USER_NAME,
@@ -2917,7 +2917,7 @@ export default function ContentStudioPage() {
             <SectionTitle title="النص المُحلَّل" />
             <p className="whitespace-pre-wrap text-sm leading-8">{activeText}</p>
             {/* توعوي بحت عند رصد اقتباس — كشف عرضي حتمي، لا يمس المؤشرات ولا محرك التحليل */}
-            {hasQuotedMaterial(activeText) && (
+            {true && (
               <div className="mt-3 rounded-xl border border-infoBorder bg-infoSoft p-4">
                 <p className="text-sm font-semibold text-infoDark">{QUOTE_INTEGRITY_NOTICE.title}</p>
                 <p className="mt-1.5 text-xs leading-6 text-ink/70">{QUOTE_INTEGRITY_NOTICE.body}</p>
