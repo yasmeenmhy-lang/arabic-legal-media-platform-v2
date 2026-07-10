@@ -1551,12 +1551,14 @@ export default function ContentStudioPage() {
                   {/* Generated image */}
                   {imageGenUrl && !imageGenLoading && (
                     <div className="overflow-hidden rounded-xl border border-line bg-white">
-                      <img
-                        src={imageGenUrl}
-                        alt="الصورة المُنشأة"
-                        className="w-full object-cover"
-                        onError={() => { setImageGenUrl(""); setImageGenError("تعذر تحميل المرئي الناتج"); }}
-                      />
+                      <div className="flex justify-center bg-paper/40 p-3">
+                        <img
+                          src={imageGenUrl}
+                          alt="الصورة المُنشأة"
+                          className="max-h-[440px] w-auto max-w-full rounded-lg object-contain shadow-sm"
+                          onError={() => { setImageGenUrl(""); setImageGenError("تعذر تحميل المرئي الناتج"); }}
+                        />
+                      </div>
                       <div className="flex flex-wrap items-center justify-between gap-2 border-t border-line px-3 py-2.5">
                         <p className="text-xs text-ink/40">صورة مُنشأة بالذكاء الاصطناعي</p>
                         <div className="flex flex-wrap gap-2">
@@ -2752,8 +2754,12 @@ export default function ContentStudioPage() {
                   <p className={`border-b px-3 py-1.5 text-xs font-bold ${real ? "border-line bg-paper/70 text-ink/60" : "border-warningBorder bg-warningSoft text-warningDark"}`}>
                     {real ? "المرئي الاحترافي" : "تجريبي فقط — وضع demo، غير مخصص للاعتماد"}
                   </p>
-                  <img src={vtPremiumUrl} alt={real ? "مرئي احترافي بالذكاء الاصطناعي" : "عنصر نائب تجريبي"} className="w-full"
-                    onError={() => { setVtPremiumUrl(""); setVtProvider(""); setVtPremiumError("تعذر تحميل المرئي الناتج"); }} />
+                  {/* معاينة مضبوطة تناسب المنصة — التنزيل يحفظ الملف الأصلي بدقته الكاملة */}
+                  <div className="flex justify-center bg-paper/40 p-3">
+                    <img src={vtPremiumUrl} alt={real ? "مرئي احترافي بالذكاء الاصطناعي" : "عنصر نائب تجريبي"}
+                      className="max-h-[440px] w-auto max-w-full rounded-lg object-contain shadow-sm"
+                      onError={() => { setVtPremiumUrl(""); setVtProvider(""); setVtPremiumError("تعذر تحميل المرئي الناتج"); }} />
+                  </div>
                   <div className="space-y-1 border-t border-line bg-paper/60 px-3 py-2">
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="text-xs text-ink/55">
@@ -2780,8 +2786,10 @@ export default function ContentStudioPage() {
               {vtUrl && !vtLoading && (
                 <div className="overflow-hidden rounded-xl border border-line bg-white">
                   {/* عند فشل التحميل تُمسح الصورة نهائياً — بطاقة حالة بدل أيقونة صورة مكسورة */}
-                  <img src={vtUrl} alt="الترجمة البصرية" className="w-full"
-                    onError={() => { setVtUrl(""); setVtError("تعذر تحميل المرئي الناتج"); }} />
+                  <div className="flex justify-center bg-paper/40 p-3">
+                    <img src={vtUrl} alt="الترجمة البصرية" className="max-h-[440px] w-auto max-w-full rounded-lg object-contain shadow-sm"
+                      onError={() => { setVtUrl(""); setVtError("تعذر تحميل المرئي الناتج"); }} />
+                  </div>
                   <div className="flex flex-wrap items-center justify-between gap-2 border-t border-line px-3 py-2">
                     <p className="text-xs text-ink/40">صورة مُنشأة بالذكاء الاصطناعي</p>
                     <div className="flex flex-wrap gap-2">
