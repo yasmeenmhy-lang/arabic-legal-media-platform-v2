@@ -11,6 +11,8 @@ const schema = z.object({
   channel: z.string().optional(),
   audience: z.string().optional(),
   purpose: z.string().optional(),
+  // حد الأحرف الأقصى للقناة — الصياغة المقترحة تلتزم به مثل النص الأصلي
+  charLimit: z.number().int().positive().max(100000).optional(),
   findings: z.array(z.object({
     issue: z.string(),
     evidence: z.string(),
@@ -83,7 +85,7 @@ export async function POST(request: Request) {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) return NextResponse.json({ error: "خدمة التحليل غير مهيأة — تأكد من ضبط متغيرات البيئة." }, { status: 503 });
 
-  const { text, contentType, channel, audience, purpose, findings, languageIssues } = parsed.data;
+  const { text, contentType, channel, audience, purpose, charLimit, findings, languageIssues } = parsed.data;
   const context = { contentType, channel, audience, purpose };
 
   const findingsList = findings.length
@@ -117,13 +119,15 @@ export async function POST(request: Request) {
     "- أسلوب مهني رصين يعكس مستوى محامٍ محترف ومعتمد",
     "- معالجة كاملة لجميع الملاحظات المذكورة دون إغفال أي منها",
     "- الحفاظ على الهدف والمعنى الجوهري للنص الأصلي",
+    "- البقاء داخل إطار السياق المحدد إلزامي: الصياغة المقترحة تبقى من نفس نوع المحتوى وبقالبه (منشور يبقى منشوراً، ونص فيديو يبقى نصاً يُقرأ صوتياً، ومقال يبقى مقالاً)، وملائمة للقناة المحددة وأعرافها وحد أحرفها، ومكتوبة لنفس الجمهور ولنفس الهدف — لا تحوّل النص إلى نوع آخر ولا تخرج عن سياقه",
     "",
     "قبل إخراج النص النهائي، راجع ذاتياً: هل يحتوي النص على أي من المحظورات أعلاه؟ إذا وجدت أي منها فأزلها وعدّل حتى يخلو النص منها تماماً.",
     "أخرج النص المُعاد كتابته فقط، دون عنوان أو شرح أو مقدمة أو تعليق."
   ].join("\n");
 
   const userPrompt = [
-    `السياق: ${contentType ?? "محتوى مهني"} — القناة: ${channel ?? ""} — الجمهور: ${audience ?? ""} — الهدف: ${purpose ?? ""}`,
+    `السياق (إطار إلزامي للصياغة المقترحة — لا تخرج عنه): نوع المحتوى: ${contentType ?? "محتوى مهني"} — القناة: ${channel ?? "غير محددة"} — الجمهور: ${audience ?? "غير محدد"} — الهدف: ${purpose ?? "غير محدد"}`,
+    ...(charLimit ? [`قيد إلزامي: الحد الأقصى المسموح على هذه القناة ${charLimit} حرفاً شاملاً المسافات — الصياغة المقترحة يجب ألا تتجاوزه، وإن كان النص الأصلي متجاوزاً فاختصر ضمن المعالجة.`] : []),
     "",
     "النص الأصلي:",
     text,

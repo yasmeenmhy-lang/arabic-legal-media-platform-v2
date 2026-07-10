@@ -622,6 +622,8 @@ export default function ContentReviewPage() {
           channel,
           audience,
           purpose,
+          // حد الأحرف الفعلي للقناة — الصياغة المقترحة تلتزم به مثل النص الأصلي
+          charLimit: charLimit ?? (channel ? CHANNEL_CHAR_LIMITS[channel] : undefined) ?? undefined,
           findings: review.findings.map((f) => ({
             issue: f.issue,
             evidence: f.evidence,
