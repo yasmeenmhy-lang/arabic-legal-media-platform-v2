@@ -470,6 +470,8 @@ function renderChartSvg(data: ChartData, chartType: string): string {
 
 // Per-branch accent hues — same brand palette already used by the charts
 const MM_ACCENTS = [PALM, "#DBA102", "#80519F", "#2E90FA", PALM_DARK];
+// أرقام هندية للترقيم التحريري في الراسمات
+const MM_AR = ["١", "٢", "٣", "٤", "٥", "٦", "٧", "٨"];
 
 // ── المحركات المفعّلة بأمر مالكة المنصة: بطاقة اقتباس، كاروسيل، ستوري بورد، مخطط موشن ──
 
@@ -498,25 +500,42 @@ function cardsDataPrompt(desc: string, kind: "carousel" | "storyboard" | "motion
 نصوص عربية فصحى موجزة مصقولة. ممنوع: وعود بنتائج، مقارنات، شعارات، أخطاء إملائية.`;
 }
 
+// بطاقة الاقتباس — الطراز التحريري الموحّد: خلفية ورقية بنقش، إطار مزدوج بزوايا ذهبية،
+// فاصل مزخرف، نسبة الاقتباس في شارة، وعلامتا تنصيص متقابلتان — إثراء بلا حذف لأي حقل
 function renderQuoteCardSvg(d: QuoteCardData): string {
   const X = (t?: string) => (t ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  const GOLD_DEEP = "#B87B02", PAPER = "#FAF9F5";
   const W = 1200;
   const quoteLines = wrapFull(d.quote ?? "", 30);
   const noteLines = d.note ? wrapFull(d.note, 46) : [];
-  const qLH = 66, qY = 300;
-  const attrY = qY + quoteLines.length * qLH + 26;
-  const noteY = attrY + (d.attribution ? 62 : 8);
-  const H = Math.max(640, noteY + noteLines.length * 36 + 110);
+  const qLH = 66, qY = 330;
+  const attrY = qY + quoteLines.length * qLH + 30;
+  const noteY = attrY + (d.attribution ? 72 : 8);
+  const H = Math.max(700, noteY + noteLines.length * 36 + 130);
+  const attrW = d.attribution ? Math.min(Math.round((d.attribution.length + 2) * 15) + 72, W - 300) : 0;
+  const corner = (cx: number, cy: number, dx: number, dy: number) =>
+    `<path d="M${cx} ${cy + dy * 30} L${cx} ${cy} L${cx + dx * 30} ${cy}" stroke="#DBA102" stroke-width="2.5" fill="none" stroke-linecap="round"/>`;
   return `<svg width="100%" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" direction="ltr" style="direction:ltr">
-<rect width="${W}" height="${H}" fill="${MINT}"/>
-<rect x="36" y="36" width="${W - 72}" height="${H - 72}" rx="28" fill="#FFFFFF" stroke="${MINT_DEEP}" stroke-width="2"/>
-<rect x="36" y="36" width="${W - 72}" height="10" rx="5" fill="${PALM}"/>
-<text x="${W / 2}" y="122" text-anchor="middle" font-family="${FONT}" font-size="25" font-weight="600" fill="${PALM_DEEP}">${X(d.title)}</text>
-<text x="${W / 2}" y="238" text-anchor="middle" font-family="${FONT}" font-size="120" font-weight="700" fill="${MINT_DEEP}">&#x201D;</text>
+<defs><pattern id="qtDots" width="26" height="26" patternUnits="userSpaceOnUse"><circle cx="2.5" cy="2.5" r="1.7" fill="${PALM_DEEP}" opacity="0.06"/></pattern>
+<filter id="qtShad" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="3" stdDeviation="7" flood-color="${INK}" flood-opacity="0.09"/></filter></defs>
+<rect width="${W}" height="${H}" fill="${PAPER}"/>
+<rect width="${W}" height="${H}" fill="url(#qtDots)"/>
+<g filter="url(#qtShad)"><rect x="40" y="40" width="${W - 80}" height="${H - 80}" rx="26" fill="#FFFFFF" stroke="${MINT_DEEP}" stroke-width="2"/></g>
+<rect x="58" y="58" width="${W - 116}" height="${H - 116}" rx="18" fill="none" stroke="${PALM}" stroke-width="1.5" stroke-dasharray="2 7" stroke-linecap="round" opacity="0.35"/>
+${corner(78, 78, 1, 1)}${corner(W - 78, 78, -1, 1)}${corner(78, H - 78, 1, -1)}${corner(W - 78, H - 78, -1, -1)}
+<text x="${W / 2}" y="112" text-anchor="middle" font-family="${FONT}" font-size="15" font-weight="700" fill="${GOLD_DEEP}">بطاقة اقتباس</text>
+<text x="${W / 2}" y="152" text-anchor="middle" font-family="${FONT}" font-size="26" font-weight="700" fill="${PALM_DEEP}">${X(d.title)}</text>
+<g stroke="${PALM}" stroke-width="2"><line x1="${W / 2 - 120}" y1="182" x2="${W / 2 - 14}" y2="182"/><line x1="${W / 2 + 14}" y1="182" x2="${W / 2 + 120}" y2="182"/></g>
+<rect x="${W / 2 - 5}" y="177" width="10" height="10" fill="${PALM}" transform="rotate(45 ${W / 2} 182)"/>
+<circle cx="${W / 2 - 138}" cy="182" r="3.5" fill="${GOLD_DEEP}"/><circle cx="${W / 2 + 138}" cy="182" r="3.5" fill="${GOLD_DEEP}"/>
+<text x="${W / 2}" y="272" text-anchor="middle" font-family="${FONT}" font-size="120" font-weight="700" fill="${MINT_DEEP}">&#x201D;</text>
 ${quoteLines.map((ln, i) => `<text x="${W / 2}" y="${qY + i * qLH}" text-anchor="middle" font-family="${FONT}" font-size="40" font-weight="700" fill="${INK}">${X(ln)}</text>`).join("\n")}
-${d.attribution ? `<text x="${W / 2}" y="${attrY}" text-anchor="middle" font-family="${FONT}" font-size="26" font-weight="600" fill="${PALM_DARK}">— ${X(d.attribution)}</text>` : ""}
+<text x="${W - 150}" y="${qY + (quoteLines.length - 1) * qLH + 58}" text-anchor="middle" font-family="${FONT}" font-size="90" font-weight="700" fill="#DBA102" opacity="0.35">&#x201C;</text>
+${d.attribution ? `<rect x="${W / 2 - attrW / 2}" y="${attrY - 26}" width="${attrW}" height="42" rx="21" fill="${MINT}" stroke="${MINT_DEEP}" stroke-width="1.5"/>
+<text x="${W / 2}" y="${attrY + 2}" text-anchor="middle" font-family="${FONT}" font-size="22" font-weight="600" fill="${PALM_DARK}">— ${X(d.attribution)}</text>` : ""}
 ${noteLines.map((ln, i) => `<text x="${W / 2}" y="${noteY + i * 36}" text-anchor="middle" font-family="${FONT}" font-size="22" fill="${INK_TER}">${X(ln)}</text>`).join("\n")}
-<rect x="${W / 2 - 44}" y="${H - 66}" width="88" height="6" rx="3" fill="${PALM}"/>
+<rect x="${W / 2 - 44}" y="${H - 70}" width="88" height="6" rx="3" fill="${PALM}"/>
+<circle cx="${W / 2 - 62}" cy="${H - 67}" r="3.5" fill="#DBA102"/><circle cx="${W / 2 + 62}" cy="${H - 67}" r="3.5" fill="#DBA102"/>
 </svg>`;
 }
 
@@ -829,8 +848,8 @@ function renderMindMapSvg(d: MindMapData): string {
   );
 
   // Header — wraps instead of truncating; band grows for two lines
-  const hLines = wrapFull(d.title || d.center || "", 78);
-  const HDR = hLines.length > 1 ? 132 : 96;
+  const hLines = wrapFull(d.title || d.center || "", 58);
+  const HDR = hLines.length > 1 ? 216 : 172;
 
   // Vertical rhythm: each branch group = branch node + its sub nodes
   const SUB_GAP = 14, GROUP_GAP = 38, TOP_PAD = 54, BOT_PAD = 54;
@@ -866,7 +885,7 @@ function renderMindMapSvg(d: MindMapData): string {
       `<path d="M ${rootLeft} ${Math.round(rootCy)} C ${rootLeft - 70} ${Math.round(rootCy)}, ${branchRight + 70} ${gy}, ${branchRight} ${gy}" fill="none" stroke="${acc}" stroke-width="2.5" stroke-linecap="round" opacity="0.7"/>`
     );
 
-    // branch node: white card, accent border + soft accent tint, junction dot
+    // branch node: white card, accent border + soft accent tint, junction dot + numbered badge
     const bRx = bb.lines.length === 1 ? Math.round(bb.h / 2) : 18;
     nodes.push(
       `<g filter="url(#cardShad)">
@@ -875,7 +894,9 @@ function renderMindMapSvg(d: MindMapData): string {
 <rect x="${bLeft}" y="${gy - Math.round(bb.h / 2)}" width="${bb.w}" height="${bb.h}" rx="${bRx}" fill="none" stroke="${acc}" stroke-opacity="0.6" stroke-width="1.8"/>
 </g>
 ${mmText(branchRight - Math.round(bb.w / 2), gy, bb.lines, BR.fs, BR.lh, 600, INK)}
-<circle cx="${branchRight}" cy="${gy}" r="4.5" fill="${acc}" stroke="#FFFFFF" stroke-width="1.5"/>`
+<circle cx="${branchRight}" cy="${gy}" r="4.5" fill="${acc}" stroke="#FFFFFF" stroke-width="1.5"/>
+<circle cx="${bLeft}" cy="${gy}" r="12" fill="${acc}"/>
+<text x="${bLeft}" y="${gy + 4.5}" text-anchor="middle" font-family="${FONT}" font-size="12.5" font-weight="700" fill="#FFFFFF">${MM_AR[i] ?? i + 1}</text>`
     );
 
     // sub nodes stacked and centered within the group
@@ -899,27 +920,39 @@ ${mmText(subRight - Math.round(sb.w / 2) - 6, scy, sb.lines, SUB.fs, SUB.lh, 400
     yCursor += gH + GROUP_GAP;
   });
 
-  // Root node — gradient card, fully wrapped text
+  // Root node — gradient card + dashed halo ring, fully wrapped text
   const rootRx = rootBox.lines.length === 1 ? Math.round(rootBox.h / 2) : 22;
-  const rootNode = `<g filter="url(#rootShad)">
+  const rootNode = `<rect x="${rootLeft - 12}" y="${Math.round(rootCy - rootBox.h / 2) - 12}" width="${rootBox.w + 24}" height="${rootBox.h + 24}" rx="${rootRx + 10}" fill="none" stroke="${PALM}" stroke-width="1.5" stroke-dasharray="2 8" stroke-linecap="round" opacity="0.5"/>
+<g filter="url(#rootShad)">
 <rect x="${rootLeft}" y="${Math.round(rootCy - rootBox.h / 2)}" width="${rootBox.w}" height="${rootBox.h}" rx="${rootRx}" fill="url(#rootGrad)"/>
 <rect x="${rootLeft + 4}" y="${Math.round(rootCy - rootBox.h / 2) + 4}" width="${rootBox.w - 8}" height="${rootBox.h - 8}" rx="${Math.max(rootRx - 4, 8)}" fill="none" stroke="#FFFFFF" stroke-width="1.2" opacity="0.25"/>
 </g>
 ${mmText(rootRight - Math.round(rootBox.w / 2), Math.round(rootCy), rootBox.lines, ROOT.fs, ROOT.lh, 700, "#FFFFFF")}`;
 
-  const headerText = hLines.length === 1
-    ? `<text x="${W / 2}" y="${Math.round(HDR * 0.62)}" text-anchor="middle" font-family="${FONT}" font-size="24" font-weight="700" fill="#fff">${hLines[0]}</text>`
-    : `<text x="${W / 2}" y="${Math.round(HDR * 0.42)}" text-anchor="middle" font-family="${FONT}" font-size="23" font-weight="700" fill="#fff">${hLines[0]}<tspan x="${W / 2}" dy="32">${hLines.slice(1).join(" ")}</tspan></text>`;
+  // رأس تحريري موسّط على الطراز الموحّد: مسطرة مزدوجة + شارات + عين ذهبية + فاصل مزخرف
+  const GOLD_DEEP = "#B87B02";
+  const MPAD = 56;
+  const titleBase = 122;
+  const headerText = `<line x1="${MPAD}" y1="28" x2="${W - MPAD}" y2="28" stroke="${INK}" stroke-width="2.5"/>
+<line x1="${MPAD}" y1="34" x2="${W - MPAD}" y2="34" stroke="${INK}" stroke-width="1" opacity="0.35"/>
+<rect x="${W - MPAD - 128}" y="50" width="128" height="30" rx="15" fill="${MINT}" stroke="${MINT_DEEP}" stroke-width="1.5"/>
+<text x="${W - MPAD - 64}" y="71" text-anchor="middle" font-family="${FONT}" font-size="14" font-weight="700" fill="${PALM_DEEP}">${MM_AR[branches.length - 1] ?? branches.length} فروع</text>
+<rect x="${MPAD}" y="50" width="128" height="30" rx="15" fill="#FFFFFF" stroke="${LINE}" stroke-width="1.5"/>
+<text x="${MPAD + 64}" y="71" text-anchor="middle" font-family="${FONT}" font-size="14" font-weight="600" fill="${INK_TER}">هيكل شجري</text>
+<text x="${W / 2}" y="74" text-anchor="middle" font-family="${FONT}" font-size="16" font-weight="700" fill="${GOLD_DEEP}">خريطة ذهنية</text>
+${hLines.map((ln, i) => `<text x="${W / 2}" y="${titleBase + i * 44}" text-anchor="middle" font-family="${FONT}" font-size="32" font-weight="800" fill="${INK}">${ln}</text>`).join("")}
+<g stroke="${PALM}" stroke-width="2"><line x1="${W / 2 - 140}" y1="${HDR - 22}" x2="${W / 2 - 16}" y2="${HDR - 22}"/><line x1="${W / 2 + 16}" y1="${HDR - 22}" x2="${W / 2 + 140}" y2="${HDR - 22}"/></g>
+<rect x="${W / 2 - 6}" y="${HDR - 28}" width="12" height="12" fill="${PALM}" transform="rotate(45 ${W / 2} ${HDR - 22})"/>
+<circle cx="${W / 2 - 158}" cy="${HDR - 22}" r="3.5" fill="${GOLD_DEEP}"/><circle cx="${W / 2 + 158}" cy="${HDR - 22}" r="3.5" fill="${GOLD_DEEP}"/>`;
+
+  const tick = (tx: number, tyk: number, dx: number, dy: number) =>
+    `<path d="M${tx} ${tyk + dy * 26} L${tx} ${tyk} L${tx + dx * 26} ${tyk}" stroke="${PALM}" stroke-width="2.5" fill="none" stroke-linecap="round"/>`;
 
   return `<svg width="100%" viewBox="0 0 ${W} ${Math.round(H)}" xmlns="http://www.w3.org/2000/svg" direction="rtl">
 <defs>
   <pattern id="dotGrid" x="0" y="0" width="28" height="28" patternUnits="userSpaceOnUse">
-    <circle cx="14" cy="14" r="1" fill="${PALM}" opacity="0.06"/>
+    <circle cx="14" cy="14" r="1.5" fill="${PALM_DEEP}" opacity="0.06"/>
   </pattern>
-  <linearGradient id="mmHdr" x1="0" y1="0" x2="1" y2="0">
-    <stop offset="0%" stop-color="${PALM_DEEP}"/>
-    <stop offset="100%" stop-color="${PALM}"/>
-  </linearGradient>
   <linearGradient id="rootGrad" x1="0" y1="0" x2="0" y2="1">
     <stop offset="0%" stop-color="${PALM}"/>
     <stop offset="100%" stop-color="${PALM_DEEP}"/>
@@ -931,9 +964,9 @@ ${mmText(rootRight - Math.round(rootBox.w / 2), Math.round(rootCy), rootBox.line
     <feDropShadow dx="0" dy="4" stdDeviation="8" flood-color="${PALM_DEEP}" flood-opacity="0.30"/>
   </filter>
 </defs>
-<rect width="${W}" height="${Math.round(H)}" fill="${CANVAS_BG}"/>
+<rect width="${W}" height="${Math.round(H)}" fill="#FAF9F5"/>
 <rect width="${W}" height="${Math.round(H)}" fill="url(#dotGrid)"/>
-<rect width="${W}" height="${HDR}" fill="url(#mmHdr)"/>
+${tick(16, 16, 1, 1)}${tick(W - 16, 16, -1, 1)}${tick(16, Math.round(H) - 16, 1, -1)}${tick(W - 16, Math.round(H) - 16, -1, -1)}
 ${headerText}
 ${connectors.join("\n")}
 ${nodes.join("\n")}
@@ -956,19 +989,19 @@ function renderInfographicSvg(d: InfographicData): string {
   const chars = (fs: number) => Math.max(Math.floor(textMax / (fs * 0.56)), 12);
   const sections = (d.sections || []).slice(0, 4);
 
-  // الترويسة والعنوان الفرعي يلتفان بدل القص
-  const titleLines = wrapFull(d.title, Math.floor((W - 160) / (30 * 0.56)));
-  const HEADER_H = 96 + titleLines.length * 42;
+  // الترويسة والعنوان الفرعي يلتفان بدل القص — رأس تحريري موسّط على الطراز الموحّد
+  const titleLines = wrapFull(d.title, Math.floor((W - 160) / (32 * 0.56)));
+  const HEADER_H = 132 + titleLines.length * 44;
   const subLines = wrapFull(d.subtitle, Math.floor((W - 160) / (16 * 0.56)));
   const SUB_H = 40 + subLines.length * 26;
 
-  // قياس كل قسم حسب محتواه الفعلي
+  // قياس كل قسم حسب محتواه الفعلي (+ فاصل مزخرف وشارة إحصائية)
   type Sec = { heading: string[]; lines: string[][]; stat: string; h: number };
   const measured: Sec[] = sections.map((sec) => {
     const heading = wrapFull(sec.heading, chars(20));
     const lines = [sec.line1, sec.line2, sec.line3].filter(Boolean).map((l) => wrapFull(l as string, chars(14.5)));
     const bodyLines = lines.reduce((a, l) => a + l.length, 0);
-    const h = Math.max(26 + heading.length * 30 + 10 + bodyLines * 25 + (sec.stat ? 34 : 0) + 26, 150);
+    const h = Math.max(26 + heading.length * 30 + 10 + 18 + bodyLines * 25 + (sec.stat ? 46 : 0) + 26, 170);
     return { heading, lines, stat: sec.stat ?? "", h };
   });
 
@@ -978,6 +1011,15 @@ function renderInfographicSvg(d: InfographicData): string {
   const bodyH = measured.reduce((a, m) => a + m.h, 0) + GAP * (measured.length + 1);
   const H = HEADER_H + SUB_H + bodyH + FOOTER_H;
 
+  // أيقونات خطية للأقسام — نفس عائلة أيقونات صحيفة البطاقات
+  const INF_ICONS = [
+    '<path d="M12 2l9 4v6c0 5.5-4 9.5-9 10-5-.5-9-4.5-9-10V6z"/>',
+    '<path d="M4 6h16M4 12h16M4 18h9"/>',
+    '<circle cx="12" cy="12" r="9"/><path d="M8 12l3 3 5-6"/>',
+    '<path d="M5 20V10M12 20V4M19 20v-8"/>',
+  ];
+  const GOLD_DEEP = "#B87B02";
+
   let y = HEADER_H + SUB_H + GAP;
   const blocks = measured.map((m, i) => {
     const ac = ACCENTS[i % ACCENTS.length];
@@ -986,45 +1028,70 @@ function renderInfographicSvg(d: InfographicData): string {
     let ty = y0 + 26 + 20;
     const headingText = `<text x="${TR}" y="${ty}" text-anchor="end" font-family="${FONT}" font-size="20" font-weight="700" fill="${INK}">${m.heading[0]}${m.heading.slice(1).map(() => "").join("")}${m.heading.slice(1).map((l) => `<tspan x="${TR}" dy="30">${l}</tspan>`).join("")}</text>`;
     ty += (m.heading.length - 1) * 30 + 10;
+    const divider = `<line x1="${TR}" y1="${ty + 6}" x2="${TR - 64}" y2="${ty + 6}" stroke="${ac}" stroke-width="2.5"/><rect x="${TR - 81}" y="${ty + 1}" width="10" height="10" fill="${ac}" transform="rotate(45 ${TR - 76} ${ty + 6})"/>`;
+    ty += 18;
     const bodyText = m.lines.map((wrapped) => {
       const first = ty + 25;
       const t = `<text x="${TR}" y="${first}" text-anchor="end" font-family="${FONT}" font-size="14.5" fill="${INK_SEC}">${wrapped[0]}${wrapped.slice(1).map((l) => `<tspan x="${TR}" dy="25">${l}</tspan>`).join("")}</text>`;
       ty = first + (wrapped.length - 1) * 25;
       return t;
     }).join("\n");
+    const statW = m.stat ? Math.min(Math.round(m.stat.length * 9.5) + 56, CARD_W - 160) : 0;
     const statText = m.stat
-      ? `<text x="${TR}" y="${ty + 32}" text-anchor="end" font-family="${FONT}" font-size="15" font-weight="700" fill="${ac}">${m.stat}</text>`
+      ? `<rect x="${TR - statW}" y="${ty + 14}" width="${statW}" height="32" rx="16" fill="#FFFCE6" stroke="#FCF3BD" stroke-width="1.5"/>
+<circle cx="${TR - statW + 18}" cy="${ty + 30}" r="4" fill="${GOLD_DEEP}"/>
+<text x="${TR - 16}" y="${ty + 36}" text-anchor="end" font-family="${FONT}" font-size="15" font-weight="700" fill="${GOLD_DEEP}">${m.stat}</text>`
+      : "";
+    const connector = i < measured.length - 1
+      ? `<line x1="${W - PAD - BAR_W / 2}" y1="${y0 + m.h + 3}" x2="${W - PAD - BAR_W / 2}" y2="${y0 + m.h + GAP - 3}" stroke="${ac}" stroke-width="2" stroke-dasharray="2 6" stroke-linecap="round" opacity="0.6"/>`
       : "";
     return `<g filter="url(#infShad)"><rect x="${PAD}" y="${y0}" width="${CARD_W}" height="${m.h}" rx="16" fill="#FFFFFF" stroke="${LINE}" stroke-width="1"/></g>
 <rect x="${W - PAD - BAR_W}" y="${y0}" width="${BAR_W}" height="${m.h}" rx="5" fill="${ac}"/>
-<text x="${PAD + 64}" y="${y0 + m.h / 2 + 30}" text-anchor="middle" font-family="${FONT}" font-size="92" font-weight="700" fill="${ac}" opacity="0.09">${i + 1}</text>
+<text x="${PAD + 64}" y="${y0 + m.h / 2 + 42}" text-anchor="middle" font-family="${FONT}" font-size="92" font-weight="700" fill="${ac}" opacity="0.09">${MM_AR[i] ?? i + 1}</text>
+<circle cx="${PAD + 60}" cy="${y0 + 54}" r="24" fill="#FFFFFF" stroke="${ac}" stroke-width="2" stroke-dasharray="2 6" stroke-linecap="round"/>
+<circle cx="${PAD + 60}" cy="${y0 + 54}" r="17" fill="${ac}" opacity="0.13"/>
+<g stroke="${ac}" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" transform="translate(${PAD + 48},${y0 + 42})">${INF_ICONS[i % INF_ICONS.length]}</g>
 ${headingText}
+${divider}
 ${bodyText}
-${statText}`;
+${statText}
+${connector}`;
   }).join("\n");
 
-  const titleText = `<text x="${W / 2}" y="${64 + 21}" text-anchor="middle" font-family="${FONT}" font-size="30" font-weight="700" fill="#fff">${titleLines[0]}${titleLines.slice(1).map((l) => `<tspan x="${W / 2}" dy="42">${l}</tspan>`).join("")}</text>`;
+  const titleText = `<line x1="${PAD}" y1="26" x2="${W - PAD}" y2="26" stroke="${INK}" stroke-width="2.5"/>
+<line x1="${PAD}" y1="32" x2="${W - PAD}" y2="32" stroke="${INK}" stroke-width="1" opacity="0.35"/>
+<rect x="${W - PAD - 120}" y="48" width="120" height="30" rx="15" fill="${MINT}" stroke="${MINT_DEEP}" stroke-width="1.5"/>
+<text x="${W - PAD - 60}" y="69" text-anchor="middle" font-family="${FONT}" font-size="14" font-weight="700" fill="${PALM_DEEP}">${MM_AR[sections.length - 1] ?? sections.length} أقسام</text>
+<rect x="${PAD}" y="48" width="120" height="30" rx="15" fill="#FFFFFF" stroke="${LINE}" stroke-width="1.5"/>
+<text x="${PAD + 60}" y="69" text-anchor="middle" font-family="${FONT}" font-size="14" font-weight="600" fill="${INK_TER}">تنسيق عمودي</text>
+<text x="${W / 2}" y="72" text-anchor="middle" font-family="${FONT}" font-size="16" font-weight="700" fill="${GOLD_DEEP}">إنفوغراف قانوني</text>
+${titleLines.map((l, i) => `<text x="${W / 2}" y="${120 + i * 44}" text-anchor="middle" font-family="${FONT}" font-size="32" font-weight="800" fill="${INK}">${l}</text>`).join("")}
+<g stroke="${PALM}" stroke-width="2"><line x1="${W / 2 - 130}" y1="${HEADER_H - 20}" x2="${W / 2 - 14}" y2="${HEADER_H - 20}"/><line x1="${W / 2 + 14}" y1="${HEADER_H - 20}" x2="${W / 2 + 130}" y2="${HEADER_H - 20}"/></g>
+<rect x="${W / 2 - 6}" y="${HEADER_H - 26}" width="12" height="12" fill="${PALM}" transform="rotate(45 ${W / 2} ${HEADER_H - 20})"/>
+<circle cx="${W / 2 - 148}" cy="${HEADER_H - 20}" r="3.5" fill="${GOLD_DEEP}"/><circle cx="${W / 2 + 148}" cy="${HEADER_H - 20}" r="3.5" fill="${GOLD_DEEP}"/>`;
   const subText = `<text x="${W / 2}" y="${HEADER_H + 34}" text-anchor="middle" font-family="${FONT}" font-size="16" fill="${PALM_DARK}">${subLines[0]}${subLines.slice(1).map((l) => `<tspan x="${W / 2}" dy="26">${l}</tspan>`).join("")}</text>`;
   const footerY = H - FOOTER_H;
   const srcText = `<text x="${W / 2}" y="${footerY + 30}" text-anchor="middle" font-family="${FONT}" font-size="12.5" fill="${INK_TER}">${srcLines[0]}${srcLines.slice(1).map((l) => `<tspan x="${W / 2}" dy="22">${l}</tspan>`).join("")}</text>`;
 
+  const tick = (tx: number, tyk: number, dx: number, dy: number) =>
+    `<path d="M${tx} ${tyk + dy * 24} L${tx} ${tyk} L${tx + dx * 24} ${tyk}" stroke="${PALM}" stroke-width="2.5" fill="none" stroke-linecap="round"/>`;
+
   return `<svg width="100%" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" direction="ltr" style="direction:ltr">
 <defs>
-  <linearGradient id="hdrGrad" x1="0" y1="0" x2="1" y2="0">
-    <stop offset="0%" stop-color="${PALM_DEEP}"/>
-    <stop offset="100%" stop-color="${PALM}"/>
-  </linearGradient>
+  <pattern id="infDots" width="26" height="26" patternUnits="userSpaceOnUse"><circle cx="2.5" cy="2.5" r="1.7" fill="${PALM_DEEP}" opacity="0.06"/></pattern>
   <filter id="infShad" x="-20%" y="-20%" width="140%" height="140%">
     <feDropShadow dx="0" dy="2" stdDeviation="5" flood-color="${INK}" flood-opacity="0.08"/>
   </filter>
 </defs>
-<rect width="${W}" height="${H}" fill="${CANVAS_BG}"/>
-<rect width="${W}" height="${HEADER_H}" fill="url(#hdrGrad)"/>
+<rect width="${W}" height="${H}" fill="#FAF9F5"/>
+<rect width="${W}" height="${H}" fill="url(#infDots)"/>
+${tick(14, 14, 1, 1)}${tick(W - 14, 14, -1, 1)}${tick(14, H - 14, 1, -1)}${tick(W - 14, H - 14, -1, -1)}
 ${titleText}
 <rect y="${HEADER_H}" width="${W}" height="${SUB_H}" fill="${MINT}"/>
 ${subText}
 ${blocks}
 <rect x="0" y="${footerY}" width="${W}" height="${FOOTER_H}" fill="${MINT}"/>
+<rect x="0" y="${footerY}" width="${W}" height="3" fill="${PALM}" opacity="0.3"/>
 ${srcText}
 </svg>`;
 }
