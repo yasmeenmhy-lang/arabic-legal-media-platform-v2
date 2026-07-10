@@ -47,6 +47,7 @@ import { contentKindOptions, contentKindLabels } from "@/lib/content-types";
 import { QUOTE_INTEGRITY_NOTICE } from "@/lib/quote-notice";
 import type { VisualPlan } from "@/lib/visual-translator";
 import {
+  attachVisualsToVersion,
   DEMO_USER_NAME,
   loadContentRecords,
   saveContentRecords,
@@ -54,11 +55,19 @@ import {
   upsertAnalyzedVersion,
   type StoredContentRecord,
   type StoredContentVersion,
+  type StoredVisual,
 } from "@/lib/content-record-store";
 import { saveLatestReviewSnapshot } from "@/components/review-context-summary";
 import { riskDisplayLabel, type ContentKind, type ReviewResult, type RiskAffectedParty, type RiskLevel } from "@/lib/types";
 
 // ── Constants ──────────────────────────────────────────────────────────────
+
+// تسميات محركات المرئيات — تُستخدم عند حفظ المرئيات مع المحتوى في السجل
+const VISUAL_ENGINE_LABELS: Record<string, string> = {
+  infographic: "إنفوغراف", chart: "رسم بياني", mindmap: "خريطة ذهنية",
+  image: "صورة بالذكاء الاصطناعي", quote_card: "بطاقة اقتباس", carousel: "كاروسيل",
+  storyboard: "ستوري بورد", motion_script: "مخطط موشن جرافيك",
+};
 
 const studioContentTypes = contentKindOptions.filter((item) =>
   (
@@ -439,11 +448,18 @@ function partyIcon(p: RiskAffectedParty) {
 
 function createDraftRecord(
   body: string,
-  ctx: { kind: ContentKind | null; channel: string; audience: string; purpose: string }
+  ctx: { kind: ContentKind | null; channel: string; audience: string; purpose: string },
+  // بقرار مالكة المنصة: المرئيات تنتقل مع المحتوى وتُحفظ في السجل فلا تختفي
+  visuals: Omit<StoredVisual, "id" | "createdAt">[] = []
 ): string {
   const id = `studio-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   const timestamp = new Date().toISOString();
   const resolvedKind: ContentKind = ctx.kind ?? "post";
+  const stampedVisuals: StoredVisual[] = visuals.map((v, i) => ({
+    ...v,
+    id: `${id}-visual-${i + 1}`,
+    createdAt: timestamp,
+  }));
   const version: StoredContentVersion = {
     id: `${id}-v1`,
     contentId: id,
@@ -458,6 +474,7 @@ function createDraftRecord(
     createdAt: timestamp,
     updatedAt: timestamp,
     references: [],
+    visuals: stampedVisuals.length ? stampedVisuals : undefined,
   };
   const record: StoredContentRecord = {
     id,
@@ -473,6 +490,9 @@ function createDraftRecord(
         actor: DEMO_USER_NAME,
         at: timestamp,
         toStatus: "مسودة",
+        details: stampedVisuals.length
+          ? `حُفظت المرئيات مع المحتوى: ${stampedVisuals.map((v) => v.visualTypeLabel).join("، ")}`
+          : undefined,
       },
     ],
     sharingStatus: "غير متاح",
@@ -480,7 +500,13 @@ function createDraftRecord(
     updatedAt: timestamp,
   };
   const existing = loadContentRecords();
-  saveContentRecords([...existing, record]);
+  try {
+    saveContentRecords([...existing, record]);
+  } catch {
+    // حصة التخزين — تُسقط بيانات الصور الضخمة فقط ويبقى النص ومرئيات SVG
+    version.visuals = version.visuals?.filter((v) => !v.imageUrl || v.imageUrl.length < 200_000);
+    saveContentRecords([...existing, record]);
+  }
   setActiveContentSelection(id, 1);
   return id;
 }
@@ -787,10 +813,36 @@ export default function ContentStudioPage() {
 
   // ── Save draft ──
 
+  // بقرار مالكة المنصة: المرئي المولّد بعد المراجعة القانونية يلتحق فوراً بالإصدار الحالي
+  // في سجل المحتوى (إن وُجد سجل مُحلَّل في هذه الجلسة) فلا يختفي عند مغادرة الصفحة
+  function persistVisualToRecord(visual: Omit<StoredVisual, "id" | "createdAt">) {
+    if (!contentId) return;
+    const record = loadContentRecords().find((item) => item.id === contentId);
+    if (!record) return;
+    const outcome = attachVisualsToVersion(contentId, record.currentVersion, [visual]);
+    if (outcome !== "failed") flash("حُفظ المرئي مع المحتوى في سجل المحتوى");
+  }
+
+  // بقرار مالكة المنصة: كل مرئي مولّد في الجلسة يُحفظ مع المحتوى في السجل فلا يختفي
+  function collectSessionVisuals(): Omit<StoredVisual, "id" | "createdAt">[] {
+    const visuals: Omit<StoredVisual, "id" | "createdAt">[] = [];
+    if (vtSvg) visuals.push({ visualType: vtType, visualTypeLabel: VISUAL_ENGINE_LABELS[vtType] ?? "مرئي", svg: vtSvg });
+    if (vtPremiumUrl) visuals.push({
+      visualType: "image",
+      visualTypeLabel: "مرئي احترافي",
+      imageUrl: vtPremiumUrl,
+      provider: vtProvider || undefined,
+    });
+    if (imageGenSvg) visuals.push({ visualType: "image", visualTypeLabel: "مرئي من وصف", svg: imageGenSvg });
+    if (imageGenUrl) visuals.push({ visualType: "image", visualTypeLabel: "صورة من وصف", imageUrl: imageGenUrl });
+    return visuals;
+  }
+
   function saveDraft() {
     if (!activeText.trim()) return;
     try {
-      createDraftRecord(activeText, { kind, channel, audience, purpose });
+      const visuals = collectSessionVisuals();
+      createDraftRecord(activeText, { kind, channel, audience, purpose }, visuals);
       router.push("/content-management");
     } catch {
       flash("فشل حفظ المسودة");
@@ -1010,11 +1062,15 @@ export default function ContentStudioPage() {
         setVtUrl(data.imageUrl ?? "");
       }
       // الصورة الاحترافية (premium_image أو both) — أو بطاقة حالة الفشل بلا صورة بديلة
-      setVtPremiumUrl(data.imageBase64 ?? (data.provider ? data.imageUrl ?? "" : ""));
+      const premiumUrl = data.imageBase64 ?? (data.provider ? data.imageUrl ?? "" : "");
+      setVtPremiumUrl(premiumUrl);
       setVtProvider(data.provider ?? "");
       setVtProviderNote(data.providerNote ?? "");
       setVtPremiumError(data.premiumError ?? "");
       setVtEditText("");
+      // بقرار مالكة المنصة: المرئي المولّد بعد المراجعة القانونية يلتحق فوراً بسجل المحتوى فلا يختفي
+      if (data.svgCode) persistVisualToRecord({ visualType: vtType, visualTypeLabel: VISUAL_ENGINE_LABELS[vtType] ?? "مرئي", svg: data.svgCode });
+      if (premiumUrl) persistVisualToRecord({ visualType: "image", visualTypeLabel: "مرئي احترافي", imageUrl: premiumUrl, provider: data.provider || undefined });
     } catch {
       setVtError("تعذر الاتصال بخدمة إنشاء المرئيات");
     } finally {
@@ -1381,12 +1437,16 @@ export default function ContentStudioPage() {
       }
       if (data.svgCode) {
         setImageGenSvg(data.svgCode);
+        // بقرار مالكة المنصة: المرئي المولّد يلتحق بسجل المحتوى فور توليده فلا يختفي
+        persistVisualToRecord({ visualType: "image", visualTypeLabel: "مرئي من وصف", svg: data.svgCode });
       } else if (data.premiumError) {
         // فشل المزود: بطاقة حالة صادقة فقط — لا صورة بديلة ولا احتياط قديم
         setImageGenError(`${data.premiumError}${data.providerNote ? ` السبب: ${data.providerNote}` : ""}`);
       } else {
-        setImageGenUrl(data.imageBase64 ?? data.imageUrl ?? "");
+        const genUrl = data.imageBase64 ?? data.imageUrl ?? "";
+        setImageGenUrl(genUrl);
         setImageGenPrompt(data.prompt ?? "");
+        if (genUrl) persistVisualToRecord({ visualType: "image", visualTypeLabel: "صورة من وصف", imageUrl: genUrl });
       }
       setImageGenEditText("");
     } catch {
