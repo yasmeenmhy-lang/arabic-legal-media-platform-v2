@@ -539,14 +539,27 @@ function renderCardsSheetSvg(d: CardsData, variant: "carousel" | "storyboard" | 
   const coverH = variant === "carousel" ? 240 : 0;
   const closeH = variant === "carousel" ? 150 : 0;
   let y = headerH + (coverH ? coverH + 22 : 0);
+  const CARD_ICONS = [
+    '<path d="M12 2l9 4v6c0 5.5-4 9.5-9 10-5-.5-9-4.5-9-10V6z"/>',
+    '<path d="M4 6h16M4 12h16M4 18h9"/>',
+    '<circle cx="12" cy="12" r="9"/><path d="M8 12l3 3 5-6"/>',
+    '<path d="M12 3l10 18H2z"/><path d="M12 10v5"/><circle cx="12" cy="18.2" r="0.6"/>',
+    '<path d="M5 20V10M12 20V4M19 20v-8"/>',
+  ];
   const body = cards.map((c, i) => {
     const m = ms[i]; const acc = MM_ACCENTS[i % MM_ACCENTS.length]; const y0 = y; y += m.h + 22;
+    const cardBg = variant === "carousel" && i % 2 === 1 ? MINT : "#FFFFFF";
+    const icon = variant === "carousel"
+      ? `<circle cx="${PAD + 58}" cy="${y0 + m.h / 2}" r="30" fill="${acc}" opacity="0.12"/>
+<g stroke="${acc}" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" transform="translate(${PAD + 58 - 12},${y0 + m.h / 2 - 12})">${CARD_ICONS[i % CARD_ICONS.length]}</g>`
+      : "";
     let ty = y0 + 56;
     const headT = m.head.map((ln) => { const t = `<text x="${W - PAD - 104}" y="${ty}" text-anchor="end" font-family="${FONT}" font-size="27" font-weight="700" fill="${INK}">${X(ln)}</text>`; ty += 40; return t; }).join("");
     const l1T = m.l1.map((ln) => { const t = `<text x="${W - PAD - 28}" y="${ty}" text-anchor="end" font-family="${FONT}" font-size="21" fill="${INK_SEC}">${X(ln)}</text>`; ty += 32; return t; }).join("");
     let l2T = "";
     if (m.l2.length) { ty += 10; l2T = m.l2.map((ln) => { const t = `<text x="${W - PAD - 28}" y="${ty}" text-anchor="end" font-family="${FONT}" font-size="21" fill="${INK_TER}">${X(ln)}</text>`; ty += 32; return t; }).join(""); }
-    return `<g filter="url(#crdShad)"><rect x="${PAD}" y="${y0}" width="${CW}" height="${m.h}" rx="18" fill="#FFFFFF" stroke="${MINT_DEEP}" stroke-width="1.5"/></g>
+    return `<g filter="url(#crdShad)"><rect x="${PAD}" y="${y0}" width="${CW}" height="${m.h}" rx="18" fill="${cardBg}" stroke="${MINT_DEEP}" stroke-width="1.5"/></g>
+${icon}
 <rect x="${W - PAD - 8}" y="${y0}" width="8" height="${m.h}" rx="4" fill="${acc}"/>
 <rect x="${W - PAD - 96}" y="${y0 + 22}" width="64" height="30" rx="15" fill="${acc}" opacity="0.14"/>
 <text x="${W - PAD - 64}" y="${y0 + 43}" text-anchor="middle" font-family="${FONT}" font-size="16" font-weight="700" fill="${acc}">${X(c.tag)}</text>
