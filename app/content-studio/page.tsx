@@ -642,6 +642,8 @@ export default function ContentStudioPage() {
           specialty: specialty || undefined,
           source: sourceLabel,
           topic: topic.trim(),
+          // حد الأحرف الفعلي: ما اختاره المستخدم، وإلا الحد المعياري للقناة — ليلتزم به التوليد
+          charLimit: charLimit ?? (channel ? CHANNEL_CHAR_LIMITS[channel] : undefined) ?? undefined,
         }),
       });
       const data = (await res.json()) as { text?: string; error?: string };
