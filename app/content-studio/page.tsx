@@ -146,6 +146,17 @@ const SUPPORTED_VISUAL_OUTPUTS: Partial<Record<ContentKind, VisualOutputsSpec>> 
       { key: "short_carousel", label: "كاروسيل قصير" },
     ],
   },
+  // «محتوى بصري»: المرئي هو المنتج — يترجم النص المقترح بعد توليده مباشرةً بالقائمة الكاملة
+  visual_content: {
+    title: "ترجمة المحتوى بصرياً — تحويل النص المقترح إلى مرئي",
+    optIn: "",
+    options: [
+      { key: "infographic", label: "إنفوغراف", hint: "بطاقات منظّمة", engine: "infographic" },
+      { key: "chart", label: "رسم بياني", hint: "Bar / Line / Pie", engine: "chart" },
+      { key: "mindmap", label: "خريطة ذهنية", hint: "شبكة إشعاعية", engine: "mindmap" },
+      { key: "image", label: "صورة", hint: "بالذكاء الاصطناعي", engine: "image", premium: true },
+    ],
+  },
 };
 
 const CHANNEL_CHAR_LIMITS: Partial<Record<string, number>> = {
@@ -571,11 +582,11 @@ export default function ContentStudioPage() {
   const contextScore = [kind, channel, audience, purpose].filter(Boolean).length;
   const activeText = path === "create" ? generatedText : reviewText;
   // نوع المحتوى هو مصدر الحقيقة الوحيد — قسم بصري رئيسي واحد فقط لكل نوع:
-  // «رسم توضيحي»: قسم «إعداد المرئيات والمخططات» وامتداده التوليدي (مباشر بلا اختيار)
-  // «محتوى بصري»: قسم «متطلبات المحتوى البصري» وحده — لا قسم ترجمة إضافي إطلاقاً
+  // «رسم توضيحي»: قسم «إعداد المرئيات والمخططات» وامتداده التوليدي (النوع من الإعداد، بلا اختيار مكرر)
+  // «محتوى بصري»: المتطلبات أولاً ثم النص ثم «ترجمة المحتوى بصرياً» مباشرة — المرئي يترجم النص المقترح ويأتي بعده
   // بقية الأنواع: قسم داعم اختياري واحد بعد توليد النص
   const isVisualMain = kind === "infographic";
-  const showVisualSection = kind !== "visual_content";
+  const isVisualDirect = kind === "infographic" || kind === "visual_content";
   // المخرجات الداعمة المناسبة لنوع المحتوى المختار — من خريطة المواءمة
   const visualOutputs: VisualOutputsSpec = isVisualMain
     ? VISUAL_KIND_OUTPUTS
@@ -1500,125 +1511,11 @@ export default function ContentStudioPage() {
                     />
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={() => generateImage()}
-                    disabled={!imageDesc.trim() || imageGenLoading || Boolean(providerInfo && !premiumUsable && providerInfo.mode !== "mock")}
-                    className="inline-flex items-center gap-2 rounded-lg bg-palm px-4 py-2 text-sm font-medium text-white transition hover:bg-palm/90 disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    <ImageIcon size={14} />
-                    {imageGenLoading ? "جارٍ الإنشاء..." : "إنشاء مرئي"}
-                  </button>
-                  {!imageDesc.trim() && (
-                    <p className="text-xs leading-5 text-ink/45">
-                      أدخل وصف المحتوى المطلوب أولًا؛ لأن المرئي يجب أن يكون مبنيًا على النص.
-                    </p>
-                  )}
-                  {providerInfo && !premiumUsable && providerInfo.mode !== "mock" && (
-                    <p className="rounded-lg bg-warningSoft px-3 py-2 text-xs font-medium leading-5 text-warningDark">
-                      OpenAI غير متاح حاليًا — استخدم SVG القابل للتعديل.
-                      {providerInfo.verifyNote ? ` ${providerInfo.verifyNote}` : ""}
-                    </p>
-                  )}
-
-                  {/* Loading skeleton */}
-                  {imageGenLoading && (
-                    <div className="flex flex-col items-center gap-3 rounded-xl border border-line bg-white py-10">
-                      <div className="h-10 w-10 animate-spin rounded-full border-4 border-palm/20 border-t-palm" />
-                      <p className="text-xs text-ink/50">الذكاء الاصطناعي يُنشئ الصورة — قد يستغرق ١٠–٣٠ ثانية</p>
-                    </div>
-                  )}
-
-                  {/* Generated image */}
-                  {imageGenUrl && !imageGenLoading && (
-                    <div className="overflow-hidden rounded-xl border border-line bg-white">
-                      <img
-                        src={imageGenUrl}
-                        alt="الصورة المُنشأة"
-                        className="w-full object-cover"
-                        onError={() => { setImageGenUrl(""); setImageGenError("تعذر تحميل المرئي الناتج"); }}
-                      />
-                      <div className="flex flex-wrap items-center justify-between gap-2 border-t border-line px-3 py-2.5">
-                        <p className="text-xs text-ink/40">صورة مُنشأة بالذكاء الاصطناعي</p>
-                        <div className="flex flex-wrap gap-2">
-                          <a
-                            href={imageGenUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            download="generated-image.jpg"
-                            className="shrink-0 whitespace-nowrap rounded-lg border border-line bg-paper px-3 py-1 text-xs font-medium text-ink/70 transition hover:border-palm hover:text-palm"
-                          >
-                            JPG
-                          </a>
-                          <button
-                            type="button"
-                            onClick={() => void downloadUrlAsPng(imageGenUrl, "generated-image.png")}
-                            className="shrink-0 whitespace-nowrap rounded-lg border border-line bg-paper px-3 py-1 text-xs font-medium text-ink/70 transition hover:border-palm hover:text-palm"
-                          >
-                            PNG
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => void downloadPptx({ url: imageGenUrl }, "generated-image.pptx")}
-                            className="shrink-0 whitespace-nowrap rounded-lg border border-line bg-paper px-3 py-1 text-xs font-medium text-ink/70 transition hover:border-palm hover:text-palm"
-                            title="تنزيل شريحة PowerPoint قابلة للتحرير"
-                          >
-                            PowerPoint
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => generateImage()}
-                            className="shrink-0 whitespace-nowrap rounded-lg border border-line bg-paper px-3 py-1 text-xs font-medium text-ink/70 transition hover:border-palm hover:text-palm"
-                          >
-                            إعادة الإنشاء
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => { setImageGenUrl(""); setImageGenPrompt(""); setImageGenError(""); }}
-                            className="flex shrink-0 items-center gap-1 whitespace-nowrap rounded-lg border border-line bg-paper px-3 py-1 text-xs font-medium text-red-500/70 transition hover:border-red-300 hover:text-red-600"
-                            title="مسح الصورة"
-                          >
-                            <Trash2 size={12} />
-                            مسح
-                          </button>
-                        </div>
-                      </div>
-                      {/* طلب تعديل على الصورة الحالية */}
-                      <div className="flex flex-wrap items-center gap-2 border-t border-line bg-paper/60 px-3 py-2.5">
-                        <input
-                          type="text"
-                          value={imageGenEditText}
-                          onChange={(e) => setImageGenEditText(e.target.value)}
-                          placeholder="اطلبي تعديلاً — مثال: خلفية أفتح، زاوية مختلفة، إضاءة أقوى..."
-                          className="min-w-40 flex-1 rounded-lg border border-line bg-white px-3 py-1.5 text-xs focus:border-palm focus:outline-none"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => void generateImage(undefined, imageGenEditText)}
-                          disabled={!imageGenEditText.trim()}
-                          className="shrink-0 whitespace-nowrap rounded-lg bg-palm px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-palm/90 disabled:opacity-40"
-                        >
-                          تطبيق التعديل
-                        </button>
-                      </div>
-                      {imageGenPrompt && (
-                        <details className="border-t border-line">
-                          <summary className="cursor-pointer px-3 py-2 text-xs text-ink/40 hover:text-ink/60">
-                            Prompt المستخدم (للاستخدام مع DALL-E أو Midjourney)
-                          </summary>
-                          <p className="px-3 pb-3 pt-1 text-xs leading-5 text-ink/55 select-all">
-                            {imageGenPrompt}
-                          </p>
-                        </details>
-                      )}
-                    </div>
-                  )}
-
-                  {imageGenError && (
-                    <div className="rounded-xl border border-warningBorder bg-warningSoft p-3">
-                      <p className="text-xs font-medium leading-5 text-warningDark">{imageGenError}</p>
-                    </div>
-                  )}
+                  {/* المحتوى هو الأصل: لا توليد مرئي مباشر من الوصف — الوصف يغذي النص أولاً ثم يُترجم بصرياً */}
+                  <p className="rounded-lg bg-infoSoft px-3 py-2 text-xs font-medium leading-6 text-infoDark">
+                    المرئي يُبنى على نص لا على وصف مجرد: أكملي السياق ثم اضغطي «إنشاء محتوى» — وصفك هذا يُمرَّر تلقائياً
+                    ليُكتب نص المحتوى أولاً، وبعده يظهر قسم «ترجمة المحتوى بصرياً» لتحويل النص المقترح إلى المرئي المطلوب.
+                  </p>
                 </div>
               )}
 
@@ -2364,7 +2261,7 @@ export default function ContentStudioPage() {
           )}
 
           {/* ── قسم بصري رئيسي واحد فقط حسب نوع المحتوى — «محتوى بصري» مساره قسم المتطلبات وحده ── */}
-          {showVisualSection && !isVisualMain && !vtSectionOpen && (
+          {!isVisualDirect && !vtSectionOpen && (
             <div className="mt-5 rounded-xl border border-dashed border-palm/30 bg-mint/10 p-4">
               <button
                 type="button"
@@ -2382,14 +2279,14 @@ export default function ContentStudioPage() {
               </p>
             </div>
           )}
-          {showVisualSection && (isVisualMain || vtSectionOpen) && (
+          {(isVisualDirect || vtSectionOpen) && (
           <div className="mt-5 overflow-hidden rounded-xl border border-palm/20 bg-mint/10">
             <div className="flex flex-wrap items-center justify-between gap-2 border-b border-palm/10 bg-mint/30 px-4 py-3">
               <p className="flex items-center gap-1.5 text-xs font-semibold text-palm">
                 <BarChart2 size={13} aria-hidden="true" />
                 {visualOutputs.title}
               </p>
-              {!isVisualMain && (
+              {!isVisualDirect && (
                 <button
                   type="button"
                   onClick={() => setVtSectionOpen(false)}
@@ -2441,8 +2338,8 @@ export default function ContentStudioPage() {
               </div>
               )}
 
-              {/* وضع الإخراج — لـ«رسم توضيحي» فقط؛ بقية الأنواع تلتزم SVG الافتراضي ضمنياً */}
-              {isVisualMain && (
+              {/* وضع الإخراج — للأنواع البصرية المباشرة؛ بقية الأنواع تلتزم SVG الافتراضي ضمنياً */}
+              {isVisualDirect && (
                 <div className="space-y-1.5">
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="text-xs text-ink/50">الإخراج:</span>
