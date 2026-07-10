@@ -1,6 +1,9 @@
 import type { Config } from "tailwindcss";
 
 const config: Config = {
+  // على الأجهزة اللمسية (iOS/أندرويد) يعلق نمط hover بعد اللمس فتبدو بطاقتان مختارتين —
+  // هذا العلم يحصر أنماط hover بالأجهزة التي تدعمه فعلاً (فأرة/لوحة لمس)
+  future: { hoverOnlyWhenSupported: true },
   content: ["./app/**/*.{ts,tsx}", "./components/**/*.{ts,tsx}", "./lib/**/*.{ts,tsx}"],
   theme: {
     // ── DGA كود المنصات — نقاط التوقف الرسمية ─────────────────────────
