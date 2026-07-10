@@ -146,7 +146,8 @@ const SUPPORTED_VISUAL_OUTPUTS: Partial<Record<ContentKind, VisualOutputsSpec>> 
       { key: "short_carousel", label: "كاروسيل قصير" },
     ],
   },
-  // «محتوى بصري»: المرئي هو المنتج — يترجم النص المقترح بعد توليده مباشرةً بالقائمة الكاملة
+  // «محتوى بصري»: المرئي هو المنتج — الكتالوج الخلاق الكامل لترجمة النص المقترح،
+  // المتاح يعمل فوراً والقادم موسوم «قريبًا» حتى تُبنى مراحله بقرار مالكة المنصة
   visual_content: {
     title: "ترجمة المحتوى بصرياً — تحويل النص المقترح إلى مرئي",
     optIn: "",
@@ -155,6 +156,10 @@ const SUPPORTED_VISUAL_OUTPUTS: Partial<Record<ContentKind, VisualOutputsSpec>> 
       { key: "chart", label: "رسم بياني", hint: "Bar / Line / Pie", engine: "chart" },
       { key: "mindmap", label: "خريطة ذهنية", hint: "شبكة إشعاعية", engine: "mindmap" },
       { key: "image", label: "صورة", hint: "بالذكاء الاصطناعي", engine: "image", premium: true },
+      { key: "quote_card", label: "بطاقة اقتباس" },
+      { key: "carousel", label: "كاروسيل" },
+      { key: "storyboard", label: "ستوري بورد" },
+      { key: "motion_graphics", label: "موشن جرافيك", hint: "فيديو قصير" },
     ],
   },
 };
