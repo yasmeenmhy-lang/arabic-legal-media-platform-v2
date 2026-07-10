@@ -9,7 +9,7 @@ export const maxDuration = 60;
 
 const schema = z.object({
   description: z.string().min(5),
-  visualType: z.enum(["image", "chart", "mindmap", "infographic"]).default("image"),
+  visualType: z.enum(["image", "chart", "mindmap", "infographic", "quote_card", "carousel", "storyboard", "motion_script"]).default("image"),
   chartType: z.string().optional(),
   style: z.string().optional(),
   dimensions: z.string().optional(),
@@ -87,6 +87,10 @@ const PREMIUM_TYPE_STYLE: Record<string, string> = {
   chart: "chart / data visual: أعمدة أو منحنيات أو نسب مع محاور وقيم واضحة",
   executive: "KPI / report visual: مؤشرات ودوائر نسب وبطاقات أرقام تنفيذية",
   image: "poster/card design: ملصق تصميمي بعناصر نصية ورسومية — ليس صورة فوتوغرافية",
+  quote_card: "quote card: بطاقة اقتباس أنيقة بعلامات تنصيص كبيرة ونسبة المصدر أسفلها",
+  carousel: "carousel cards: بطاقات متسلسلة مرقمة متناسقة الهوية",
+  storyboard: "storyboard frames: إطارات مشاهد مرقمة مع مدد زمنية",
+  motion_script: "motion plan: لقطات مرقمة بنص شاشة وحركة ومدة",
 };
 
 // مطالبة المرئي الاحترافي — تصميم اتصالي عربي RTL، بلا صور واقعية افتراضياً
@@ -466,6 +470,96 @@ function renderChartSvg(data: ChartData, chartType: string): string {
 // Per-branch accent hues — same brand palette already used by the charts
 const MM_ACCENTS = [PALM, "#DBA102", "#80519F", "#2E90FA", PALM_DARK];
 
+// ── المحركات المفعّلة بأمر مالكة المنصة: بطاقة اقتباس، كاروسيل، ستوري بورد، مخطط موشن ──
+
+interface QuoteCardData { title: string; quote: string; attribution?: string; note?: string }
+interface CardsData { title: string; subtitle?: string; cards: { tag: string; heading: string; line1: string; line2?: string; meta?: string }[] }
+
+function quoteCardDataPrompt(desc: string): string {
+  return `من المحتوى التالي استخرج أبرز رسالة أو اقتباساً واحداً يصلح لبطاقة اقتباس/توعية قانونية رصينة.
+المحتوى: ${desc}
+أخرج JSON فقط بلا أي نص آخر:
+{"title":"عنوان قصير للبطاقة (٣-٦ كلمات)","quote":"الجملة الأبرز (١٥-٣٥ كلمة) — النص النظامي يُنقل حرفياً","attribution":"نسبة الاقتباس لمصدره (المادة/النظام/الجهة) أو \"\" إن كان صياغة عامة","note":"سطر توضيحي قصير اختياري"}
+ممنوع: وعود بنتائج، مقارنات، أسماء جهات كشعارات، أخطاء إملائية.`;
+}
+
+function cardsDataPrompt(desc: string, kind: "carousel" | "storyboard" | "motion"): string {
+  const spec = kind === "carousel"
+    ? `كاروسيل من ٤ إلى ٦ بطاقات متسلسلة تحكي الفكرة: الأولى افتتاحية جاذبة والأخيرة خلاصة عملية. tag: ترقيم مثل "١/٥". meta: "".`
+    : kind === "storyboard"
+    ? `ستوري بورد فيديو من ٤ إلى ٦ مشاهد. tag: "مشهد ١". heading: عنوان المشهد. line1: وصف اللقطة المرئية. line2: التعليق الصوتي بجملة واحدة. meta: المدة مثل "٨ ثوانٍ".`
+    : `مخطط موشن جرافيك من ٤ إلى ٦ لقطات. tag: "لقطة ١". heading: النص الظاهر على الشاشة (موجز). line1: وصف الحركة والانتقال. line2: العنصر الرسومي الرئيس. meta: المدة مثل "٥ ثوانٍ".`;
+  return `حوّل المحتوى التالي إلى ${spec}
+المحتوى: ${desc}
+أخرج JSON فقط بلا أي نص آخر:
+{"title":"عنوان علوي موجز","subtitle":"سطر فرعي اختياري","cards":[{"tag":"","heading":"","line1":"","line2":"","meta":""}]}
+نصوص عربية فصحى موجزة مصقولة. ممنوع: وعود بنتائج، مقارنات، شعارات، أخطاء إملائية.`;
+}
+
+function renderQuoteCardSvg(d: QuoteCardData): string {
+  const X = (t?: string) => (t ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  const W = 1200;
+  const quoteLines = wrapFull(d.quote ?? "", 30);
+  const noteLines = d.note ? wrapFull(d.note, 46) : [];
+  const qLH = 66, qY = 300;
+  const attrY = qY + quoteLines.length * qLH + 26;
+  const noteY = attrY + (d.attribution ? 62 : 8);
+  const H = Math.max(640, noteY + noteLines.length * 36 + 110);
+  return `<svg width="100%" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" direction="ltr" style="direction:ltr">
+<rect width="${W}" height="${H}" fill="${MINT}"/>
+<rect x="36" y="36" width="${W - 72}" height="${H - 72}" rx="28" fill="#FFFFFF" stroke="${MINT_DEEP}" stroke-width="2"/>
+<rect x="36" y="36" width="${W - 72}" height="10" rx="5" fill="${PALM}"/>
+<text x="${W / 2}" y="122" text-anchor="middle" font-family="${FONT}" font-size="25" font-weight="600" fill="${PALM_DEEP}">${X(d.title)}</text>
+<text x="${W / 2}" y="238" text-anchor="middle" font-family="${FONT}" font-size="120" font-weight="700" fill="${MINT_DEEP}">&#x201D;</text>
+${quoteLines.map((ln, i) => `<text x="${W / 2}" y="${qY + i * qLH}" text-anchor="middle" font-family="${FONT}" font-size="40" font-weight="700" fill="${INK}">${X(ln)}</text>`).join("\n")}
+${d.attribution ? `<text x="${W / 2}" y="${attrY}" text-anchor="middle" font-family="${FONT}" font-size="26" font-weight="600" fill="${PALM_DARK}">— ${X(d.attribution)}</text>` : ""}
+${noteLines.map((ln, i) => `<text x="${W / 2}" y="${noteY + i * 36}" text-anchor="middle" font-family="${FONT}" font-size="22" fill="${INK_TER}">${X(ln)}</text>`).join("\n")}
+<rect x="${W / 2 - 44}" y="${H - 66}" width="88" height="6" rx="3" fill="${PALM}"/>
+</svg>`;
+}
+
+function renderCardsSheetSvg(d: CardsData, variant: "carousel" | "storyboard" | "motion"): string {
+  const X = (t?: string) => (t ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  const W = 1240, PAD = 44, CW = W - PAD * 2;
+  const cards = (d.cards ?? []).slice(0, 8);
+  const ms = cards.map((c) => {
+    const head = wrapFull(c.heading ?? "", 34);
+    const l1 = wrapFull(c.line1 ?? "", 58);
+    const l2 = c.line2 ? wrapFull(c.line2, 58) : [];
+    const h = 66 + head.length * 40 + l1.length * 32 + (l2.length ? l2.length * 32 + 10 : 0) + 26;
+    return { h, head, l1, l2 };
+  });
+  const subLines = d.subtitle ? wrapFull(d.subtitle, 70) : [];
+  const headerH = 122 + subLines.length * 32;
+  const H = headerH + ms.reduce((a, m) => a + m.h + 22, 0) + 56;
+  const variantLabel = variant === "carousel" ? "كاروسيل" : variant === "storyboard" ? "ستوري بورد" : "مخطط موشن جرافيك";
+  let y = headerH;
+  const body = cards.map((c, i) => {
+    const m = ms[i]; const acc = MM_ACCENTS[i % MM_ACCENTS.length]; const y0 = y; y += m.h + 22;
+    let ty = y0 + 56;
+    const headT = m.head.map((ln) => { const t = `<text x="${W - PAD - 104}" y="${ty}" text-anchor="end" font-family="${FONT}" font-size="27" font-weight="700" fill="${INK}">${X(ln)}</text>`; ty += 40; return t; }).join("");
+    const l1T = m.l1.map((ln) => { const t = `<text x="${W - PAD - 28}" y="${ty}" text-anchor="end" font-family="${FONT}" font-size="21" fill="${INK_SEC}">${X(ln)}</text>`; ty += 32; return t; }).join("");
+    let l2T = "";
+    if (m.l2.length) { ty += 10; l2T = m.l2.map((ln) => { const t = `<text x="${W - PAD - 28}" y="${ty}" text-anchor="end" font-family="${FONT}" font-size="21" fill="${INK_TER}">${X(ln)}</text>`; ty += 32; return t; }).join(""); }
+    return `<g filter="url(#crdShad)"><rect x="${PAD}" y="${y0}" width="${CW}" height="${m.h}" rx="18" fill="#FFFFFF" stroke="${MINT_DEEP}" stroke-width="1.5"/></g>
+<rect x="${W - PAD - 8}" y="${y0}" width="8" height="${m.h}" rx="4" fill="${acc}"/>
+<rect x="${W - PAD - 96}" y="${y0 + 22}" width="64" height="30" rx="15" fill="${acc}" opacity="0.14"/>
+<text x="${W - PAD - 64}" y="${y0 + 43}" text-anchor="middle" font-family="${FONT}" font-size="16" font-weight="700" fill="${acc}">${X(c.tag)}</text>
+${c.meta ? `<rect x="${PAD + 18}" y="${y0 + 20}" width="126" height="30" rx="15" fill="${MINT}"/><text x="${PAD + 81}" y="${y0 + 41}" text-anchor="middle" font-family="${FONT}" font-size="15" font-weight="600" fill="${PALM_DEEP}">${X(c.meta)}</text>` : ""}
+${headT}${l1T}${l2T}`;
+  }).join("\n");
+  return `<svg width="100%" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" direction="ltr" style="direction:ltr">
+<defs><filter id="crdShad" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="2" stdDeviation="5" flood-color="${INK}" flood-opacity="0.08"/></filter>
+<linearGradient id="crdHdr" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="${PALM_DEEP}"/><stop offset="100%" stop-color="${PALM}"/></linearGradient></defs>
+<rect width="${W}" height="${H}" fill="#F6F8F7"/>
+<rect x="0" y="0" width="${W}" height="${headerH - 26}" fill="url(#crdHdr)"/>
+<text x="${W - PAD}" y="58" text-anchor="end" font-family="${FONT}" font-size="30" font-weight="700" fill="#FFFFFF">${X(d.title)}</text>
+<text x="${PAD}" y="58" text-anchor="start" font-family="${FONT}" font-size="17" font-weight="600" fill="#DFF6E7">${variantLabel}</text>
+${subLines.map((ln, i) => `<text x="${W - PAD}" y="${92 + i * 32}" text-anchor="end" font-family="${FONT}" font-size="20" fill="#EAF9F0">${X(ln)}</text>`).join("\n")}
+${body}
+</svg>`;
+}
+
 // Average Arabic glyph width ≈ 0.56 × font-size (IBM Plex Sans Arabic)
 function mmCharW(fontSize: number): number {
   return fontSize * 0.56;
@@ -831,6 +925,10 @@ export async function POST(request: Request) {
           // (نوع «صورة» لا يمر بالخطة أصلاً بحكم الشرط أعلاه)
           visualType: visualType === "chart" ? `رسم بياني${chartType ? ` (${chartType})` : ""}`
             : visualType === "mindmap" ? "خريطة ذهنية"
+            : visualType === "quote_card" ? "بطاقة اقتباس/توعوية"
+            : visualType === "carousel" ? "كاروسيل بطاقات متسلسلة"
+            : visualType === "storyboard" ? "ستوري بورد فيديو (مشاهد)"
+            : visualType === "motion_script" ? "مخطط موشن جرافيك (لقطات)"
             : "إنفوغراف",
         })
       : null;
@@ -947,6 +1045,33 @@ export async function POST(request: Request) {
     } catch (e) {
       console.error("[infographic]", e);
       return NextResponse.json({ error: "فشل إنشاء الإنفوغراف" }, { status: 500 });
+    }
+  }
+
+  // ── بطاقة اقتباس ─────────────────────────────────────────────────────────
+  if (visualType === "quote_card") {
+    try {
+      const raw = await callClaude(apiKey, "claude-haiku-4-5-20251001", 500, quoteCardDataPrompt(engineDescription));
+      const data = parseJson<QuoteCardData>(raw);
+      const svgCode = renderQuoteCardSvg(data);
+      return NextResponse.json({ svgCode, visual: { type: "quote_card", data }, visualPlan: visualPlan ?? undefined, ...premiumExtras });
+    } catch (e) {
+      console.error("[quote_card]", e);
+      return NextResponse.json({ error: "فشل إنشاء بطاقة الاقتباس" }, { status: 500 });
+    }
+  }
+
+  // ── كاروسيل / ستوري بورد / مخطط موشن — راسم بطاقات مشترك ──────────────────
+  if (visualType === "carousel" || visualType === "storyboard" || visualType === "motion_script") {
+    const variant = visualType === "carousel" ? "carousel" as const : visualType === "storyboard" ? "storyboard" as const : "motion" as const;
+    try {
+      const raw = await callClaude(apiKey, "claude-haiku-4-5-20251001", 900, cardsDataPrompt(engineDescription, variant));
+      const data = parseJson<CardsData>(raw);
+      const svgCode = renderCardsSheetSvg(data, variant);
+      return NextResponse.json({ svgCode, visual: { type: visualType, data }, visualPlan: visualPlan ?? undefined, ...premiumExtras });
+    } catch (e) {
+      console.error("[cards]", visualType, e);
+      return NextResponse.json({ error: "فشل إنشاء البطاقات المتسلسلة" }, { status: 500 });
     }
   }
 
