@@ -193,7 +193,15 @@ function parseJson<T>(raw: string): T {
     .replace(/^```\s*/i, "")
     .replace(/\s*```$/i, "")
     .trim();
-  return JSON.parse(cleaned) as T;
+  try {
+    return JSON.parse(cleaned) as T;
+  } catch {
+    // تحصين: أي نص زائد حول الكائن (مقدمة، أسوار متداخلة) — يُقتطع من أول { إلى آخر }
+    const start = cleaned.indexOf("{");
+    const end = cleaned.lastIndexOf("}");
+    if (start >= 0 && end > start) return JSON.parse(cleaned.slice(start, end + 1)) as T;
+    throw new Error("json-parse-failed");
+  }
 }
 
 // ── SVG renderers (programmatic — no AI coordinates) ─────────────────────
@@ -1346,7 +1354,7 @@ export async function POST(request: Request) {
   // ── بطاقة اقتباس ─────────────────────────────────────────────────────────
   if (visualType === "quote_card") {
     try {
-      const raw = await callClaude(apiKey, "claude-haiku-4-5-20251001", 500, quoteCardDataPrompt(engineDescription));
+      const raw = await callClaude(apiKey, "claude-haiku-4-5-20251001", 800, quoteCardDataPrompt(engineDescription));
       const data = parseJson<QuoteCardData>(raw);
       const svgCode = renderQuoteCardSvg(data);
       return NextResponse.json({ svgCode, visual: { type: "quote_card", data }, visualPlan: visualPlan ?? undefined, ...premiumExtras });
@@ -1360,8 +1368,14 @@ export async function POST(request: Request) {
   if (visualType === "carousel" || visualType === "storyboard" || visualType === "motion_script") {
     const variant = visualType === "carousel" ? "carousel" as const : visualType === "storyboard" ? "storyboard" as const : "motion" as const;
     try {
-      const raw = await callClaude(apiKey, "claude-haiku-4-5-20251001", 900, cardsDataPrompt(engineDescription, variant));
-      const data = parseJson<CardsData>(raw);
+      // سقف أوسع: ستوري بورد من ستة مشاهد عربية غنية يتجاوز ٩٠٠ توكن فيقتطع JSON ويفشل التحليل
+      let data: CardsData;
+      try {
+        data = parseJson<CardsData>(await callClaude(apiKey, "claude-haiku-4-5-20251001", 2000, cardsDataPrompt(engineDescription, variant)));
+      } catch {
+        // محاولة ثانية واحدة قبل إعلان الفشل — استجابة النموذج غير حتمية
+        data = parseJson<CardsData>(await callClaude(apiKey, "claude-haiku-4-5-20251001", 2000, cardsDataPrompt(engineDescription, variant)));
+      }
       const svgCode = renderCardsSheetSvg(data, variant);
       return NextResponse.json({ svgCode, visual: { type: visualType, data }, visualPlan: visualPlan ?? undefined, ...premiumExtras });
     } catch (e) {
