@@ -1605,7 +1605,7 @@ export default function ContentStudioPage() {
                           type="text"
                           value={imageGenEditText}
                           onChange={(e) => setImageGenEditText(e.target.value)}
-                          placeholder="اطلبي تعديلاً — مثال: خلفية أفتح، زاوية مختلفة، إضاءة أقوى..."
+                          placeholder="اطلب تعديلاً — مثال: خلفية أفتح، زاوية مختلفة، إضاءة أقوى..."
                           className="min-w-40 flex-1 rounded-lg border border-line bg-white px-3 py-1.5 text-xs focus:border-palm focus:outline-none"
                         />
                         <button
@@ -1636,9 +1636,9 @@ export default function ContentStudioPage() {
                     </div>
                   )}
 
-                  {/* مساران بطلب مالكة المنصة: صورة مباشرة من الوصف هنا، أو «إنشاء محتوى» فيتولد النص أولاً ثم قسم الترجمة البصرية الكامل */}
+                  {/* مساران: صورة مباشرة من الوصف هنا، أو «إنشاء محتوى» فيتولد النص أولاً ثم قسم الترجمة البصرية الكامل */}
                   <p className="rounded-lg bg-infoSoft px-3 py-2 text-xs font-medium leading-6 text-infoDark">
-                    تريدين أكثر من صورة؟ اضغطي «إنشاء محتوى» — وصفك يُمرَّر تلقائياً ليُكتب النص أولاً، وبعده يظهر قسم «ترجمة المحتوى بصرياً» بكل الخيارات (إنفوغراف، شارت، خريطة، صورة...).
+                    لإنتاج مخرجات أوسع من صورة واحدة: اختر «إنشاء محتوى» — يُمرَّر هذا الوصف تلقائياً لكتابة نص المحتوى أولاً، ثم يتيح قسم «ترجمة المحتوى بصرياً» تحويله إلى إنفوغراف أو رسم بياني أو خريطة ذهنية أو صورة.
                   </p>
                 </div>
               )}
@@ -2705,7 +2705,7 @@ export default function ContentStudioPage() {
                       type="text"
                       value={vtEditText}
                       onChange={(e) => setVtEditText(e.target.value)}
-                      placeholder="اطلبي تعديلاً — مثال: كبّر الخط، غيّر الألوان، بسّط المحتوى..."
+                      placeholder="اطلب تعديلاً — مثال: كبّر الخط، غيّر الألوان، بسّط المحتوى..."
                       className="min-w-40 flex-1 rounded-lg border border-line bg-white px-3 py-1.5 text-xs focus:border-palm focus:outline-none"
                     />
                     <button
@@ -2795,7 +2795,7 @@ export default function ContentStudioPage() {
                       type="text"
                       value={vtEditText}
                       onChange={(e) => setVtEditText(e.target.value)}
-                      placeholder="اطلبي تعديلاً — مثال: خلفية أفتح، ألوان زرقاء، أسلوب أبسط..."
+                      placeholder="اطلب تعديلاً — مثال: خلفية أفتح، ألوان زرقاء، أسلوب أبسط..."
                       className="min-w-40 flex-1 rounded-lg border border-line bg-white px-3 py-1.5 text-xs focus:border-palm focus:outline-none"
                     />
                     <button

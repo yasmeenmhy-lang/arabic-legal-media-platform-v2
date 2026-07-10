@@ -863,7 +863,7 @@ export default function ContentReviewPage() {
                           type="text"
                           value={imageGenEditText}
                           onChange={(e) => setImageGenEditText(e.target.value)}
-                          placeholder="اطلبي تعديلاً — مثال: خلفية أفتح، زاوية مختلفة، إضاءة أقوى..."
+                          placeholder="اطلب تعديلاً — مثال: خلفية أفتح، زاوية مختلفة، إضاءة أقوى..."
                           className="min-w-40 flex-1 rounded-lg border border-line bg-white px-3 py-1.5 text-xs focus:border-palm focus:outline-none"
                         />
                         <button type="button" onClick={() => void generateImage(undefined, imageGenEditText)} disabled={!imageGenEditText.trim()} className="shrink-0 whitespace-nowrap rounded-lg bg-palm px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-palm/90 disabled:opacity-40">
