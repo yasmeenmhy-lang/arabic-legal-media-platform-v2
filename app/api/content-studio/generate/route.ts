@@ -14,6 +14,17 @@ const schema = z.object({
   topic: z.string().trim().optional().default(""),
   // حد الأحرف الأقصى للقناة (المختار من المستخدم أو المعياري للقناة) — قيد على طول النص المولّد
   charLimit: z.number().int().positive().max(100000).optional(),
+  // إعدادات النوع — السياق إطار للمحتوى: كل نوع يُنتج بقالبه ومقاييسه
+  scriptDuration: z.string().max(60).optional(),
+  scriptStyle: z.string().max(60).optional(),
+  articleLength: z.enum(["short", "medium", "long"]).optional(),
+  adCta: z.string().max(120).optional(),
+  adStyle: z.string().max(60).optional(),
+  campaignName: z.string().max(120).optional(),
+  campaignDuration: z.string().max(60).optional(),
+  campaignGoal: z.string().max(120).optional(),
+  planFrequency: z.string().max(60).optional(),
+  planDateRange: z.string().max(60).optional(),
 });
 
 export async function POST(request: Request) {
@@ -28,7 +39,34 @@ export async function POST(request: Request) {
     );
   }
 
-  const { contentType, channel, audience, purpose, specialty, source, topic, charLimit } = parsed.data;
+  const {
+    contentType, channel, audience, purpose, specialty, source, topic, charLimit,
+    scriptDuration, scriptStyle, articleLength, adCta, adStyle,
+    campaignName, campaignDuration, campaignGoal, planFrequency, planDateRange,
+  } = parsed.data;
+
+  // إطار متطلبات النوع — اختيار النوع يحدد قالب النص ومقاييسه، لا تسميته فقط
+  const typeFrame = (() => {
+    switch (contentType) {
+      case "نص فيديو":
+        return `هذا نص فيديو يُقرأ صوتياً: ابنِه بإيقاع مسموع — افتتاحية جاذبة في أول جملتين، ثم متن متدرج، ثم خاتمة مهنية.${scriptDuration ? ` المدة المستهدفة ${scriptDuration} — اضبط طول النص ليُقرأ في هذه المدة تقريباً (نحو ١٣٠ كلمة لكل دقيقة).` : ""}${scriptStyle ? ` أسلوب التقديم: ${scriptStyle}.` : ""}`;
+      case "مقال":
+        return `هذا مقال متكامل: مقدمة تؤطر الإشكالية، وعرض متدرج بحجج ومراجع، وخاتمة مهنية.${articleLength === "short" ? " الطول المستهدف ٥٠٠–٨٠٠ كلمة." : articleLength === "medium" ? " الطول المستهدف ٨٠٠–١٥٠٠ كلمة." : articleLength === "long" ? " الطول المستهدف ١٥٠٠ كلمة فأكثر بعمق تحليلي." : ""}`;
+      case "إعلان مهني":
+        return `هذا إعلان مهني: تعريف رصين بخدمة أو خبرة قانونية ضمن ضوابط الإعلان في نظام المحاماة — عرّف بالخدمة وقيمتها المعرفية للجمهور دون استقطاب مباشر أو مقارنة أو وعود أو أسعار أو مبالغة.${adStyle ? ` الأسلوب الإعلاني: ${adStyle}.` : ""}${adCta ? ` اختم بتوجيه مهني هادئ بروح «${adCta}» مع الالتزام الكامل بالمحظورات أعلاه.` : ""}`;
+      case "حملة":
+        return `هذه حملة محتوى: أخرج رسائل مترابطة تحت فكرة واحدة${campaignName ? ` باسم «${campaignName}»` : ""}${campaignGoal ? `، هدفها ${campaignGoal}` : ""}${campaignDuration ? `، على مدى ${campaignDuration}` : ""} — كل رسالة مستقلة صالحة للنشر منفردة، وافصل بين الرسائل بسطر فارغ.`;
+      case "خطة نشر":
+        return `هذه خطة نشر: أخرج خطة عملية مرتبة زمنياً — لكل فترة سطر يحدد الموضوع المقترح ونوع المحتوى والزاوية التحريرية${planFrequency ? `، بتواتر ${planFrequency}` : ""}${planDateRange ? `، ضمن نطاق ${planDateRange}` : ""} — بسطور عربية متتابعة دون جداول أو رموز.`;
+      case "منشور توعوي":
+        return "هذا منشور توعوي: رسالة واحدة مركزة — افتتاحية خاطفة، معلومة قانونية صحيحة، وخلاصة عملية ينتفع بها القارئ.";
+      case "تعليق":
+        return "هذا تعليق مهني موجز: رأي متزن على مستجد أو مسألة، يُظهر عمق التخصص في فقرة واحدة أو فقرتين دون استطراد.";
+      default:
+        return "";
+    }
+  })();
+  const promotional = contentType === "إعلان مهني" || contentType === "حملة";
 
   const system = `${AI_CONSTITUTION}
 
@@ -87,7 +125,7 @@ export async function POST(request: Request) {
   const user = `أنشئ محتوى من نوع "${contentType}" للنشر على "${channel}".
 الجمهور المستهدف: ${audience}
 الهدف: ${purpose}${specialty ? `\nالتخصص القانوني: ${specialty}` : ""}
-مصدر الإلهام: ${source}
+مصدر الإلهام: ${source}${typeFrame ? `\nإطار النوع (إلزامي — يحدد قالب النص وبنيته): ${typeFrame}` : ""}
 ${topic.length >= 3
   ? `الموضوع أو الفكرة: ${topic}`
   : `الموضوع: لم يحدد المستخدم موضوعاً — ابتكر أنت موضوعاً قانونياً واحداً محدداً ومناسباً بالاعتماد على المدخلات أعلاه (نوع المحتوى والقناة والجمهور والهدف${specialty ? " والتخصص" : ""})، واكتب المحتوى حوله.`}
@@ -95,7 +133,9 @@ ${topic.length >= 3
 المطلوب:
 - محتوى عالي الجودة يليق بمحامٍ متخصص ومرموق
 - دعّم المحتوى بمرجعية دولية من مؤسسات وجامعات عريقة حيثما أضافت قيمة
-- اجعل المحتوى مفيداً ومعلوماتياً وليس ترويجياً
+- ${promotional
+  ? "اجعل المحتوى تعريفياً مهنياً رصيناً ضمن ضوابط الإعلان في نظام المحاماة — قيمة معرفية أولاً، ولا استقطاب أو مقارنة أو مبالغة"
+  : "اجعل المحتوى مفيداً ومعلوماتياً وليس ترويجياً"}
 ${charLimit
   ? `- قيد إلزامي صارم: الحد الأقصى المسموح على قناة ${channel} هو ${charLimit} حرفاً شاملاً المسافات — يجب أن يكون النص النهائي أقل من هذا الحد. عُدَّ طول نصك قبل إخراجه، وإن تجاوزه فاختصر حتى يلتزم. استثمر المساحة المتاحة بذكاء: قناة قصيرة تعني رسالة واحدة مركزة، وقناة طويلة تعني عمقاً وتفصيلاً`
   : "- الطول المناسب لمتطلبات القناة مع الحفاظ على العمق والجودة"}
@@ -112,7 +152,11 @@ ${charLimit
       },
       body: JSON.stringify({
         model: "claude-sonnet-5",
-        max_tokens: 2048,
+        // سقف الإخراج يتبع النوع: المقال المعمّق والحملة والخطة تحتاج مساحة أكبر حتى لا تُبتر
+        max_tokens:
+          contentType === "مقال" ? (articleLength === "long" ? 4096 : 3072)
+          : contentType === "حملة" || contentType === "خطة نشر" ? 3072
+          : 2048,
         system,
         messages: [{ role: "user", content: user }],
       }),

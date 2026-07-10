@@ -645,6 +645,17 @@ export default function ContentStudioPage() {
           topic: topic.trim(),
           // حد الأحرف الفعلي: ما اختاره المستخدم، وإلا الحد المعياري للقناة — ليلتزم به التوليد
           charLimit: charLimit ?? (channel ? CHANNEL_CHAR_LIMITS[channel] : undefined) ?? undefined,
+          // إعدادات النوع تُرسل ليُبنى النص بمقاييس نوعه — السياق إطار للمحتوى لا تسمية
+          scriptDuration: kind === "script" ? (scriptDuration || undefined) : undefined,
+          scriptStyle: kind === "script" ? (scriptStyle || undefined) : undefined,
+          articleLength: kind === "article" ? (articleLength || undefined) : undefined,
+          adCta: kind === "advertisement" ? (adCta || undefined) : undefined,
+          adStyle: kind === "advertisement" ? (adStyle || undefined) : undefined,
+          campaignName: kind === "campaign" ? (campaignName || undefined) : undefined,
+          campaignDuration: kind === "campaign" ? (campaignDuration || undefined) : undefined,
+          campaignGoal: kind === "campaign" ? (campaignGoal || undefined) : undefined,
+          planFrequency: kind === "publishing_plan" ? (planFrequency || undefined) : undefined,
+          planDateRange: kind === "publishing_plan" ? (planDateRange || undefined) : undefined,
         }),
       });
       const data = (await res.json()) as { text?: string; error?: string };
