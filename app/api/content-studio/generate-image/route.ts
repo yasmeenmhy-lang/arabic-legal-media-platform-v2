@@ -88,8 +88,10 @@ const PREMIUM_TYPE_STYLE: Record<string, string> = {
   executive: "KPI / report visual: مؤشرات ودوائر نسب وبطاقات أرقام تنفيذية",
   image: "poster/card design: ملصق تصميمي بعناصر نصية ورسومية — ليس صورة فوتوغرافية",
   quote_card: "quote card: بطاقة اقتباس أنيقة بعلامات تنصيص كبيرة — نصان فقط داخل الصورة: العنوان وجملة الاقتباس منسوخين حرفياً بخط كبير؛ لا أي نص آخر إطلاقاً",
-  carousel: "carousel cards: بطاقات متسلسلة مرقمة متناسقة الهوية",
-  storyboard: "storyboard frames: إطارات مشاهد مرقمة مع مدد زمنية",
+  // بقرار مالكة المنصة: الكاروسيل والستوري بورد يخرجان مرئياً احترافياً من OpenAI افتراضياً —
+  // بمستوى استوديوهات التصميم التحريري (مراجع Pinterest المعتمدة): كثافة تحريرية ورسوم توضيحية غنية
+  carousel: "premium editorial carousel sheet, studio-grade Instagram carousel design: sequence of numbered cards laid out on one sheet, each card a rich editorial composition — bold Arabic display typography for short headings, hand-crafted flat illustrations and line icons integrated into every card, decorative editorial ornaments (frames, ticks, dotted paths), alternating warm background tones, strong cover card and closing card, cohesive sophisticated brand palette (deep green, gold, warm paper), dense but organized like a top design studio template — NOT a plain list of boxes",
+  storyboard: "premium illustrated storyboard sheet, film-production quality: numbered cinematic frames in 16:9 with rich flat illustrations of each scene (characters, environments, props drawn in an elegant editorial illustration style), scene number badges, duration tags, camera-direction arrows, a winding visual flow connecting frames, decorative editorial ornaments, warm paper background with sophisticated palette (deep green, gold) — like a professional animation studio's illustrated storyboard, NOT plain empty rectangles",
   motion_script: "motion plan: لقطات مرقمة بنص شاشة وحركة ومدة",
 };
 

@@ -2566,7 +2566,7 @@ export default function ContentStudioPage() {
                       type="button"
                       disabled={disabled}
                       title={soon ? "قريبًا — لم يُفعّل بعد" : needsProvider ? "غير مفعّل حاليًا — مزود المرئي الاحترافي غير متاح" : undefined}
-                      onClick={() => { if (disabled || !t.engine) return; setVtOutputChoice(t.key); setVtType(t.engine); if (t.engine === "image") setVtOutputMode("premium_image"); setVtSvg(""); setVtUrl(""); setVtVisual(null); setVtPremiumUrl(""); setVtProvider(""); setVtProviderNote(""); setVtPremiumError(""); setVtPlan(null); setVtPlanEditing(false); setVtError(""); setVtConfirming(false); setVtSuggestionReason(""); }}
+                      onClick={() => { if (disabled || !t.engine) return; setVtOutputChoice(t.key); setVtType(t.engine); if (t.engine === "image" || (premiumUsable && (t.engine === "carousel" || t.engine === "storyboard"))) setVtOutputMode("premium_image"); setVtSvg(""); setVtUrl(""); setVtVisual(null); setVtPremiumUrl(""); setVtProvider(""); setVtProviderNote(""); setVtPremiumError(""); setVtPlan(null); setVtPlanEditing(false); setVtError(""); setVtConfirming(false); setVtSuggestionReason(""); }}
                       className={`rounded-lg border px-3 py-1.5 text-xs font-medium transition ${
                         selected
                           ? "border-palm bg-white text-palm shadow-[0_0_0_1px_theme(colors.palm)]"
