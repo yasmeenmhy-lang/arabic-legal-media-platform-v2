@@ -618,8 +618,8 @@ export default function ContentStudioPage() {
   // ── Generate content ──
 
   async function generateContent() {
-    // السياق شرط للإنشاء: نوع المحتوى والجمهور والهدف — المحتوى يُكتب على مقاس سياقه
-    if (!kind || !audience || !purpose) return;
+    // السياق الرباعي شرط للإنشاء دائماً (حتى مع ابتكار الذكاء) — الاختياري الوحيد هو صندوق الموضوع
+    if (!kind || !channel || !audience || !purpose) return;
     // «ابتكر من الذكاء الاصطناعي»: الموضوع وحده اختياري — الذكاء يبتكره من مدخلات السياق
     if (!source) return;
     if (source !== "ai-original" && topic.trim().length < 3) return;
@@ -2280,15 +2280,15 @@ export default function ContentStudioPage() {
           <button
             type="button"
             onClick={generateContent}
-            disabled={!kind || !audience || !purpose || !source || (source !== "ai-original" && topic.trim().length < 3)}
+            disabled={!kind || !channel || !audience || !purpose || !source || (source !== "ai-original" && topic.trim().length < 3)}
             className="inline-flex items-center gap-2 rounded-lg bg-violet px-[11px] py-[9px] text-sm font-medium text-white transition hover:bg-violetDark focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet disabled:cursor-not-allowed disabled:opacity-50"
           >
             <Sparkles size={16} aria-hidden="true" />
             إنشاء المحتوى
           </button>
-          {(!kind || !audience || !purpose) && (
+          {(!kind || !channel || !audience || !purpose) && (
             <p className="mt-3 rounded-lg bg-warningSoft px-3 py-2 text-xs font-medium leading-5 text-warningDark">
-              أكمل السياق أولًا في القسم ١ — نوع المحتوى والجمهور والهدف مطلوبة قبل إنشاء المحتوى ليُكتب على مقاس سياقه.
+              أكمل السياق أولًا في القسم ١ — نوع المحتوى والقناة والجمهور والهدف مطلوبة قبل إنشاء المحتوى ليُكتب على مقاس سياقه.
             </p>
           )}
           {generateError && <p className="mt-3 text-sm text-red-600">{generateError}</p>}
