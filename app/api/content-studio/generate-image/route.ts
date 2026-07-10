@@ -210,8 +210,9 @@ const INK_SEC    = "#384250"; // Gray-700
 const INK_TER    = "#4D5761"; // Gray-600
 const LINE       = "#E5E7EB"; // Gray-200 — borders
 const CANVAS_BG  = "#F4F7F6"; // page background
-// Chart bar palette — distinct DGA brand hues for multi-series data
-const BAR_COLORS = [PALM, "#DBA102", "#80519F", "#2E90FA", PALM_DARK, PALM_DEEP];
+// Chart bar palette — درجات DGA أعمق (600/700) مدقَّقة حسابياً: نطاق الإضاءة، عتبة الصبغة،
+// فصل عمى الألوان بين المتجاورات، وتباين ≥ 3:1 على السطح الورقي — كلها ناجحة بلا تحذير
+const BAR_COLORS = ["#1B8354", "#B87B02", "#6D428F", "#1570EF", "#DC6803"];
 
 // Truncate Arabic text to max chars, appending ellipsis
 function trunc(s: string, max: number): string {
@@ -468,8 +469,8 @@ function renderChartSvg(data: ChartData, chartType: string): string {
 // الجذر يمين، الفروع عمود أوسط، التفاصيل عمود يسار. لا قصّ للنصوص إطلاقاً:
 // كل عقدة تلتفّ أسطراً كاملة ويتكيّف حجمها وارتفاع اللوحة مع المحتوى.
 
-// Per-branch accent hues — same brand palette already used by the charts
-const MM_ACCENTS = [PALM, "#DBA102", "#80519F", "#2E90FA", PALM_DARK];
+// Per-branch accent hues — نفس لوحة الرسوم البيانية المدقَّقة (أخضر/ذهبي/بنفسجي/أزرق/برتقالي 600/700)
+const MM_ACCENTS = BAR_COLORS;
 // أرقام هندية للترقيم التحريري في الراسمات
 const MM_AR = ["١", "٢", "٣", "٤", "٥", "٦", "٧", "٨"];
 
