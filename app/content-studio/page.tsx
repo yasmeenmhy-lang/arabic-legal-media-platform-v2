@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   AlertTriangle,
@@ -814,14 +814,30 @@ export default function ContentStudioPage() {
   // ── Save draft ──
 
   // بقرار مالكة المنصة: المرئي المولّد بعد المراجعة القانونية يلتحق فوراً بالإصدار الحالي
-  // في سجل المحتوى (إن وُجد سجل مُحلَّل في هذه الجلسة) فلا يختفي عند مغادرة الصفحة
+  // في سجل المحتوى (إن وُجد سجل مُحلَّل في هذه الجلسة) فلا يختفي عند مغادرة الصفحة.
+  // مفاتيح البصمة تمنع تكرار حفظ المرئي نفسه أكثر من مرة في السجل الواحد
+  const persistedVisualKeysRef = useRef<Set<string>>(new Set());
+
   function persistVisualToRecord(visual: Omit<StoredVisual, "id" | "createdAt">) {
     if (!contentId) return;
+    const key = `${contentId}::${visual.visualType}::${visual.svg?.length ?? 0}::${visual.imageUrl?.slice(0, 80) ?? ""}`;
+    if (persistedVisualKeysRef.current.has(key)) return;
     const record = loadContentRecords().find((item) => item.id === contentId);
     if (!record) return;
     const outcome = attachVisualsToVersion(contentId, record.currentVersion, [visual]);
-    if (outcome !== "failed") flash("حُفظ المرئي مع المحتوى في سجل المحتوى");
+    if (outcome !== "failed") {
+      persistedVisualKeysRef.current.add(key);
+      flash("حُفظ المرئي مع المحتوى في سجل المحتوى");
+    }
   }
+
+  // إن وُلّدت المرئيات قبل المراجعة القانونية: تلتحق بالسجل لحظة إنشائه بعد اكتمال المراجعة
+  // (مراقبة خارجية للمعرّف — دون أي مساس بدالة المراجعة نفسها)
+  useEffect(() => {
+    if (!contentId) return;
+    collectSessionVisuals().forEach((visual) => persistVisualToRecord(visual));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [contentId]);
 
   // بقرار مالكة المنصة: كل مرئي مولّد في الجلسة يُحفظ مع المحتوى في السجل فلا يختفي
   function collectSessionVisuals(): Omit<StoredVisual, "id" | "createdAt">[] {
