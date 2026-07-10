@@ -533,9 +533,12 @@ function renderCardsSheetSvg(d: CardsData, variant: "carousel" | "storyboard" | 
   });
   const subLines = d.subtitle ? wrapFull(d.subtitle, 70) : [];
   const headerH = 122 + subLines.length * 32;
-  const H = headerH + ms.reduce((a, m) => a + m.h + 22, 0) + 56;
+  const H = headerH + (variant === "carousel" ? 240 + 22 + 150 + 22 : 0) + ms.reduce((a, m) => a + m.h + 22, 0) + 56;
   const variantLabel = variant === "carousel" ? "كاروسيل" : variant === "storyboard" ? "ستوري بورد" : "مخطط موشن جرافيك";
-  let y = headerH;
+  // هوية الكاروسيل: بطاقة غلاف جاذبة وبطاقة ختام — كنماذج كاروسيلات التواصل المرجعية
+  const coverH = variant === "carousel" ? 240 : 0;
+  const closeH = variant === "carousel" ? 150 : 0;
+  let y = headerH + (coverH ? coverH + 22 : 0);
   const body = cards.map((c, i) => {
     const m = ms[i]; const acc = MM_ACCENTS[i % MM_ACCENTS.length]; const y0 = y; y += m.h + 22;
     let ty = y0 + 56;
@@ -558,7 +561,15 @@ ${headT}${l1T}${l2T}`;
 <text x="${W - PAD}" y="58" text-anchor="end" font-family="${FONT}" font-size="30" font-weight="700" fill="#FFFFFF">${X(d.title)}</text>
 <text x="${PAD}" y="58" text-anchor="start" font-family="${FONT}" font-size="17" font-weight="600" fill="#DFF6E7">${variantLabel}</text>
 ${subLines.map((ln, i) => `<text x="${W - PAD}" y="${92 + i * 32}" text-anchor="end" font-family="${FONT}" font-size="20" fill="#EAF9F0">${X(ln)}</text>`).join("\n")}
+${coverH ? `<g filter="url(#crdShad)"><rect x="${PAD}" y="${headerH}" width="${CW}" height="${coverH}" rx="20" fill="${PALM_DEEP}"/></g>
+<rect x="${PAD + 14}" y="${headerH + 14}" width="${CW - 28}" height="${coverH - 28}" rx="14" fill="none" stroke="#DFF6E7" stroke-width="1.5" stroke-dasharray="1 6" stroke-linecap="round"/>
+<text x="${W / 2}" y="${headerH + 108}" text-anchor="middle" font-family="${FONT}" font-size="42" font-weight="700" fill="#FFFFFF">${X(d.title)}</text>
+${d.subtitle ? `<text x="${W / 2}" y="${headerH + 158}" text-anchor="middle" font-family="${FONT}" font-size="22" fill="#DFF6E7">${X(d.subtitle)}</text>` : ""}
+<text x="${W / 2}" y="${headerH + coverH - 34}" text-anchor="middle" font-family="${FONT}" font-size="16" font-weight="600" fill="#B9E9CC">اسحب للبطاقات ←</text>` : ""}
 ${body}
+${closeH ? `<g filter="url(#crdShad)"><rect x="${PAD}" y="${y}" width="${CW}" height="${closeH}" rx="20" fill="${MINT}" stroke="${PALM}" stroke-width="2"/></g>
+<text x="${W / 2}" y="${y + 62}" text-anchor="middle" font-family="${FONT}" font-size="28" font-weight="700" fill="${PALM_DEEP}">هذا المحتوى توعوي عام</text>
+<text x="${W / 2}" y="${y + 104}" text-anchor="middle" font-family="${FONT}" font-size="19" fill="${INK_SEC}">ولكل حالة ظروفها التي تستدعي استشارة قانونية متخصصة</text>` : ""}
 </svg>`;
 }
 
