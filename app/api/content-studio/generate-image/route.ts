@@ -563,42 +563,68 @@ function renderCardsSheetSvg(d: CardsData, variant: "carousel" | "storyboard" | 
   const GAP = 34;
   const H = headerH + (coverH ? coverH + 26 : 0) + ms.reduce((a, m) => a + m.h + GAP, 0) + tlH + closeH + 26;
 
-  // ── رسوم مشهدية قانونية خطية داخل الإطار (صندوق 264×136) — تتنوع بتسلسل المشاهد ──
+  // ── رسوم مشهدية قانونية ثنائية اللون داخل الإطار (صندوق 264×136) — لون المشهد + ذهبي الهوية،
+  //    ظل أرضي وتفاصيل تحريرية غنية، تتنوع بتسلسل المشاهد ──
   const sceneArt = (k: number, acc: string): string => {
+    const G = "#DBA102";
     const s = `stroke="${acc}" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"`;
-    const soft = `fill="${acc}" opacity="0.12"`;
+    const g2 = `stroke="${G}" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"`;
+    const shadow = `<ellipse cx="132" cy="131" rx="94" ry="5" fill="${acc}" opacity="0.10"/>`;
     switch (k % 6) {
-      case 0: return `<path d="M62 48 L132 16 L202 48 Z" ${soft}/><g ${s}>
-<line x1="4" y1="126" x2="260" y2="126"/><circle cx="233" cy="22" r="12"/>
-<path d="M62 48 L132 16 L202 48 Z"/><line x1="72" y1="48" x2="192" y2="48"/>
-<rect x="80" y="54" width="13" height="50" rx="2"/><rect x="112" y="54" width="13" height="50" rx="2"/><rect x="144" y="54" width="13" height="50" rx="2"/><rect x="176" y="54" width="13" height="50" rx="2"/>
-<rect x="66" y="106" width="134" height="9" rx="2"/><rect x="58" y="117" width="150" height="9" rx="2"/>
-<circle cx="27" cy="92" r="8"/><path d="M27 100 v16 M27 105 l-9 7 M27 105 l9 7 M27 116 l-7 12 M27 116 l7 12"/></g>`;
-      case 1: return `<rect x="96" y="8" width="92" height="38" rx="10" ${soft}/><g ${s}>
-<rect x="56" y="86" width="152" height="10" rx="5"/><line x1="70" y1="96" x2="70" y2="124"/><line x1="194" y1="96" x2="194" y2="124"/>
-<circle cx="66" cy="56" r="13"/><path d="M46 86 q20 -20 40 0"/>
-<circle cx="198" cy="56" r="13"/><path d="M178 86 q20 -20 40 0"/>
-<rect x="96" y="8" width="92" height="38" rx="10"/><path d="M118 46 l-6 13 17 -13"/>
-<line x1="108" y1="22" x2="176" y2="22"/><line x1="108" y1="33" x2="158" y2="33"/></g>`;
-      case 2: return `<circle cx="172" cy="103" r="16" ${soft}/><g ${s}>
-<rect x="84" y="6" width="110" height="122" rx="6"/>
-<line x1="100" y1="28" x2="178" y2="28"/><line x1="100" y1="44" x2="178" y2="44"/><line x1="100" y1="60" x2="178" y2="60"/><line x1="100" y1="76" x2="160" y2="76"/>
-<circle cx="172" cy="103" r="16"/><circle cx="172" cy="103" r="8"/><path d="M165 117 l-6 14 M179 117 l6 14"/></g>`;
-      case 3: return `<path d="M40 62 q20 26 40 0" ${soft}/><path d="M184 62 q20 26 40 0" ${soft}/><g ${s}>
-<line x1="132" y1="24" x2="132" y2="102"/><circle cx="132" cy="15" r="7"/><line x1="60" y1="36" x2="204" y2="36"/>
-<path d="M60 36 l-15 26 M60 36 l15 26"/><path d="M40 62 h40"/><path d="M40 62 q20 26 40 0"/>
-<path d="M204 36 l-15 26 M204 36 l15 26"/><path d="M184 62 h40"/><path d="M184 62 q20 26 40 0"/>
-<path d="M132 102 l-15 20 M132 102 l15 20"/><line x1="104" y1="124" x2="160" y2="124"/></g>`;
-      case 4: return `<g ${s}>
-<rect x="52" y="8" width="160" height="98" rx="10"/><circle cx="132" cy="44" r="17"/>
+      case 0: return `${shadow}
+<circle cx="233" cy="24" r="11" fill="${G}" opacity="0.85"/>
+<g ${g2} stroke-width="2"><path d="M233 7 v-4 M233 41 v4 M216 24 h-4 M250 24 h4 M221 12 l-3 -3 M245 36 l3 3 M245 12 l3 -3 M221 36 l-3 3"/></g>
+<path d="M62 48 L132 14 L202 48 Z" fill="${acc}" opacity="0.12"/>
+<g ${s}>
+<path d="M62 48 L132 14 L202 48 Z"/><circle cx="132" cy="35" r="7"/>
+<line x1="70" y1="48" x2="194" y2="48"/><line x1="70" y1="55" x2="194" y2="55"/>
+<rect x="80" y="60" width="13" height="42" rx="2"/><rect x="112" y="60" width="13" height="42" rx="2"/><rect x="144" y="60" width="13" height="42" rx="2"/><rect x="176" y="60" width="13" height="42" rx="2"/>
+<rect x="66" y="104" width="132" height="9" rx="2"/><rect x="58" y="115" width="148" height="9" rx="2"/>
+<circle cx="27" cy="88" r="8"/><path d="M27 96 v18 M27 101 l-9 8 M27 101 l9 8 M27 114 l-7 12 M27 114 l7 12"/></g>
+<rect x="34" y="105" width="13" height="10" rx="2" fill="${G}" opacity="0.8"/>`;
+      case 1: return `${shadow}
+<rect x="10" y="8" width="52" height="40" rx="4" stroke="${acc}" stroke-width="2" fill="none" opacity="0.4"/><line x1="36" y1="8" x2="36" y2="48" stroke="${acc}" stroke-width="2" opacity="0.4"/><line x1="10" y1="28" x2="62" y2="28" stroke="${acc}" stroke-width="2" opacity="0.4"/>
+<rect x="94" y="6" width="96" height="40" rx="12" fill="${G}" opacity="0.15"/>
+<g ${g2}><rect x="94" y="6" width="96" height="40" rx="12"/><path d="M118 46 l-7 13 18 -13"/><line x1="108" y1="20" x2="176" y2="20"/><line x1="108" y1="32" x2="156" y2="32"/></g>
+<g ${s}>
+<rect x="52" y="88" width="160" height="10" rx="5"/><line x1="66" y1="98" x2="66" y2="126"/><line x1="198" y1="98" x2="198" y2="126"/>
+<rect x="98" y="76" width="34" height="12" rx="2"/><line x1="104" y1="82" x2="126" y2="82"/>
+<circle cx="64" cy="56" r="13"/><path d="M44 88 q20 -22 40 0"/>
+<circle cx="200" cy="56" r="13"/><path d="M180 88 q20 -22 40 0"/></g>
+<path d="M218 80 h18 v9 q0 7 -9 7 t-9 -7 z" fill="${G}" opacity="0.7"/>`;
+      case 2: return `${shadow}
+<g ${s}>
+<rect x="80" y="6" width="112" height="122" rx="6"/>
+<line x1="96" y1="42" x2="176" y2="42"/><line x1="96" y1="57" x2="176" y2="57"/><line x1="96" y1="72" x2="176" y2="72"/><line x1="96" y1="87" x2="152" y2="87"/></g>
+<path d="M164 6 h28 v28 z" fill="${G}" opacity="0.3"/><path d="M164 6 l28 28" stroke="${G}" stroke-width="2"/>
+<rect x="96" y="18" width="64" height="11" rx="5" fill="${acc}" opacity="0.3"/>
+<circle cx="172" cy="104" r="17" fill="${G}" opacity="0.2"/>
+<g ${g2}><circle cx="172" cy="104" r="17"/><circle cx="172" cy="104" r="8"/><path d="M165 119 l-6 13 M179 119 l6 13"/></g>
+<g ${s}><path d="M34 98 l32 -32"/><path d="M34 98 l-7 11 11 -7 z"/></g>`;
+      case 3: return `${shadow}
+<circle cx="132" cy="14" r="7" fill="${G}" opacity="0.9"/>
+<path d="M40 62 q20 26 40 0" fill="${G}" opacity="0.2"/><path d="M184 62 q20 26 40 0" fill="${G}" opacity="0.2"/>
+<g ${s}>
+<line x1="132" y1="22" x2="132" y2="100"/><line x1="60" y1="34" x2="204" y2="34"/>
+<path d="M60 34 l-15 28 M60 34 l15 28"/><path d="M204 34 l-15 28 M204 34 l15 28"/>
+<path d="M117 120 h30 l7 9 h-44 z"/><path d="M132 100 l-12 20 M132 100 l12 20"/></g>
+<g ${g2}><path d="M40 62 h40"/><path d="M40 62 q20 26 40 0"/><path d="M184 62 h40"/><path d="M184 62 q20 26 40 0"/></g>
+<g ${s}><rect x="16" y="66" width="28" height="15" rx="4" transform="rotate(-35 30 73)"/><line x1="38" y1="86" x2="54" y2="104"/><rect x="12" y="112" width="36" height="8" rx="3"/></g>`;
+      case 4: return `${shadow}
+<g ${s}>
+<rect x="52" y="8" width="160" height="98" rx="10"/>
 <line x1="132" y1="106" x2="132" y2="122"/><line x1="104" y1="126" x2="160" y2="126"/></g>
-<path d="M127 36 l15 8 -15 8 z" fill="${acc}"/>
+<circle cx="132" cy="44" r="18" fill="${G}" opacity="0.9"/><path d="M126 36 l16 8 -16 8 z" fill="#FFFFFF"/>
+<g ${g2} stroke-width="2"><path d="M190 26 q8 8 0 16 M198 20 q14 14 0 28"/></g>
 <rect x="70" y="78" width="124" height="8" rx="4" fill="${acc}" opacity="0.3"/><rect x="92" y="90" width="80" height="8" rx="4" fill="${acc}" opacity="0.3"/>`;
-      default: return `<circle cx="132" cy="26" r="17" ${soft}/><g ${s}>
-<rect x="6" y="66" width="86" height="30" rx="15"/><rect x="172" y="66" width="86" height="30" rx="15"/>
-<rect x="84" y="58" width="96" height="44" rx="22"/><path d="M104 72 h24 M104 86 h24" opacity="0.7"/>
-<circle cx="132" cy="26" r="17"/><path d="M124 26 l6 7 13 -14"/>
-<path d="M100 10 l8 9 M164 10 l-8 9"/></g>`;
+      default: return `${shadow}
+<circle cx="132" cy="26" r="16" fill="${G}" opacity="0.2"/>
+<g ${g2}><circle cx="132" cy="26" r="16"/><path d="M100 10 l8 9 M164 10 l-8 9"/><path d="M92 30 h8 M96 26 v8 M168 30 h8 M172 26 v8" stroke-width="2"/></g>
+<path d="M124 26 l6 7 13 -14" stroke="${acc}" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+<g ${s}>
+<rect x="6" y="66" width="86" height="30" rx="15"/><line x1="80" y1="68" x2="80" y2="94"/>
+<rect x="172" y="66" width="86" height="30" rx="15"/><line x1="184" y1="68" x2="184" y2="94"/>
+<rect x="84" y="58" width="96" height="44" rx="22"/><path d="M104 72 h24 M104 86 h24" opacity="0.7"/></g>`;
     }
   };
 
