@@ -131,6 +131,30 @@ export default function ContentManagementPage() {
                 {version.approvedAt && (
                   <p className="mt-3 text-xs text-palm">اعتمده {version.approvedBy} في {formatDate(version.approvedAt)}</p>
                 )}
+                {version.visuals?.length ? (
+                  <details className="mt-3">
+                    <summary className="cursor-pointer text-sm text-palm">المرئيات المحفوظة مع هذا الإصدار ({version.visuals.length})</summary>
+                    <div className="mt-3 grid gap-3 md:grid-cols-2">
+                      {version.visuals.map((visual) => (
+                        <figure key={visual.id} className="rounded-md border border-line bg-white p-2">
+                          <figcaption className="mb-2 flex items-center justify-between gap-2 px-1 text-xs text-ink/60">
+                            <span className="font-medium text-ink/80">{visual.visualTypeLabel}</span>
+                            <span>{formatDate(visual.createdAt)}</span>
+                          </figcaption>
+                          {visual.svg ? (
+                            <div className="flex justify-center rounded bg-paper/40 p-2 [&_svg]:h-auto [&_svg]:max-h-[360px] [&_svg]:w-auto [&_svg]:max-w-full"
+                              dangerouslySetInnerHTML={{ __html: visual.svg }} />
+                          ) : visual.imageUrl ? (
+                            /* eslint-disable-next-line @next/next/no-img-element */
+                            <div className="flex justify-center rounded bg-paper/40 p-2">
+                              <img src={visual.imageUrl} alt={visual.visualTypeLabel} className="max-h-[360px] w-auto max-w-full object-contain" />
+                            </div>
+                          ) : null}
+                        </figure>
+                      ))}
+                    </div>
+                  </details>
+                ) : null}
                 <details className="mt-3">
                   <summary className="cursor-pointer text-sm text-palm">التحليل والمراجع المهنية والرسمية ({version.references.length})</summary>
                   <div className="mt-3 space-y-3">

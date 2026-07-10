@@ -17,6 +17,18 @@ export type ContentAction = {
   details?: string;
 };
 
+// مرئي محفوظ مع الإصدار — بقرار مالكة المنصة: الرسومات والمحتوى البصري ينتقلان مع المحتوى
+// ويُحفظان في السجل فلا يختفيان عند مغادرة الصفحة
+export type StoredVisual = {
+  id: string;
+  visualType: string;        // مفتاح المحرك: infographic | chart | mindmap | quote_card | carousel | storyboard | motion_script | image
+  visualTypeLabel: string;   // التسمية العربية للعرض في السجل
+  svg?: string;              // مصدر SVG الكامل (قابل للتكبير والتصدير)
+  imageUrl?: string;         // رابط/بيانات الصورة للمرئي الاحترافي أو صورة الوصف
+  provider?: string;         // مزود المرئي الاحترافي إن وجد
+  createdAt: string;
+};
+
 export type StoredContentVersion = {
   id: string;
   contentId: string;
@@ -32,6 +44,7 @@ export type StoredContentVersion = {
   updatedAt: string;
   analysis?: ReviewResult;
   references: ProfessionalOfficialReference[];
+  visuals?: StoredVisual[];
   approvedAt?: string;
   approvedBy?: string;
 };
@@ -108,12 +121,18 @@ function normalizeStoredRecords(value: unknown): StoredContentRecord[] {
           legalExplanation: f.legalExplanation?.replace("رصد التحليل الدلالي عبارة", "رصد التحليل عبارة") ?? f.legalExplanation
         }));
       }
+      const visuals = Array.isArray(version.visuals)
+        ? version.visuals.filter((v): v is StoredVisual =>
+            Boolean(v && typeof v === "object" && typeof (v as StoredVisual).id === "string" &&
+              (typeof (v as StoredVisual).svg === "string" || typeof (v as StoredVisual).imageUrl === "string")))
+        : undefined;
       return [{
         ...version,
         channel: typeof version.channel === "string" ? version.channel : "LinkedIn",
         audience: typeof version.audience === "string" ? version.audience : "الجمهور العام",
         purpose: typeof version.purpose === "string" ? version.purpose : "التثقيف",
         references: Array.isArray(version.references) ? version.references : [],
+        visuals,
         analysis
       } as StoredContentVersion];
     });
@@ -390,6 +409,45 @@ export function approveContentVersion(contentId: string, versionNumber: number) 
   saveContentRecords(records);
   setActiveContentSelection(record.id, versionNumber);
   return { record, version };
+}
+
+// إلحاق مرئيات بإصدار محفوظ — مع تراجع آمن عند امتلاء حصة التخزين:
+// يُحتفظ بمرئيات SVG (نصية خفيفة) وتُسقط بيانات الصور الضخمة فقط عند الضرورة
+export function attachVisualsToVersion(
+  contentId: string,
+  versionNumber: number,
+  visuals: Omit<StoredVisual, "id" | "createdAt">[]
+): "saved" | "saved-partial" | "failed" {
+  if (!visuals.length) return "failed";
+  const records = loadContentRecords();
+  const record = records.find((item) => item.id === contentId);
+  const version = record?.versions.find((item) => item.version === versionNumber);
+  if (!record || !version) return "failed";
+  const timestamp = now();
+  const stamped: StoredVisual[] = visuals.map((v) => ({ ...v, id: makeId("visual"), createdAt: timestamp }));
+  version.visuals = [...(version.visuals ?? []), ...stamped];
+  version.updatedAt = timestamp;
+  record.updatedAt = timestamp;
+  record.actions.unshift({
+    id: makeId("action"),
+    action: "SAVED",
+    label: "حفظ المرئيات مع المحتوى في السجل",
+    actor: DEMO_USER_NAME,
+    at: timestamp,
+    details: `الإصدار ${versionNumber} — ${stamped.map((v) => v.visualTypeLabel).join("، ")}`
+  });
+  try {
+    saveContentRecords(records);
+    return "saved";
+  } catch {
+    version.visuals = version.visuals.filter((v) => !v.imageUrl || v.imageUrl.length < 200_000);
+    try {
+      saveContentRecords(records);
+      return "saved-partial";
+    } catch {
+      return "failed";
+    }
+  }
 }
 
 export function markContentShared(contentId: string, versionNumber: number) {
