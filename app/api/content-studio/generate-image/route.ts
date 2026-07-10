@@ -548,7 +548,13 @@ function renderCardsSheetSvg(d: CardsData, variant: "carousel" | "storyboard" | 
   ];
   const body = cards.map((c, i) => {
     const m = ms[i]; const acc = MM_ACCENTS[i % MM_ACCENTS.length]; const y0 = y; y += m.h + 22;
+    if (variant === "storyboard") m.h = Math.max(m.h, 168);
     const cardBg = variant === "carousel" && i % 2 === 1 ? MINT : "#FFFFFF";
+    const frame = variant === "storyboard"
+      ? `<rect x="${PAD + 22}" y="${y0 + 24}" width="214" height="120" rx="10" fill="${MINT}" stroke="${MINT_DEEP}" stroke-width="1.5"/>
+<rect x="${PAD + 22}" y="${y0 + 24}" width="214" height="26" rx="10" fill="${acc}" opacity="0.15"/>
+<text x="${PAD + 129}" y="${y0 + 42}" text-anchor="middle" font-family="${FONT}" font-size="12" font-weight="700" fill="${acc}">${X(c.tag)}</text>
+<path d="M ${PAD + 116} ${y0 + 78} l 26 15 l -26 15 z" fill="${acc}" opacity="0.55"/>` : "";
     const icon = variant === "carousel"
       ? `<circle cx="${PAD + 58}" cy="${y0 + m.h / 2}" r="30" fill="${acc}" opacity="0.12"/>
 <g stroke="${acc}" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" transform="translate(${PAD + 58 - 12},${y0 + m.h / 2 - 12})">${CARD_ICONS[i % CARD_ICONS.length]}</g>`
@@ -559,7 +565,7 @@ function renderCardsSheetSvg(d: CardsData, variant: "carousel" | "storyboard" | 
     let l2T = "";
     if (m.l2.length) { ty += 10; l2T = m.l2.map((ln) => { const t = `<text x="${W - PAD - 28}" y="${ty}" text-anchor="end" font-family="${FONT}" font-size="21" fill="${INK_TER}">${X(ln)}</text>`; ty += 32; return t; }).join(""); }
     return `<g filter="url(#crdShad)"><rect x="${PAD}" y="${y0}" width="${CW}" height="${m.h}" rx="18" fill="${cardBg}" stroke="${MINT_DEEP}" stroke-width="1.5"/></g>
-${icon}
+${icon}${frame}
 <rect x="${W - PAD - 8}" y="${y0}" width="8" height="${m.h}" rx="4" fill="${acc}"/>
 <rect x="${W - PAD - 96}" y="${y0 + 22}" width="64" height="30" rx="15" fill="${acc}" opacity="0.14"/>
 <text x="${W - PAD - 64}" y="${y0 + 43}" text-anchor="middle" font-family="${FONT}" font-size="16" font-weight="700" fill="${acc}">${X(c.tag)}</text>
