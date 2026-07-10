@@ -233,7 +233,9 @@ export function saveContentDraft(input: {
       status: "مسودة",
       createdAt: timestamp,
       updatedAt: timestamp,
-      references: []
+      references: [],
+      // بقرار مالكة المنصة: المرئيات تنتقل مع المحتوى — الإصدار الجديد يرث مرئيات سابقه
+      visuals: current.visuals?.length ? [...current.visuals] : undefined
     };
     record.versions.push(version);
     record.currentVersion = nextVersion;
@@ -310,6 +312,8 @@ export function upsertAnalyzedVersion(input: {
   let version = record.versions.find((item) => item.version === record!.currentVersion);
   const approvedCurrentWasEdited = Boolean(version?.approvedAt && version.body !== input.body);
   if (!version || approvedCurrentWasEdited) {
+    // بقرار مالكة المنصة: المرئيات تنتقل مع المحتوى — الإصدار الجديد يرث مرئيات سابقه فلا تختفي
+    const inheritedVisuals = version?.visuals?.length ? [...version.visuals] : undefined;
     const nextVersion = record.versions.length ? Math.max(...record.versions.map((item) => item.version)) + 1 : 1;
     version = {
       id: `${contentId}-v${nextVersion}`,
@@ -324,7 +328,8 @@ export function upsertAnalyzedVersion(input: {
       status: "قيد التحليل",
       createdAt: timestamp,
       updatedAt: timestamp,
-      references: []
+      references: [],
+      visuals: inheritedVisuals
     };
     record.versions.push(version);
     record.currentVersion = nextVersion;
