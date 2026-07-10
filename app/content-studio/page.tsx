@@ -945,6 +945,7 @@ export default function ContentStudioPage() {
         body: JSON.stringify({
           description: generatedText.trim(),
           visualType: vtType,
+          chartType: vtType === "chart" ? (vtChartType || undefined) : undefined,
           channel: channel || undefined,
           audience: audience || undefined,
           purpose: purpose || undefined,
@@ -954,7 +955,8 @@ export default function ContentStudioPage() {
       });
       const data = (await res.json()) as { visualPlan?: VisualPlan; error?: string };
       if (!res.ok || !data.visualPlan) { setVtError(data.error ?? "تعذر توليد الخطة البصرية"); return; }
-      setVtPlan(data.visualPlan);
+      // نوع مخرج الخطة يُواءم قسرياً مع النوع الذي حدده المستخدم — الاختيار يُعكس بدقة لا بالاسم فقط
+      setVtPlan({ ...data.visualPlan, recommendedOutputFormat: vtType });
       setVtPlanEditing(false);
       setVtPlanCollapsed(false);
     } catch {
@@ -2584,6 +2586,16 @@ export default function ContentStudioPage() {
                 </div>
               )}
 
+              {/* انعكاس دقيق للاختيار: بيان ما سيُولَّد بالضبط — لا اسماً مظللاً فقط */}
+              {generatedText.trim() && !vtSvg && !vtPremiumUrl && (
+                <p className="rounded-lg bg-paper px-3 py-2 text-xs font-semibold text-ink/70">
+                  الناتج المحدد للتوليد: {(() => {
+                    const sel = visualOutputs.options.find((o) => (vtOutputChoice ? o.key === vtOutputChoice : o.engine === vtType));
+                    const base = sel?.label ?? (vtType === "chart" ? "رسم بياني" : vtType === "mindmap" ? "خريطة ذهنية" : vtType === "image" ? "صورة" : "إنفوغراف");
+                    return `${base}${vtType === "chart" && vtChartType ? ` (${vtChartType})` : ""}`;
+                  })()} — وضع الإخراج: {vtOutputMode === "editable_svg" ? "SVG قابل للتعديل" : vtOutputMode === "premium_image" ? "مرئي احترافي بالذكاء الاصطناعي" : "الاثنان معًا (SVG + مرئي احترافي)"}
+                </p>
+              )}
               {/* الخطة البصرية المقترحة — مراجعة وتعديل واعتماد قبل التوليد */}
               {!vtPlan && !vtSvg && !vtPremiumUrl && !vtPremiumError && !vtLoading && (
                 <button type="button" onClick={() => void generateVisualPlanStep()} disabled={vtPlanLoading || !generatedText.trim()}
