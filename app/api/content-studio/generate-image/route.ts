@@ -520,25 +520,126 @@ ${noteLines.map((ln, i) => `<text x="${W / 2}" y="${noteY + i * 36}" text-anchor
 </svg>`;
 }
 
+// راسم صحيفة البطاقات — ارتقاء تحريري بمستوى المراجع الاستوديوهية المعتمدة من مالكة المنصة:
+// رأس تحريري موسّط بفواصل مزخرفة، إطار فيلمي حقيقي للمشاهد (شريط فيلم + كلابر + رسم مشهدي + مدة)،
+// عمود ترقيم جانبي بخيط متصل، مسار زمني ختامي، وخلفية ورقية بنقش نقاط — كثافة تصميمية لا هيكل فارغ.
 function renderCardsSheetSvg(d: CardsData, variant: "carousel" | "storyboard" | "motion"): string {
   const X = (t?: string) => (t ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  const AR_D = ["٠", "١", "٢", "٣", "٤", "٥", "٦", "٧", "٨", "٩"];
+  const arNum = (v: number) => String(v).split("").map((ch) => AR_D[+ch] ?? ch).join("");
+  const GOLD_DEEP = "#B87B02", PAPER = "#FAF9F5";
   const W = 1240, PAD = 44, CW = W - PAD * 2;
+  const isBoard = variant !== "carousel";
+  const SP = isBoard ? 72 : 0; // حارة الترقيم اليمنى لمتتالية المشاهد
+  const BW = CW - SP;
   const cards = (d.cards ?? []).slice(0, 8);
+  const n = Math.max(cards.length, 1);
+  const FW = 332, FH = 200; // إطار المشهد الفيلمي 16:9
+  const spX = W - PAD - 30;
+  const variantLabel = variant === "carousel" ? "كاروسيل" : variant === "storyboard" ? "ستوري بورد" : "مخطط موشن جرافيك";
+  const unitLabel = variant === "carousel" ? "بطاقات" : variant === "storyboard" ? "مشاهد" : "لقطات";
+
+  // ── القياس قبل الرسم: الارتفاعات من النصوص الكاملة بلا قصّ ──
+  const headWrap = isBoard ? 34 : 44;
+  const bodyWrap = isBoard ? 50 : 64;
   const ms = cards.map((c) => {
-    const head = wrapFull(c.heading ?? "", 34);
-    const l1 = wrapFull(c.line1 ?? "", 58);
-    const l2 = c.line2 ? wrapFull(c.line2, 58) : [];
-    const h = 66 + head.length * 40 + l1.length * 32 + (l2.length ? l2.length * 32 + 10 : 0) + 26;
+    const head = wrapFull(c.heading ?? "", headWrap);
+    const l1 = wrapFull(c.line1 ?? "", bodyWrap);
+    const l2 = c.line2 ? wrapFull(c.line2, bodyWrap) : [];
+    const textH = isBoard
+      ? 98 + (head.length - 1) * 41 + 85 + (l1.length - 1) * 33 + (l2.length ? 76 + (l2.length - 1) * 33 : 0) + 30
+      : 92 + (head.length - 1) * 41 + 56 + (l1.length - 1) * 33 + (l2.length ? 45 + (l2.length - 1) * 33 : 0) + 34;
+    const h = Math.max(textH, isBoard ? 32 + FH + 76 : 168);
     return { h, head, l1, l2 };
   });
-  const subLines = d.subtitle ? wrapFull(d.subtitle, 70) : [];
-  const headerH = 122 + subLines.length * 32;
-  const H = headerH + (variant === "carousel" ? 240 + 22 + 150 + 22 : 0) + ms.reduce((a, m) => a + m.h + 22, 0) + 56;
-  const variantLabel = variant === "carousel" ? "كاروسيل" : variant === "storyboard" ? "ستوري بورد" : "مخطط موشن جرافيك";
-  // هوية الكاروسيل: بطاقة غلاف جاذبة وبطاقة ختام — كنماذج كاروسيلات التواصل المرجعية
-  const coverH = variant === "carousel" ? 240 : 0;
-  const closeH = variant === "carousel" ? 150 : 0;
-  let y = headerH + (coverH ? coverH + 22 : 0);
+
+  const tLines = wrapFull(d.title ?? "", 40);
+  const subLines = d.subtitle ? wrapFull(d.subtitle, 66) : [];
+  const headerH = 96 + tLines.length * 50 + subLines.length * 30 + 48;
+  const cvT = wrapFull(d.title ?? "", 30);
+  const coverH = variant === "carousel" ? 112 + cvT.length * 58 + (d.subtitle ? 40 : 0) + 92 : 0;
+  const closeH = variant === "carousel" ? 168 : 0;
+  const tlH = isBoard ? 138 : 0;
+  const GAP = 34;
+  const H = headerH + (coverH ? coverH + 26 : 0) + ms.reduce((a, m) => a + m.h + GAP, 0) + tlH + closeH + 26;
+
+  // ── رسوم مشهدية قانونية خطية داخل الإطار (صندوق 264×136) — تتنوع بتسلسل المشاهد ──
+  const sceneArt = (k: number, acc: string): string => {
+    const s = `stroke="${acc}" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"`;
+    const soft = `fill="${acc}" opacity="0.12"`;
+    switch (k % 6) {
+      case 0: return `<path d="M62 48 L132 16 L202 48 Z" ${soft}/><g ${s}>
+<line x1="4" y1="126" x2="260" y2="126"/><circle cx="233" cy="22" r="12"/>
+<path d="M62 48 L132 16 L202 48 Z"/><line x1="72" y1="48" x2="192" y2="48"/>
+<rect x="80" y="54" width="13" height="50" rx="2"/><rect x="112" y="54" width="13" height="50" rx="2"/><rect x="144" y="54" width="13" height="50" rx="2"/><rect x="176" y="54" width="13" height="50" rx="2"/>
+<rect x="66" y="106" width="134" height="9" rx="2"/><rect x="58" y="117" width="150" height="9" rx="2"/>
+<circle cx="27" cy="92" r="8"/><path d="M27 100 v16 M27 105 l-9 7 M27 105 l9 7 M27 116 l-7 12 M27 116 l7 12"/></g>`;
+      case 1: return `<rect x="96" y="8" width="92" height="38" rx="10" ${soft}/><g ${s}>
+<rect x="56" y="86" width="152" height="10" rx="5"/><line x1="70" y1="96" x2="70" y2="124"/><line x1="194" y1="96" x2="194" y2="124"/>
+<circle cx="66" cy="56" r="13"/><path d="M46 86 q20 -20 40 0"/>
+<circle cx="198" cy="56" r="13"/><path d="M178 86 q20 -20 40 0"/>
+<rect x="96" y="8" width="92" height="38" rx="10"/><path d="M118 46 l-6 13 17 -13"/>
+<line x1="108" y1="22" x2="176" y2="22"/><line x1="108" y1="33" x2="158" y2="33"/></g>`;
+      case 2: return `<circle cx="172" cy="103" r="16" ${soft}/><g ${s}>
+<rect x="84" y="6" width="110" height="122" rx="6"/>
+<line x1="100" y1="28" x2="178" y2="28"/><line x1="100" y1="44" x2="178" y2="44"/><line x1="100" y1="60" x2="178" y2="60"/><line x1="100" y1="76" x2="160" y2="76"/>
+<circle cx="172" cy="103" r="16"/><circle cx="172" cy="103" r="8"/><path d="M165 117 l-6 14 M179 117 l6 14"/></g>`;
+      case 3: return `<path d="M40 62 q20 26 40 0" ${soft}/><path d="M184 62 q20 26 40 0" ${soft}/><g ${s}>
+<line x1="132" y1="24" x2="132" y2="102"/><circle cx="132" cy="15" r="7"/><line x1="60" y1="36" x2="204" y2="36"/>
+<path d="M60 36 l-15 26 M60 36 l15 26"/><path d="M40 62 h40"/><path d="M40 62 q20 26 40 0"/>
+<path d="M204 36 l-15 26 M204 36 l15 26"/><path d="M184 62 h40"/><path d="M184 62 q20 26 40 0"/>
+<path d="M132 102 l-15 20 M132 102 l15 20"/><line x1="104" y1="124" x2="160" y2="124"/></g>`;
+      case 4: return `<g ${s}>
+<rect x="52" y="8" width="160" height="98" rx="10"/><circle cx="132" cy="44" r="17"/>
+<line x1="132" y1="106" x2="132" y2="122"/><line x1="104" y1="126" x2="160" y2="126"/></g>
+<path d="M127 36 l15 8 -15 8 z" fill="${acc}"/>
+<rect x="70" y="78" width="124" height="8" rx="4" fill="${acc}" opacity="0.3"/><rect x="92" y="90" width="80" height="8" rx="4" fill="${acc}" opacity="0.3"/>`;
+      default: return `<circle cx="132" cy="26" r="17" ${soft}/><g ${s}>
+<rect x="6" y="66" width="86" height="30" rx="15"/><rect x="172" y="66" width="86" height="30" rx="15"/>
+<rect x="84" y="58" width="96" height="44" rx="22"/><path d="M104 72 h24 M104 86 h24" opacity="0.7"/>
+<circle cx="132" cy="26" r="17"/><path d="M124 26 l6 7 13 -14"/>
+<path d="M100 10 l8 9 M164 10 l-8 9"/></g>`;
+    }
+  };
+
+  // ── كتلة الإطار الفيلمي: شريط فيلم بثقوبه + كلابر بالمشهد + رسم مشهدي + شارة مدة + مسار صوت/حركة ──
+  const frameBlock = (i: number, y0: number, c: { tag: string; meta?: string }, acc: string): string => {
+    const fx = PAD + 26, fy = y0 + 32;
+    const holes = (hx: number) => Array.from({ length: 6 }, (_, k) =>
+      `<rect x="${hx}" y="${fy + 14 + k * 31}" width="9" height="14" rx="3" fill="${PAPER}"/>`).join("");
+    const wave = Array.from({ length: 21 }, (_, k) => `q6.5 ${k % 2 ? 15 : -15} 13 0`).join(" ");
+    const track = variant === "motion"
+      ? `<line x1="${fx + 14}" y1="${fy + FH + 30}" x2="${fx + FW - 14}" y2="${fy + FH + 30}" stroke="${acc}" stroke-width="2" opacity="0.8"/>
+${Array.from({ length: 5 }, (_, k) => { const kx = fx + 24 + k * ((FW - 48) / 4); return `<rect x="${kx - 5}" y="${fy + FH + 25}" width="10" height="10" rx="2" fill="${k % 2 ? "#FFFFFF" : acc}" stroke="${acc}" stroke-width="2" transform="rotate(45 ${kx} ${fy + FH + 30})"/>`; }).join("")}`
+      : `<path d="M${fx + 8} ${fy + FH + 30} ${wave}" stroke="${acc}" stroke-width="2" fill="none" opacity="0.75"/>
+<circle cx="${fx + FW - 18}" cy="${fy + FH + 28}" r="12" stroke="${acc}" stroke-width="2" fill="none"/>
+<rect x="${fx + FW - 22}" y="${fy + FH + 21}" width="8" height="10" rx="4" fill="${acc}"/>`;
+    // هوية إطار مميزة لكل تنسيق: الستوري بورد شريط فيلم بكلابر — الموشن شاشة داكنة بشبكة وأسهم حركة
+    const shell = variant === "motion"
+      ? `<g filter="url(#crdShad)"><rect x="${fx}" y="${fy}" width="${FW}" height="${FH}" rx="16" fill="${INK}"/></g>
+<rect x="${fx + 10}" y="${fy + 10}" width="${FW - 20}" height="${FH - 20}" rx="10" fill="#FFFFFF"/>
+${[1, 2, 3].map((g) => `<line x1="${fx + 10 + g * (FW - 20) / 4}" y1="${fy + 10}" x2="${fx + 10 + g * (FW - 20) / 4}" y2="${fy + FH - 10}" stroke="${LINE}" stroke-width="1"/>`).join("")}
+${[1, 2].map((g) => `<line x1="${fx + 10}" y1="${fy + 10 + g * (FH - 20) / 3}" x2="${fx + FW - 10}" y2="${fy + 10 + g * (FH - 20) / 3}" stroke="${LINE}" stroke-width="1"/>`).join("")}
+<g transform="translate(${fx + 34},${fy + 30})">${sceneArt(i, acc)}</g>
+<path d="M${fx + 56} ${fy + 158} Q ${fx + 166} ${fy + 66} ${fx + 270} ${fy + 138}" stroke="${acc}" stroke-width="2.5" fill="none" stroke-dasharray="6 7" opacity="0.75"/>
+<path d="M${fx + 270} ${fy + 138} l-16 -4 l7 -11 z" fill="${acc}"/>
+<rect x="${fx - 8}" y="${fy - 16}" width="104" height="32" rx="16" fill="${acc}"/>
+<text x="${fx + 44}" y="${fy + 5}" text-anchor="middle" font-family="${FONT}" font-size="13.5" font-weight="700" fill="#FFFFFF">${X(c.tag)}</text>`
+      : `<g filter="url(#crdShad)"><rect x="${fx}" y="${fy}" width="${FW}" height="${FH}" rx="8" fill="#FFFFFF" stroke="${INK}" stroke-width="2.5"/></g>
+<rect x="${fx + 3}" y="${fy + 3}" width="20" height="${FH - 6}" rx="5" fill="${INK}" opacity="0.9"/>${holes(fx + 8.5)}
+<rect x="${fx + FW - 23}" y="${fy + 3}" width="20" height="${FH - 6}" rx="5" fill="${INK}" opacity="0.9"/>${holes(fx + FW - 17.5)}
+<g transform="translate(${fx + 34},${fy + 30})">${sceneArt(i, acc)}</g>
+<g transform="rotate(-2 ${fx} ${fy})"><rect x="${fx - 8}" y="${fy - 24}" width="112" height="34" rx="7" fill="${INK}"/>
+<path d="M${fx - 2} ${fy - 24} l9 9 M${fx + 14} ${fy - 24} l9 9 M${fx + 30} ${fy - 24} l9 9 M${fx + 46} ${fy - 24} l9 9 M${fx + 62} ${fy - 24} l9 9 M${fx + 78} ${fy - 24} l9 9 M${fx + 94} ${fy - 24} l9 9" stroke="#FFFFFF" stroke-width="2" opacity="0.85"/>
+<line x1="${fx - 8}" y1="${fy - 15}" x2="${fx + 104}" y2="${fy - 15}" stroke="#FFFFFF" stroke-width="1" opacity="0.6"/>
+<text x="${fx + 48}" y="${fy + 3}" text-anchor="middle" font-family="${FONT}" font-size="13.5" font-weight="700" fill="#FFFFFF">${X(c.tag)}</text></g>`;
+    return `${shell}
+${track}
+${c.meta ? `<rect x="${fx + FW - 126}" y="${fy + FH - 42}" width="100" height="30" rx="15" fill="${INK}" opacity="0.85"/>
+<circle cx="${fx + FW - 108}" cy="${fy + FH - 27}" r="7" stroke="#FFFFFF" stroke-width="1.6" fill="none"/><path d="M${fx + FW - 108} ${fy + FH - 31} v4 l3 2" stroke="#FFFFFF" stroke-width="1.6" fill="none" stroke-linecap="round"/>
+<text x="${fx + FW - 66}" y="${fy + FH - 22}" text-anchor="middle" font-family="${FONT}" font-size="13.5" font-weight="600" fill="#FFFFFF">${X(c.meta)}</text>` : ""}`;
+  };
+
   const CARD_ICONS = [
     '<path d="M12 2l9 4v6c0 5.5-4 9.5-9 10-5-.5-9-4.5-9-10V6z"/>',
     '<path d="M4 6h16M4 12h16M4 18h9"/>',
@@ -546,49 +647,117 @@ function renderCardsSheetSvg(d: CardsData, variant: "carousel" | "storyboard" | 
     '<path d="M12 3l10 18H2z"/><path d="M12 10v5"/><circle cx="12" cy="18.2" r="0.6"/>',
     '<path d="M5 20V10M12 20V4M19 20v-8"/>',
   ];
-  const body = cards.map((c, i) => {
-    const m = ms[i]; const acc = MM_ACCENTS[i % MM_ACCENTS.length]; const y0 = y; y += m.h + 22;
-    if (variant === "storyboard") m.h = Math.max(m.h, 168);
-    const cardBg = variant === "carousel" && i % 2 === 1 ? MINT : "#FFFFFF";
-    const frame = variant === "storyboard"
-      ? `<rect x="${PAD + 22}" y="${y0 + 24}" width="214" height="120" rx="10" fill="${MINT}" stroke="${MINT_DEEP}" stroke-width="1.5"/>
-<rect x="${PAD + 22}" y="${y0 + 24}" width="214" height="26" rx="10" fill="${acc}" opacity="0.15"/>
-<text x="${PAD + 129}" y="${y0 + 42}" text-anchor="middle" font-family="${FONT}" font-size="12" font-weight="700" fill="${acc}">${X(c.tag)}</text>
-<path d="M ${PAD + 116} ${y0 + 78} l 26 15 l -26 15 z" fill="${acc}" opacity="0.55"/>` : "";
-    const icon = variant === "carousel"
-      ? `<circle cx="${PAD + 58}" cy="${y0 + m.h / 2}" r="30" fill="${acc}" opacity="0.12"/>
-<g stroke="${acc}" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" transform="translate(${PAD + 58 - 12},${y0 + m.h / 2 - 12})">${CARD_ICONS[i % CARD_ICONS.length]}</g>`
-      : "";
-    let ty = y0 + 56;
-    const headT = m.head.map((ln) => { const t = `<text x="${W - PAD - 104}" y="${ty}" text-anchor="end" font-family="${FONT}" font-size="27" font-weight="700" fill="${INK}">${X(ln)}</text>`; ty += 40; return t; }).join("");
-    const l1T = m.l1.map((ln) => { const t = `<text x="${W - PAD - 28}" y="${ty}" text-anchor="end" font-family="${FONT}" font-size="21" fill="${INK_SEC}">${X(ln)}</text>`; ty += 32; return t; }).join("");
-    let l2T = "";
-    if (m.l2.length) { ty += 10; l2T = m.l2.map((ln) => { const t = `<text x="${W - PAD - 28}" y="${ty}" text-anchor="end" font-family="${FONT}" font-size="21" fill="${INK_TER}">${X(ln)}</text>`; ty += 32; return t; }).join(""); }
-    return `<g filter="url(#crdShad)"><rect x="${PAD}" y="${y0}" width="${CW}" height="${m.h}" rx="18" fill="${cardBg}" stroke="${MINT_DEEP}" stroke-width="1.5"/></g>
-${icon}${frame}
-<rect x="${W - PAD - 8}" y="${y0}" width="8" height="${m.h}" rx="4" fill="${acc}"/>
-<rect x="${W - PAD - 96}" y="${y0 + 22}" width="64" height="30" rx="15" fill="${acc}" opacity="0.14"/>
-<text x="${W - PAD - 64}" y="${y0 + 43}" text-anchor="middle" font-family="${FONT}" font-size="16" font-weight="700" fill="${acc}">${X(c.tag)}</text>
-${c.meta ? `<rect x="${PAD + 18}" y="${y0 + 20}" width="126" height="30" rx="15" fill="${MINT}"/><text x="${PAD + 81}" y="${y0 + 41}" text-anchor="middle" font-family="${FONT}" font-size="15" font-weight="600" fill="${PALM_DEEP}">${X(c.meta)}</text>` : ""}
-${headT}${l1T}${l2T}`;
-  }).join("\n");
+
+  // ── جسد البطاقات ──
+  let y = headerH + (coverH ? coverH + 26 : 0);
+  const firstCy = y + 46;
+  const bodyParts: string[] = [];
+  cards.forEach((c, i) => {
+    const m = ms[i]; const acc = MM_ACCENTS[i % MM_ACCENTS.length]; const y0 = y; y += m.h + GAP;
+    if (isBoard) {
+      const xR = PAD + BW - 34;
+      const A = y0 + 98 + (m.head.length - 1) * 41;
+      const l1y = A + 85, Bv = l1y + (m.l1.length - 1) * 33, l2y = Bv + 76;
+      const lab1 = variant === "storyboard" ? "وصف اللقطة" : "الحركة والانتقال";
+      const lab2 = variant === "storyboard" ? "التعليق الصوتي" : "العنصر الرسومي";
+      bodyParts.push(`<g filter="url(#crdShad)"><rect x="${PAD}" y="${y0}" width="${BW}" height="${m.h}" rx="20" fill="#FFFFFF" stroke="${MINT_DEEP}" stroke-width="1.5"/></g>
+<rect x="${PAD}" y="${y0}" width="${BW}" height="6" rx="3" fill="${acc}" opacity="0.85"/>
+<text x="${xR}" y="${y0 + 54}" text-anchor="end" font-family="${FONT}" font-size="15" font-weight="700" fill="${acc}">${X(c.tag)}</text>
+${m.head.map((ln, j) => `<text x="${xR}" y="${y0 + 98 + j * 41}" text-anchor="end" font-family="${FONT}" font-size="28" font-weight="800" fill="${INK}">${X(ln)}</text>`).join("")}
+<line x1="${xR}" y1="${A + 22}" x2="${xR - 64}" y2="${A + 22}" stroke="${acc}" stroke-width="2.5"/><rect x="${xR - 81}" y="${A + 17}" width="10" height="10" fill="${acc}" transform="rotate(45 ${xR - 76} ${A + 22})"/>
+<text x="${xR}" y="${A + 52}" text-anchor="end" font-family="${FONT}" font-size="14" font-weight="700" fill="${PALM_DEEP}">${lab1}</text>
+${m.l1.map((ln, j) => `<text x="${xR}" y="${l1y + j * 33}" text-anchor="end" font-family="${FONT}" font-size="21" fill="${INK_SEC}">${X(ln)}</text>`).join("")}
+${m.l2.length ? `<text x="${xR}" y="${Bv + 43}" text-anchor="end" font-family="${FONT}" font-size="14" font-weight="700" fill="${GOLD_DEEP}">${lab2}</text>` + m.l2.map((ln, j) => `<text x="${xR}" y="${l2y + j * 33}" text-anchor="end" font-family="${FONT}" font-size="21" fill="${INK_TER}">${X(ln)}</text>`).join("") : ""}
+${frameBlock(i, y0, c, acc)}
+<circle cx="${spX}" cy="${y0 + 46}" r="21" fill="#FFFFFF" stroke="${acc}" stroke-width="2.5"/>
+<text x="${spX}" y="${y0 + 53}" text-anchor="middle" font-family="${FONT}" font-size="18" font-weight="800" fill="${acc}">${arNum(i + 1)}</text>`);
+    } else {
+      const xR2 = W - PAD - 34;
+      const ym = y0 + m.h / 2;
+      const cardBg = i % 2 === 1 ? MINT : "#FFFFFF";
+      const A = y0 + 92 + (m.head.length - 1) * 41;
+      const l1y = A + 56, Bv = l1y + (m.l1.length - 1) * 33, l2y = Bv + 45;
+      bodyParts.push(`<g filter="url(#crdShad)"><rect x="${PAD}" y="${y0}" width="${CW}" height="${m.h}" rx="20" fill="${cardBg}" stroke="${MINT_DEEP}" stroke-width="1.5"/></g>
+<rect x="${W - PAD - 6}" y="${y0 + 14}" width="6" height="${m.h - 28}" rx="3" fill="${acc}"/>
+<text x="212" y="${ym + 36}" text-anchor="middle" font-family="${FONT}" font-size="96" font-weight="800" fill="${acc}" opacity="0.08">${arNum(i + 1)}</text>
+<circle cx="114" cy="${ym}" r="36" fill="#FFFFFF" stroke="${acc}" stroke-width="2" stroke-dasharray="2 7" stroke-linecap="round"/>
+<circle cx="114" cy="${ym}" r="27" fill="${acc}" opacity="0.13"/>
+<g stroke="${acc}" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" transform="translate(102,${ym - 12})">${CARD_ICONS[i % CARD_ICONS.length]}</g>
+<rect x="${xR2 - 72}" y="${y0 + 20}" width="72" height="30" rx="15" fill="${acc}" opacity="0.14"/>
+<text x="${xR2 - 36}" y="${y0 + 41}" text-anchor="middle" font-family="${FONT}" font-size="15" font-weight="700" fill="${acc}">${X(c.tag)}</text>
+${m.head.map((ln, j) => `<text x="${xR2}" y="${y0 + 92 + j * 41}" text-anchor="end" font-family="${FONT}" font-size="28" font-weight="800" fill="${INK}">${X(ln)}</text>`).join("")}
+<line x1="${xR2}" y1="${A + 20}" x2="${xR2 - 64}" y2="${A + 20}" stroke="${acc}" stroke-width="2.5"/><rect x="${xR2 - 81}" y="${A + 15}" width="10" height="10" fill="${acc}" transform="rotate(45 ${xR2 - 76} ${A + 20})"/>
+${m.l1.map((ln, j) => `<text x="${xR2}" y="${l1y + j * 33}" text-anchor="end" font-family="${FONT}" font-size="21" fill="${INK_SEC}">${X(ln)}</text>`).join("")}
+${m.l2.length ? m.l2.map((ln, j) => `<text x="${xR2}" y="${l2y + j * 33}" text-anchor="end" font-family="${FONT}" font-size="21" fill="${INK_TER}">${X(ln)}</text>`).join("") : ""}
+${c.meta ? `<rect x="${PAD + 20}" y="${y0 + 20}" width="118" height="28" rx="14" fill="${MINT}" stroke="${MINT_DEEP}" stroke-width="1"/><text x="${PAD + 79}" y="${y0 + 40}" text-anchor="middle" font-family="${FONT}" font-size="14" font-weight="600" fill="${PALM_DEEP}">${X(c.meta)}</text>` : ""}`);
+    }
+  });
+
+  // ── المسار الزمني الختامي (ستوري بورد/موشن): مقاطع ملونة مرقّمة بمددها ──
+  const tlBlock = (ty: number): string => {
+    const x0 = PAD + 60, x1 = PAD + BW - 24;
+    const segW = (x1 - x0 - (n - 1) * 8) / n;
+    const segs = cards.map((c, i) => {
+      const acc = MM_ACCENTS[i % MM_ACCENTS.length];
+      const sx = x1 - (i + 1) * segW - i * 8;
+      return `<rect x="${sx}" y="${ty + 66}" width="${segW}" height="12" rx="6" fill="${acc}" opacity="0.85"/>
+<text x="${sx + segW / 2}" y="${ty + 58}" text-anchor="middle" font-family="${FONT}" font-size="13" font-weight="700" fill="${INK_SEC}">${arNum(i + 1)}</text>
+${c.meta ? `<text x="${sx + segW / 2}" y="${ty + 100}" text-anchor="middle" font-family="${FONT}" font-size="13" fill="${INK_TER}">${X(c.meta)}</text>` : ""}`;
+    }).join("");
+    return `<g filter="url(#crdShad)"><rect x="${PAD}" y="${ty}" width="${BW}" height="${tlH - 14}" rx="16" fill="#FFFFFF" stroke="${MINT_DEEP}" stroke-width="1.5"/></g>
+<text x="${PAD + BW - 24}" y="${ty + 34}" text-anchor="end" font-family="${FONT}" font-size="16" font-weight="700" fill="${PALM_DEEP}">المسار الزمني ${variant === "storyboard" ? "للمشاهد" : "للقطات"}</text>
+<path d="M${x0 - 28} ${ty + 72} l16 -8 v16 z" fill="${INK_TER}"/>
+${segs}`;
+  };
+
+  // ── غلاف الكاروسيل: عمق متدرج وزوايا مزخرفة ونقاط عدّ البطاقات ──
+  const coverBlock = (cy0: number): string => {
+    const pips = Array.from({ length: n }, (_, k) =>
+      `<circle cx="${W / 2 + ((n - 1) * 14) - k * 28}" cy="${cy0 + coverH - 64}" r="6" fill="${k === 0 ? "#FFFFFF" : "none"}" stroke="#FFFFFF" stroke-width="2"/>`).join("");
+    return `<g filter="url(#crdShad)"><rect x="${PAD}" y="${cy0}" width="${CW}" height="${coverH}" rx="24" fill="url(#cvGrad)"/></g>
+<rect x="${PAD + 16}" y="${cy0 + 16}" width="${CW - 32}" height="${coverH - 32}" rx="16" fill="none" stroke="#DFF6E7" stroke-width="1.5" stroke-dasharray="1 7" stroke-linecap="round" opacity="0.7"/>
+<path d="M${PAD + 42} ${cy0 + 76} v-34 h34" stroke="#9BD9B8" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+<path d="M${W - PAD - 42} ${cy0 + coverH - 76} v34 h-34" stroke="#9BD9B8" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+<text x="${W / 2}" y="${cy0 + 64}" text-anchor="middle" font-family="${FONT}" font-size="16" font-weight="700" fill="#F3D989">سلسلة بطاقات توعوية</text>
+${cvT.map((ln, j) => `<text x="${W / 2}" y="${cy0 + 122 + j * 58}" text-anchor="middle" font-family="${FONT}" font-size="44" font-weight="800" fill="#FFFFFF">${X(ln)}</text>`).join("")}
+${d.subtitle ? `<text x="${W / 2}" y="${cy0 + 122 + (cvT.length - 1) * 58 + 42}" text-anchor="middle" font-family="${FONT}" font-size="21" fill="#DFF6E7">${X(d.subtitle)}</text>` : ""}
+${pips}
+<text x="${W / 2}" y="${cy0 + coverH - 30}" text-anchor="middle" font-family="${FONT}" font-size="15" font-weight="600" fill="#B9E9CC">اسحب للبطاقات ←</text>`;
+  };
+
+  const closeBlock = (cy0: number): string => `<g filter="url(#crdShad)"><rect x="${PAD}" y="${cy0}" width="${CW}" height="${closeH}" rx="22" fill="${MINT}" stroke="${PALM}" stroke-width="2"/></g>
+<g stroke="${PALM}" stroke-width="2"><line x1="${W / 2 - 110}" y1="${cy0 + 38}" x2="${W / 2 - 14}" y2="${cy0 + 38}"/><line x1="${W / 2 + 14}" y1="${cy0 + 38}" x2="${W / 2 + 110}" y2="${cy0 + 38}"/></g>
+<rect x="${W / 2 - 5}" y="${cy0 + 33}" width="10" height="10" fill="${PALM}" transform="rotate(45 ${W / 2} ${cy0 + 38})"/>
+<text x="${W / 2}" y="${cy0 + 84}" text-anchor="middle" font-family="${FONT}" font-size="27" font-weight="700" fill="${PALM_DEEP}">هذا المحتوى توعوي عام</text>
+<text x="${W / 2}" y="${cy0 + 124}" text-anchor="middle" font-family="${FONT}" font-size="19" fill="${INK_SEC}">ولكل حالة ظروفها التي تستدعي استشارة قانونية متخصصة</text>`;
+
+  const tick = (tx: number, tyk: number, dx: number, dy: number) =>
+    `<path d="M${tx} ${tyk + dy * 26} L${tx} ${tyk} L${tx + dx * 26} ${tyk}" stroke="${PALM}" stroke-width="2.5" fill="none" stroke-linecap="round"/>`;
+
   return `<svg width="100%" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" direction="ltr" style="direction:ltr">
 <defs><filter id="crdShad" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="2" stdDeviation="5" flood-color="${INK}" flood-opacity="0.08"/></filter>
-<linearGradient id="crdHdr" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="${PALM_DEEP}"/><stop offset="100%" stop-color="${PALM}"/></linearGradient></defs>
-<rect width="${W}" height="${H}" fill="#F6F8F7"/>
-<rect x="0" y="0" width="${W}" height="${headerH - 26}" fill="url(#crdHdr)"/>
-<text x="${W - PAD}" y="58" text-anchor="end" font-family="${FONT}" font-size="30" font-weight="700" fill="#FFFFFF">${X(d.title)}</text>
-<text x="${PAD}" y="58" text-anchor="start" font-family="${FONT}" font-size="17" font-weight="600" fill="#DFF6E7">${variantLabel}</text>
-${subLines.map((ln, i) => `<text x="${W - PAD}" y="${92 + i * 32}" text-anchor="end" font-family="${FONT}" font-size="20" fill="#EAF9F0">${X(ln)}</text>`).join("\n")}
-${coverH ? `<g filter="url(#crdShad)"><rect x="${PAD}" y="${headerH}" width="${CW}" height="${coverH}" rx="20" fill="${PALM_DEEP}"/></g>
-<rect x="${PAD + 14}" y="${headerH + 14}" width="${CW - 28}" height="${coverH - 28}" rx="14" fill="none" stroke="#DFF6E7" stroke-width="1.5" stroke-dasharray="1 6" stroke-linecap="round"/>
-<text x="${W / 2}" y="${headerH + 108}" text-anchor="middle" font-family="${FONT}" font-size="42" font-weight="700" fill="#FFFFFF">${X(d.title)}</text>
-${d.subtitle ? `<text x="${W / 2}" y="${headerH + 158}" text-anchor="middle" font-family="${FONT}" font-size="22" fill="#DFF6E7">${X(d.subtitle)}</text>` : ""}
-<text x="${W / 2}" y="${headerH + coverH - 34}" text-anchor="middle" font-family="${FONT}" font-size="16" font-weight="600" fill="#B9E9CC">اسحب للبطاقات ←</text>` : ""}
-${body}
-${closeH ? `<g filter="url(#crdShad)"><rect x="${PAD}" y="${y}" width="${CW}" height="${closeH}" rx="20" fill="${MINT}" stroke="${PALM}" stroke-width="2"/></g>
-<text x="${W / 2}" y="${y + 62}" text-anchor="middle" font-family="${FONT}" font-size="28" font-weight="700" fill="${PALM_DEEP}">هذا المحتوى توعوي عام</text>
-<text x="${W / 2}" y="${y + 104}" text-anchor="middle" font-family="${FONT}" font-size="19" fill="${INK_SEC}">ولكل حالة ظروفها التي تستدعي استشارة قانونية متخصصة</text>` : ""}
+<linearGradient id="cvGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="${PALM_DEEP}"/><stop offset="100%" stop-color="${PALM_DARK}"/></linearGradient>
+<pattern id="crdDots" width="26" height="26" patternUnits="userSpaceOnUse"><circle cx="2.5" cy="2.5" r="1.7" fill="${PALM_DEEP}" opacity="0.06"/></pattern></defs>
+<rect width="${W}" height="${H}" fill="${PAPER}"/>
+<rect width="${W}" height="${H}" fill="url(#crdDots)"/>
+${tick(16, 16, 1, 1)}${tick(W - 16, 16, -1, 1)}${tick(16, H - 16, 1, -1)}${tick(W - 16, H - 16, -1, -1)}
+<line x1="${PAD}" y1="28" x2="${W - PAD}" y2="28" stroke="${INK}" stroke-width="2.5"/>
+<line x1="${PAD}" y1="34" x2="${W - PAD}" y2="34" stroke="${INK}" stroke-width="1" opacity="0.35"/>
+<rect x="${W - PAD - 128}" y="52" width="128" height="30" rx="15" fill="${MINT}" stroke="${MINT_DEEP}" stroke-width="1.5"/>
+<text x="${W - PAD - 64}" y="73" text-anchor="middle" font-family="${FONT}" font-size="14" font-weight="700" fill="${PALM_DEEP}">${arNum(cards.length)} ${unitLabel}</text>
+<rect x="${PAD}" y="52" width="128" height="30" rx="15" fill="#FFFFFF" stroke="${LINE}" stroke-width="1.5"/>
+<text x="${PAD + 64}" y="73" text-anchor="middle" font-family="${FONT}" font-size="14" font-weight="600" fill="${INK_TER}">${isBoard ? "إخراج ١٦:٩" : "تنسيق مربع"}</text>
+<text x="${W / 2}" y="76" text-anchor="middle" font-family="${FONT}" font-size="16" font-weight="700" fill="${GOLD_DEEP}">${variantLabel}</text>
+${tLines.map((ln, i) => `<text x="${W / 2}" y="${134 + i * 50}" text-anchor="middle" font-family="${FONT}" font-size="38" font-weight="800" fill="${INK}">${X(ln)}</text>`).join("")}
+${subLines.map((ln, i) => `<text x="${W / 2}" y="${134 + (tLines.length - 1) * 50 + 38 + i * 30}" text-anchor="middle" font-family="${FONT}" font-size="19" fill="${INK_SEC}">${X(ln)}</text>`).join("")}
+<g stroke="${PALM}" stroke-width="2"><line x1="${W / 2 - 150}" y1="${headerH - 26}" x2="${W / 2 - 16}" y2="${headerH - 26}"/><line x1="${W / 2 + 16}" y1="${headerH - 26}" x2="${W / 2 + 150}" y2="${headerH - 26}"/></g>
+<rect x="${W / 2 - 6}" y="${headerH - 32}" width="12" height="12" fill="${PALM}" transform="rotate(45 ${W / 2} ${headerH - 26})"/>
+<circle cx="${W / 2 - 168}" cy="${headerH - 26}" r="3.5" fill="${GOLD_DEEP}"/><circle cx="${W / 2 + 168}" cy="${headerH - 26}" r="3.5" fill="${GOLD_DEEP}"/>
+${coverH ? coverBlock(headerH) : ""}
+${isBoard && cards.length ? `<line x1="${spX}" y1="${firstCy}" x2="${spX}" y2="${y + 4}" stroke="${PALM}" stroke-width="2.5" stroke-dasharray="2 8" stroke-linecap="round" opacity="0.45"/>` : ""}
+${bodyParts.join("\n")}
+${tlH ? tlBlock(y) : ""}
+${closeH ? closeBlock(y) : ""}
 </svg>`;
 }
 
