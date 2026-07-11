@@ -1,29 +1,44 @@
 import { PageHeader, Panel, StatusBadge } from "@/components/ui";
 import { ShieldCheck } from "lucide-react";
 import { getNafathConfiguration } from "@/lib/nafath-config";
+import { isAuthConfigured } from "@/lib/access-auth";
+import { LoginForm } from "@/components/login-form";
 import Link from "next/link";
+
+export const dynamic = "force-dynamic";
 
 export default function LoginPage() {
   const nafath = getNafathConfiguration();
+  const configured = isAuthConfigured();
 
   return (
     <>
       <PageHeader
         title="تسجيل الدخول"
-        description="الدخول متاح بالحساب الافتراضي للتجربة، مع بنية جاهزة وآمنة للربط بالنفاذ الوطني الموحد في بيئة الإنتاج."
+        description={
+          configured
+            ? "الدخول بحساب فردي مستقل لكل مستخدم. تُدار الحسابات والرموز من إدارة المنصة."
+            : "نظام الدخول الفردي قيد التهيئة، والدخول متاح بالحساب الافتراضي للتجربة."
+        }
       />
       <Panel className="mx-auto max-w-lg">
-        <label className="mb-3 block text-sm font-normal">
-          البريد الإلكتروني
-          <input className="mt-2 w-full rounded border border-line px-3 py-2 focus-ring" defaultValue="lawyer@example.com" />
-        </label>
-        <label className="mb-4 block text-sm font-normal">
-          كلمة المرور
-          <input className="mt-2 w-full rounded border border-line px-3 py-2 focus-ring" type="password" defaultValue="Demo@12345" />
-        </label>
-        <Link href="/dashboard" className="block w-full rounded bg-palm px-4 py-2 text-center font-normal text-white focus-ring">
-          دخول بالحساب الافتراضي — ياسمين
-        </Link>
+        {configured ? (
+          <LoginForm />
+        ) : (
+          <>
+            {/* مرحلة ما قبل التهيئة: يبقى السلوك الحالي كما هو حتى تكتمل متغيرات البيئة */}
+            <div className="mb-4 rounded-xl border border-infoBorder bg-infoSoft p-4">
+              <p className="text-sm font-semibold text-infoDark">نظام الدخول الفردي غير مهيأ بعد</p>
+              <p className="mt-1 text-xs leading-6 text-ink/70">
+                بعد ضبط متغيرات البيئة (AUTH_SECRET وADMIN_USERNAME وADMIN_PASSWORD_HASH) يصبح
+                الدخول إلزامياً بحسابات فردية ويُدار من لوحة إدارة الوصول.
+              </p>
+            </div>
+            <Link href="/dashboard" className="block w-full rounded bg-palm px-4 py-2 text-center font-normal text-white focus-ring">
+              دخول بالحساب الافتراضي — ياسمين
+            </Link>
+          </>
+        )}
         <div className="my-4 flex items-center gap-3 text-xs text-ink/45"><span className="h-px flex-1 bg-line" />أو<span className="h-px flex-1 bg-line" /></div>
         {nafath.enabled ? (
           <a href="/api/auth/nafath" className="flex w-full items-center justify-center gap-2 rounded border border-palm px-4 py-2 font-normal text-palm focus-ring">
@@ -43,7 +58,7 @@ export default function LoginPage() {
         )}
         {!nafath.enabled ? (
           <p className="mt-2 text-xs leading-6 text-ink/55">
-            النفاذ الوطني اعتماد خارجي غير مفعّل حاليًا. يستمر الدخول بالحساب الافتراضي دون تأثر.
+            النفاذ الوطني اعتماد خارجي غير مفعّل حاليًا. {configured ? "يستمر الدخول بالحسابات الفردية دون تأثر." : "يستمر الدخول بالحساب الافتراضي دون تأثر."}
           </p>
         ) : null}
         <div className="mt-4 flex justify-between text-sm">
