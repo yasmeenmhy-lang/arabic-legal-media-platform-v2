@@ -1,10 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { ChevronDown, ChevronLeft, ExternalLink, FileClock, Filter, FolderOpen, History, RotateCcw, Trash2 } from "lucide-react";
 import { Button, ButtonLink, DgaSpinner, PageHeader, StatusBadge } from "@/components/ui";
 import {
+  exportContentRecords,
+  importContentRecords,
   loadContentRecords,
   saveContentRecords,
   setActiveContentSelection,
@@ -52,6 +54,33 @@ export default function ContentManagementPage() {
   const [filter, setFilter] = useState<"all" | "drafts" | "approved">("all");
   const [confirmDelete, setConfirmDelete] = useState<string>();
   const [loaded, setLoaded] = useState(false);
+  // تصدير/استيراد السجل — بقرار مالكة المنصة: النقل الآمن بين المتصفحات والعناوين
+  const importInputRef = useRef<HTMLInputElement>(null);
+  const [transferMsg, setTransferMsg] = useState("");
+
+  function exportRecordsToFile() {
+    const payload = exportContentRecords();
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `lawyer-media-records-${new Date().toISOString().slice(0, 10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    setTransferMsg(`صُدّر السجل (${payload.records.length} سجلاً) — احتفظي بالملف في مكان آمن.`);
+  }
+
+  async function importRecordsFromFile(file: File) {
+    try {
+      const parsed = JSON.parse(await file.text()) as unknown;
+      const result = importContentRecords(parsed);
+      if (!result) { setTransferMsg("الملف غير صالح — اختاري ملف تصدير سجل صادراً من المنصة."); return; }
+      setRecords(loadContentRecords());
+      setTransferMsg(`اكتمل الاستيراد: ${result.added} أُضيف، ${result.updated} حُدّث، ${result.skipped} كان أحدث محلياً فبقي.`);
+    } catch {
+      setTransferMsg("تعذر قراءة الملف — تأكدي أنه ملف تصدير السجل نفسه دون تعديل.");
+    }
+  }
 
   useEffect(() => {
     setRecords(loadContentRecords());
@@ -250,6 +279,26 @@ export default function ContentManagementPage() {
           الغرض من هذا السجل التثبّت من سلامة المحتوى قبل نشره ودعم الامتثال الذاتي. لا تُوظَّف نتائج
           الفحص لأي إجراء تأديبي أو مساءلة، وتظل بياناتك ومحتواك في سرية تامة دون اطلاع أي جهة عليها.
         </p>
+      </div>
+
+      {/* بقرار مالكة المنصة: تصدير/استيراد السجل — نقل آمن بين المتصفحات والعناوين بلا فقدان */}
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-line bg-white p-4 shadow-sm">
+        <div>
+          <p className="text-sm font-semibold text-ink">نسخة احتياطية من السجل</p>
+          <p className="mt-1 text-xs leading-6 text-ink/60">
+            السجل محفوظ في هذا المتصفح. صدّريه ملفاً قبل تغيير رابط المنصة أو الانتقال لجهاز آخر، ثم استوردي الملف هناك — الاستيراد يضيف ويحدّث ولا يحذف شيئاً.
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Button variant="secondary" onClick={exportRecordsToFile} disabled={records.length === 0}
+            title={records.length === 0 ? "لا سجلات للتصدير" : undefined}>
+            تصدير السجل ({records.length})
+          </Button>
+          <Button variant="secondary" onClick={() => importInputRef.current?.click()}>استيراد السجل</Button>
+          <input ref={importInputRef} type="file" accept="application/json,.json" className="hidden"
+            onChange={(e) => { const f = e.target.files?.[0]; if (f) void importRecordsFromFile(f); e.target.value = ""; }} />
+        </div>
+        {transferMsg ? <p className="w-full text-sm text-palm">{transferMsg}</p> : null}
       </div>
 
       <nav aria-label="تصفية سجل المحتوى" className="flex w-full gap-2 overflow-x-auto rounded-lg border border-line bg-white p-2 shadow-sm">
