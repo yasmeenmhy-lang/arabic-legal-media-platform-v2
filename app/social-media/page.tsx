@@ -6,6 +6,7 @@ import { AlertTriangle, Clipboard, Download, Edit3, FileDown, Share2 } from "luc
 import { Button, PageHeader, Panel, SectionTitle, StatusBadge } from "@/components/ui";
 import { socialBrandIcons, socialBrandStyles } from "@/components/social-icons";
 import { getActiveContentSelection, loadContentRecords, setActiveContentSelection, type StoredContentRecord } from "@/lib/content-record-store";
+import { SavedVisualsGallery } from "@/components/saved-visuals";
 
 // prefill: القناة تدعم تضمين النص في الرابط (X فقط) — البقية يُنسخ النص تلقائياً وتُفتح صفحة الإنشاء
 const platforms: Array<{
@@ -130,7 +131,15 @@ export default function SocialMediaPage() {
       approval: "معتمد",
       publicationDecision: selected.version.analysis?.publicationDecision,
       channels: selected.version.analysis?.channelRecommendations,
-      references: selected.version.references
+      references: selected.version.references,
+      // بقرار مالكة المنصة: المرئيات تنتقل مع المحتوى — الحزمة تشملها كاملة
+      visuals: (selected.version.visuals ?? []).map((v) => ({
+        visualType: v.visualType,
+        visualTypeLabel: v.visualTypeLabel,
+        svg: v.svg,
+        imageUrl: v.imageUrl,
+        createdAt: v.createdAt
+      }))
     }, null, 2));
     setMessage("تم تنزيل الحزمة المعتمدة.");
   }
@@ -222,6 +231,10 @@ export default function SocialMediaPage() {
               {approvedItems.map(({ record, version }) => <option key={record.id} value={record.id}>{record.title} — الإصدار {version.version}</option>)}
             </select>
             <div className="mt-4 rounded-lg bg-paper p-4 leading-8">{body}</div>
+            {/* بقرار مالكة المنصة: المرئيات المحفوظة تنتقل مع المحتوى إلى النشر — تُعرض وتُنزَّل بجانب النص */}
+            <div className="mt-4">
+              <SavedVisualsGallery visuals={selected?.version.visuals} title="المرئيات المرافقة للنسخة المعتمدة" withDownload />
+            </div>
             <div className="mt-4 flex flex-wrap gap-3">
               <Button variant="secondary-gray" onClick={copy} leadingIcon={<Clipboard size={16} />}>نسخ</Button>
               <Button variant="secondary-gray" onClick={downloadPackage} leadingIcon={<Download size={16} />}>تنزيل الحزمة</Button>

@@ -1,5 +1,6 @@
 import { ExternalLink, FileText, Globe } from "lucide-react";
 import { ButtonLink, PageHeader, Panel, SectionTitle } from "@/components/ui";
+import { EntityLogo } from "@/components/entity-logo";
 
 // ── بيانات الجهات وروابطها ─────────────────────────────────────────────────
 
@@ -81,15 +82,7 @@ export default function LibraryPage() {
             >
               {/* ── رأس الجهة ── */}
               <div className="flex items-center gap-3 border-b border-line bg-paper px-4 py-3">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={group.favicon}
-                  alt=""
-                  aria-hidden="true"
-                  width={32}
-                  height={32}
-                  className="h-8 w-8 shrink-0 rounded-lg border border-line bg-white object-contain p-0.5"
-                />
+                <EntityLogo domain={group.domain} size={32} />
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-semibold text-ink">{group.name}</p>
                   <p className="text-[11px] text-ink/45">{group.domain}</p>

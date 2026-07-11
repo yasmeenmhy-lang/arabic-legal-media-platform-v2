@@ -23,6 +23,8 @@ import {
 import { DgaSpinner, PageHeader, Panel } from "@/components/ui";
 import { socialBrandIcons } from "@/components/social-icons";
 import { CircularStepper } from "@/components/circular-stepper";
+import { SavedVisualsGallery } from "@/components/saved-visuals";
+import { smartMatch } from "@/lib/arabic-search";
 import {
   loadContentRecords,
   saveContentRecords,
@@ -737,6 +739,9 @@ function ContentPanel({
             </div>
           )}
 
+          {/* بقرار مالكة المنصة: المرئيات تنتقل مع المحتوى إلى الجدولة — تظهر مع تفاصيل كل عنصر مجدول */}
+          <SavedVisualsGallery visuals={version?.visuals} title="المرئيات المرافقة" compact defaultOpen={false} />
+
           {/* Target date */}
           <div>
             <label className="text-xs font-semibold text-ink/70">موعد النشر المستهدف</label>
@@ -899,7 +904,7 @@ function DayPanel({
   const items = records.filter((r) => (targetDates[r.id] ?? "") === date);
   const candidates = records.filter((r) =>
     (targetDates[r.id] ?? "") !== date &&
-    (!pickerQuery.trim() || r.title.includes(pickerQuery.trim()))
+    smartMatch(pickerQuery, [r.title, r.versions.at(-1)?.body, r.versions.at(-1)?.contentTypeLabel])
   ).slice(0, 8);
   const d = new Date(date + "T12:00:00");
   const hijriLabel = d.toLocaleDateString("ar-SA-u-ca-islamic", {
@@ -968,7 +973,7 @@ function DayPanel({
               type="text"
               value={pickerQuery}
               onChange={(e) => setPickerQuery(e.target.value)}
-              placeholder="ابحث بعنوان المحتوى..."
+              placeholder="ابحث في المحتوى (العنوان أو النص أو النوع)..."
               className="mb-2 w-full rounded-lg border border-line p-2.5 text-sm focus-ring"
             />
             {candidates.length === 0 ? (
@@ -1296,10 +1301,21 @@ export default function CalendarV2Page() {
     return c;
   }, [records, targetDates]);
 
+  // بحث ذكي: تطبيع عربي + كلمات بأي ترتيب + كل حقول المحتوى (العنوان والنص والنوع والقناة والجمهور والهدف والحالة)
   const filtered = useMemo(() => {
     return records.filter((r) => {
       const ds = getDisplayStatus(r, targetDates[r.id] ?? "");
-      return (!filterStatus || ds === filterStatus) && (!search || r.title.includes(search));
+      if (filterStatus && ds !== filterStatus) return false;
+      const version = r.versions.find((v) => v.version === r.currentVersion) ?? r.versions.at(-1);
+      return smartMatch(search, [
+        r.title,
+        version?.body,
+        version?.contentTypeLabel,
+        version?.channel,
+        version?.audience,
+        version?.purpose,
+        ds,
+      ]);
     });
   }, [records, targetDates, search, filterStatus]);
 
@@ -1466,6 +1482,49 @@ export default function CalendarV2Page() {
           </select>
         </div>
       </div>
+
+      {/* بقرارها: عند اختيار لون (حالة) أو البحث تظهر قائمة المحتوى ذي العلاقة فوراً — لا تختفي المسودات غير المجدولة خلف التقويم */}
+      {(filterStatus || search.trim()) ? (
+        <Panel>
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+            <p className="text-sm font-semibold text-ink">
+              المحتوى ذو العلاقة {filterStatus ? `— ${filterStatus}` : ""} ({filtered.length})
+            </p>
+            <button
+              onClick={() => { setFilterStatus(""); setSearch(""); }}
+              className="rounded-lg border border-line px-3 py-1.5 text-xs text-ink/60 transition hover:border-palm hover:text-palm focus-ring"
+            >
+              إظهار الكل
+            </button>
+          </div>
+          {filtered.length ? (
+            <ul role="list" className="divide-y divide-line">
+              {filtered.slice(0, 12).map((r) => {
+                const ds = getDisplayStatus(r, targetDates[r.id] ?? "");
+                const c = STATUS_COLORS[ds];
+                return (
+                  <li key={r.id}>
+                    <button
+                      onClick={() => setSelectedId(r.id)}
+                      className="flex w-full items-center gap-3 px-1 py-2.5 text-right transition hover:bg-mint/25 focus-ring"
+                    >
+                      <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${STATUS_DOT[ds]}`} aria-hidden="true" />
+                      <span className="min-w-0 flex-1 truncate text-sm text-ink">{r.title}</span>
+                      {targetDates[r.id] ? <span className="shrink-0 text-xs text-ink/45">{targetDates[r.id]}</span> : null}
+                      <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium ${c.bg} ${c.text}`}>{ds}</span>
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          ) : (
+            <p className="rounded-lg bg-paper p-4 text-sm text-ink/60">لا يوجد محتوى مطابق لهذا الاختيار.</p>
+          )}
+          {filtered.length > 12 ? (
+            <p className="mt-2 text-xs text-ink/45">يظهر أول ١٢ — ضيّق البحث لرؤية البقية.</p>
+          ) : null}
+        </Panel>
+      ) : null}
 
       {/* 3. Tabs */}
       <Panel>
