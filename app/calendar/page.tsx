@@ -6,6 +6,7 @@ import { ChevronLeft, Clock3, Save, Target, Users } from "lucide-react";
 import { Button, PageHeader, Panel, SectionTitle, StatusBadge } from "@/components/ui";
 import { socialBrandIcons, socialBrandStyles } from "@/components/social-icons";
 import { loadContentRecords, type StoredContentRecord } from "@/lib/content-record-store";
+import { SavedVisualsGallery } from "@/components/saved-visuals";
 
 type StageStatus = "مكتمل" | "قيد التنفيذ" | "قادم" | "قيد الانتظار";
 type PlanningStage = { key: string; label: string; status: StageStatus };
@@ -159,6 +160,10 @@ export default function CalendarPage() {
           <div className="mt-3 rounded-lg border border-line p-3">
             <div className="flex flex-wrap items-center justify-between gap-3"><p className="font-semibold">قرار النشر الحالي</p>{selected && review ? <StatusBadge tone={review.publicationDecision.recommended ? "good" : "gold"}>{review.publicationDecision.label}</StatusBadge> : null}</div>
             <p className="mt-2 leading-6 text-ink/75">{decisionSummary}</p>
+          </div>
+          {/* بقرار مالكة المنصة: المرئيات تنتقل مع المحتوى إلى خطة التخطيط والنشر */}
+          <div className="mt-3">
+            <SavedVisualsGallery visuals={version?.visuals} title="المرئيات المرافقة للمحتوى" compact defaultOpen={false} />
           </div>
         </Panel>
 
