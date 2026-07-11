@@ -122,7 +122,9 @@ Use icons, cards, sections, nodes, charts, lines, diagrams, abstract shapes, and
 The result must look like a professional designed visual, not a stock photo.
 نمط هذا المخرج تحديداً: ${typeStyle}.`;
   const alwaysBan = `
-Never include, under any circumstance: any invented or fake logo, brand mark, seal, stamp, official/government mark, any entity or organization name, any random foreign/Latin filler text, any watermark, and any source line or footer text not explicitly provided by the user.`;
+Never include, under any circumstance: any invented or fake logo, brand mark, seal, stamp, official/government mark, any entity or organization name, any random foreign/Latin filler text, any watermark, and any source line or footer text not explicitly provided by the user.
+Cultural and professional fit is mandatory — this design is for a Saudi legal platform: never draw pigs in any form, including piggy banks (for savings or money draw a safe, wallet, coin pouch, or coins instead); no dogs, no alcohol, no religious symbols, no statues; any people must be dressed modestly and respectfully; use Arabic-context legal symbols (scales of justice, law book, gavel) and never the European section sign §.
+الملاءمة الثقافية والمهنية إلزامية: كل عنصر يجب أن يليق بالثقافة السعودية وبمهنة المحاماة — ممنوع الخنزير بكل أشكاله بما فيها حصالة الخنزير (للمال والادخار ارسم خزنة أو محفظة أو عملات)، وممنوع الكلاب والرموز الدينية والتماثيل والمشروبات المحرمة، والشخصيات إن وُجدت فبلباس محتشم.`;
   // بقرارها: تقليل النص العربي داخل صور OpenAI إلى أدنى حد — النص المرسوم كثير الأخطاء، فالرسوم تحمل المعنى
   const strictTextRule =
     ctx.visualType === "quote_card"
