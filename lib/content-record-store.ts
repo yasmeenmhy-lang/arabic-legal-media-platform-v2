@@ -146,6 +146,47 @@ function normalizeStoredRecords(value: unknown): StoredContentRecord[] {
   });
 }
 
+// ── تصدير/استيراد السجل — بقرار مالكة المنصة: نقل السجل بين المتصفحات والعناوين بلا فقدان ──
+
+export type RecordsExportPayload = {
+  format: "lawyer-media-records";
+  version: 1;
+  exportedAt: string;
+  records: StoredContentRecord[];
+};
+
+export function exportContentRecords(): RecordsExportPayload {
+  return {
+    format: "lawyer-media-records",
+    version: 1,
+    exportedAt: now(),
+    records: loadContentRecords(),
+  };
+}
+
+// استيراد غير تدميري: دمج بالمعرّف — الموجود يُحدَّث فقط إن كان المستورد أحدث، والجديد يُضاف، ولا يُحذف شيء
+export function importContentRecords(payload: unknown): { added: number; updated: number; skipped: number } | null {
+  const raw = payload as Partial<RecordsExportPayload> | StoredContentRecord[] | null;
+  const incomingRaw = Array.isArray(raw) ? raw : Array.isArray(raw?.records) ? raw.records : null;
+  if (!incomingRaw) return null;
+  const incoming = normalizeStoredRecords(incomingRaw);
+  if (!incoming.length && incomingRaw.length) return null;
+  const existing = loadContentRecords();
+  const byId = new Map(existing.map((r) => [r.id, r] as const));
+  let added = 0, updated = 0, skipped = 0;
+  for (const record of incoming) {
+    const current = byId.get(record.id);
+    if (!current) { byId.set(record.id, record); added++; continue; }
+    if (new Date(record.updatedAt).getTime() > new Date(current.updatedAt).getTime()) {
+      byId.set(record.id, record); updated++;
+    } else {
+      skipped++;
+    }
+  }
+  saveContentRecords([...byId.values()]);
+  return { added, updated, skipped };
+}
+
 export function loadContentRecords(): StoredContentRecord[] {
   if (typeof window === "undefined") return [];
   try {
