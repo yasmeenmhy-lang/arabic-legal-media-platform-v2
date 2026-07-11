@@ -90,8 +90,8 @@ const PREMIUM_TYPE_STYLE: Record<string, string> = {
   quote_card: "quote card: بطاقة اقتباس أنيقة بعلامات تنصيص كبيرة — نصان فقط داخل الصورة: العنوان وجملة الاقتباس منسوخين حرفياً بخط كبير؛ لا أي نص آخر إطلاقاً",
   // بقرار مالكة المنصة: الكاروسيل والستوري بورد يخرجان مرئياً احترافياً من OpenAI افتراضياً —
   // بمستوى استوديوهات التصميم التحريري (مراجع Pinterest المعتمدة): كثافة تحريرية ورسوم توضيحية غنية
-  carousel: "premium editorial carousel sheet, studio-grade Instagram carousel design: sequence of numbered cards laid out on one sheet, each card a rich editorial composition — bold Arabic display typography for short headings, hand-crafted flat illustrations and line icons integrated into every card, decorative editorial ornaments (frames, ticks, dotted paths), alternating warm background tones, strong cover card and closing card, cohesive sophisticated brand palette (deep green, gold, warm paper), dense but organized like a top design studio template — NOT a plain list of boxes",
-  storyboard: "premium illustrated storyboard sheet, film-production quality: numbered cinematic frames in 16:9 with rich flat illustrations of each scene (characters, environments, props drawn in an elegant editorial illustration style), scene number badges, duration tags, camera-direction arrows, a winding visual flow connecting frames, decorative editorial ornaments, warm paper background with sophisticated palette (deep green, gold) — like a professional animation studio's illustrated storyboard, NOT plain empty rectangles",
+  carousel: "premium editorial carousel sheet, studio-grade Instagram carousel design: sequence of numbered cards laid out on one sheet, each card a rich editorial composition — hand-crafted flat illustrations and line icons integrated into every card, decorative editorial ornaments (frames, ticks, dotted paths), alternating background tones, strong cover card and closing card, a cohesive sophisticated palette freely chosen to best suit the subject, dense but organized like a top design studio template — NOT a plain list of boxes; TEXT: nearly text-free — the ONLY Arabic text is one short cover title (2-4 words); card numbers as Arabic-Indic numerals; every idea expressed through illustration and icons, never through written sentences",
+  storyboard: "premium illustrated storyboard sheet, film-production quality: numbered cinematic frames in 16:9 with rich flat illustrations of each scene (characters, environments, props drawn in an elegant editorial illustration style), scene number badges, duration tags, camera-direction arrows, a winding visual flow connecting frames, decorative editorial ornaments, a sophisticated background and palette freely chosen to best suit the story — like a professional animation studio's illustrated storyboard, NOT plain empty rectangles; TEXT: nearly text-free — the ONLY Arabic text is one short sheet title (2-4 words); frame numbers and durations as numerals; scenes communicate purely through illustration, never through written sentences",
   motion_script: "motion plan: لقطات مرقمة بنص شاشة وحركة ومدة",
 };
 
@@ -104,7 +104,7 @@ function premiumImagePrompt(brief: VisualBrief | null, description: string, ctx:
   const core = brief
     ? `الرسالة المركزية: "${brief.centralMessage}"
 الهدف: ${brief.objective} — الجمهور: ${brief.targetAudience}
-النقاط الأساسية (نص قليل داخل الصورة، اختر الأهم فقط):
+النقاط الأساسية (مادة سياقية تُترجم إلى رسوم وأيقونات — لا تُنسخ نصاً داخل الصورة إلا بقدر ما تسمح به قاعدة النص الصارمة أدناه):
 ${(brief.keyPoints ?? []).slice(0, 5).map((k, i) => `${i + 1}. ${k}`).join("\n")}
 ${(brief.importantNumbers ?? []).length ? `أرقام/مواد يجوز إبرازها: ${(brief.importantNumbers ?? []).slice(0, 3).join("، ")}` : ""}
 النبرة: ${brief.recommendedTone || "مهنية رصينة"} — ${brief.rtlArabicNotes || ""}`
@@ -123,11 +123,19 @@ The result must look like a professional designed visual, not a stock photo.
 نمط هذا المخرج تحديداً: ${typeStyle}.`;
   const alwaysBan = `
 Never include, under any circumstance: any invented or fake logo, brand mark, seal, stamp, official/government mark, any entity or organization name, any random foreign/Latin filler text, any watermark, and any source line or footer text not explicitly provided by the user.`;
+  // بقرارها: تقليل النص العربي داخل صور OpenAI إلى أدنى حد — النص المرسوم كثير الأخطاء، فالرسوم تحمل المعنى
+  const strictTextRule =
+    ctx.visualType === "quote_card"
+      ? `قاعدة النص الصارمة: لا تكتب داخل الصورة إلا نصين اثنين — العنوان وجملة الاقتباس — منسوخين حرفياً برسمهما الإملائي الصحيح حرفاً حرفاً وبخط كبير؛ لا أي نص آخر إطلاقاً.`
+      : ctx.visualType === "carousel" || ctx.visualType === "storyboard"
+        ? `قاعدة النص الصارمة (حاسمة): النص العربي المرسوم في الصور كثير الأخطاء، لذلك اجعل التصميم شبه خالٍ من النص — اكتب عنواناً قصيراً واحداً فقط (كلمتان إلى أربع كلمات) منسوخاً حرفياً برسمه الإملائي الصحيح حرفاً حرفاً وبخط كبير، واستخدم الأرقام الهندية (١ ٢ ٣) للترقيم؛ ولا تكتب أي جملة أو عبارة أخرى داخل البطاقات أو الإطارات إطلاقاً — عبّر عن كل نقطة برسم توضيحي وأيقونات فقط. أي كلمة لست متأكداً من رسمها الصحيح فلا تكتبها أصلاً.`
+        : `قاعدة النص الصارمة: أقل نص عربي = دقة أعلى — لا تكتب داخل الصورة إلا العنوان وثلاث عبارات قصيرة كحد أقصى، انسخها حرفياً برسمها الإملائي الصحيح حرفاً حرفاً، وبحجم كبير؛ وأي نص لست متأكداً من رسمه الصحيح فلا تكتبه أصلاً واستعض عنه بعنصر رسومي.`;
   return `أنشئ مرئياً تصميمياً تحريرياً مصقولاً عالي الجودة باللغة العربية، اتجاه RTL كامل.${alwaysBan}${designDirectives}
 ${core}
 القناة: ${ctx.channel ?? "عام"} — التنسيق: ${dims.label}${ctx.style ? ` — الأسلوب: ${ctx.style}` : ""}
-مواصفات إلزامية: تصميم مؤسسي سعودي احترافي راقٍ، خط عربي نظيف كبير مقروء تماماً بلا أي تشويه أو قص، تسلسل بصري واضح، هوامش وتباعد سخي، لوحة خضراء مؤسسية (#166A45 إلى #25935F) مع محايدات هادئة.
-قاعدة النص الصارمة: أقل نص عربي = دقة أعلى — لا تكتب داخل الصورة إلا العنوان وثلاث إلى خمس عبارات قصيرة كحد أقصى، انسخها حرفياً برسمها الإملائي الصحيح حرفاً حرفاً، وبحجم كبير؛ وأي نص لست متأكداً من رسمه الصحيح فلا تكتبه أصلاً واستعض عنه بعنصر رسومي.
+مواصفات إلزامية: تصميم مؤسسي سعودي احترافي راقٍ، خط عربي نظيف كبير مقروء تماماً بلا أي تشويه أو قص، تسلسل بصري واضح، هوامش وتباعد سخي.
+الألوان مفتوحة بلا قيود: اختر بحرية اللوحة اللونية الأنسب لموضوع الصورة ومزاجها — المهم أن تكون متناسقة راقية واحترافية.
+${strictTextRule}
 ممنوع منعاً باتاً: ${ctx.visualType !== "image" ? "أي صور أشخاص أو وجوه أو شخصيات — التصميم معلوماتي تخطيطي بحت (بطاقات، أيقونات خطية، أرقام)، " : ""}أي شعارات أو أختام أو علامات حكومية رسمية، أي إيحاء باعتماد رسمي، أي وعد بنتيجة قانونية أو ضمان أو نسب نجاح أو ادعاء أفضلية${avoid.length ? `، وتجنب حرفياً هذه العبارات: ${avoid.slice(0, 10).join(" ، ")}` : ""}.`;
 }
 
