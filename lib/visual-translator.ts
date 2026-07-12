@@ -36,16 +36,26 @@ const PLAN_PROMPT_RULES = `أنت محرر تحريري بصري محترف لل
 export async function generateVisualPlan(
   apiKey: string,
   text: string,
-  ctx: { channel?: string; audience?: string; purpose?: string; visualType?: string }
+  ctx: { channel?: string; audience?: string; purpose?: string; visualType?: string; contentType?: string; specialty?: string; source?: string }
 ): Promise<VisualPlan | null> {
   try {
+    // معادلة السياق (قاعدة أساسية بقرار مالكة المنصة): كل مدخل عامل حاكم له أثر إلزامي في الخطة
+    const audienceEffect = (ctx.audience ?? "").includes("زملاء") || (ctx.audience ?? "").includes("قانوني")
+      ? "مصطلحات نظامية دقيقة"
+      : (ctx.audience ?? "").includes("منشآت") || (ctx.audience ?? "").includes("أعمال")
+        ? "لغة أعمال وأثر تجاري"
+        : "تبسيط واضح يفهمه غير المتخصص";
     const prompt = `${PLAN_PROMPT_RULES}
 
 حوّل النص إلى خطة بصرية JSON فقط بالمفاتيح التالية حرفياً:
 {"centralMessage":"","objective":"","audience":"","recommendedOutputFormat":"infographic|chart|mindmap|image|executive","visualStyle":"رسمي|تعليمي","layoutStrategy":"خطوات متسلسلة|مقارنة|إحصائي|زمني|تفرعي","title":"","subtitle":"","shortVisualCopy":"","keySections":[{"heading":"","bullets":[""],"stat":"","icon":""}],"importantNumbers":[""],"iconsSuggestions":[""],"complianceSensitivePhrases":["انقل حرفياً أي وعد بنتيجة/تفوق/نسبة نجاح وردت في النص"],"complianceNotes":"","rtlArabicNotes":""}
 
-السياق: القناة ${ctx.channel ?? "عام"} — الجمهور ${ctx.audience ?? "عام"} — الهدف ${ctx.purpose ?? "توعية"}${ctx.visualType ? ` — الصيغة المطلوبة ${ctx.visualType}` : ""}
-النص:
+معادلة السياق — كل عامل أدناه حاكم ويجب أن يظهر أثره في الخطة، وخطة لا تعكس أي عامل منها ناتج خاطئ يعاد حسابه:
+- الصيغة البصرية المطلوبة: ${ctx.visualType ?? "إنفوغراف"} — تحدد بنية الأقسام وعددها
+${ctx.contentType ? `- نوع المحتوى الأصلي: ${ctx.contentType} — يحدد طابع النصوص البصرية وقالبها\n` : ""}- القناة: ${ctx.channel ?? "عام"} — تحدد إيقاع النصوص وكثافتها (قناة سريعة = نصوص أخف وأقصر)
+- الجمهور: ${ctx.audience ?? "عام"} — يحدد مستوى لغة كل نص في الخطة: ${audienceEffect}
+- الهدف: ${ctx.purpose ?? "توعية"} — يحدد centralMessage ومعيار اختيار الأقسام (كل قسم يخدم هذا الهدف)
+${ctx.specialty ? `- التخصص القانوني: ${ctx.specialty} — الأمثلة والمواد النظامية من داخله حصراً\n` : ""}${ctx.source ? `- مصدر الفكرة: ${ctx.source} — منطلق المضمون\n` : ""}النص:
 ${text.slice(0, 3500)}
 
 أخرج كائن JSON فقط — لا أي نص قبله أو بعده.`;

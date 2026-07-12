@@ -637,6 +637,13 @@ export default function ContentStudioPage() {
       .catch(() => setProviderInfo(null));
   }, []);
 
+  // معادلة السياق تسري على المرئيات أيضاً: المصدر بصيغته المقروءة يرافق كل طلب مرئي
+  const contextSourceLabel = source
+    ? source === "global-news" && globalSub
+      ? `أخبار قانونية عالمية — ${contentSources.find((s) => s.key === "global-news")?.subs?.find((sub) => sub.key === globalSub)?.label ?? globalSub}`
+      : contentSources.find((s) => s.key === source)?.label ?? source
+    : "";
+
   // عند تعطل المرئي الاحترافي (مفتاح غير متحقق/401/403) يعود الإخراج قسرياً إلى SVG الافتراضي،
   // ونوع «صورة» (مرتبط بالمزود الاحترافي حصراً) يعود إلى إنفوغراف المتاح دائماً عبر SVG
   useEffect(() => {
@@ -1019,6 +1026,9 @@ export default function ContentStudioPage() {
           channel: channel || undefined,
           audience: audience || undefined,
           purpose: purpose || undefined,
+          contentType: kind ? contentKindLabels[kind] : undefined,
+          specialty: specialty || undefined,
+          source: contextSourceLabel || undefined,
           outputMode: "editable_svg",
           planOnly: true,
         }),
@@ -1067,6 +1077,9 @@ export default function ContentStudioPage() {
           outputMode: vtOutputMode,
           audience: audience || undefined,
           purpose: purpose || undefined,
+          contentType: kind ? contentKindLabels[kind] : undefined,
+          specialty: specialty || undefined,
+          source: contextSourceLabel || undefined,
         }),
       });
       const data = (await res.json()) as { svgCode?: string; imageUrl?: string; imageBase64?: string; provider?: string; providerNote?: string; premiumError?: string; visual?: VisualStructure; error?: string };
@@ -1444,6 +1457,11 @@ export default function ContentStudioPage() {
           dimensions: imageDimensions || undefined,
           channel: channel || undefined,
           editInstruction: editInstruction?.trim() || undefined,
+          audience: audience || undefined,
+          purpose: purpose || undefined,
+          contentType: kind ? contentKindLabels[kind] : undefined,
+          specialty: specialty || undefined,
+          source: contextSourceLabel || undefined,
         }),
       });
       const data = (await res.json()) as { svgCode?: string; imageUrl?: string; imageBase64?: string; premiumError?: string; providerNote?: string; prompt?: string; error?: string };
