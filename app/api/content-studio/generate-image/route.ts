@@ -25,6 +25,10 @@ const schema = z.object({
   approvedPlan: z.custom<import("@/lib/visual-translator").VisualPlan>().optional(),
   audience: z.string().optional(),
   purpose: z.string().optional(),
+  // معادلة السياق تسري على المرئيات أيضاً: النوع والتخصص والمصدر عوامل حاكمة
+  contentType: z.string().max(60).optional(),
+  specialty: z.string().max(60).optional(),
+  source: z.string().max(160).optional(),
 });
 
 // ── الموجز البصري + المسار الاحترافي ─────────────────────────────────────
@@ -48,12 +52,12 @@ type VisualBrief = {
 async function generateVisualBrief(
   apiKey: string,
   description: string,
-  ctx: { channel?: string; audience?: string; purpose?: string; visualType: string; planningType?: string }
+  ctx: { channel?: string; audience?: string; purpose?: string; visualType: string; planningType?: string; contentType?: string; specialty?: string; source?: string }
 ): Promise<VisualBrief | null> {
   try {
     const prompt = `حوّل النص التالي إلى موجز بصري JSON مضغوط لتصميم مرئي قانوني احترافي. أخرج JSON فقط بالمفاتيح:
 {"centralMessage":"الرسالة المركزية بجملة واحدة","objective":"هدف المرئي","targetAudience":"الجمهور","channel":"القناة","visualType":"نوع المرئي","planningType":"نمط التخطيط","keyPoints":["3-5 نقاط موجزة"],"suggestedSections":["أقسام مقترحة"],"importantNumbers":["أرقام أو مواد نظامية مهمة"],"complianceSensitivePhrases":["أي عبارات في النص تعد وعداً بنتيجة أو تفوقاً أو نسب نجاح — انقلها حرفياً لتجنبها"],"recommendedTone":"النبرة","rtlArabicNotes":"ملاحظات اتجاه/خط عربي"}
-السياق: القناة ${ctx.channel ?? "عام"} — الجمهور ${ctx.audience ?? "عام"} — الهدف ${ctx.purpose ?? "توعية"} — النوع ${ctx.visualType}${ctx.planningType ? ` — النمط ${ctx.planningType}` : ""}
+معادلة السياق (كل عامل حاكم يجب أن يظهر أثره في الموجز): القناة ${ctx.channel ?? "عام"} تحدد إيقاع النصوص — الجمهور ${ctx.audience ?? "عام"} يحدد مستوى اللغة — الهدف ${ctx.purpose ?? "توعية"} يحدد الرسالة المركزية — النوع البصري ${ctx.visualType}${ctx.planningType ? ` — النمط ${ctx.planningType}` : ""}${ctx.contentType ? ` — نوع المحتوى ${ctx.contentType} يحدد طابع النصوص` : ""}${ctx.specialty ? ` — التخصص ${ctx.specialty} يحصر المجال` : ""}${ctx.source ? ` — مصدر الفكرة ${ctx.source} منطلق المضمون` : ""}
 النص:
 ${description.slice(0, 2500)}`;
     const raw = await callClaude(apiKey, "claude-haiku-4-5-20251001", 900, prompt);
@@ -96,7 +100,7 @@ const PREMIUM_TYPE_STYLE: Record<string, string> = {
 };
 
 // مطالبة المرئي الاحترافي — تصميم اتصالي عربي RTL، بلا صور واقعية افتراضياً
-function premiumImagePrompt(brief: VisualBrief | null, description: string, ctx: { channel?: string; audience?: string; purpose?: string; visualType: string; style?: string; photoAllowed?: boolean }, dims: { label: string }): string {
+function premiumImagePrompt(brief: VisualBrief | null, description: string, ctx: { channel?: string; audience?: string; purpose?: string; visualType: string; style?: string; photoAllowed?: boolean; contentType?: string; specialty?: string; source?: string }, dims: { label: string }): string {
   const avoid = [
     "نضمن", "مضمون", "أفضل محامي", "الأفضل", "100%", "١٠٠٪", "نسبة نجاح", "تعويض مضمون", "حكم مضمون",
     ...(brief?.complianceSensitivePhrases ?? []),
@@ -134,7 +138,7 @@ Cultural and professional fit is mandatory — this design is for a Saudi legal 
         : `قاعدة النص الصارمة: أقل نص عربي = دقة أعلى — لا تكتب داخل الصورة إلا العنوان وثلاث عبارات قصيرة كحد أقصى، انسخها حرفياً برسمها الإملائي الصحيح حرفاً حرفاً، وبحجم كبير؛ وأي نص لست متأكداً من رسمه الصحيح فلا تكتبه أصلاً واستعض عنه بعنصر رسومي.`;
   return `أنشئ مرئياً تصميمياً تحريرياً مصقولاً عالي الجودة باللغة العربية، اتجاه RTL كامل.${alwaysBan}${designDirectives}
 ${core}
-القناة: ${ctx.channel ?? "عام"} — التنسيق: ${dims.label}${ctx.style ? ` — الأسلوب: ${ctx.style}` : ""}
+معادلة السياق الحاكمة: القناة ${ctx.channel ?? "عام"} (التنسيق ${dims.label}) — الجمهور ${ctx.audience ?? "عام"} يحدد مستوى أي نص داخل الصورة وطابع الرسوم — الهدف ${ctx.purpose ?? "توعية"} يحدد الرسالة البصرية المركزية${ctx.contentType ? ` — نوع المحتوى ${ctx.contentType}` : ""}${ctx.specialty ? ` — التخصص ${ctx.specialty}: الرموز والمشاهد من مجاله حصراً` : ""}${ctx.source ? ` — مصدر الفكرة: ${ctx.source}` : ""}${ctx.style ? ` — الأسلوب: ${ctx.style}` : ""}
 مواصفات إلزامية: تصميم مؤسسي سعودي احترافي راقٍ، خط عربي نظيف كبير مقروء تماماً بلا أي تشويه أو قص، تسلسل بصري واضح، هوامش وتباعد سخي.
 الألوان مفتوحة بلا قيود: اختر بحرية اللوحة اللونية الأنسب لموضوع الصورة ومزاجها — المهم أن تكون متناسقة راقية واحترافية.
 ${strictTextRule}
@@ -1214,7 +1218,7 @@ export async function POST(request: Request) {
   const parsed = schema.safeParse(await request.json());
   if (!parsed.success) return badRequest("المدخلات غير مكتملة");
 
-  const { description, visualType, chartType, style, dimensions, channel, editInstruction, previousVisual, outputMode, audience, purpose, planOnly, approvedPlan } = parsed.data;
+  const { description, visualType, chartType, style, dimensions, channel, editInstruction, previousVisual, outputMode, audience, purpose, planOnly, approvedPlan, contentType, specialty, source } = parsed.data;
 
   // عند طلب تعديل: يُلحق الطلب بالوصف فيُطبق على البيانات المولدة والتصميم
   // عند وجود بنية سابقة: التعديل يُطبَّق عليها حرفياً وكل ما عداه يبقى كما هو
@@ -1235,7 +1239,7 @@ export async function POST(request: Request) {
     ? approvedPlan
     : apiKey && !isEditFlow && visualType !== "image"
       ? await generateVisualPlan(apiKey, description, {
-          channel, audience, purpose,
+          channel, audience, purpose, contentType, specialty, source,
           // النوع يصل للخطة بتسميته العربية الدقيقة (مع نوع الشارت) لا بمفتاح خام — الخطة تعكس المطلوب حرفياً
           // (نوع «صورة» لا يمر بالخطة أصلاً بحكم الشرط أعلاه)
           visualType: visualType === "chart" ? `رسم بياني${chartType ? ` (${chartType})` : ""}`
@@ -1276,11 +1280,11 @@ export async function POST(request: Request) {
           rtlArabicNotes: visualPlan.rtlArabicNotes ?? "",
         }
       : apiKey
-        ? await generateVisualBrief(apiKey, effectiveDescription, { channel, audience, purpose, visualType })
+        ? await generateVisualBrief(apiKey, effectiveDescription, { channel, audience, purpose, visualType, contentType, specialty, source })
         : null;
     // photoAllowed=false افتراضياً — يُفتح فقط بطلب صريح في الوصف أو التعديل
     const photoAllowed = isPhotoExplicitlyRequested(effectiveDescription);
-    const pPrompt = premiumImagePrompt(brief, effectiveDescription, { channel, audience, purpose, visualType, style, photoAllowed }, dims);
+    const pPrompt = premiumImagePrompt(brief, effectiveDescription, { channel, audience, purpose, visualType, style, photoAllowed, contentType, specialty, source }, dims);
     const img = await generatePremiumImage(pPrompt, dims.w, dims.h);
     const premiumOk = Boolean(img.imageBase64 || img.imageUrl);
     if (premiumOk) {
