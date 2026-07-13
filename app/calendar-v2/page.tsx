@@ -25,6 +25,7 @@ import { socialBrandIcons } from "@/components/social-icons";
 import { CircularStepper } from "@/components/circular-stepper";
 import { SavedVisualsGallery } from "@/components/saved-visuals";
 import { smartMatch } from "@/lib/arabic-search";
+import { adoptLegacyKey, scopedKey } from "@/lib/user-scope";
 import {
   loadContentRecords,
   saveContentRecords,
@@ -54,17 +55,19 @@ type SmartPlanResult = {
 
 // ── Status helpers ─────────────────────────────────────────────────────────
 
+// بقرارها: المواعيد معزولة لكل حساب — لا تداخل بين الحسابات على نفس الجهاز
 function getTargetDate(id: string): string {
   if (typeof window === "undefined") return "";
-  return window.localStorage.getItem(`lawyer-media:target-publication-date:${id}`) ?? "";
+  adoptLegacyKey(`lawyer-media:target-publication-date:${id}`);
+  return window.localStorage.getItem(scopedKey(`lawyer-media:target-publication-date:${id}`)) ?? "";
 }
 
 function saveTargetDate(id: string, date: string) {
-  window.localStorage.setItem(`lawyer-media:target-publication-date:${id}`, date);
+  window.localStorage.setItem(scopedKey(`lawyer-media:target-publication-date:${id}`), date);
 }
 
 function removeTargetDate(id: string) {
-  window.localStorage.removeItem(`lawyer-media:target-publication-date:${id}`);
+  window.localStorage.removeItem(scopedKey(`lawyer-media:target-publication-date:${id}`));
 }
 
 function getDisplayStatus(record: StoredContentRecord, targetDate: string): DisplayStatus {
@@ -1271,7 +1274,8 @@ export default function CalendarV2Page() {
   const [smartPlanResult,  setSmartPlanResult]  = useState<SmartPlanResult | null>(null);
   const [smartPlanError,   setSmartPlanError]   = useState("");
 
-  const SMART_PLAN_KEY = "lawyer-media:smart-plan-result";
+  // معزول لكل حساب — خطة كل مستخدم خاصة به
+  const SMART_PLAN_KEY = scopedKey("lawyer-media:smart-plan-result");
 
   useEffect(() => {
     const loaded = loadContentRecords();

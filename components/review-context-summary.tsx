@@ -6,6 +6,7 @@ import { ExternalLink } from "lucide-react";
 import { DgaBlockquote, Panel, StatusBadge } from "@/components/ui";
 import { riskDisplayLabel } from "@/lib/types";
 import type { ReviewFinding, ReviewResult, RiskLevel } from "@/lib/types";
+import { scopedKey } from "@/lib/user-scope";
 
 export type StoredReviewContext = {
   reviewId: string;
@@ -20,6 +21,7 @@ export type StoredReviewContext = {
   reviewedAt?: string;
 };
 
+// معزولان لكل حساب — لا يتسرب سياق مراجعة حساب لحساب آخر على نفس الجهاز
 const STORAGE_KEY = "lawyer-media:last-review-context";
 const SNAPSHOT_KEY = "lawyer-media:last-review-snapshot";
 
@@ -66,7 +68,7 @@ export type StoredReviewSnapshot = {
 
 export function saveLatestReviewContext(context: StoredReviewContext) {
   if (typeof window === "undefined") return;
-  window.sessionStorage.setItem(STORAGE_KEY, JSON.stringify(context));
+  window.sessionStorage.setItem(scopedKey(STORAGE_KEY), JSON.stringify(context));
 }
 
 export function saveLatestReviewSnapshot(review: ReviewResult) {
@@ -114,15 +116,15 @@ export function saveLatestReviewSnapshot(review: ReviewResult) {
     },
     references: review.referencesPanel
   };
-  window.sessionStorage.setItem(STORAGE_KEY, JSON.stringify(context));
-  window.sessionStorage.setItem(SNAPSHOT_KEY, JSON.stringify(snapshot));
+  window.sessionStorage.setItem(scopedKey(STORAGE_KEY), JSON.stringify(context));
+  window.sessionStorage.setItem(scopedKey(SNAPSHOT_KEY), JSON.stringify(snapshot));
 }
 
 function useLatestReviewSnapshot() {
   const [snapshot, setSnapshot] = useState<StoredReviewSnapshot | null>(null);
 
   useEffect(() => {
-    const raw = window.sessionStorage.getItem(SNAPSHOT_KEY);
+    const raw = window.sessionStorage.getItem(scopedKey(SNAPSHOT_KEY));
     if (!raw) return;
     try {
       setSnapshot(JSON.parse(raw) as StoredReviewSnapshot);
@@ -155,7 +157,7 @@ export function ReviewContextSummary({ focus }: { focus: "findings" | "opportuni
   const [context, setContext] = useState<StoredReviewContext | null>(null);
 
   useEffect(() => {
-    const raw = window.sessionStorage.getItem(STORAGE_KEY);
+    const raw = window.sessionStorage.getItem(scopedKey(STORAGE_KEY));
     if (!raw) return;
     try {
       setContext(JSON.parse(raw) as StoredReviewContext);
