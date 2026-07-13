@@ -76,11 +76,18 @@ export async function POST(request: Request) {
   }
   try {
     const user = await findUserByUsername(username);
-    if (!user || !user.is_active) {
+    if (!user) {
       return NextResponse.json({ error: "اسم المستخدم أو رمز الدخول غير صحيح." }, { status: 401 });
     }
     const ok = await bcrypt.compare(code, user.password_hash);
     if (!ok) return NextResponse.json({ error: "اسم المستخدم أو رمز الدخول غير صحيح." }, { status: 401 });
+    // التسجيل الذاتي: صاحب الرمز الصحيح يُخبر بحالته الحقيقية — طلبه ما زال قيد الموافقة
+    if (user.status === "pending") {
+      return NextResponse.json({ error: "طلبك قيد المراجعة — يُفعَّل حسابك بعد موافقة إدارة المنصة." }, { status: 403 });
+    }
+    if (!user.is_active) {
+      return NextResponse.json({ error: "اسم المستخدم أو رمز الدخول غير صحيح." }, { status: 401 });
+    }
 
     const sessionId = newSessionId();
     await createSessionRow({ id: sessionId, userId: user.id, username: user.username, page: "/login" });

@@ -2,7 +2,7 @@ import { PageHeader, Panel, StatusBadge } from "@/components/ui";
 import { ShieldCheck } from "lucide-react";
 import { getNafathConfiguration } from "@/lib/nafath-config";
 import { isAuthConfigured } from "@/lib/access-auth";
-import { LoginForm } from "@/components/login-form";
+import { LoginForm, RegisterRequestForm } from "@/components/login-form";
 import Link from "next/link";
 
 export const dynamic = "force-dynamic";
@@ -23,7 +23,12 @@ export default function LoginPage() {
       />
       <Panel className="mx-auto max-w-lg">
         {configured ? (
-          <LoginForm />
+          <>
+            <LoginForm />
+            <div className="mt-4">
+              <RegisterRequestForm />
+            </div>
+          </>
         ) : (
           <>
             {/* مرحلة ما قبل التهيئة: يبقى السلوك الحالي كما هو حتى تكتمل متغيرات البيئة */}
