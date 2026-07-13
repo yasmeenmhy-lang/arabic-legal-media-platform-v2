@@ -36,10 +36,10 @@ export function SessionChip() {
     return (
       <a
         href="/login"
-        className="hidden items-center gap-2 rounded-lg border border-palm bg-mint px-3 py-2 text-sm font-medium text-palm transition hover:bg-palm hover:text-white focus-ring sm:flex"
+        className="flex shrink-0 items-center gap-2 rounded-lg border border-palm bg-mint px-2.5 py-2 text-sm font-medium text-palm transition hover:bg-palm hover:text-white focus-ring sm:px-3"
       >
         <LogIn size={15} />
-        تسجيل الدخول
+        <span className="whitespace-nowrap">تسجيل الدخول</span>
       </a>
     );
   }
@@ -51,15 +51,16 @@ export function SessionChip() {
   }
 
   return (
-    <div className="hidden items-center gap-3 rounded-lg border border-line bg-paper px-3 py-2 sm:flex">
-      <p className="text-sm font-normal">{state.username}</p>
+    <div className="flex shrink-0 items-center gap-2 rounded-lg border border-line bg-paper px-2.5 py-2 sm:gap-3 sm:px-3">
+      <p className="max-w-[28vw] truncate text-sm font-normal sm:max-w-none">{state.username}</p>
       <button
         type="button"
         onClick={() => void logout()}
         className="flex items-center gap-1.5 rounded-md border border-line px-2 py-1 text-xs text-ink/60 transition hover:border-palm hover:text-palm focus-ring"
       >
         <LogOut size={12} />
-        تسجيل الخروج
+        <span className="hidden sm:inline">تسجيل الخروج</span>
+        <span className="sm:hidden">خروج</span>
       </button>
     </div>
   );
