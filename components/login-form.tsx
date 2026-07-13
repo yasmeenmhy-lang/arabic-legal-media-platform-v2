@@ -74,7 +74,6 @@ export function LoginForm() {
 // ويبقى حسابه بانتظار موافقة إدارة المنصة قبل أول دخول
 export function RegisterRequestForm() {
   const [username, setUsername] = useState("");
-  const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
@@ -89,7 +88,7 @@ export function RegisterRequestForm() {
       const response = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, code, email }),
+        body: JSON.stringify({ username, code }),
       });
       const data = (await response.json().catch(() => ({}))) as { ok?: boolean; message?: string; error?: string };
       if (!response.ok || !data.ok) {
@@ -98,7 +97,6 @@ export function RegisterRequestForm() {
       }
       setMessage(data.message ?? "أُرسل طلبك — يُفعَّل بعد موافقة إدارة المنصة.");
       setUsername("");
-      setEmail("");
       setCode("");
     } catch {
       setError("تعذر الاتصال — تحقق من الشبكة وأعد المحاولة.");
@@ -126,18 +124,6 @@ export function RegisterRequestForm() {
           />
         </label>
         <label className="block text-sm font-normal">
-          البريد الإلكتروني
-          <input
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-            type="email"
-            dir="ltr"
-            autoComplete="email"
-            required
-            className="mt-2 w-full rounded border border-line px-3 py-2.5 text-left focus-ring"
-          />
-        </label>
-        <label className="block text-sm font-normal">
           رمز الدخول (٨ أحرف فأكثر)
           <input
             value={code}
@@ -152,7 +138,7 @@ export function RegisterRequestForm() {
         {error ? <p className="rounded-lg bg-red-50 p-3 text-sm leading-6 text-red-700">{error}</p> : null}
         <button
           type="submit"
-          disabled={loading || username.trim().length < 3 || code.length < 8 || !email.includes("@")}
+          disabled={loading || username.trim().length < 3 || code.length < 8}
           className="flex w-full items-center justify-center gap-2 rounded border border-palm px-4 py-2.5 font-normal text-palm transition hover:bg-mint disabled:opacity-50 focus-ring"
         >
           {loading ? <DgaSpinner size="sm" /> : <UserPlus size={16} />}
