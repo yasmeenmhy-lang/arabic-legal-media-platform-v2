@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { isAuthConfigured, isDatabaseConfigured, readSessionFromCookies } from "@/lib/access-auth";
-import { endSession, listSessions } from "@/lib/access-db";
+import { endSession, listSessions, withDbTimeout } from "@/lib/access-db";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -21,7 +21,7 @@ export async function GET() {
   if ("error" in auth) return auth.error;
   if (!isDatabaseConfigured()) return NextResponse.json({ dbReady: false, sessions: [] });
   try {
-    const sessions = await listSessions();
+    const sessions = await withDbTimeout(listSessions());
     return NextResponse.json({ dbReady: true, sessions });
   } catch {
     return NextResponse.json({ dbReady: false, sessions: [], dbError: true });
