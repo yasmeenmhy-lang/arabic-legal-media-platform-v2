@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { LogIn, LogOut } from "lucide-react";
+import { setSessionUser } from "@/lib/user-scope";
 
 // شارة الجلسة في الترويسة — بقرار مالكة المنصة:
 // غير الداخل يرى زر «تسجيل الدخول» دائماً، والداخل يرى اسمه الحقيقي وزر «تسجيل الخروج».
@@ -20,8 +21,11 @@ export function SessionChip() {
       .then((r) => r.json())
       .then((d: { configured?: boolean; authenticated?: boolean; username?: string }) => {
         if (!d?.configured) setState({ kind: "unconfigured" });
-        else if (d.authenticated && d.username) setState({ kind: "user", username: d.username });
-        else setState({ kind: "guest" });
+        else if (d.authenticated && d.username) {
+          setState({ kind: "user", username: d.username });
+          // مزامنة عزل التخزين مع الجلسة الفعلية (يغطي الدخول من جهاز آخر أو جلسة قائمة)
+          setSessionUser(d.username);
+        } else setState({ kind: "guest" });
       })
       .catch(() => setState({ kind: "unconfigured" }));
   }, []);
@@ -42,6 +46,7 @@ export function SessionChip() {
 
   async function logout() {
     await fetch("/api/auth/logout", { method: "POST" }).catch(() => undefined);
+    setSessionUser(null);
     window.location.href = "/login";
   }
 

@@ -12,6 +12,7 @@ import {
   UserPlus,
 } from "lucide-react";
 import { Button, DgaSpinner, PageHeader, Panel, SectionTitle, StatusBadge } from "@/components/ui";
+import { setSessionUser } from "@/lib/user-scope";
 
 // لوحة إدارة الوصول — للأدمن حصراً (الحماية خادمية في middleware وواجهات API).
 // بيانات الأدمن لا تُوضع في الكود: تُهيّأ عبر متغيرات بيئة مع تجزئة كلمة المرور،
@@ -206,6 +207,7 @@ export default function AdminAccessPage() {
 
   async function logout() {
     await fetch("/api/auth/logout", { method: "POST" }).catch(() => undefined);
+    setSessionUser(null);
     window.location.href = "/login";
   }
 

@@ -1,6 +1,7 @@
 "use client";
 
 import type { ContentKind, ProfessionalOfficialReference, ReviewResult } from "@/lib/types";
+import { adoptLegacyKey, scopedKey } from "@/lib/user-scope";
 
 export const CONTENT_RECORDS_KEY = "lawyer-media:content-records:v2";
 export const ACTIVE_CONTENT_KEY = "lawyer-media:active-content";
@@ -187,10 +188,12 @@ export function importContentRecords(payload: unknown): { added: number; updated
   return { added, updated, skipped };
 }
 
+// بقرارها: كل حساب يرى سجلاته فقط — المفتاح معزول باسم الحساب الداخل، مع تبنّي بيانات ما قبل العزل مرة واحدة
 export function loadContentRecords(): StoredContentRecord[] {
   if (typeof window === "undefined") return [];
   try {
-    return normalizeStoredRecords(JSON.parse(window.localStorage.getItem(CONTENT_RECORDS_KEY) ?? "[]"));
+    adoptLegacyKey(CONTENT_RECORDS_KEY);
+    return normalizeStoredRecords(JSON.parse(window.localStorage.getItem(scopedKey(CONTENT_RECORDS_KEY)) ?? "[]"));
   } catch {
     return [];
   }
@@ -198,14 +201,14 @@ export function loadContentRecords(): StoredContentRecord[] {
 
 export function saveContentRecords(records: StoredContentRecord[]) {
   if (typeof window === "undefined") return;
-  window.localStorage.setItem(CONTENT_RECORDS_KEY, JSON.stringify(records));
+  window.localStorage.setItem(scopedKey(CONTENT_RECORDS_KEY), JSON.stringify(records));
   window.dispatchEvent(new Event("lawyer-media:records-updated"));
 }
 
 export function getActiveContentSelection() {
   if (typeof window === "undefined") return null;
   try {
-    const value = JSON.parse(window.localStorage.getItem(ACTIVE_CONTENT_KEY) ?? "null") as unknown;
+    const value = JSON.parse(window.localStorage.getItem(scopedKey(ACTIVE_CONTENT_KEY)) ?? "null") as unknown;
     if (!value || typeof value !== "object") return null;
     const selection = value as { contentId?: unknown; version?: unknown };
     return typeof selection.contentId === "string" && typeof selection.version === "number"
@@ -218,12 +221,12 @@ export function getActiveContentSelection() {
 
 export function setActiveContentSelection(contentId: string, version: number) {
   if (typeof window === "undefined") return;
-  window.localStorage.setItem(ACTIVE_CONTENT_KEY, JSON.stringify({ contentId, version }));
+  window.localStorage.setItem(scopedKey(ACTIVE_CONTENT_KEY), JSON.stringify({ contentId, version }));
 }
 
 export function clearActiveContentSelection() {
   if (typeof window === "undefined") return;
-  window.localStorage.removeItem(ACTIVE_CONTENT_KEY);
+  window.localStorage.removeItem(scopedKey(ACTIVE_CONTENT_KEY));
 }
 
 export function referencesFromReview(review: ReviewResult): ProfessionalOfficialReference[] {

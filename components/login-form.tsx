@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { LogIn, UserPlus } from "lucide-react";
 import { DgaSpinner } from "@/components/ui";
+import { setSessionUser } from "@/lib/user-scope";
 
 // نموذج الدخول الفردي — اسم مستخدم ورمز دخول، والتحقق كله من جهة الخادم
 export function LoginForm() {
@@ -26,6 +27,8 @@ export function LoginForm() {
         setError(data.error ?? "تعذر الدخول — أعد المحاولة.");
         return;
       }
+      // عزل تخزين المتصفح باسم الحساب — كل حساب يرى سجلاته فقط
+      setSessionUser(username.trim());
       window.location.href = data.role === "admin" ? "/admin/access" : "/";
     } catch {
       setError("تعذر الاتصال — تحقق من الشبكة وأعد المحاولة.");

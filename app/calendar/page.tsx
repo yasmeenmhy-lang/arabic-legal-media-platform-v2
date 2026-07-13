@@ -7,6 +7,7 @@ import { Button, PageHeader, Panel, SectionTitle, StatusBadge } from "@/componen
 import { socialBrandIcons, socialBrandStyles } from "@/components/social-icons";
 import { loadContentRecords, type StoredContentRecord } from "@/lib/content-record-store";
 import { SavedVisualsGallery } from "@/components/saved-visuals";
+import { adoptLegacyKey, scopedKey } from "@/lib/user-scope";
 
 type StageStatus = "مكتمل" | "قيد التنفيذ" | "قادم" | "قيد الانتظار";
 type PlanningStage = { key: string; label: string; status: StageStatus };
@@ -43,7 +44,8 @@ export default function CalendarPage() {
       setMessage("");
       return;
     }
-    setTargetDate(window.localStorage.getItem(`lawyer-media:target-publication-date:${selectedId}`) ?? "");
+    adoptLegacyKey(`lawyer-media:target-publication-date:${selectedId}`);
+    setTargetDate(window.localStorage.getItem(scopedKey(`lawyer-media:target-publication-date:${selectedId}`)) ?? "");
     setMessage("");
   }, [selectedId]);
 
@@ -87,7 +89,7 @@ export default function CalendarPage() {
 
   function saveSchedule() {
     if (!selectedId || !targetDate) return;
-    window.localStorage.setItem(`lawyer-media:target-publication-date:${selectedId}`, targetDate);
+    window.localStorage.setItem(scopedKey(`lawyer-media:target-publication-date:${selectedId}`), targetDate);
     setMessage("تم حفظ الموعد المستهدف للمحتوى المختار ضمن الخطة الاسترشادية.");
   }
 
