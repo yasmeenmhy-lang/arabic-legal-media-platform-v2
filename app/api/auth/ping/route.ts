@@ -5,7 +5,7 @@ import {
   isDatabaseConfigured,
   readSessionFromCookies,
 } from "@/lib/access-auth";
-import { touchSession } from "@/lib/access-db";
+import { touchSession, withDbTimeout } from "@/lib/access-db";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -25,7 +25,7 @@ export async function POST(request: Request) {
   const body = (await request.json().catch(() => null)) as { page?: string } | null;
   const page = (body?.page ?? "/").split("?")[0].slice(0, 120);
   try {
-    const alive = await touchSession(session.sessionId, page);
+    const alive = await withDbTimeout(touchSession(session.sessionId, page));
     if (!alive) return NextResponse.json({ error: "أُنهيت الجلسة" }, { status: 401 });
     return NextResponse.json({ ok: true });
   } catch {

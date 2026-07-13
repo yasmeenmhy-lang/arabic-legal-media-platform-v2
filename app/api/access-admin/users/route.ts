@@ -10,6 +10,7 @@ import {
   listUsers,
   setUserActive,
   setUserPasswordHash,
+  withDbTimeout,
 } from "@/lib/access-db";
 
 export const runtime = "nodejs";
@@ -30,7 +31,7 @@ export async function GET() {
   if ("error" in auth) return auth.error;
   if (!isDatabaseConfigured()) return NextResponse.json({ dbReady: false, users: [] });
   try {
-    const users = await listUsers();
+    const users = await withDbTimeout(listUsers());
     return NextResponse.json({ dbReady: true, users });
   } catch {
     return NextResponse.json({ dbReady: false, users: [], dbError: true });

@@ -13,6 +13,8 @@ export interface AccessUser {
   is_active: boolean;
   // بقرارها: التسجيل الذاتي متاح لكن الدخول لا يعمل إلا بعد موافقتها — pending حتى تعتمد
   status: "active" | "pending";
+  // بريد التواصل لتأكيد هوية طالب التسجيل قبل الموافقة — بيانات حساب لا سجل نشاط
+  email: string | null;
   created_at: string;
   last_login_at: string | null;
   login_count: number;
@@ -33,6 +35,14 @@ function sql() {
   const { databaseUrl } = authEnv();
   if (!databaseUrl) throw new Error("DATABASE_NOT_CONFIGURED");
   return neon(databaseUrl);
+}
+
+// مهلة صارمة لكل عملية قاعدة بيانات — تعليق الاتصال يتحول لخطأ واضح خلال ثوانٍ بدل انتظار أبدي
+export function withDbTimeout<T>(promise: Promise<T>, ms = 12_000): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<never>((_, reject) => setTimeout(() => reject(new Error("DB_TIMEOUT")), ms)),
+  ]);
 }
 
 let tablesReady = false;
@@ -63,6 +73,7 @@ export async function ensureAccessTables() {
   await q`CREATE INDEX IF NOT EXISTS access_sessions_user_idx ON access_sessions (user_id, created_at DESC)`;
   // التسجيل الذاتي بموافقة الأدمن: عمود الحالة يُضاف للجداول القائمة دون مساس ببياناتها
   await q`ALTER TABLE access_users ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'active'`;
+  await q`ALTER TABLE access_users ADD COLUMN IF NOT EXISTS email TEXT`;
   tablesReady = true;
 }
 
@@ -75,15 +86,21 @@ export async function findUserByUsername(username: string): Promise<(AccessUser 
 export async function listUsers(): Promise<AccessUser[]> {
   await ensureAccessTables();
   const rows = await sql()`
-    SELECT id, username, role, is_active, status, created_at, last_login_at, login_count
+    SELECT id, username, role, is_active, status, email, created_at, last_login_at, login_count
     FROM access_users ORDER BY (status = 'pending') DESC, created_at DESC`;
   return rows as AccessUser[];
 }
 
-export async function createUser(input: { id: string; username: string; passwordHash: string; role?: "admin" | "user"; status?: "active" | "pending" }) {
+export async function createUser(input: { id: string; username: string; passwordHash: string; role?: "admin" | "user"; status?: "active" | "pending"; email?: string }) {
   await ensureAccessTables();
-  await sql()`INSERT INTO access_users (id, username, password_hash, role, status, is_active)
-    VALUES (${input.id}, ${input.username}, ${input.passwordHash}, ${input.role ?? "user"}, ${input.status ?? "active"}, ${(input.status ?? "active") === "active"})`;
+  await sql()`INSERT INTO access_users (id, username, password_hash, role, status, is_active, email)
+    VALUES (${input.id}, ${input.username}, ${input.passwordHash}, ${input.role ?? "user"}, ${input.status ?? "active"}, ${(input.status ?? "active") === "active"}, ${input.email ?? null})`;
+}
+
+export async function findUserByEmail(email: string): Promise<{ id: string } | null> {
+  await ensureAccessTables();
+  const rows = await sql()`SELECT id FROM access_users WHERE email = ${email} LIMIT 1`;
+  return (rows[0] as { id: string } | undefined) ?? null;
 }
 
 // اعتماد طلب تسجيل ذاتي: يتحول الحساب نشطاً ويستطيع صاحبه الدخول برمزه الذي اختاره
@@ -135,13 +152,15 @@ export async function createSessionRow(input: { id: string; userId: string; user
 }
 
 // نبض النشاط: يحدّث آخر نشاط والصفحة المفتوحة فقط — يعيد false إن كانت الجلسة منتهية أو المستخدم معطلاً
+// جلسة الأدمن (user_id = 'admin-env') من متغيرات البيئة لا صف لها في access_users — تُقبل بذاتها
 export async function touchSession(sessionId: string, page: string): Promise<boolean> {
   await ensureAccessTables();
   const rows = await sql()`
-    UPDATE access_sessions s SET last_seen_at = now(), current_page = ${page}
-    FROM access_users u
-    WHERE s.id = ${sessionId} AND s.ended_at IS NULL AND u.id = s.user_id AND u.is_active = TRUE
-    RETURNING s.id`;
+    UPDATE access_sessions SET last_seen_at = now(), current_page = ${page}
+    WHERE id = ${sessionId} AND ended_at IS NULL
+      AND (user_id = 'admin-env'
+        OR EXISTS (SELECT 1 FROM access_users u WHERE u.id = access_sessions.user_id AND u.is_active = TRUE))
+    RETURNING id`;
   return rows.length > 0;
 }
 
@@ -169,7 +188,9 @@ export async function isSessionAlive(sessionId: string): Promise<boolean> {
   await ensureAccessTables();
   const rows = await sql()`
     SELECT s.id FROM access_sessions s
-    JOIN access_users u ON u.id = s.user_id
-    WHERE s.id = ${sessionId} AND s.ended_at IS NULL AND u.is_active = TRUE LIMIT 1`;
+    WHERE s.id = ${sessionId} AND s.ended_at IS NULL
+      AND (s.user_id = 'admin-env'
+        OR EXISTS (SELECT 1 FROM access_users u WHERE u.id = s.user_id AND u.is_active = TRUE))
+    LIMIT 1`;
   return rows.length > 0;
 }

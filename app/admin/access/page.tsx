@@ -30,6 +30,7 @@ interface AdminUser {
   role: string;
   is_active: boolean;
   status?: "active" | "pending";
+  email?: string | null;
   created_at: string;
   last_login_at: string | null;
   login_count: number;
@@ -92,13 +93,24 @@ export default function AdminAccessPage() {
   const [setupSecret, setSetupSecret] = useState("");
   const [hashing, setHashing] = useState(false);
 
+  const [loadError, setLoadError] = useState(false);
+
+  // مهلة 15 ثانية لكل طلب — لا انتظار أبدياً: إما بيانات أو رسالة خطأ بزر إعادة محاولة
   const refresh = useCallback(async () => {
-    const meRes = (await fetch("/api/auth/me").then((r) => r.json()).catch(() => null)) as MeResponse | null;
+    setLoadError(false);
+    const fetchJson = (url: string) =>
+      fetch(url, { signal: AbortSignal.timeout(15_000) }).then((r) => r.json()).catch(() => null);
+    const meRes = (await fetchJson("/api/auth/me")) as MeResponse | null;
+    if (!meRes) {
+      setLoadError(true);
+      setLoading(false);
+      return;
+    }
     setMe(meRes);
-    if (meRes?.configured && meRes.role === "admin") {
+    if (meRes.configured && meRes.role === "admin") {
       const [u, s] = await Promise.all([
-        fetch("/api/access-admin/users").then((r) => r.json()).catch(() => null),
-        fetch("/api/access-admin/sessions").then((r) => r.json()).catch(() => null),
+        fetchJson("/api/access-admin/users"),
+        fetchJson("/api/access-admin/sessions"),
       ]);
       setUsers(u?.users ?? []);
       setSessions(s?.sessions ?? []);
@@ -201,6 +213,16 @@ export default function AdminAccessPage() {
       <div className="flex flex-col items-center justify-center gap-3 py-24">
         <DgaSpinner size="lg" />
         <span className="text-sm text-ink/50">جاري التحميل...</span>
+      </div>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <div className="mx-auto max-w-lg space-y-4 py-24 text-center">
+        <p className="text-base font-semibold text-ink">تعذر تحميل اللوحة</p>
+        <p className="text-sm leading-7 text-ink/60">انقطع الاتصال أو تأخر الخادم — أعيدي المحاولة، وإن تكررت أرسلي لقطة لمسؤول التطوير.</p>
+        <Button onClick={() => { setLoading(true); void refresh(); }}>إعادة المحاولة</Button>
       </div>
     );
   }
@@ -319,6 +341,7 @@ export default function AdminAccessPage() {
                   {users.filter((u) => u.status === "pending").map((user) => (
                     <li key={user.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-white p-2.5">
                       <span className="text-sm font-medium">{user.username}</span>
+                      {user.email ? <span className="text-xs text-ink/60" dir="ltr">{user.email}</span> : null}
                       <span className="text-xs text-ink/50">طلب في {fmt(user.created_at)}</span>
                       <span className="flex gap-1.5">
                         <button
@@ -372,6 +395,7 @@ export default function AdminAccessPage() {
                   <thead>
                     <tr className="border-b border-line text-right text-xs text-ink/55">
                       <th className="px-2 py-2">اسم المستخدم</th>
+                      <th className="px-2 py-2">البريد</th>
                       <th className="px-2 py-2">الحالة</th>
                       <th className="px-2 py-2">آخر دخول</th>
                       <th className="px-2 py-2">مرات الدخول</th>
@@ -383,6 +407,7 @@ export default function AdminAccessPage() {
                     {users.filter((u) => u.status !== "pending").map((user) => (
                       <tr key={user.id} className="border-b border-line/60">
                         <td className="px-2 py-2.5 font-medium">{user.username}</td>
+                        <td className="px-2 py-2.5 text-ink/70" dir="ltr">{user.email ?? "—"}</td>
                         <td className="px-2 py-2.5">
                           <StatusBadge tone={user.is_active ? "good" : "gold"}>{user.is_active ? "نشط" : "معطل"}</StatusBadge>
                         </td>

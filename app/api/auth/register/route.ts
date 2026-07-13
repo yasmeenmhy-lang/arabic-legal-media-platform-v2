@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { authEnv, isAuthConfigured, isDatabaseConfigured, newSessionId } from "@/lib/access-auth";
-import { countPendingUsers, createUser, findUserByUsername } from "@/lib/access-db";
+import { countPendingUsers, createUser, findUserByEmail, findUserByUsername } from "@/lib/access-db";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -36,14 +36,19 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "محاولات كثيرة — انتظر عشر دقائق ثم أعد المحاولة." }, { status: 429 });
   }
 
-  const body = (await request.json().catch(() => null)) as { username?: string; code?: string } | null;
+  const body = (await request.json().catch(() => null)) as { username?: string; code?: string; email?: string } | null;
   const username = (body?.username ?? "").trim();
   const code = body?.code ?? "";
+  const email = (body?.email ?? "").trim().toLowerCase();
   if (!USERNAME_RE.test(username)) {
     return NextResponse.json({ error: "اسم المستخدم: من ٣ إلى ٤٠ حرفاً (عربي أو لاتيني أو أرقام أو . _ -)." }, { status: 400 });
   }
   if (code.length < 8) {
     return NextResponse.json({ error: "رمز الدخول: ٨ أحرف على الأقل — احفظه جيداً، ستدخل به بعد الموافقة." }, { status: 400 });
+  }
+  // البريد إلزامي لتأكيد هوية طالب التسجيل — تتحقق منه إدارة المنصة قبل الموافقة
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email) || email.length > 120) {
+    return NextResponse.json({ error: "أدخل بريداً إلكترونياً صحيحاً — تتواصل معك إدارة المنصة عبره عند الحاجة." }, { status: 400 });
   }
   if (username === authEnv().adminUsername) {
     return NextResponse.json({ error: "اسم المستخدم غير متاح." }, { status: 409 });
@@ -56,8 +61,10 @@ export async function POST(request: Request) {
     }
     const existing = await findUserByUsername(username);
     if (existing) return NextResponse.json({ error: "اسم المستخدم مستخدم من قبل — اختر اسماً آخر." }, { status: 409 });
+    const emailTaken = await findUserByEmail(email);
+    if (emailTaken) return NextResponse.json({ error: "هذا البريد مسجل بطلب سابق." }, { status: 409 });
     const passwordHash = await bcrypt.hash(code, 10);
-    await createUser({ id: `u_${newSessionId()}`, username, passwordHash, status: "pending" });
+    await createUser({ id: `u_${newSessionId()}`, username, passwordHash, status: "pending", email });
     return NextResponse.json({
       ok: true,
       message: "أُرسل طلبك بنجاح. يُفعَّل حسابك بعد موافقة إدارة المنصة — جرّب الدخول لاحقاً بنفس الاسم والرمز.",
