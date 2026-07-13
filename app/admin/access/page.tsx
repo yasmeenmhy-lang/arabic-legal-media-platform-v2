@@ -141,7 +141,8 @@ export default function AdminAccessPage() {
       });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) { flash(data.error ?? "تعذر إنشاء المستخدم.", true); return; }
-      flash(`أُنشئ المستخدم «${newUsername}». سلّميه الاسم والرمز بقناة آمنة — الرمز لا يُعرض مرة أخرى.`);
+      // الرمز يُعرض صريحاً هنا مرة واحدة — كان يُمسح من الحقل قبل نسخه فيضيع
+      flash(`أُنشئ المستخدم «${newUsername}» — رمز دخوله: ${newCode} — انسخيه الآن وسلّميه بقناة آمنة؛ لن يُعرض مرة أخرى.`);
       setNewUsername("");
       setNewCode("");
       await refresh();
@@ -341,7 +342,6 @@ export default function AdminAccessPage() {
                   {users.filter((u) => u.status === "pending").map((user) => (
                     <li key={user.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-white p-2.5">
                       <span className="text-sm font-medium">{user.username}</span>
-                      {user.email ? <span className="text-xs text-ink/60" dir="ltr">{user.email}</span> : null}
                       <span className="text-xs text-ink/50">طلب في {fmt(user.created_at)}</span>
                       <span className="flex gap-1.5">
                         <button
@@ -395,7 +395,6 @@ export default function AdminAccessPage() {
                   <thead>
                     <tr className="border-b border-line text-right text-xs text-ink/55">
                       <th className="px-2 py-2">اسم المستخدم</th>
-                      <th className="px-2 py-2">البريد</th>
                       <th className="px-2 py-2">الحالة</th>
                       <th className="px-2 py-2">آخر دخول</th>
                       <th className="px-2 py-2">مرات الدخول</th>
@@ -407,7 +406,6 @@ export default function AdminAccessPage() {
                     {users.filter((u) => u.status !== "pending").map((user) => (
                       <tr key={user.id} className="border-b border-line/60">
                         <td className="px-2 py-2.5 font-medium">{user.username}</td>
-                        <td className="px-2 py-2.5 text-ink/70" dir="ltr">{user.email ?? "—"}</td>
                         <td className="px-2 py-2.5">
                           <StatusBadge tone={user.is_active ? "good" : "gold"}>{user.is_active ? "نشط" : "معطل"}</StatusBadge>
                         </td>
