@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Menu, ShieldCheck, X } from "lucide-react";
 import { navItems, platformTitle } from "@/lib/navigation";
-import { demoSession } from "@/lib/rbac";
+import { SessionChip } from "@/components/session-chip";
 import { clsx } from "clsx";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
@@ -105,10 +105,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 </p>
               </div>
             </div>
-            <div className="hidden rounded-lg border border-line bg-paper px-3 py-2 text-left sm:block">
-              <p className="text-sm font-normal">{demoSession.user.name}</p>
-              <p className="text-xs text-ink/60">محام</p>
-            </div>
+            {/* بقرارها: اسم المستخدم الداخل فعلاً فقط، بلا مسمى وظيفي، ولا شيء قبل الدخول */}
+            <SessionChip />
           </div>
         </header>
         <main className="min-w-0 max-w-full overflow-x-hidden px-4 py-5 sm:px-8 sm:py-6">{children}</main>
