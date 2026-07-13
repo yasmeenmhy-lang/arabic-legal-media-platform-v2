@@ -2,7 +2,9 @@ import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { isAuthConfigured, isDatabaseConfigured, newSessionId, readSessionFromCookies } from "@/lib/access-auth";
 import {
+  approveUser,
   createUser,
+  deletePendingUser,
   endAllUserSessions,
   findUserByUsername,
   listUsers,
@@ -68,7 +70,7 @@ export async function PATCH(request: Request) {
   if ("error" in auth) return auth.error;
   if (!isDatabaseConfigured()) return NextResponse.json({ error: "قاعدة البيانات غير مهيأة." }, { status: 503 });
   const body = (await request.json().catch(() => null)) as
-    | { userId?: string; action?: "disable" | "enable" | "set-code" | "end-sessions"; code?: string }
+    | { userId?: string; action?: "disable" | "enable" | "set-code" | "end-sessions" | "approve" | "reject"; code?: string }
     | null;
   const userId = body?.userId ?? "";
   if (!userId) return NextResponse.json({ error: "معرّف المستخدم مطلوب." }, { status: 400 });
@@ -90,6 +92,13 @@ export async function PATCH(request: Request) {
       case "end-sessions":
         await endAllUserSessions(userId);
         return NextResponse.json({ ok: true, message: "أُنهيت كل جلسات المستخدم." });
+      // التسجيل الذاتي بموافقتها: اعتماد الطلب يفعّل الحساب، ورفضه يحذفه ويحرر الاسم
+      case "approve":
+        await approveUser(userId);
+        return NextResponse.json({ ok: true, message: "اعتُمد الحساب — يستطيع صاحبه الدخول الآن برمزه." });
+      case "reject":
+        await deletePendingUser(userId);
+        return NextResponse.json({ ok: true, message: "رُفض الطلب وحُذف." });
       default:
         return NextResponse.json({ error: "إجراء غير معروف." }, { status: 400 });
     }

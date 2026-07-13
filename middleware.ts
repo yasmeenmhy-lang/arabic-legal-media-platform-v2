@@ -10,8 +10,8 @@ import { can, demoSession } from "@/lib/rbac";
 
 const SESSION_COOKIE = "lm_session";
 
-// مسارات عامة لا تتطلب جلسة (صفحة الدخول ومدخلها فقط)
-const PUBLIC_PATHS = ["/login", "/api/auth/login", "/api/auth/me"];
+// مسارات عامة لا تتطلب جلسة (صفحة الدخول ومدخلاها: الدخول والتسجيل الذاتي)
+const PUBLIC_PATHS = ["/login", "/api/auth/login", "/api/auth/register", "/api/auth/me"];
 
 function isAuthConfigured(): boolean {
   return Boolean(process.env.AUTH_SECRET && process.env.ADMIN_USERNAME && process.env.ADMIN_PASSWORD_HASH);

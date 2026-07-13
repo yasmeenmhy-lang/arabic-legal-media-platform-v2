@@ -11,6 +11,8 @@ export interface AccessUser {
   username: string;
   role: "admin" | "user";
   is_active: boolean;
+  // بقرارها: التسجيل الذاتي متاح لكن الدخول لا يعمل إلا بعد موافقتها — pending حتى تعتمد
+  status: "active" | "pending";
   created_at: string;
   last_login_at: string | null;
   login_count: number;
@@ -59,6 +61,8 @@ export async function ensureAccessTables() {
     ended_by TEXT
   )`;
   await q`CREATE INDEX IF NOT EXISTS access_sessions_user_idx ON access_sessions (user_id, created_at DESC)`;
+  // التسجيل الذاتي بموافقة الأدمن: عمود الحالة يُضاف للجداول القائمة دون مساس ببياناتها
+  await q`ALTER TABLE access_users ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'active'`;
   tablesReady = true;
 }
 
@@ -71,15 +75,33 @@ export async function findUserByUsername(username: string): Promise<(AccessUser 
 export async function listUsers(): Promise<AccessUser[]> {
   await ensureAccessTables();
   const rows = await sql()`
-    SELECT id, username, role, is_active, created_at, last_login_at, login_count
-    FROM access_users ORDER BY created_at DESC`;
+    SELECT id, username, role, is_active, status, created_at, last_login_at, login_count
+    FROM access_users ORDER BY (status = 'pending') DESC, created_at DESC`;
   return rows as AccessUser[];
 }
 
-export async function createUser(input: { id: string; username: string; passwordHash: string; role?: "admin" | "user" }) {
+export async function createUser(input: { id: string; username: string; passwordHash: string; role?: "admin" | "user"; status?: "active" | "pending" }) {
   await ensureAccessTables();
-  await sql()`INSERT INTO access_users (id, username, password_hash, role)
-    VALUES (${input.id}, ${input.username}, ${input.passwordHash}, ${input.role ?? "user"})`;
+  await sql()`INSERT INTO access_users (id, username, password_hash, role, status, is_active)
+    VALUES (${input.id}, ${input.username}, ${input.passwordHash}, ${input.role ?? "user"}, ${input.status ?? "active"}, ${(input.status ?? "active") === "active"})`;
+}
+
+// اعتماد طلب تسجيل ذاتي: يتحول الحساب نشطاً ويستطيع صاحبه الدخول برمزه الذي اختاره
+export async function approveUser(userId: string) {
+  await ensureAccessTables();
+  await sql()`UPDATE access_users SET status = 'active', is_active = TRUE WHERE id = ${userId}`;
+}
+
+// رفض الطلب: يُحذف نهائياً ويتحرر الاسم
+export async function deletePendingUser(userId: string) {
+  await ensureAccessTables();
+  await sql()`DELETE FROM access_users WHERE id = ${userId} AND status = 'pending'`;
+}
+
+export async function countPendingUsers(): Promise<number> {
+  await ensureAccessTables();
+  const rows = await sql()`SELECT COUNT(*)::int AS n FROM access_users WHERE status = 'pending'`;
+  return (rows[0] as { n: number } | undefined)?.n ?? 0;
 }
 
 export async function setUserActive(userId: string, isActive: boolean) {

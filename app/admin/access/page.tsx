@@ -29,6 +29,7 @@ interface AdminUser {
   username: string;
   role: string;
   is_active: boolean;
+  status?: "active" | "pending";
   created_at: string;
   last_login_at: string | null;
   login_count: number;
@@ -137,7 +138,7 @@ export default function AdminAccessPage() {
     }
   }
 
-  async function userAction(userId: string, action: "disable" | "enable" | "set-code" | "end-sessions", code?: string) {
+  async function userAction(userId: string, action: "disable" | "enable" | "set-code" | "end-sessions" | "approve" | "reject", code?: string) {
     const response = await fetch("/api/access-admin/users", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -306,8 +307,38 @@ export default function AdminAccessPage() {
           <Panel>
             <SectionTitle
               title="المستخدمون"
-              subtitle="إنشاء الحسابات وتعطيلها وتغيير رموزها — كل مستخدم يدخل باسمه ورمزه المستقل ولا يرى أي أثر إداري."
+              subtitle="المستخدم يسجل طلبه بنفسه من صفحة الدخول وأنتِ تعتمدينه — أو أنشئي الحساب مباشرة من هنا. لا أحد يدخل قبل موافقتك."
             />
+            {/* طلبات التسجيل الذاتي المعلقة — بانتظار موافقتها */}
+            {users.some((u) => u.status === "pending") ? (
+              <div className="mb-4 rounded-xl border border-goldSoft bg-goldSoft/40 p-3">
+                <p className="mb-2 text-sm font-semibold text-gold">
+                  طلبات بانتظار موافقتك ({users.filter((u) => u.status === "pending").length})
+                </p>
+                <ul className="space-y-2">
+                  {users.filter((u) => u.status === "pending").map((user) => (
+                    <li key={user.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-white p-2.5">
+                      <span className="text-sm font-medium">{user.username}</span>
+                      <span className="text-xs text-ink/50">طلب في {fmt(user.created_at)}</span>
+                      <span className="flex gap-1.5">
+                        <button
+                          onClick={() => void userAction(user.id, "approve")}
+                          className="rounded bg-palm px-3 py-1.5 text-xs font-medium text-white transition hover:bg-palmDark focus-ring"
+                        >
+                          موافقة
+                        </button>
+                        <button
+                          onClick={() => void userAction(user.id, "reject")}
+                          className="rounded border border-red-200 px-3 py-1.5 text-xs text-red-600 transition hover:bg-red-50 focus-ring"
+                        >
+                          رفض
+                        </button>
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
             <form onSubmit={createUserAction} className="mb-4 flex flex-wrap items-end gap-2 rounded-xl border border-line bg-paper/50 p-3">
               <label className="text-xs font-semibold text-ink/70">
                 اسم المستخدم
@@ -349,7 +380,7 @@ export default function AdminAccessPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {users.map((user) => (
+                    {users.filter((u) => u.status !== "pending").map((user) => (
                       <tr key={user.id} className="border-b border-line/60">
                         <td className="px-2 py-2.5 font-medium">{user.username}</td>
                         <td className="px-2 py-2.5">
