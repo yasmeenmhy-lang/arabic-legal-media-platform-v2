@@ -110,8 +110,7 @@ export function RegisterRequestForm() {
       <summary className="cursor-pointer text-sm font-semibold text-palm">ليس لديك حساب؟ سجّل طلبك بنفسك</summary>
       <form onSubmit={submit} className="mt-3 space-y-3">
         <p className="rounded-lg bg-infoSoft p-3 text-xs leading-6 text-ink/70">
-          اختر اسم مستخدم ورمز دخول خاصين بك. يُرسل طلبك لإدارة المنصة، وبعد الموافقة تدخل
-          بنفس الاسم والرمز — فاحفظ الرمز جيداً.
+          اختر اسم مستخدم ورمز دخول خاصين بك، ثم ادخل بهما مباشرة — احفظ الرمز جيداً.
         </p>
         <label className="block text-sm font-normal">
           اسم المستخدم

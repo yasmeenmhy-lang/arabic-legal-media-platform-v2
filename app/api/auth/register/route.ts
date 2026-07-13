@@ -58,10 +58,12 @@ export async function POST(request: Request) {
     const existing = await findUserByUsername(username);
     if (existing) return NextResponse.json({ error: "اسم المستخدم مستخدم من قبل — اختر اسماً آخر." }, { status: 409 });
     const passwordHash = await bcrypt.hash(code, 10);
-    await createUser({ id: `u_${newSessionId()}`, username, passwordHash, status: "pending" });
+    // بقرار مالكة المنصة: التسجيل يفعّل الحساب فوراً بلا موافقة مسبقة —
+    // وتبقى السيطرة الكاملة لها من اللوحة: تعطيل أي حساب وإنهاء جلساته بضغطة
+    await createUser({ id: `u_${newSessionId()}`, username, passwordHash, status: "active" });
     return NextResponse.json({
       ok: true,
-      message: "أُرسل طلبك بنجاح. يُفعَّل حسابك بعد موافقة إدارة المنصة — جرّب الدخول لاحقاً بنفس الاسم والرمز.",
+      message: "أُنشئ حسابك بنجاح — يمكنك الدخول الآن بنفس الاسم والرمز.",
     });
   } catch {
     return NextResponse.json({ error: "تعذر إرسال الطلب — أعد المحاولة." }, { status: 500 });
