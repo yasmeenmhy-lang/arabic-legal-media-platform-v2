@@ -694,8 +694,8 @@ export default function ContentStudioPage() {
           specialty: specialty || undefined,
           source: sourceLabel,
           topic: topic.trim(),
-          // حد الأحرف الفعلي: ما اختاره المستخدم، وإلا الحد المعياري للقناة — ليلتزم به التوليد
-          charLimit: charLimit ?? (channel ? CHANNEL_CHAR_LIMITS[channel] : undefined) ?? undefined,
+          // بقرارها: أُلغي حد الأحرف التلقائي للقناة — يُرسل فقط ما يحدده المستخدم يدوياً
+          charLimit: charLimit ?? undefined,
           // إعدادات النوع تُرسل ليُبنى النص بمقاييس نوعه — السياق إطار للمحتوى لا تسمية
           scriptDuration: kind === "script" ? (scriptDuration || undefined) : undefined,
           scriptStyle: kind === "script" ? (scriptStyle || undefined) : undefined,
