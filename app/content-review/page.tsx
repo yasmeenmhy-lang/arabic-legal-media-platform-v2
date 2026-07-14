@@ -34,7 +34,8 @@ import {
   User,
   Users,
   Video,
-  XCircle
+  XCircle,
+  ChevronDown
 } from "lucide-react";
 import { Button, DgaSpinner, PageHeader, Panel, SectionTitle, StatusBadge } from "@/components/ui";
 import {
@@ -109,10 +110,10 @@ const CHANNEL_CHAR_LIMITS: Partial<Record<string, number>> = {
   YouTube: 5000
 };
 const charLimitPresets = [
-  { key: "x", label: "X · ٢٨٠", value: 280 },
-  { key: "snap", label: "Snapchat · ٢٥٠", value: 250 },
-  { key: "insta-tiktok", label: "Instagram / TikTok · ٢٢٠٠", value: 2200 },
-  { key: "li", label: "LinkedIn · ٣٠٠٠", value: 3000 }
+  { key: "x", label: "X · 280", value: 280 },
+  { key: "snap", label: "Snapchat · 250", value: 250 },
+  { key: "insta-tiktok", label: "Instagram / TikTok · 2200", value: 2200 },
+  { key: "li", label: "LinkedIn · 3000", value: 3000 }
 ];
 
 const contentTypeIcons: Record<string, React.ReactNode> = {
@@ -379,8 +380,8 @@ export default function ContentReviewPage() {
     setSavedVisuals(version?.visuals ?? []);
   }, [contentId, versionNumber]);
 
-  const hasReviewContext = Boolean(kind && channel && audience && purpose);
-  const contextScore = [kind, channel, audience, purpose].filter(Boolean).length;
+  const hasReviewContext = Boolean(kind && audience && purpose && specialty);
+  const contextScore = [kind, audience, purpose, specialty].filter(Boolean).length;
   const contentTypeLabel = kind ? contentTypes.find((item) => item.value === kind)?.label ?? "محتوى مهني" : "";
   const sortedFindings = useMemo(
     () => [...(review?.findings ?? [])].sort((a, b) => severityOrder[a.businessSeverity ?? "low"] - severityOrder[b.businessSeverity ?? "low"]),
@@ -388,13 +389,13 @@ export default function ContentReviewPage() {
   );
 
   async function requestReview(reviewStatus?: "READY_FOR_PUBLISHING") {
-    if (!kind || !channel || !audience || !purpose) {
-      throw new Error("اختر نوع المحتوى والقناة والجمهور والهدف قبل التحليل حتى ترتبط النتائج بالسياق الصحيح.");
+    if (!kind || !audience || !purpose || !specialty) {
+      throw new Error("اختر نوع المحتوى والجمهور والهدف والتخصص قبل التحليل حتى ترتبط النتائج بالسياق الصحيح.");
     }
     const response = await fetch("/api/reviews", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text, kind, contentType: contentTypeLabel, channel, audience, purpose, reviewStatus })
+      body: JSON.stringify({ text, kind, contentType: contentTypeLabel, channel: channel || "غير محددة", audience, purpose, reviewStatus })
     });
     if (!response.ok) {
       const payload = await response.json().catch(() => ({})) as { error?: string };
@@ -404,8 +405,8 @@ export default function ContentReviewPage() {
   }
 
   async function runReview() {
-    if (!kind || !channel || !audience || !purpose) {
-      setMessage("اختر نوع المحتوى والقناة والجمهور والهدف قبل التحليل حتى ترتبط النتائج بالسياق الصحيح.");
+    if (!kind || !audience || !purpose || !specialty) {
+      setMessage("اختر نوع المحتوى والجمهور والهدف والتخصص قبل التحليل حتى ترتبط النتائج بالسياق الصحيح.");
       return;
     }
     setLoading(true);
@@ -496,8 +497,8 @@ export default function ContentReviewPage() {
   }
 
   function saveEdits() {
-    if (!contentId || text.trim().length < 5 || !kind || !channel || !audience || !purpose) {
-      setMessage("تعذر الحفظ: أدخل نصًا من خمسة أحرف على الأقل واختر نوع المحتوى والقناة والجمهور والهدف.");
+    if (!contentId || text.trim().length < 5 || !kind || !audience || !purpose || !specialty) {
+      setMessage("تعذر الحفظ: أدخل نصًا من خمسة أحرف على الأقل واختر نوع المحتوى والجمهور والهدف والتخصص.");
       return;
     }
     const saved = saveContentDraft({
@@ -722,10 +723,9 @@ export default function ContentReviewPage() {
         <div className="mb-5">
           <div className="mb-1.5 flex items-center justify-between text-xs">
             <span className="text-ink/55">اكتمال السياق</span>
-            <span className="font-semibold text-palm">{contextScore} من 4</span>
           </div>
-          <div className="h-1.5 overflow-hidden rounded-full bg-paper">
-            <div className="h-full rounded-full bg-palm opacity-80" style={{ width: `${contextScore * 25}%` }} />
+          <div className="h-2 overflow-hidden rounded-full bg-paper" role="progressbar" aria-valuemin={0} aria-valuemax={4} aria-valuenow={contextScore}>
+            <div className="h-full rounded-full bg-gradient-to-l from-mint via-palm/70 to-palm transition-all duration-500" style={{ width: `${contextScore * 25}%` }} />
           </div>
         </div>
 
@@ -1186,17 +1186,6 @@ export default function ContentReviewPage() {
         )}
         </div>
 
-        {/* القناة */}
-        <div className={`mb-4 ${Boolean(review) && !isEditing ? "pointer-events-none opacity-60" : ""}`}>
-          <p className="mb-2 text-sm text-ink/65">القناة</p>
-          <div className="flex flex-wrap gap-2">
-            {channels.map((item) => (
-              <button key={item} type="button" onClick={() => setChannel(item)} className={`${chipBase} ${channel === item ? chipSelected : chipIdle}`}>
-                {channelIcons[item]}{item}
-              </button>
-            ))}
-          </div>
-        </div>
 
         {/* الجمهور */}
         <div className={`mb-4 ${Boolean(review) && !isEditing ? "pointer-events-none opacity-60" : ""}`}>
@@ -1221,11 +1210,9 @@ export default function ContentReviewPage() {
             ))}
           </div>
         </div>
-        {/* التخصص (اختياري) */}
+        {/* التخصص — إجباري بقرارها، متوائم مع الاستوديو */}
         <div className={`mb-4 ${Boolean(review) && !isEditing ? "pointer-events-none opacity-60" : ""}`}>
-          <p className="mb-2 text-sm text-ink/65">
-            التخصص <span className="text-ink/40">(اختياري)</span>
-          </p>
+          <p className="mb-2 text-sm text-ink/65">التخصص</p>
           <div className="flex flex-wrap gap-2">
             {specialties.map((item) => (
               <button key={item} type="button" onClick={() => setSpecialty(specialty === item ? "" : item)} className={`${chipBase} ${specialty === item ? chipSelected : chipIdle}`}>
@@ -1235,8 +1222,31 @@ export default function ContentReviewPage() {
           </div>
         </div>
 
+        {/* خيارات متقدمة (اختياري): القناة وحد الحروف — متوائمة مع الاستوديو */}
+        <details className={`border-t border-line pt-3 ${Boolean(review) && !isEditing ? "pointer-events-none opacity-60" : ""}`} open={Boolean(channel) || charLimit !== null || undefined}>
+          <summary className="flex cursor-pointer items-center justify-between rounded-lg px-1 py-1.5 text-sm text-ink/65 transition hover:text-palm focus-ring">
+            <span>
+              خيارات متقدمة <span className="text-ink/40">(اختياري)</span>
+              {channel ? <span className="mr-2 rounded-full bg-mint px-2 py-0.5 text-xs text-palm">{channel}</span> : null}
+              {charLimit !== null ? <span className="mr-2 rounded-full bg-mint px-2 py-0.5 text-xs text-palm">حد {charLimit} حرف</span> : null}
+            </span>
+            <ChevronDown size={15} className="shrink-0 opacity-50" />
+          </summary>
+          <div className="mt-3">
+        {/* القناة (اختياري) */}
+        <div className="mb-4">
+          <p className="mb-2 text-sm text-ink/65">القناة <span className="text-ink/40">(اختياري)</span></p>
+          <div className="flex flex-wrap gap-2">
+            {channels.map((item) => (
+              <button key={item} type="button" onClick={() => setChannel(channel === item ? "" : item)} className={`${chipBase} ${channel === item ? chipSelected : chipIdle}`}>
+                {channelIcons[item]}{item}
+              </button>
+            ))}
+          </div>
+        </div>
+
         {/* حد الحروف (اختياري) */}
-        <div className={`border-t border-line pt-4 ${Boolean(review) && !isEditing ? "pointer-events-none opacity-60" : ""}`}>
+        <div className="border-t border-line pt-4">
           <div className="mb-2 flex items-center justify-between">
             <p className="text-sm text-ink/65">
               حد الحروف <span className="text-ink/40">(اختياري)</span>
@@ -1273,14 +1283,16 @@ export default function ContentReviewPage() {
             <p className="mt-2 text-xs text-ink/45">
               الحد المعتاد لـ {channel}:{" "}
               <button type="button" onClick={() => setCharLimit(CHANNEL_CHAR_LIMITS[channel]!)} className="font-semibold text-palm underline-offset-2 hover:underline">
-                {CHANNEL_CHAR_LIMITS[channel]!.toLocaleString("ar-SA")} حرف
+                {CHANNEL_CHAR_LIMITS[channel]!} حرف
               </button>
             </p>
           )}
         </div>
+          </div>
+        </details>
 
         {!hasReviewContext ? (
-          <p className="mt-2 text-xs leading-6 text-ink/60">اختر نوع المحتوى والقناة والجمهور والهدف حتى يكون التحليل مرتبطًا بالسياق الصحيح.</p>
+          <p className="mt-2 text-xs leading-6 text-ink/60">اختر نوع المحتوى والجمهور والهدف والتخصص حتى يكون التحليل مرتبطًا بالسياق الصحيح.</p>
         ) : null}
         <label className="mt-4 block text-sm">
           <span className="flex flex-wrap items-center justify-between gap-2">
