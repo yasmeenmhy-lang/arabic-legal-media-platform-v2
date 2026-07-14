@@ -46,6 +46,7 @@ import {
 import { contentKindOptions, contentKindLabels } from "@/lib/content-types";
 import { QUOTE_INTEGRITY_NOTICE } from "@/lib/quote-notice";
 import type { VisualPlan } from "@/lib/visual-translator";
+import { isConditionalSource, isSourceVisible } from "@/lib/source-specialty-map";
 import {
   attachVisualsToVersion,
   DEMO_USER_NAME,
@@ -183,31 +184,31 @@ const CHANNEL_CHAR_LIMITS: Partial<Record<string, number>> = {
 };
 
 const charLimitPresets = [
-  { key: "x", label: "X · ٢٨٠", value: 280 },
-  { key: "snap", label: "Snapchat · ٢٥٠", value: 250 },
-  { key: "insta-tiktok", label: "Instagram / TikTok · ٢٢٠٠", value: 2200 },
-  { key: "li", label: "LinkedIn · ٣٠٠٠", value: 3000 },
+  { key: "x", label: "X · 280", value: 280 },
+  { key: "snap", label: "Snapchat · 250", value: 250 },
+  { key: "insta-tiktok", label: "Instagram / TikTok · 2200", value: 2200 },
+  { key: "li", label: "LinkedIn · 3000", value: 3000 },
 ];
-const audiences = ["عملاء محتملون من الأفراد", "منشآت ورواد أعمال", "زملاء وقطاع قانوني", "الجمهور العام"];
+const audiences = ["عملاء محتملون من الأفراد", "منشآت ورواد أعمال", "زملاء والقطاع العدلي", "الجمهور العام"];
 const purposes = [
-  "تثقيف الجمهور حول موضوع قانوني",
+  "تثقيف الجمهور حول موضوع نظامي",
   "رفع الوعي بالخدمات المهنية",
   "تعزيز الحضور المهني والثقة",
   "حملة توعوية",
   "التعليق على المستجدات النظامية والقضائية",
   "مشاركة معرفية وأكاديمية",
   "التعريف بالخبرات والمشاركات المهنية",
-  "مساهمة مجتمعية وعمل تطوعي قانوني",
+  "مساهمة مجتمعية وعمل تطوعي نظامي",
 ];
 const specialties = [
-  "الأنظمة التجارية والشركات",
+  "الأنظمة التجارية والأعمال",
   "نظام العمل",
   "الأحوال الشخصية",
-  "عقارات وتطوير",
-  "ملكية فكرية",
-  "التحكيم والمنازعات",
-  "أنظمة التقنية",
-  "النظام الجزائي",
+  "العقار والتطوير العمراني",
+  "الملكية الفكرية",
+  "التحكيم وتسوية المنازعات",
+  "الأنظمة التقنية وحماية البيانات",
+  "الأنظمة الجزائية",
   "نظام الاستثمار",
 ];
 
@@ -225,7 +226,7 @@ const contentSources: SourceEntry[] = [
   { key: "ai-original", label: "ابتكر من الذكاء الاصطناعي", icon: "🤖" },
   {
     key: "global-news",
-    label: "أخبار قانونية عالمية",
+    label: "أخبار نظامية عالمية",
     icon: "🌐",
     subs: [
       { key: "acquisitions", label: "استحواذات وصفقات كبرى" },
@@ -239,18 +240,18 @@ const contentSources: SourceEntry[] = [
       { key: "tech-law", label: "قانون التقنية والذكاء الاصطناعي" },
       { key: "env-law", label: "قانون البيئة والاستدامة" },
       { key: "investment-law", label: "قانون الاستثمار الدولي" },
-      { key: "conferences", label: "مؤتمرات وملتقيات قانونية" },
-      { key: "awards", label: "جوائز وتكريمات قانونية" },
+      { key: "conferences", label: "مؤتمرات وملتقيات نظامية" },
+      { key: "awards", label: "جوائز وتكريمات نظامية" },
     ],
   },
-  { key: "local-news", label: "أخبار قانونية محلية", icon: "📰" },
-  { key: "rulings", label: "أحكام قضائية منشورة رسمياً", icon: "⚖️" },
+  { key: "local-news", label: "أخبار نظامية محلية", icon: "📰" },
+  { key: "rulings", label: "المبادئ والأحكام القضائية المنشورة", icon: "⚖️" },
   { key: "regulations", label: "أنظمة ولوائح جديدة", icon: "📜" },
-  { key: "bar-updates", label: "مستجدات هيئة المحامين", icon: "🏛️" },
+  { key: "bar-updates", label: "مستجدات الهيئة السعودية للمحامين", icon: "🏛️" },
   { key: "deals", label: "صفقات واستحواذات", icon: "🤝" },
-  { key: "statistics", label: "إحصائيات قانونية", icon: "📊" },
+  { key: "statistics", label: "إحصائيات عدلية", icon: "📊" },
   { key: "academic", label: "مستجدات أكاديمية وبحثية", icon: "🎓" },
-  { key: "events", label: "مناسبات ومحافل قانونية", icon: "📅" },
+  { key: "events", label: "مناسبات ومحافل نظامية", icon: "📅" },
   { key: "other", label: "أخرى", icon: "🔍" },
 ];
 
@@ -370,19 +371,19 @@ const channelIcons: Record<string, React.ReactNode> = {
 const audienceIcons: Record<string, React.ReactNode> = {
   "عملاء محتملون من الأفراد": <User size={13} />,
   "منشآت ورواد أعمال": <Building2 size={13} />,
-  "زملاء وقطاع قانوني": <Scale size={13} />,
+  "زملاء والقطاع العدلي": <Scale size={13} />,
   "الجمهور العام": <Users size={13} />,
 };
 
 const purposeIcons: Record<string, React.ReactNode> = {
-  "تثقيف الجمهور حول موضوع قانوني": <BookOpen size={13} />,
+  "تثقيف الجمهور حول موضوع نظامي": <BookOpen size={13} />,
   "رفع الوعي بالخدمات المهنية": <TrendingUp size={13} />,
   "تعزيز الحضور المهني والثقة": <Award size={13} />,
   "حملة توعوية": <Megaphone size={13} />,
   "التعليق على المستجدات النظامية والقضائية": <Scale size={13} />,
   "مشاركة معرفية وأكاديمية": <GraduationCap size={13} />,
   "التعريف بالخبرات والمشاركات المهنية": <Briefcase size={13} />,
-  "مساهمة مجتمعية وعمل تطوعي قانوني": <HeartHandshake size={13} />,
+  "مساهمة مجتمعية وعمل تطوعي نظامي": <HeartHandshake size={13} />,
 };
 
 // ── Helpers ────────────────────────────────────────────────────────────────
@@ -469,7 +470,7 @@ function createDraftRecord(
     contentTypeLabel: contentKindLabels[resolvedKind],
     channel: ctx.channel || "LinkedIn",
     audience: ctx.audience || "الجمهور العام",
-    purpose: ctx.purpose || "تثقيف الجمهور حول موضوع قانوني",
+    purpose: ctx.purpose || "تثقيف الجمهور حول موضوع نظامي",
     status: "مسودة",
     createdAt: timestamp,
     updatedAt: timestamp,
@@ -593,6 +594,16 @@ export default function ContentStudioPage() {
   // Create path state
   const [source, setSource] = useState("");
   const [globalSub, setGlobalSub] = useState("");
+  // خيارات متقدمة (التخصص وحد الحروف) — مطوية افتراضياً وتبقى مفتوحة مع وجود اختيار
+  const [advancedOpen, setAdvancedOpen] = useState(false);
+  // تنبيه غير معيق عند تحديث المصادر تبعاً للتخصص
+  const [sourceToast, setSourceToast] = useState("");
+  // تمييز أول حقل إلزامي ناقص عند محاولة الإنشاء
+  const [missingField, setMissingField] = useState<"" | "kind" | "channel" | "audience" | "purpose">("");
+  const kindFieldRef = useRef<HTMLDivElement>(null);
+  const channelFieldRef = useRef<HTMLDivElement>(null);
+  const audienceFieldRef = useRef<HTMLDivElement>(null);
+  const purposeFieldRef = useRef<HTMLDivElement>(null);
   const [topic, setTopic] = useState("");
   const [generatedText, setGeneratedText] = useState("");
   const [generating, setGenerating] = useState(false);
@@ -613,6 +624,23 @@ export default function ContentStudioPage() {
   const [actionMsg, setActionMsg] = useState("");
 
   const contextScore = [kind, channel, audience, purpose].filter(Boolean).length;
+
+  // بقرارها: المصادر تتبع التخصص — مصدر لم يعد متاحاً يُلغى اختياره تلقائياً مع تنبيه غير معيق
+  useEffect(() => {
+    if (source && !isSourceVisible(source, specialty)) {
+      setSource("");
+      setGlobalSub("");
+      setSourceToast("تم تحديث المصادر لتناسب التخصص المختار");
+      const timer = setTimeout(() => setSourceToast(""), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [specialty, source]);
+
+  // المصادر المشروطة تُعرض آخر الشبكة حتى تنطوي بسلاسة دون ثقوب في الصفوف
+  const orderedSources = [...contentSources].sort(
+    (a, b) => Number(isConditionalSource(a.key)) - Number(isConditionalSource(b.key))
+  );
+  const advancedIsOpen = advancedOpen || Boolean(specialty) || charLimit !== null;
   const activeText = path === "create" ? generatedText : reviewText;
   // نوع المحتوى هو مصدر الحقيقة الوحيد — قسم بصري رئيسي واحد فقط لكل نوع:
   // «رسم توضيحي»: قسم «إعداد المرئيات والمخططات» وامتداده التوليدي (النوع من الإعداد، بلا اختيار مكرر)
@@ -672,6 +700,15 @@ export default function ContentStudioPage() {
   async function generateContent() {
     // السياق الرباعي شرط للإنشاء دائماً (حتى مع ابتكار الذكاء) — الاختياري الوحيد هو صندوق الموضوع
     if (!kind || !channel || !audience || !purpose) return;
+    // عند نقص حقل إلزامي في السياق: تمرير لأول حقل ناقص وتمييزه بدل التعطيل الصامت
+    const missing = !kind ? "kind" : !channel ? "channel" : !audience ? "audience" : !purpose ? "purpose" : "";
+    if (missing) {
+      const refMap = { kind: kindFieldRef, channel: channelFieldRef, audience: audienceFieldRef, purpose: purposeFieldRef } as const;
+      refMap[missing as keyof typeof refMap].current?.scrollIntoView({ behavior: "smooth", block: "center" });
+      setMissingField(missing as "kind" | "channel" | "audience" | "purpose");
+      setTimeout(() => setMissingField(""), 2600);
+      return;
+    }
     // «ابتكر من الذكاء الاصطناعي»: الموضوع وحده اختياري — الذكاء يبتكره من مدخلات السياق
     if (!source) return;
     if (source !== "ai-original" && topic.trim().length < 3) return;
@@ -690,7 +727,7 @@ export default function ContentStudioPage() {
           contentType: kind ? contentKindLabels[kind] : "منشور",
           channel: channel || "LinkedIn",
           audience: audience || "الجمهور العام",
-          purpose: purpose || "تثقيف الجمهور حول موضوع قانوني",
+          purpose: purpose || "تثقيف الجمهور حول موضوع نظامي",
           specialty: specialty || undefined,
           source: sourceLabel,
           topic: topic.trim(),
@@ -1535,18 +1572,17 @@ export default function ContentStudioPage() {
         <div className="mb-5">
           <div className="mb-1.5 flex items-center justify-between text-xs">
             <span className="text-ink/55">اكتمال السياق</span>
-            <span className="font-semibold text-palm">{contextScore} من 4</span>
           </div>
-          <div className="h-1.5 overflow-hidden rounded-full bg-paper">
+          <div className="h-2 overflow-hidden rounded-full bg-paper" role="progressbar" aria-valuemin={0} aria-valuemax={4} aria-valuenow={contextScore}>
             <div
-              className="h-full rounded-full bg-palm opacity-80 transition-all duration-300"
+              className="h-full rounded-full bg-gradient-to-l from-mint via-palm/70 to-palm transition-all duration-500"
               style={{ width: `${(contextScore / 4) * 100}%` }}
             />
           </div>
         </div>
 
         {/* Content type */}
-        <div className="mb-4">
+        <div ref={kindFieldRef} className={`mb-4 rounded-xl transition-all ${missingField === "kind" ? "bg-warningSoft/60 p-3 ring-2 ring-amber-400" : ""}`}>
           <p className="mb-2 text-sm text-ink/65">نوع المحتوى <span className="text-xs text-ink/40">— ماذا تريد أن تنشئ أولًا</span></p>
           <div className="flex flex-wrap gap-2">
             {studioContentTypes.map((item) => (
@@ -2167,7 +2203,7 @@ export default function ContentStudioPage() {
         )}
 
         {/* Channel */}
-        <div className="mb-4">
+        <div ref={channelFieldRef} className={`mb-4 rounded-xl transition-all ${missingField === "channel" ? "bg-warningSoft/60 p-3 ring-2 ring-amber-400" : ""}`}>
           <p className="mb-2 text-sm text-ink/65">القناة</p>
           <div className="flex flex-wrap gap-2">
             {channels.map((item) => (
@@ -2185,7 +2221,7 @@ export default function ContentStudioPage() {
         </div>
 
         {/* Audience */}
-        <div className="mb-4">
+        <div ref={audienceFieldRef} className={`mb-4 rounded-xl transition-all ${missingField === "audience" ? "bg-warningSoft/60 p-3 ring-2 ring-amber-400" : ""}`}>
           <p className="mb-2 text-sm text-ink/65">الجمهور</p>
           <div className="flex flex-wrap gap-2">
             {audiences.map((item) => (
@@ -2203,7 +2239,7 @@ export default function ContentStudioPage() {
         </div>
 
         {/* Purpose */}
-        <div className="mb-4">
+        <div ref={purposeFieldRef} className={`mb-4 rounded-xl transition-all ${missingField === "purpose" ? "bg-warningSoft/60 p-3 ring-2 ring-amber-400" : ""}`}>
           <p className="mb-2 text-sm text-ink/65">الهدف</p>
           <div className="flex flex-wrap gap-2">
             {purposes.map((item) => (
@@ -2220,6 +2256,24 @@ export default function ContentStudioPage() {
           </div>
         </div>
 
+        {/* خيارات متقدمة (اختياري): التخصص وحد الحروف — قسم قابل للطي، مطوي افتراضياً
+            ويبقى مفتوحاً ما دام فيه اختيار قائم */}
+        <div className="border-t border-line pt-3">
+          <button
+            type="button"
+            onClick={() => setAdvancedOpen((open) => !open)}
+            aria-expanded={advancedIsOpen}
+            className="flex w-full items-center justify-between rounded-lg px-1 py-1.5 text-sm text-ink/65 transition hover:text-palm focus-ring"
+          >
+            <span>
+              خيارات متقدمة <span className="text-ink/40">(اختياري)</span>
+              {specialty ? <span className="mr-2 rounded-full bg-mint px-2 py-0.5 text-xs text-palm">{specialty}</span> : null}
+              {charLimit !== null ? <span className="mr-2 rounded-full bg-mint px-2 py-0.5 text-xs text-palm">حد {charLimit} حرف</span> : null}
+            </span>
+            <ChevronDown size={15} className={`shrink-0 transition-transform duration-300 ${advancedIsOpen ? "rotate-180" : ""}`} />
+          </button>
+
+          <div className={`overflow-hidden transition-all duration-300 ${advancedIsOpen ? "mt-3 max-h-[720px] opacity-100" : "max-h-0 opacity-0"}`}>
         {/* Specialty (optional) */}
         <div>
           <p className="mb-2 text-sm text-ink/65">
@@ -2241,7 +2295,7 @@ export default function ContentStudioPage() {
         </div>
 
         {/* Character limit — optional */}
-        <div className="border-t border-line pt-4">
+        <div className="mt-4 border-t border-line pt-4">
           <div className="mb-2 flex items-center justify-between">
             <p className="text-sm text-ink/65">
               حد الحروف{" "}
@@ -2292,10 +2346,12 @@ export default function ContentStudioPage() {
                 onClick={() => setCharLimit(CHANNEL_CHAR_LIMITS[channel]!)}
                 className="font-semibold text-palm underline-offset-2 hover:underline"
               >
-                {CHANNEL_CHAR_LIMITS[channel]!.toLocaleString("ar-SA")} حرف
+                {CHANNEL_CHAR_LIMITS[channel]!} حرف
               </button>
             </p>
           )}
+        </div>
+          </div>
         </div>
       </Panel>
 
@@ -2396,28 +2452,47 @@ export default function ContentStudioPage() {
             </button>
           </div>
 
-          {/* Source grid */}
-          <div className="mb-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-            {contentSources.map((s) => (
-              <button
-                key={s.key}
-                type="button"
-                onClick={() => {
-                  setSource(s.key);
-                  if (s.key !== "global-news") setGlobalSub("");
-                }}
-                className={`flex items-center gap-2.5 rounded-lg border px-3 py-2.5 text-sm transition ${
-                  source === s.key
-                    ? "border-palm bg-mint text-palm shadow-[0_0_0_1px_theme(colors.palm)]"
-                    : "border-line bg-white text-ink/70 hover:border-palm hover:bg-mint hover:text-palm"
-                }`}
-              >
-                <span className="text-base">{s.icon}</span>
-                <span className="flex-1 text-right">{s.label}</span>
-                {s.subs && <ChevronDown size={13} className="shrink-0 opacity-40" />}
-              </button>
-            ))}
+          {/* Source grid — عمود على الجوال، عمودان على المتوسطة، ثلاثة على الكبيرة، بارتفاع موحد.
+              المصادر المشروطة بالتخصص (خريطة lib/source-specialty-map) تنطوي بحركة fade+collapse دون قفز */}
+          <div className="mb-4 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            {orderedSources.map((s) => {
+              const visible = isSourceVisible(s.key, specialty);
+              return (
+                <div
+                  key={s.key}
+                  aria-hidden={!visible}
+                  className={`overflow-hidden transition-all duration-300 ease-out ${visible ? "max-h-16 opacity-100" : "pointer-events-none max-h-0 opacity-0"}`}
+                >
+                  <button
+                    type="button"
+                    tabIndex={visible ? 0 : -1}
+                    onClick={() => {
+                      setSource(s.key);
+                      if (s.key !== "global-news") setGlobalSub("");
+                    }}
+                    className={`flex h-12 w-full items-center gap-2.5 rounded-lg border px-3 text-sm transition focus-ring ${
+                      source === s.key
+                        ? "border-palm bg-mint text-palm shadow-[0_0_0_1px_theme(colors.palm)]"
+                        : "border-line bg-white text-ink/70 hover:border-palm hover:bg-mint hover:text-palm"
+                    }`}
+                  >
+                    <span className="text-base">{s.icon}</span>
+                    <span className="flex-1 truncate text-right">{s.label}</span>
+                    {s.subs && <ChevronDown size={13} className="shrink-0 opacity-40" />}
+                  </button>
+                </div>
+              );
+            })}
           </div>
+
+          {/* تنبيه غير معيق عند تحديث المصادر تبعاً للتخصص */}
+          {sourceToast ? (
+            <div className="pointer-events-none fixed inset-x-0 bottom-6 z-50 flex justify-center">
+              <div className="rounded-full border border-line bg-white px-4 py-2 text-sm text-ink shadow-lg">
+                {sourceToast}
+              </div>
+            </div>
+          ) : null}
 
           {/* Global news sub-categories */}
           {source === "global-news" && (
@@ -2450,18 +2525,23 @@ export default function ContentStudioPage() {
             </p>
             <textarea
               value={topic}
-              onChange={(e) => setTopic(e.target.value)}
+              rows={3}
+              onChange={(e) => {
+                setTopic(e.target.value);
+                e.currentTarget.style.height = "auto";
+                e.currentTarget.style.height = `${e.currentTarget.scrollHeight}px`;
+              }}
               placeholder={source === "ai-original"
                 ? "اتركه فارغاً ليبتكر الذكاء موضوعاً بناءً على نوع المحتوى والقناة والجمهور والهدف والتخصص أعلاه — أو اكتب فكرة لتوجيهه"
                 : "اكتب موضوعك هنا... الذكاء يفهم ويُنشئ تلقائياً"}
-              className="min-h-24 w-full rounded-lg border border-line p-4 leading-8"
+              className="w-full resize-none overflow-hidden rounded-lg border border-line p-4 leading-8"
             />
           </div>
 
           <button
             type="button"
             onClick={generateContent}
-            disabled={!kind || !channel || !audience || !purpose || !source || (source !== "ai-original" && topic.trim().length < 3)}
+            disabled={!source || (source !== "ai-original" && topic.trim().length < 3)}
             className="inline-flex items-center gap-2 rounded-lg bg-violet px-[11px] py-[9px] text-sm font-medium text-white transition hover:bg-violetDark focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet disabled:cursor-not-allowed disabled:opacity-50"
           >
             <Sparkles size={16} aria-hidden="true" />

@@ -78,26 +78,26 @@ const contentTypes = contentKindOptions.filter((item) =>
   (["post", "advertisement", "campaign", "article", "script", "caption", "visual_content", "infographic", "publishing_plan"] as ContentKind[]).includes(item.value)
 );
 const channels = ["LinkedIn", "X", "Instagram", "TikTok", "Snapchat", "YouTube", "الموقع الإلكتروني"];
-const audiences = ["عملاء محتملون من الأفراد", "منشآت ورواد أعمال", "زملاء وقطاع قانوني", "الجمهور العام"];
+const audiences = ["عملاء محتملون من الأفراد", "منشآت ورواد أعمال", "زملاء والقطاع العدلي", "الجمهور العام"];
 const purposes = [
-  "تثقيف الجمهور حول موضوع قانوني",
+  "تثقيف الجمهور حول موضوع نظامي",
   "رفع الوعي بالخدمات المهنية",
   "تعزيز الحضور المهني والثقة",
   "حملة توعوية",
   "التعليق على المستجدات النظامية والقضائية",
   "مشاركة معرفية وأكاديمية",
   "التعريف بالخبرات والمشاركات المهنية",
-  "مساهمة مجتمعية وعمل تطوعي قانوني"
+  "مساهمة مجتمعية وعمل تطوعي نظامي"
 ];
 const specialties = [
-  "الأنظمة التجارية والشركات",
+  "الأنظمة التجارية والأعمال",
   "نظام العمل",
   "الأحوال الشخصية",
-  "عقارات وتطوير",
-  "ملكية فكرية",
-  "التحكيم والمنازعات",
-  "أنظمة التقنية",
-  "النظام الجزائي",
+  "العقار والتطوير العمراني",
+  "الملكية الفكرية",
+  "التحكيم وتسوية المنازعات",
+  "الأنظمة التقنية وحماية البيانات",
+  "الأنظمة الجزائية",
   "نظام الاستثمار"
 ];
 const CHANNEL_CHAR_LIMITS: Partial<Record<string, number>> = {
@@ -140,19 +140,19 @@ const channelIcons: Record<string, React.ReactNode> = {
 const audienceIcons: Record<string, React.ReactNode> = {
   "عملاء محتملون من الأفراد": <User size={13} />,
   "منشآت ورواد أعمال": <Building2 size={13} />,
-  "زملاء وقطاع قانوني": <Scale size={13} />,
+  "زملاء والقطاع العدلي": <Scale size={13} />,
   "الجمهور العام": <Users size={13} />
 };
 
 const purposeIcons: Record<string, React.ReactNode> = {
-  "تثقيف الجمهور حول موضوع قانوني": <BookOpen size={13} />,
+  "تثقيف الجمهور حول موضوع نظامي": <BookOpen size={13} />,
   "رفع الوعي بالخدمات المهنية": <TrendingUp size={13} />,
   "تعزيز الحضور المهني والثقة": <Award size={13} />,
   "حملة توعوية": <Megaphone size={13} />,
   "التعليق على المستجدات النظامية والقضائية": <Scale size={13} />,
   "مشاركة معرفية وأكاديمية": <GraduationCap size={13} />,
   "التعريف بالخبرات والمشاركات المهنية": <Briefcase size={13} />,
-  "مساهمة مجتمعية وعمل تطوعي قانوني": <HeartHandshake size={13} />
+  "مساهمة مجتمعية وعمل تطوعي نظامي": <HeartHandshake size={13} />
 };
 
 const chipBase = "inline-flex cursor-pointer items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm transition focus-ring";
