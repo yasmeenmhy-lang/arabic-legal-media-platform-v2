@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { ChevronDown, ChevronLeft, ExternalLink, FileClock, Filter, FolderOpen, History, RotateCcw, Trash2 } from "lucide-react";
+import { ChevronDown, ChevronLeft, ExternalLink, FileClock, Filter, FolderOpen, History, RotateCcw, Search, Trash2, X } from "lucide-react";
 import { Button, ButtonLink, DgaSpinner, PageHeader, StatusBadge } from "@/components/ui";
 import {
   exportContentRecords,
@@ -14,6 +14,7 @@ import {
 } from "@/lib/content-record-store";
 import { riskDisplayLabel, type ReviewResult, type RiskLevel } from "@/lib/types";
 import { normalizeReviewResult } from "@/lib/review-normalizer";
+import { smartMatch } from "@/lib/arabic-search";
 
 function formatDate(value?: string) {
   if (!value) return "غير متاح";
@@ -52,6 +53,9 @@ export default function ContentManagementPage() {
   const [expanded, setExpanded] = useState<string>();
   const [detailsId, setDetailsId] = useState<string>();
   const [filter, setFilter] = useState<"all" | "drafts" | "approved">("all");
+  // بحث بقائمة منسدلة في السجل — متوائم مع مركز التخطيط
+  const [search, setSearch] = useState("");
+  const [searchFocus, setSearchFocus] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState<string>();
   const [loaded, setLoaded] = useState(false);
   // تصدير/استيراد السجل — بقرار مالكة المنصة: النقل الآمن بين المتصفحات والعناوين
@@ -94,10 +98,21 @@ export default function ContentManagementPage() {
   }), [records]);
 
   const filteredRecords = useMemo(() => records.filter((record) => {
-    if (filter === "approved") return Boolean(record.approvedVersion);
-    if (filter === "drafts") return record.status !== "معتمد";
+    if (filter === "approved" && !record.approvedVersion) return false;
+    if (filter === "drafts" && record.status === "معتمد") return false;
+    if (search.trim()) {
+      const version = record.versions.find((v) => v.version === record.currentVersion) ?? record.versions.at(-1);
+      return smartMatch(search, [record.title, version?.body, version?.contentTypeLabel, version?.channel, version?.audience, version?.purpose]);
+    }
     return true;
-  }), [filter, records]);
+  }), [filter, records, search]);
+
+  // نتائج القائمة المنسدلة — كل السجل بالتركيز، ويُصفّى بالكتابة
+  const searchMatches = useMemo(() => records.filter((record) => {
+    if (!search.trim()) return true;
+    const version = record.versions.find((v) => v.version === record.currentVersion) ?? record.versions.at(-1);
+    return smartMatch(search, [record.title, version?.body, version?.contentTypeLabel, version?.channel, version?.audience, version?.purpose]);
+  }), [records, search]);
 
   function deleteRecord(id: string) {
     const next = records.filter((item) => item.id !== id);
@@ -300,6 +315,49 @@ export default function ContentManagementPage() {
         </div>
         {transferMsg ? <p className="w-full text-sm text-palm">{transferMsg}</p> : null}
       </div>
+
+      {/* بحث بقائمة منسدلة في السجل — يظهر فقط عند وجود محتوى */}
+      {records.length > 0 ? (
+        <div className="relative">
+          <div className="flex items-center gap-2 rounded-lg border border-line bg-white px-3 py-2.5 shadow-sm">
+            <Search size={15} className="shrink-0 text-ink/40" />
+            <input
+              type="text"
+              placeholder="ابحث في السجل بالعنوان أو النص أو النوع..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              onFocus={() => setSearchFocus(true)}
+              onBlur={() => setTimeout(() => setSearchFocus(false), 150)}
+              className="flex-1 bg-transparent text-sm outline-none placeholder:text-ink/35"
+            />
+            {search ? (
+              <button type="button" onClick={() => setSearch("")} className="text-ink/35 transition hover:text-ink/70" aria-label="مسح البحث">
+                <X size={14} />
+              </button>
+            ) : null}
+            <ChevronDown size={15} className={`shrink-0 text-ink/40 transition-transform ${searchFocus ? "rotate-180" : ""}`} aria-hidden="true" />
+          </div>
+          {searchFocus ? (
+            <div className="absolute inset-x-0 top-full z-30 mt-1 max-h-72 overflow-y-auto rounded-lg border border-line bg-white shadow-lg">
+              {searchMatches.length ? (
+                searchMatches.slice(0, 12).map((record) => (
+                  <button
+                    key={record.id}
+                    type="button"
+                    onMouseDown={(e) => { e.preventDefault(); setExpanded(record.id); setSearchFocus(false); setSearch(""); }}
+                    className="flex w-full items-center gap-2.5 border-b border-line/50 px-3 py-2.5 text-right transition last:border-b-0 hover:bg-mint/30"
+                  >
+                    <span className="min-w-0 flex-1 truncate text-sm text-ink">{record.title}</span>
+                    <StatusBadge tone={record.approvedVersion ? "good" : "gold"}>{record.approvedVersion ? "معتمد" : "مسودة"}</StatusBadge>
+                  </button>
+                ))
+              ) : (
+                <p className="px-3 py-3 text-sm text-ink/50">لا نتائج مطابقة.</p>
+              )}
+            </div>
+          ) : null}
+        </div>
+      ) : null}
 
       <nav aria-label="تصفية سجل المحتوى" className="flex w-full gap-2 overflow-x-auto rounded-lg border border-line bg-white p-2 shadow-sm">
         {([
