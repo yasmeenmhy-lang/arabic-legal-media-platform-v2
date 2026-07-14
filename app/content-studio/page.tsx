@@ -599,11 +599,12 @@ export default function ContentStudioPage() {
   // تنبيه غير معيق عند تحديث المصادر تبعاً للتخصص
   const [sourceToast, setSourceToast] = useState("");
   // تمييز أول حقل إلزامي ناقص عند محاولة الإنشاء
-  const [missingField, setMissingField] = useState<"" | "kind" | "channel" | "audience" | "purpose">("");
+  const [missingField, setMissingField] = useState<"" | "kind" | "channel" | "audience" | "purpose" | "specialty">("");
   const kindFieldRef = useRef<HTMLDivElement>(null);
   const channelFieldRef = useRef<HTMLDivElement>(null);
   const audienceFieldRef = useRef<HTMLDivElement>(null);
   const purposeFieldRef = useRef<HTMLDivElement>(null);
+  const specialtyFieldRef = useRef<HTMLDivElement>(null);
   const [topic, setTopic] = useState("");
   const [generatedText, setGeneratedText] = useState("");
   const [generating, setGenerating] = useState(false);
@@ -623,7 +624,7 @@ export default function ContentStudioPage() {
   // Action feedback
   const [actionMsg, setActionMsg] = useState("");
 
-  const contextScore = [kind, channel, audience, purpose].filter(Boolean).length;
+  const contextScore = [kind, audience, purpose, specialty].filter(Boolean).length;
 
   // بقرارها: المصادر تتبع التخصص — مصدر لم يعد متاحاً يُلغى اختياره تلقائياً مع تنبيه غير معيق
   useEffect(() => {
@@ -640,7 +641,7 @@ export default function ContentStudioPage() {
   const orderedSources = [...contentSources].sort(
     (a, b) => Number(isConditionalSource(a.key)) - Number(isConditionalSource(b.key))
   );
-  const advancedIsOpen = advancedOpen || Boolean(specialty) || charLimit !== null;
+  const advancedIsOpen = advancedOpen || charLimit !== null || Boolean(channel);
   const activeText = path === "create" ? generatedText : reviewText;
   // نوع المحتوى هو مصدر الحقيقة الوحيد — قسم بصري رئيسي واحد فقط لكل نوع:
   // «رسم توضيحي»: قسم «إعداد المرئيات والمخططات» وامتداده التوليدي (النوع من الإعداد، بلا اختيار مكرر)
@@ -701,11 +702,11 @@ export default function ContentStudioPage() {
     // السياق الرباعي شرط للإنشاء دائماً (حتى مع ابتكار الذكاء) — الاختياري الوحيد هو صندوق الموضوع
     if (!kind || !channel || !audience || !purpose) return;
     // عند نقص حقل إلزامي في السياق: تمرير لأول حقل ناقص وتمييزه بدل التعطيل الصامت
-    const missing = !kind ? "kind" : !channel ? "channel" : !audience ? "audience" : !purpose ? "purpose" : "";
+    const missing = !kind ? "kind" : !audience ? "audience" : !purpose ? "purpose" : !specialty ? "specialty" : "";
     if (missing) {
-      const refMap = { kind: kindFieldRef, channel: channelFieldRef, audience: audienceFieldRef, purpose: purposeFieldRef } as const;
+      const refMap = { kind: kindFieldRef, audience: audienceFieldRef, purpose: purposeFieldRef, specialty: specialtyFieldRef } as const;
       refMap[missing as keyof typeof refMap].current?.scrollIntoView({ behavior: "smooth", block: "center" });
-      setMissingField(missing as "kind" | "channel" | "audience" | "purpose");
+      setMissingField(missing as "kind" | "channel" | "audience" | "purpose" | "specialty");
       setTimeout(() => setMissingField(""), 2600);
       return;
     }
@@ -725,7 +726,7 @@ export default function ContentStudioPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           contentType: kind ? contentKindLabels[kind] : "منشور",
-          channel: channel || "LinkedIn",
+          channel: channel || "غير محددة",
           audience: audience || "الجمهور العام",
           purpose: purpose || "تثقيف الجمهور حول موضوع نظامي",
           specialty: specialty || undefined,
@@ -2202,24 +2203,6 @@ export default function ContentStudioPage() {
           </div>
         )}
 
-        {/* Channel */}
-        <div ref={channelFieldRef} className={`mb-4 rounded-xl transition-all ${missingField === "channel" ? "bg-warningSoft/60 p-3 ring-2 ring-amber-400" : ""}`}>
-          <p className="mb-2 text-sm text-ink/65">القناة</p>
-          <div className="flex flex-wrap gap-2">
-            {channels.map((item) => (
-              <button
-                key={item}
-                type="button"
-                onClick={() => setChannel(item)}
-                className={`${chipBase} ${channel === item ? chipSelected : chipIdle}`}
-              >
-                {channelIcons[item]}
-                {item}
-              </button>
-            ))}
-          </div>
-        </div>
-
         {/* Audience */}
         <div ref={audienceFieldRef} className={`mb-4 rounded-xl transition-all ${missingField === "audience" ? "bg-warningSoft/60 p-3 ring-2 ring-amber-400" : ""}`}>
           <p className="mb-2 text-sm text-ink/65">الجمهور</p>
@@ -2256,8 +2239,24 @@ export default function ContentStudioPage() {
           </div>
         </div>
 
-        {/* خيارات متقدمة (اختياري): التخصص وحد الحروف — قسم قابل للطي، مطوي افتراضياً
-            ويبقى مفتوحاً ما دام فيه اختيار قائم */}
+        {/* Specialty — إجباري بقرارها: حقل خامس ظاهر دائماً ضمن السياق */}
+        <div ref={specialtyFieldRef} className={`mb-4 rounded-xl transition-all ${missingField === "specialty" ? "bg-warningSoft/60 p-3 ring-2 ring-amber-400" : ""}`}>
+          <p className="mb-2 text-sm text-ink/65">التخصص</p>
+          <div className="flex flex-wrap gap-2">
+            {specialties.map((item) => (
+              <button
+                key={item}
+                type="button"
+                onClick={() => setSpecialty(specialty === item ? "" : item)}
+                className={`${chipBase} ${specialty === item ? chipSelected : chipIdle}`}
+              >
+                {item}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* خيارات متقدمة (اختياري): حد الحروف — قسم قابل للطي، مطوي افتراضياً */}
         <div className="border-t border-line pt-3">
           <button
             type="button"
@@ -2267,27 +2266,25 @@ export default function ContentStudioPage() {
           >
             <span>
               خيارات متقدمة <span className="text-ink/40">(اختياري)</span>
-              {specialty ? <span className="mr-2 rounded-full bg-mint px-2 py-0.5 text-xs text-palm">{specialty}</span> : null}
+              {channel ? <span className="mr-2 rounded-full bg-mint px-2 py-0.5 text-xs text-palm">{channel}</span> : null}
               {charLimit !== null ? <span className="mr-2 rounded-full bg-mint px-2 py-0.5 text-xs text-palm">حد {charLimit} حرف</span> : null}
             </span>
             <ChevronDown size={15} className={`shrink-0 transition-transform duration-300 ${advancedIsOpen ? "rotate-180" : ""}`} />
           </button>
 
-          <div className={`overflow-hidden transition-all duration-300 ${advancedIsOpen ? "mt-3 max-h-[720px] opacity-100" : "max-h-0 opacity-0"}`}>
-        {/* Specialty (optional) */}
-        <div>
-          <p className="mb-2 text-sm text-ink/65">
-            التخصص{" "}
-            <span className="text-ink/40">(اختياري)</span>
-          </p>
+          <div className={`overflow-hidden transition-all duration-300 ${advancedIsOpen ? "mt-3 max-h-[600px] opacity-100" : "max-h-0 opacity-0"}`}>
+        {/* Channel — اختيارية بقرارها: بلا قناة يُكتب النص بصيغة عامة صالحة لأي منصة */}
+        <div className="mb-1">
+          <p className="mb-2 text-sm text-ink/65">القناة <span className="text-ink/40">(اختياري)</span></p>
           <div className="flex flex-wrap gap-2">
-            {specialties.map((item) => (
+            {channels.map((item) => (
               <button
                 key={item}
                 type="button"
-                onClick={() => setSpecialty(specialty === item ? "" : item)}
-                className={`${chipBase} ${specialty === item ? chipSelected : chipIdle}`}
+                onClick={() => setChannel(channel === item ? "" : item)}
+                className={`${chipBase} ${channel === item ? chipSelected : chipIdle}`}
               >
+                {channelIcons[item]}
                 {item}
               </button>
             ))}
@@ -2547,9 +2544,9 @@ export default function ContentStudioPage() {
             <Sparkles size={16} aria-hidden="true" />
             إنشاء المحتوى
           </button>
-          {(!kind || !channel || !audience || !purpose) && (
+          {(!kind || !audience || !purpose || !specialty) && (
             <p className="mt-3 rounded-lg bg-warningSoft px-3 py-2 text-xs font-medium leading-5 text-warningDark">
-              أكمل السياق أولًا في القسم ١ — نوع المحتوى والقناة والجمهور والهدف مطلوبة قبل إنشاء المحتوى ليُكتب على مقاس سياقه.
+              أكمل السياق أولًا في القسم ١ — نوع المحتوى والجمهور والهدف والتخصص مطلوبة قبل إنشاء المحتوى ليُكتب على مقاس سياقه.
             </p>
           )}
           {generateError && <p className="mt-3 text-sm text-red-600">{generateError}</p>}
