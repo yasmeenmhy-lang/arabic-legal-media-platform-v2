@@ -1267,6 +1267,8 @@ export default function CalendarV2Page() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [tab, setTab] = useState<ViewTab>("calendar");
   const [search, setSearch] = useState("");
+  // القائمة المنسدلة لنتائج البحث — بقرارها: اقتراحات حية والنقر يفتح تفاصيل المحتوى
+  const [searchFocus, setSearchFocus] = useState(false);
   const [filterStatus, setFilterStatus] = useState<DisplayStatus | "">("");
   const [dayPanel, setDayPanel] = useState<{ date: string; items: StoredContentRecord[] } | null>(null);
   const [smartPlanOpen,    setSmartPlanOpen]    = useState(false);
@@ -1462,15 +1464,53 @@ export default function CalendarV2Page() {
           عرض الخطة المقترحة
           {smartPlanResult && <span className="rounded-full bg-palm/20 px-1.5 text-[10px] font-bold">{smartPlanResult.plan.length}</span>}
         </button>
-        <div className="flex min-w-[150px] flex-1 items-center gap-2 rounded-lg border border-line bg-white px-3 py-2">
-          <Search size={14} className="shrink-0 text-ink/40" />
-          <input
-            type="text"
-            placeholder="بحث في المحتوى..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="flex-1 bg-transparent text-sm outline-none placeholder:text-ink/35"
-          />
+        <div className="relative min-w-[150px] flex-1">
+          <div className="flex items-center gap-2 rounded-lg border border-line bg-white px-3 py-2">
+            <Search size={14} className="shrink-0 text-ink/40" />
+            <input
+              type="text"
+              placeholder="بحث في المحتوى..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              onFocus={() => setSearchFocus(true)}
+              onBlur={() => setTimeout(() => setSearchFocus(false), 150)}
+              className="flex-1 bg-transparent text-sm outline-none placeholder:text-ink/35"
+            />
+            {search ? (
+              <button type="button" onClick={() => setSearch("")} className="text-ink/35 transition hover:text-ink/70" aria-label="مسح البحث">
+                <X size={13} />
+              </button>
+            ) : null}
+          </div>
+          {/* القائمة المنسدلة — تظهر أثناء الكتابة، والنقر يفتح تفاصيل المحتوى */}
+          {searchFocus && search.trim() ? (
+            <div className="absolute inset-x-0 top-full z-30 mt-1 max-h-72 overflow-y-auto rounded-lg border border-line bg-white shadow-lg">
+              {filtered.length ? (
+                filtered.slice(0, 8).map((r) => {
+                  const ds = getDisplayStatus(r, targetDates[r.id] ?? "");
+                  const c = STATUS_COLORS[ds];
+                  return (
+                    <button
+                      key={r.id}
+                      type="button"
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        setSelectedId(r.id);
+                        setSearchFocus(false);
+                      }}
+                      className="flex w-full items-center gap-2.5 border-b border-line/50 px-3 py-2.5 text-right transition last:border-b-0 hover:bg-mint/30"
+                    >
+                      <span className={`h-2 w-2 shrink-0 rounded-full ${STATUS_DOT[ds]}`} aria-hidden="true" />
+                      <span className="min-w-0 flex-1 truncate text-sm text-ink">{r.title}</span>
+                      <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium ${c.bg} ${c.text}`}>{ds}</span>
+                    </button>
+                  );
+                })
+              ) : (
+                <p className="px-3 py-3 text-sm text-ink/50">لا نتائج مطابقة.</p>
+              )}
+            </div>
+          ) : null}
         </div>
         <div className="flex items-center gap-2 rounded-lg border border-line bg-white px-3 py-2">
           <Filter size={14} className="shrink-0 text-ink/40" />
@@ -1546,17 +1586,16 @@ export default function CalendarV2Page() {
           ))}
         </div>
 
+        {/* بقرارها: التقويم يظهر دائماً حتى بلا محتوى — تلميح مدمج بدل إخفاء الشبكة */}
         {records.length === 0 ? (
-          <div className="py-14 text-center">
-            <p className="text-ink/40">لا يوجد محتوى محفوظ بعد.</p>
-            <Link
-              href="/content-studio"
-              className="mt-3 inline-flex items-center gap-1.5 text-sm text-palm hover:underline"
-            >
-              <Sparkles size={14} /> ابدأ بإنشاء محتوى
+          <p className="mb-3 flex items-center justify-center gap-2 rounded-lg bg-paper px-3 py-2 text-sm text-ink/55">
+            لا يوجد محتوى محفوظ بعد —
+            <Link href="/content-studio" className="inline-flex items-center gap-1 text-palm hover:underline">
+              <Sparkles size={13} /> ابدأ بإنشاء محتوى
             </Link>
-          </div>
-        ) : tab === "calendar" ? (
+          </p>
+        ) : null}
+        {tab === "calendar" ? (
           <CalendarTab records={filtered} targetDates={targetDates} onSelect={setSelectedId} onSelectDate={(date, items) => setDayPanel({ date, items })} />
         ) : (
           <KanbanTab records={filtered} targetDates={targetDates} onSelect={setSelectedId} />
