@@ -6,6 +6,7 @@ import {
   AlertTriangle,
   Calendar,
   CheckCircle2,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
   Filter,
@@ -1481,12 +1482,14 @@ export default function CalendarV2Page() {
                 <X size={13} />
               </button>
             ) : null}
+            {/* سهم القائمة المنسدلة — بالتركيز تُعرض كل العناصر، والكتابة تصفّيها */}
+            <ChevronDown size={14} className={`shrink-0 text-ink/40 transition-transform ${searchFocus ? "rotate-180" : ""}`} aria-hidden="true" />
           </div>
-          {/* القائمة المنسدلة — تظهر أثناء الكتابة، والنقر يفتح تفاصيل المحتوى */}
-          {searchFocus && search.trim() ? (
+          {/* قائمة منسدلة كاملة: تظهر عند التركيز بكل المحتوى، وتُصفّى بالكتابة، والنقر يفتح التفاصيل */}
+          {searchFocus ? (
             <div className="absolute inset-x-0 top-full z-30 mt-1 max-h-72 overflow-y-auto rounded-lg border border-line bg-white shadow-lg">
               {filtered.length ? (
-                filtered.slice(0, 8).map((r) => {
+                filtered.slice(0, 12).map((r) => {
                   const ds = getDisplayStatus(r, targetDates[r.id] ?? "");
                   const c = STATUS_COLORS[ds];
                   return (
@@ -1507,7 +1510,7 @@ export default function CalendarV2Page() {
                   );
                 })
               ) : (
-                <p className="px-3 py-3 text-sm text-ink/50">لا نتائج مطابقة.</p>
+                <p className="px-3 py-3 text-sm text-ink/50">{records.length ? "لا نتائج مطابقة." : "لا يوجد محتوى بعد."}</p>
               )}
             </div>
           ) : null}
