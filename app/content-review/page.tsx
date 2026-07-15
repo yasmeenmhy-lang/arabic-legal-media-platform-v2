@@ -1407,7 +1407,7 @@ export default function ContentReviewPage() {
                 <figure key={visual.id} className="rounded-md border border-line bg-white p-2">
                   <figcaption className="mb-2 px-1 text-xs font-medium text-ink/70">{visual.visualTypeLabel}</figcaption>
                   {visual.svg ? (
-                    <div className="flex justify-center rounded bg-paper/40 p-2 [&_svg]:h-auto [&_svg]:max-h-[360px] [&_svg]:w-auto [&_svg]:max-w-full"
+                    <div className="rounded bg-paper/40 p-2 [&_svg]:mx-auto [&_svg]:block [&_svg]:h-auto [&_svg]:max-h-[360px] [&_svg]:w-full"
                       dangerouslySetInnerHTML={{ __html: visual.svg }} />
                   ) : visual.imageUrl ? (
                     /* eslint-disable-next-line @next/next/no-img-element */

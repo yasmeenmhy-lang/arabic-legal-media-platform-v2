@@ -63,8 +63,10 @@ export function SavedVisualsGallery({
               ) : null}
             </figcaption>
             {visual.svg ? (
+              // w-full (عرض محدد) لا w-auto: جذر الـSVG المولّد width="100%" بلا height —
+              // والعرض غير المحدد يُنهي ارتفاعه إلى صفر في Safari/iOS فتظهر البطاقة فارغة
               <div
-                className={`flex justify-center rounded bg-paper/40 p-2 [&_svg]:h-auto [&_svg]:w-auto [&_svg]:max-w-full ${maxH}`}
+                className={`rounded bg-paper/40 p-2 [&_svg]:mx-auto [&_svg]:block [&_svg]:h-auto [&_svg]:w-full ${maxH}`}
                 dangerouslySetInnerHTML={{ __html: visual.svg }}
               />
             ) : visual.imageUrl ? (
