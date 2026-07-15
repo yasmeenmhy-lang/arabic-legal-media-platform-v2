@@ -39,16 +39,9 @@ export function isSourceVisible(sourceKey: string, specialty: string): boolean {
 // كل شيء، وفرع الخبر العالمي زاوية مصدر يجب أن تكون من داخل مجال التخصص.
 // الفروع غير المذكورة هنا عامة تصلح لكل التخصصات (تشريعات جديدة، أحكام دولية،
 // مستجدات المهنة، مؤتمرات، جوائز) فتظهر دائماً.
-export const globalSubSpecialtyMap: Record<string, readonly string[]> = {
-  acquisitions: ["الأنظمة التجارية والأعمال", "نظام الاستثمار"],
-  "trade-law": ["الأنظمة التجارية والأعمال", "نظام الاستثمار"],
-  "investment-law": ["نظام الاستثمار", "الأنظمة التجارية والأعمال"],
-  arbitration: ["التحكيم وتسوية المنازعات", "الأنظمة التجارية والأعمال"],
-  "ip-law": ["الملكية الفكرية", "الأنظمة التقنية وحماية البيانات"],
-  "tech-law": ["الأنظمة التقنية وحماية البيانات", "الملكية الفكرية"],
-  "env-law": ["العقار والتطوير العمراني", "الأنظمة التجارية والأعمال"],
-  "human-rights": ["الأنظمة الجزائية", "الأحوال الشخصية"],
-};
+// بعد إعادة التصميم: الفروع زوايا خبر محايدة (تشريع/حكم/قضية/دراسة/مؤتمر/جائزة)
+// تنطبق على كل التخصصات — المجال نفسه يأتي من «التخصص» الحاكم، فلا حاجة لترشيح.
+export const globalSubSpecialtyMap: Record<string, readonly string[]> = {};
 
 export function isGlobalSubVisible(subKey: string, specialty: string): boolean {
   if (!specialty) return true;
