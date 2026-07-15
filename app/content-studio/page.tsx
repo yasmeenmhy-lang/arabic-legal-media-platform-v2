@@ -46,7 +46,7 @@ import {
 import { contentKindOptions, contentKindLabels } from "@/lib/content-types";
 import { QUOTE_INTEGRITY_NOTICE } from "@/lib/quote-notice";
 import type { VisualPlan } from "@/lib/visual-translator";
-import { isConditionalSource, isSourceVisible } from "@/lib/source-specialty-map";
+import { isConditionalSource, isGlobalSubVisible, isSourceVisible } from "@/lib/source-specialty-map";
 import { FieldLabel } from "@/components/field-label";
 import {
   attachVisualsToVersion,
@@ -639,7 +639,13 @@ export default function ContentStudioPage() {
       const timer = setTimeout(() => setSourceToast(""), 3000);
       return () => clearTimeout(timer);
     }
-  }, [specialty, source]);
+    if (globalSub && !isGlobalSubVisible(globalSub, specialty)) {
+      setGlobalSub("");
+      setSourceToast("تم تحديث فروع الخبر العالمي لتناسب التخصص المختار");
+      const timer = setTimeout(() => setSourceToast(""), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [specialty, source, globalSub]);
 
   // المصادر المشروطة تُعرض آخر الشبكة حتى تنطوي بسلاسة دون ثقوب في الصفوف
   const orderedSources = [...contentSources].sort(
@@ -2603,7 +2609,8 @@ export default function ContentStudioPage() {
               <div className="flex flex-wrap gap-2">
                 {contentSources
                   .find((s) => s.key === "global-news")
-                  ?.subs?.map((sub) => (
+                  ?.subs?.filter((sub) => isGlobalSubVisible(sub.key, specialty))
+                  .map((sub) => (
                     <button
                       key={sub.key}
                       type="button"
