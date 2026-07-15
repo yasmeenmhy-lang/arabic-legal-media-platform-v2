@@ -231,13 +231,13 @@ ${briefType
   // سقف الإخراج يتبع النوع — بهامش أمان واسع (العربية كثيفة التوكنز)؛ والضابط الحقيقي للطول
   // هو قالب النوع في المطالبة لا هذا السقف. رُفعت السقوف لتلافي أي قطع.
   const maxTokens =
-    contentType === "مقال" ? (articleLength === "long" ? 8192 : 5000)
-    : contentType === "حملة" || contentType === "خطة نشر" ? 5000
+    contentType === "مقال" ? (articleLength === "long" ? 12288 : 8192)
+    : contentType === "حملة" || contentType === "خطة نشر" ? 8192
     : contentType === "إعلان مهني" || contentType === "تعليق" ? 2000
     : contentType === "منشور توعوي" ? 2500
     : contentType === "عنوان" || contentType === "وسم" ? 1000
     : contentType === "محتوى بصري" || contentType === "رسم توضيحي" || contentType === "تصدير اجتماعي" ? 2000
-    : 3000;
+    : 4096;
 
   // استدعاء واحد لـSonnet — يعيد النص وسبب التوقف لكشف القطع
   const key: string = apiKey;
