@@ -747,8 +747,36 @@ export default function ContentStudioPage() {
           planDateRange: kind === "publishing_plan" ? (planDateRange || undefined) : undefined,
         }),
       });
-      const data = (await res.json()) as { text?: string; error?: string; truncated?: boolean };
-      if (!res.ok || !data.text) {
+      // المسار يبث نبضات حية (NDJSON) حتى لا تقطع متصفحات الجوال الطلبات الطويلة —
+      // نقرأ البث ونتجاهل النبضات ونأخذ سطر النتيجة أو الخطأ الأخير.
+      let data: { text?: string; error?: string; truncated?: boolean } = {};
+      const contentType = res.headers.get("content-type") ?? "";
+      if (contentType.includes("ndjson") && res.body) {
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = "";
+        for (;;) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          let newline = buffer.indexOf("\n");
+          while (newline >= 0) {
+            const line = buffer.slice(0, newline).trim();
+            buffer = buffer.slice(newline + 1);
+            newline = buffer.indexOf("\n");
+            if (!line) continue;
+            try {
+              const event = JSON.parse(line) as { type?: string; text?: string; error?: string; truncated?: boolean };
+              if (event.type === "result" || event.type === "error") data = event;
+            } catch {
+              /* سطر غير مكتمل — يُتجاهل */
+            }
+          }
+        }
+      } else {
+        data = (await res.json().catch(() => ({}))) as typeof data;
+      }
+      if (!data.text) {
         setGenerateError(data.error ?? "فشل في إنشاء المحتوى");
         return;
       }
@@ -2558,10 +2586,7 @@ export default function ContentStudioPage() {
           <div className="flex flex-col items-center gap-4 py-8">
             <Bot size={32} className="animate-pulse text-violet" />
             <p className="text-sm text-ink/65">الذكاء الاصطناعي يُنشئ المحتوى...</p>
-            <p className="max-w-md text-center text-xs leading-5 text-ink/45">
-              النص يُكتب ثم يُفحص على حاكم المنصة (قواعد السلوك واللائحة) قبل تسليمه —
-              الأنواع الطويلة كالمقال وخطة النشر قد تستغرق حتى دقيقتين أو ثلاث. لا تغلق الصفحة.
-            </p>
+            <p className="text-center text-xs leading-5 text-ink/45">قد يستغرق المحتوى الطويل بضع دقائق.</p>
             <div className="h-2 w-48 overflow-hidden rounded-full bg-paper">
               <div className="h-full w-full rounded-full bg-gradient-to-r from-violetSoft via-violet/40 to-violetSoft bg-[length:200%] animate-[pulse_1.5s_ease-in-out_infinite]" />
             </div>
