@@ -4,6 +4,7 @@ import { badRequest, ok } from "@/lib/api";
 import { AI_CONSTITUTION } from "@/lib/governance";
 import { runSemanticAnalysis } from "@/lib/services/semantic-analysis-service";
 import { evaluateContent } from "@/lib/services/content-evaluation-service";
+import { describeProviderError } from "@/lib/ai-provider-errors";
 
 const schema = z.object({
   text: z.string().min(5),
@@ -200,7 +201,9 @@ export async function POST(request: Request) {
 
     return ok({ suggestedText });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "خطأ غير متوقع";
+    const raw = error instanceof Error ? error.message : "خطأ غير متوقع";
+    // أخطاء المزود المعروفة (رصيد/مفتاح/ضغط) تُعرض بالعربية بسببها وإجرائها — لا بنصها الإنجليزي الخام
+    const message = describeProviderError(raw) ?? raw;
     return NextResponse.json({ error: message }, { status: 503 });
   }
 }
