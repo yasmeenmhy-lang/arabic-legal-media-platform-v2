@@ -459,7 +459,7 @@ export default function ContentReviewPage() {
 
   async function applyRewrite() {
     const rewrite = review?.governedRewrites[0];
-    if (!rewrite || !kind || !channel || !audience || !purpose) return;
+    if (!rewrite || !kind || !audience || !purpose || !specialty) return;
     const enhancedRewrite = review.aiEnhancement?.rewriteSuggestions.find((item) => item.rewriteId === rewrite.id);
     const rewriteText = enhancedRewrite?.suggestedText ?? rewrite.suggestedText;
     setText(rewriteText);
@@ -680,7 +680,7 @@ export default function ContentReviewPage() {
   }
 
   async function applyAISuggestion() {
-    if (!aiSuggestion || !kind || !channel || !audience || !purpose) return;
+    if (!aiSuggestion || !kind || !audience || !purpose || !specialty) return;
     const suggestionText = aiSuggestion;
     setText(suggestionText);
     setAiSuggestion(null);
