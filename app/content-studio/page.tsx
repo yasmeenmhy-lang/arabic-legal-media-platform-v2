@@ -60,6 +60,7 @@ import {
   type StoredVisual,
 } from "@/lib/content-record-store";
 import { saveLatestReviewSnapshot } from "@/components/review-context-summary";
+import { scopedKey } from "@/lib/user-scope";
 import { riskDisplayLabel, type ContentKind, type ReviewResult, type RiskAffectedParty, type RiskLevel } from "@/lib/types";
 
 // ── Constants ──────────────────────────────────────────────────────────────
@@ -699,6 +700,68 @@ export default function ContentStudioPage() {
 
   // ── Generate content ──
 
+  // مفتاح المهمة الخلفية المعلّقة — بقرارها: الإنشاء يستمر في الخادم ولو غادر المستخدم الصفحة،
+  // وعند العودة يُستأنف تتبع المهمة تلقائياً وتُعرض النتيجة.
+  const PENDING_GENERATION_KEY = "lawyer-media:pending-generation";
+
+  function deliverGenerationOutcome(outcome: { text?: string; error?: string; truncated?: boolean }) {
+    if (outcome.text) {
+      setGeneratedText(outcome.text);
+      setGenerateError(outcome.truncated ? "النص طويل وقد لا يكون مكتملاً تماماً — راجع نهايته أو أعد الإنشاء." : "");
+      setVtSvg("");
+      setVtUrl("");
+      setVtVisual(null);
+      setVtError("");
+    } else {
+      setGenerateError(outcome.error ?? "فشل في إنشاء المحتوى");
+    }
+  }
+
+  async function pollGenerationJob(jobId: string): Promise<{ text?: string; error?: string; truncated?: boolean }> {
+    const deadline = Date.now() + 10 * 60 * 1000;
+    for (;;) {
+      if (Date.now() > deadline) return { error: "طالت المتابعة أكثر من المتوقع — أعد المحاولة." };
+      try {
+        const res = await fetch(`/api/content-studio/generate-status?id=${encodeURIComponent(jobId)}`);
+        const data = (await res.json()) as { status?: string; text?: string; error?: string; truncated?: boolean };
+        if (data.status === "done") {
+          void fetch(`/api/content-studio/generate-status?id=${encodeURIComponent(jobId)}&ack=1`).catch(() => {});
+          try { window.localStorage.removeItem(scopedKey(PENDING_GENERATION_KEY)); } catch { /* بيئة بلا تخزين */ }
+          return { text: data.text ?? "", truncated: data.truncated };
+        }
+        if (data.status === "error" || data.status === "missing") {
+          try { window.localStorage.removeItem(scopedKey(PENDING_GENERATION_KEY)); } catch { /* بيئة بلا تخزين */ }
+          return { error: data.status === "missing" ? "انتهت صلاحية المهمة — أعد الإنشاء." : data.error ?? "فشل في إنشاء المحتوى" };
+        }
+      } catch {
+        /* انقطاع شبكة عابر — نواصل الاستطلاع */
+      }
+      await new Promise((resolve) => setTimeout(resolve, 4000));
+    }
+  }
+
+  // استئناف تلقائي عند فتح الصفحة: مهمة معلّقة محفوظة → نتابعها ونعرض نتيجتها
+  useEffect(() => {
+    let raw = "";
+    try { raw = window.localStorage.getItem(scopedKey(PENDING_GENERATION_KEY)) ?? ""; } catch { return; }
+    if (!raw) return;
+    let jobId = "";
+    try { jobId = (JSON.parse(raw) as { jobId?: string }).jobId ?? ""; } catch { /* قيمة تالفة */ }
+    if (!jobId) {
+      try { window.localStorage.removeItem(scopedKey(PENDING_GENERATION_KEY)); } catch { /* تجاهل */ }
+      return;
+    }
+    setPath("create");
+    setGenerating(true);
+    setGenerateError("");
+    void (async () => {
+      const outcome = await pollGenerationJob(jobId);
+      deliverGenerationOutcome(outcome);
+      setGenerating(false);
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   async function generateContent() {
     // القناة اختيارية بقرارها — الإلزامي: النوع والجمهور والهدف والتخصص فقط.
     // عند نقص حقل إلزامي: تمرير لأول حقل ناقص وتمييزه بدل التعطيل الصامت.
@@ -747,11 +810,21 @@ export default function ContentStudioPage() {
           planDateRange: kind === "publishing_plan" ? (planDateRange || undefined) : undefined,
         }),
       });
-      // المسار يبث نبضات حية (NDJSON) حتى لا تقطع متصفحات الجوال الطلبات الطويلة —
-      // نقرأ البث ونتجاهل النبضات ونأخذ سطر النتيجة أو الخطأ الأخير.
+      // الوضع الأساسي: الخادم يرد فوراً برقم مهمة خلفية — نحفظه ونستطلع حتى تكتمل،
+      // ولو غادرتِ الصفحة تستمر المهمة في الخادم ويُستأنف التتبع عند العودة.
       let data: { text?: string; error?: string; truncated?: boolean } = {};
       const contentType = res.headers.get("content-type") ?? "";
-      if (contentType.includes("ndjson") && res.body) {
+      if (contentType.includes("application/json")) {
+        const payload = (await res.json().catch(() => ({}))) as { jobId?: string; text?: string; error?: string; truncated?: boolean };
+        if (payload.jobId) {
+          try {
+            window.localStorage.setItem(scopedKey(PENDING_GENERATION_KEY), JSON.stringify({ jobId: payload.jobId, at: Date.now() }));
+          } catch { /* بيئة بلا تخزين — تبقى المتابعة داخل الجلسة فقط */ }
+          data = await pollGenerationJob(payload.jobId);
+        } else {
+          data = payload;
+        }
+      } else if (contentType.includes("ndjson") && res.body) {
         const reader = res.body.getReader();
         const decoder = new TextDecoder();
         let buffer = "";
@@ -776,18 +849,7 @@ export default function ContentStudioPage() {
       } else {
         data = (await res.json().catch(() => ({}))) as typeof data;
       }
-      if (!data.text) {
-        setGenerateError(data.error ?? "فشل في إنشاء المحتوى");
-        return;
-      }
-      setGeneratedText(data.text);
-      // نادراً: بقي النص مقطوعاً بعد محاولات الإكمال — تنبيه غير معيق
-      setGenerateError(data.truncated ? "النص طويل وقد لا يكون مكتملاً تماماً — راجع نهايته أو أعد الإنشاء." : "");
-      // Reset any previous visual translation when new text is generated
-      setVtSvg("");
-      setVtUrl("");
-      setVtVisual(null);
-      setVtError("");
+      deliverGenerationOutcome(data);
     } finally {
       setGenerating(false);
     }
@@ -2546,7 +2608,7 @@ export default function ContentStudioPage() {
 
           {/* Topic — اختياري مع «ابتكر من الذكاء الاصطناعي» */}
           <div className="mb-4">
-            <FieldLabel label="الموضوع أو الفكرة" hint={source === "ai-original" ? "(اختياري — الذكاء يبتكر الموضوع من السياق أعلاه)" : undefined} />
+            <FieldLabel label="الموضوع أو الفكرة" hint={source === "ai-original" ? "(اختياري)" : undefined} />
             <textarea
               value={topic}
               rows={3}
@@ -2556,8 +2618,8 @@ export default function ContentStudioPage() {
                 e.currentTarget.style.height = `${e.currentTarget.scrollHeight}px`;
               }}
               placeholder={source === "ai-original"
-                ? "اتركه فارغاً ليبتكر الذكاء موضوعاً بناءً على نوع المحتوى والقناة والجمهور والهدف والتخصص أعلاه — أو اكتب فكرة لتوجيهه"
-                : "اكتب موضوعك هنا... الذكاء يفهم ويُنشئ تلقائياً"}
+                ? "اكتب فكرتك — أو اتركه فارغاً."
+                : "اكتب موضوعك هنا."}
               className="w-full resize-none overflow-hidden rounded-lg border border-line p-4 leading-8"
             />
           </div>

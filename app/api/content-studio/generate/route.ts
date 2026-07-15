@@ -4,6 +4,8 @@ import { badRequest } from "@/lib/api";
 import { AI_CONSTITUTION } from "@/lib/governance";
 import { governText } from "@/lib/services/governor-gate";
 import { describeProviderError } from "@/lib/ai-provider-errors";
+import { completeJob, createJob, failJob, jobsDb } from "@/lib/content-jobs";
+import { waitUntil } from "@vercel/functions";
 import { contentKindLabels } from "@/lib/content-types";
 import type { ContentKind } from "@/lib/types";
 
@@ -304,7 +306,9 @@ ${briefType
     let clean = false;
     let compliant = false;
 
-    for (let attempt = 0; attempt < 3; attempt++) {
+    // جولتان كحد أقصى (كتابة + تصحيح واحد) — توازن السرعة مع النظافة؛ المخالفة
+    // النظامية المتبقية بعدهما تحجب التسليم أصلاً فلا خصم على الامتثال.
+    for (let attempt = 0; attempt < 2; attempt++) {
       const produced = await produceComplete(promptText);
       text = produced.text;
       truncated = produced.truncated;
@@ -346,8 +350,39 @@ ${briefType
     return { kind: "ok", text, truncated };
   }
 
-  // بث نبضات حية أثناء العمل (NDJSON): متصفحات الجوال (Safari خاصة) تقطع الطلبات الصامتة
-  // بعد نحو دقيقة — النبضة كل عشر ثوانٍ تُبقي القناة حية مهما طالت الدورة، والنتيجة سطر أخير.
+  // الوضع الأساسي (الإنتاج): مهمة خلفية — بقرار مالكة المنصة لا يلزم بقاء المستخدم في الصفحة.
+  // الطلب يُسجَّل في قاعدة البيانات ويرد فوراً برقم مهمة، والخادم يكمل الدورة كاملة عبر
+  // waitUntil ولو أُغلقت الصفحة؛ الواجهة تتابع بالاستطلاع وتستأنف تلقائياً عند العودة.
+  const sql = jobsDb();
+  if (sql) {
+    try {
+    const jobId = crypto.randomUUID();
+    await createJob(sql, jobId);
+    const work = (async () => {
+      try {
+        const result = await runPipeline();
+        if (result.kind === "ok") await completeJob(sql, jobId, result.text, result.truncated);
+        else await failJob(sql, jobId, result.error);
+      } catch (error) {
+        console.error("[content-studio/generate:job]", error);
+        const known = describeProviderError(error instanceof Error ? error.message : "");
+        await failJob(sql, jobId, known ?? "فشل الاتصال بخدمة الذكاء الاصطناعي").catch(() => {});
+      }
+    })();
+    try {
+      waitUntil(work);
+    } catch {
+      void work; // خارج Vercel (تشغيل محلي): العملية تبقى حية أصلاً
+    }
+    return NextResponse.json({ jobId });
+    } catch (error) {
+      // تعذر تسجيل المهمة (قاعدة البيانات) — نسقط لوضع البث المباشر بدل الفشل
+      console.error("[content-studio/generate:job-init]", error);
+    }
+  }
+
+  // وضع احتياطي (بلا قاعدة بيانات): بث نبضات حية أثناء العمل (NDJSON) — متصفحات الجوال
+  // تقطع الطلبات الصامتة بعد نحو دقيقة، والنبضة كل عشر ثوانٍ تُبقي القناة حية مهما طالت.
   const encoder = new TextEncoder();
   const stream = new ReadableStream({
     async start(controller) {
