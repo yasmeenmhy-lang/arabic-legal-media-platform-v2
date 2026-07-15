@@ -1561,7 +1561,7 @@ export default function ContentStudioPage() {
       <PageHeader
         eyebrow="الاستوديو"
         title="إعداد المحتوى المهني"
-        description="راجع محتوى جاهزاً أو أنشئ محتوى جديداً — كلاهما يمر عبر محرك التحليل القانوني."
+        description="راجع محتوى جاهزاً أو أنشئ محتوى جديداً — كلاهما يمر عبر محرك التحليل النظامي."
       />
 
       {/* ── 1. Context selectors ── */}
@@ -2569,7 +2569,7 @@ export default function ContentStudioPage() {
       {path === "create" && generatedText && !review && !reviewing && (
         <Panel className="bg-violetSoft">
           <div className="mb-4 flex items-center justify-between">
-            <SectionTitle title="3. المحتوى المقترح" subtitle="راجع وعدّل قبل التحليل القانوني." />
+            <SectionTitle title="3. المحتوى المقترح" subtitle="راجع وعدّل قبل التحليل النظامي." />
             <button
               type="button"
               onClick={() => { setGeneratedText(""); setTopic(""); setVtSvg(""); setVtUrl(""); setVtVisual(null); setVtError(""); setVtConfirming(false); setVtSuggestionReason(""); setVtSectionOpen(false); setVtOutputChoice(""); setVtPremiumUrl(""); setVtProvider(""); setVtProviderNote(""); setVtPremiumError(""); setVtPlan(null); setVtPlanEditing(false); }}
@@ -3074,7 +3074,7 @@ export default function ContentStudioPage() {
         <Panel>
           <div className="flex flex-col items-center gap-3 py-8">
             <FileCheck2 size={28} className="animate-pulse text-palm" />
-            <p className="text-sm text-ink/65">محرك التحليل القانوني يعمل...</p>
+            <p className="text-sm text-ink/65">محرك التحليل النظامي يعمل...</p>
           </div>
         </Panel>
       )}

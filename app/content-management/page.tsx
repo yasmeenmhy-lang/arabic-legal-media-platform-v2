@@ -186,7 +186,7 @@ export default function ContentManagementPage() {
                             <span>{formatDate(visual.createdAt)}</span>
                           </figcaption>
                           {visual.svg ? (
-                            <div className="flex justify-center rounded bg-paper/40 p-2 [&_svg]:h-auto [&_svg]:max-h-[360px] [&_svg]:w-auto [&_svg]:max-w-full"
+                            <div className="rounded bg-paper/40 p-2 [&_svg]:mx-auto [&_svg]:block [&_svg]:h-auto [&_svg]:max-h-[360px] [&_svg]:w-full"
                               dangerouslySetInnerHTML={{ __html: visual.svg }} />
                           ) : visual.imageUrl ? (
                             /* eslint-disable-next-line @next/next/no-img-element */
