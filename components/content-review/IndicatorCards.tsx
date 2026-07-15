@@ -204,25 +204,34 @@ export function ProfessionalismIndicatorCard({ review }: { review: ReviewResult 
 export function LanguageIndicatorCard({ review }: { review: ReviewResult }) {
   if (review.analysisMode === "pattern-only") return <DegradedNotice title="اللغة والإملاء" />;
   const issues = review.languageQuality.issues;
-  // ثنائي: أخطاء ⇒ أحمر، لا أخطاء ⇒ أخضر — لا حالة وسطى
-  const hasIssues = issues.length > 0 || !review.languageQuality.passed;
-  const tone = hasIssues ? ("danger" as const) : ("good" as const);
+  // تمييز صادق: الإملاء والنحو أخطاء تُصحّح (أحمر)؛ الأسلوب والوضوح والمصطلحات
+  // ملاحظات تحسينية (كهرماني) — فلا يوحي العرض بخطأ إملائي غير موجود
+  const hardIssues = issues.filter((i) => i.category === "spelling" || i.category === "grammar");
+  const softIssues = issues.filter((i) => i.category !== "spelling" && i.category !== "grammar");
+  const hasHard = hardIssues.length > 0 || !review.languageQuality.passed;
+  const tone = hasHard ? ("danger" as const) : softIssues.length > 0 ? ("gold" as const) : ("good" as const);
+  const label = hasHard
+    ? `يحتاج تصحيح — ${hardIssues.length || issues.length} ملاحظة`
+    : softIssues.length > 0
+      ? `سليم إملائياً ونحوياً — ${softIssues.length} ملاحظة أسلوبية`
+      : "سليم لغوياً";
   return (
     <Panel className={`scroll-mt-24 border-t-4 shadow-md ${toneBorder(tone)}`}>
       <p className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-400">اللغة والإملاء</p>
-      <StatusBadge tone={tone}>
-        {hasIssues ? `يحتاج تصحيح — ${issues.length} ملاحظة` : "سليم لغوياً"}
-      </StatusBadge>
+      <StatusBadge tone={tone}>{label}</StatusBadge>
       {issues.length > 0 ? (
         <div className="mt-4 space-y-2">
-          {issues.map((issue, i) => (
-            <div key={issue.id ?? i} className="flex items-start gap-2.5 rounded-lg border border-line bg-paper p-3">
-              <span className="shrink-0 rounded bg-red-100 px-1.5 py-0.5 text-xs font-bold text-red-800">
-                {categoryLabel[issue.category] ?? issue.category}
-              </span>
-              <span className="text-sm leading-6">{issue.message}</span>
-            </div>
-          ))}
+          {issues.map((issue, i) => {
+            const isHard = issue.category === "spelling" || issue.category === "grammar";
+            return (
+              <div key={issue.id ?? i} className="flex items-start gap-2.5 rounded-lg border border-line bg-paper p-3">
+                <span className={`shrink-0 rounded px-1.5 py-0.5 text-xs font-bold ${isHard ? "bg-red-100 text-red-800" : "bg-amber-100 text-amber-800"}`}>
+                  {categoryLabel[issue.category] ?? issue.category}
+                </span>
+                <span className="text-sm leading-6">{issue.message}</span>
+              </div>
+            );
+          })}
         </div>
       ) : (
         <p className="mt-4 text-sm leading-7 text-slate-500">{"لم ترصد ملاحظات لغوية أو إملائية."}</p>
