@@ -202,6 +202,7 @@ export async function POST(request: Request) {
 
 المطلوب:
 - محتوى عالي الجودة يليق بمحامٍ متخصص ومرموق
+- الالتزام المهني أساس لا يُخرق: كل ما تكتبه مبني على قواعد السلوك المهني للمحامين واللائحة التنفيذية لنظام المحاماة في المملكة — لا تقترح ما يخالفها، وإذا استلزم الموضوع ضابطاً أو مادة نظامية فاذكرها بدقة ومنسوبة، ولا تُخرج نصاً فيه أي مخالفة مهنية
 - عند أي تعارض بين العوامل: النوع (١) يحكم القالب والطول، ثم القناة (٢) تحكم الصيغة — النوع الموجز يبقى موجزاً مهما اتسعت مساحة القناة
 ${briefType
   ? "- بلا مراجع أو استشهادات مطولة — رسالة مباشرة مركزة بقالب النوع"
@@ -213,44 +214,63 @@ ${briefType
 
 قائمة التحقق الختامية (إلزامية قبل الإخراج): راجع نصك مقابل العوامل السبعة واحداً واحداً واسأل عن كل عامل: أين أثره في النص؟ إن غاب أثر أي عامل — القالب لا يطابق النوع، أو الصيغة والطول لا يناسبان القناة وحدّها، أو اللغة لا تناسب الجمهور، أو الرسالة لا تخدم الهدف، أو الموضوع خارج التخصص أو المصدر — فأعد الكتابة قبل الإخراج.`;
 
-  try {
+  // سقف الإخراج يتبع النوع — بهامش أمان واسع (العربية كثيفة التوكنز)؛ والضابط الحقيقي للطول
+  // هو قالب النوع في المطالبة لا هذا السقف. رُفعت السقوف لتلافي أي قطع.
+  const maxTokens =
+    contentType === "مقال" ? (articleLength === "long" ? 8192 : 5000)
+    : contentType === "حملة" || contentType === "خطة نشر" ? 5000
+    : contentType === "إعلان مهني" || contentType === "تعليق" ? 2000
+    : contentType === "منشور توعوي" ? 2500
+    : contentType === "عنوان" || contentType === "وسم" ? 1000
+    : contentType === "محتوى بصري" || contentType === "رسم توضيحي" || contentType === "تصدير اجتماعي" ? 2000
+    : 3000;
+
+  // استدعاء واحد لـSonnet — يعيد النص وسبب التوقف لكشف القطع
+  const key: string = apiKey;
+  async function callSonnet(messages: { role: "user" | "assistant"; content: string }[]) {
     const response = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
-        "x-api-key": apiKey,
+        "x-api-key": key,
         "anthropic-version": "2023-06-01",
         "content-type": "application/json",
       },
-      body: JSON.stringify({
-        model: "claude-sonnet-5",
-        // سقف الإخراج يتبع النوع — بهامش أمان واسع: العربية كثيفة التوكنز والسقف الضيق
-        // يقطع النص في منتصف الجملة؛ الضابط الحقيقي للطول هو قالب النوع في المطالبة
-        max_tokens:
-          contentType === "مقال" ? (articleLength === "long" ? 4096 : 3072)
-          : contentType === "حملة" || contentType === "خطة نشر" ? 3072
-          : contentType === "إعلان مهني" || contentType === "تعليق" ? 1600
-          : contentType === "منشور توعوي" ? 2000
-          : contentType === "عنوان" || contentType === "وسم" ? 800
-          : contentType === "محتوى بصري" || contentType === "رسم توضيحي" || contentType === "تصدير اجتماعي" ? 1600
-          : 2048,
-        system,
-        messages: [{ role: "user", content: user }],
-      }),
+      body: JSON.stringify({ model: "claude-sonnet-5", max_tokens: maxTokens, system, messages }),
     });
-
     if (!response.ok) {
-      console.error("[content-studio/generate]", response.status, await response.text().catch(() => ""));
-      return NextResponse.json({ error: "فشل الاتصال بخدمة الذكاء الاصطناعي" }, { status: 503 });
+      const body = await response.text().catch(() => "");
+      throw new Error(`upstream ${response.status} ${body.slice(0, 200)}`);
+    }
+    const payload = (await response.json()) as { content?: { type: string; text: string }[]; stop_reason?: string };
+    const text = payload.content?.find((c) => c.type === "text")?.text ?? "";
+    return { text, stopReason: payload.stop_reason };
+  }
+
+  try {
+    // حلقة إكمال تلقائي: إن قُطع النص لبلوغ سقف التوكنز يُطلب إكماله من حيث توقف
+    // دون تكرار، ثم تُدمج الأجزاء — فلا يصل المحتوى ناقصاً أبداً مهما طال.
+    const messages: { role: "user" | "assistant"; content: string }[] = [{ role: "user", content: user }];
+    let full = "";
+    let stopReason: string | undefined;
+    for (let attempt = 0; attempt < 4; attempt++) {
+      const part = await callSonnet(messages);
+      full += part.text;
+      stopReason = part.stopReason;
+      if (stopReason !== "max_tokens") break;
+      // بُلغ السقف — تابع من حيث توقفت بلا إعادة أي كلمة ولا مقدمة
+      messages.push({ role: "assistant", content: part.text });
+      messages.push({
+        role: "user",
+        content: "أكمل النص من حيث توقفت تماماً — لا تُعد كتابة أي كلمة سبقت، ولا تضف أي مقدمة أو تعليق، تابع مباشرة حتى يكتمل النص وينتهي بخاتمته الطبيعية.",
+      });
     }
 
-    const payload = (await response.json()) as { content?: { type: string; text: string }[] };
-    const text = payload.content?.find((c) => c.type === "text")?.text?.trim() ?? "";
-
+    const text = full.trim();
     if (!text) return NextResponse.json({ error: "لم يُنشأ أي محتوى" }, { status: 500 });
-
-    return NextResponse.json({ text });
+    // truncated=true فقط إن بقي مقطوعاً بعد كل محاولات الإكمال (نادر) — تُعلم الواجهة
+    return NextResponse.json({ text, truncated: stopReason === "max_tokens" });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "خطأ غير متوقع";
-    return NextResponse.json({ error: message }, { status: 500 });
+    console.error("[content-studio/generate]", error);
+    return NextResponse.json({ error: "فشل الاتصال بخدمة الذكاء الاصطناعي" }, { status: 503 });
   }
 }
