@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { badRequest } from "@/lib/api";
 import { AI_CONSTITUTION } from "@/lib/governance";
 import { governText } from "@/lib/services/governor-gate";
+import { describeProviderError } from "@/lib/ai-provider-errors";
 import { contentKindLabels } from "@/lib/content-types";
 import type { ContentKind } from "@/lib/types";
 
@@ -337,6 +338,7 @@ ${briefType
     return NextResponse.json({ text, truncated });
   } catch (error) {
     console.error("[content-studio/generate]", error);
-    return NextResponse.json({ error: "فشل الاتصال بخدمة الذكاء الاصطناعي" }, { status: 503 });
+    const known = describeProviderError(error instanceof Error ? error.message : "");
+    return NextResponse.json({ error: known ?? "فشل الاتصال بخدمة الذكاء الاصطناعي" }, { status: 503 });
   }
 }
