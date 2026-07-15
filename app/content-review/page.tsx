@@ -730,8 +730,8 @@ export default function ContentReviewPage() {
         </div>
 
         <label className="mb-4 block text-sm">
-          <span className="flex flex-wrap items-center justify-between gap-2">
-            <span>عنوان المحتوى <span className="text-ink/40">(للبحث في السجل ومركز التخطيط)</span></span>
+          <span className="mb-2 flex flex-wrap items-center justify-between gap-2">
+            <span className="text-sm font-semibold text-ink/85">عنوان المحتوى <span className="text-ink/40">(للبحث في السجل ومركز التخطيط)</span></span>
             <Button
               size="sm"
               variant="secondary-gray"
@@ -768,7 +768,7 @@ export default function ContentReviewPage() {
 
         {/* نوع المحتوى */}
         <div className={`mb-4 ${Boolean(review) && !isEditing ? "pointer-events-none opacity-60" : ""}`}>
-          <p className="mb-2 text-sm text-ink/65">نوع المحتوى</p>
+          <p className="mb-2 text-sm font-semibold text-ink/85">نوع المحتوى</p>
           <div className="flex flex-wrap gap-2">
             {contentTypes.map((item) => (
               <button key={item.value} type="button" onClick={() => handleKindChange(item.value as ContentKind)} className={`${chipBase} ${kind === item.value ? chipSelected : chipIdle}`}>
@@ -1189,7 +1189,7 @@ export default function ContentReviewPage() {
 
         {/* الجمهور */}
         <div className={`mb-4 ${Boolean(review) && !isEditing ? "pointer-events-none opacity-60" : ""}`}>
-          <p className="mb-2 text-sm text-ink/65">الجمهور</p>
+          <p className="mb-2 text-sm font-semibold text-ink/85">الجمهور</p>
           <div className="flex flex-wrap gap-2">
             {audiences.map((item) => (
               <button key={item} type="button" onClick={() => setAudience(item)} className={`${chipBase} ${audience === item ? chipSelected : chipIdle}`}>
@@ -1201,7 +1201,7 @@ export default function ContentReviewPage() {
 
         {/* الهدف */}
         <div className={`mb-4 ${Boolean(review) && !isEditing ? "pointer-events-none opacity-60" : ""}`}>
-          <p className="mb-2 text-sm text-ink/65">الهدف</p>
+          <p className="mb-2 text-sm font-semibold text-ink/85">الهدف</p>
           <div className="flex flex-wrap gap-2">
             {purposes.map((item) => (
               <button key={item} type="button" onClick={() => setPurpose(item)} className={`${chipBase} ${purpose === item ? chipSelected : chipIdle}`}>
@@ -1212,7 +1212,7 @@ export default function ContentReviewPage() {
         </div>
         {/* التخصص — إجباري بقرارها، متوائم مع الاستوديو */}
         <div className={`mb-4 ${Boolean(review) && !isEditing ? "pointer-events-none opacity-60" : ""}`}>
-          <p className="mb-2 text-sm text-ink/65">التخصص</p>
+          <p className="mb-2 text-sm font-semibold text-ink/85">التخصص</p>
           <div className="flex flex-wrap gap-2">
             {specialties.map((item) => (
               <button key={item} type="button" onClick={() => setSpecialty(specialty === item ? "" : item)} className={`${chipBase} ${specialty === item ? chipSelected : chipIdle}`}>
@@ -1235,7 +1235,7 @@ export default function ContentReviewPage() {
           <div className="mt-3">
         {/* القناة (اختياري) */}
         <div className="mb-4">
-          <p className="mb-2 text-sm text-ink/65">القناة <span className="text-ink/40">(اختياري)</span></p>
+          <p className="mb-2 text-sm font-semibold text-ink/85">القناة <span className="text-ink/40">(اختياري)</span></p>
           <div className="flex flex-wrap gap-2">
             {channels.map((item) => (
               <button key={item} type="button" onClick={() => setChannel(channel === item ? "" : item)} className={`${chipBase} ${channel === item ? chipSelected : chipIdle}`}>
