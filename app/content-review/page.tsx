@@ -35,7 +35,8 @@ import {
   Users,
   Video,
   XCircle,
-  ChevronDown
+  ChevronDown,
+  X
 } from "lucide-react";
 import { Button, DgaSpinner, PageHeader, Panel, SectionTitle, StatusBadge } from "@/components/ui";
 import { FieldLabel } from "@/components/field-label";
@@ -60,9 +61,12 @@ import {
   markContentShared,
   saveContentDraft,
   upsertAnalyzedVersion,
-  type StoredVisual
+  type StoredVisual,
+  type StoredContentRecord
 } from "@/lib/content-record-store";
 import { normalizeReviewResult } from "@/lib/review-normalizer";
+import { smartMatch } from "@/lib/arabic-search";
+import { Search } from "lucide-react";
 import { saveLatestReviewSnapshot } from "@/components/review-context-summary";
 import { riskDisplayLabel, type ContentKind, type ReviewResult, type RiskLevel } from "@/lib/types";
 import { FindingsList } from "@/components/content-review/FindingCard";
@@ -351,12 +355,15 @@ export default function ContentReviewPage() {
     }
   }, [kind, channel, audience, purpose]);
 
-  useEffect(() => {
-    const selection = getActiveContentSelection();
-    if (!selection) return;
-    const record = loadContentRecords().find((item) => item.id === selection.contentId);
-    const version = record?.versions.find((item) => item.version === selection.version);
-    if (!record || !version) return;
+  // بحث منسدل لفتح محتوى محفوظ سابقاً وتحميله للمراجعة
+  const [savedRecords, setSavedRecords] = useState<StoredContentRecord[]>([]);
+  const [recordSearch, setRecordSearch] = useState("");
+  const [recordSearchFocus, setRecordSearchFocus] = useState(false);
+
+  // محمّل مشترك: يفتح إصداراً محدداً من السجل في نموذج المراجعة
+  function loadRecordVersion(record: StoredContentRecord, versionNo: number) {
+    const version = record.versions.find((item) => item.version === versionNo);
+    if (!version) return;
     setContentId(record.id);
     setVersionNumber(version.version);
     setContentTitle(record.title === "محتوى دون عنوان" ? "" : record.title);
@@ -365,12 +372,20 @@ export default function ContentReviewPage() {
     setChannel(version.channel);
     setAudience(version.audience);
     setPurpose(version.purpose);
-    // التحليلات المحفوظة تُطبَّع وقت العرض: القواعد الحالية تسري على النسخ القديمة أيضاً
     setReview(version.analysis ? normalizeReviewResult(version.analysis) : null);
     setApproved(Boolean(version.approvedAt));
-    if (!version.analysis) {
-      setMessage("تم فتح محتوى محفوظ من إصدار سابق. أعد تحليل المحتوى لعرض قرار النشر والنتائج بصيغتها الحالية.");
-    }
+    setIsEditing(false);
+    setMessage(version.analysis
+      ? ""
+      : "تم فتح محتوى محفوظ من إصدار سابق. أعد تحليل المحتوى لعرض قرار النشر والنتائج بصيغتها الحالية.");
+  }
+
+  useEffect(() => {
+    setSavedRecords(loadContentRecords());
+    const selection = getActiveContentSelection();
+    if (!selection) return;
+    const record = loadContentRecords().find((item) => item.id === selection.contentId);
+    if (record) loadRecordVersion(record, selection.version);
   }, []);
 
   // المرئيات المحفوظة تتبع الإصدار الحالي — تُعاد قراءتها كلما تغيّر (تحليل جديد يرثها من سابقه)
@@ -729,6 +744,53 @@ export default function ContentReviewPage() {
             <div className="h-full rounded-full bg-gradient-to-l from-mint via-palm/70 to-palm transition-all duration-500" style={{ width: `${contextScore * 25}%` }} />
           </div>
         </div>
+
+        {/* بحث منسدل لفتح محتوى محفوظ سابقاً وتحميله للمراجعة */}
+        {savedRecords.length > 0 ? (
+          <div className="relative mb-4">
+            <FieldLabel label="فتح محتوى محفوظ" optional />
+            <div className="flex items-center gap-2 rounded-lg border border-line bg-white px-3 py-2.5">
+              <Search size={15} className="shrink-0 text-ink/40" />
+              <input
+                type="text"
+                placeholder="اختر أو ابحث في محتوى سابق لتحميله للمراجعة..."
+                value={recordSearch}
+                onChange={(e) => setRecordSearch(e.target.value)}
+                onFocus={() => setRecordSearchFocus(true)}
+                onBlur={() => setTimeout(() => setRecordSearchFocus(false), 150)}
+                className="flex-1 bg-transparent text-sm outline-none placeholder:text-ink/35"
+              />
+              {recordSearch ? (
+                <button type="button" onClick={() => setRecordSearch("")} className="text-ink/35 transition hover:text-ink/70" aria-label="مسح البحث">
+                  <X size={14} />
+                </button>
+              ) : null}
+              <ChevronDown size={15} className={`shrink-0 text-ink/40 transition-transform ${recordSearchFocus ? "rotate-180" : ""}`} aria-hidden="true" />
+            </div>
+            {recordSearchFocus ? (
+              <div className="absolute inset-x-0 top-full z-30 mt-1 max-h-72 overflow-y-auto rounded-lg border border-line bg-white shadow-lg">
+                {(() => {
+                  const matches = savedRecords.filter((r) => {
+                    if (!recordSearch.trim()) return true;
+                    const v = r.versions.find((x) => x.version === r.currentVersion) ?? r.versions.at(-1);
+                    return smartMatch(recordSearch, [r.title, v?.body, v?.contentTypeLabel]);
+                  }).slice(0, 12);
+                  return matches.length ? matches.map((r) => (
+                    <button
+                      key={r.id}
+                      type="button"
+                      onMouseDown={(e) => { e.preventDefault(); loadRecordVersion(r, r.currentVersion); setRecordSearchFocus(false); setRecordSearch(""); }}
+                      className="flex w-full items-center gap-2.5 border-b border-line/50 px-3 py-2.5 text-right transition last:border-b-0 hover:bg-mint/30"
+                    >
+                      <span className="min-w-0 flex-1 truncate text-sm text-ink">{r.title}</span>
+                      <StatusBadge tone={r.approvedVersion ? "good" : "gold"}>{r.approvedVersion ? "معتمد" : "مسودة"}</StatusBadge>
+                    </button>
+                  )) : <p className="px-3 py-3 text-sm text-ink/50">لا نتائج مطابقة.</p>;
+                })()}
+              </div>
+            ) : null}
+          </div>
+        ) : null}
 
         <label className="mb-4 block text-sm">
           <span className="mb-2 flex flex-wrap items-center justify-between gap-2">
