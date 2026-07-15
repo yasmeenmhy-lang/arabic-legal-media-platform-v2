@@ -8,10 +8,11 @@
     }
   },
   "functions": {
-    "app/api/reviews/route.ts": { "maxDuration": 60 },
+    "app/api/content-studio/generate/route.ts": { "maxDuration": 300 },
+    "app/api/reviews/route.ts": { "maxDuration": 300 },
+    "app/api/reformulate/route.ts": { "maxDuration": 300 },
     "app/api/recommendations/route.ts": { "maxDuration": 60 },
     "app/api/publishing/schedule/route.ts": { "maxDuration": 60 },
-    "app/api/export/route.ts": { "maxDuration": 60 },
-    "app/api/reformulate/route.ts": { "maxDuration": 60 }
+    "app/api/export/route.ts": { "maxDuration": 60 }
   }
 }
