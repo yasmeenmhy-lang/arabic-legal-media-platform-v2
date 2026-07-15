@@ -26,27 +26,43 @@ const schema = z.object({
   })).default([])
 });
 
+// إكمال تلقائي: إن قُطعت الصياغة لبلوغ سقف التوكنز تُطلب متابعتها من حيث توقفت
+// دون تكرار، ثم تُدمج — فلا تُعرض صياغة مقترحة ناقصة أبداً مهما طالت.
 async function callModel(apiKey: string, systemPrompt: string, userPrompt: string): Promise<string> {
-  const response = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: {
-      "x-api-key": apiKey,
-      "anthropic-version": "2023-06-01",
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      model: "claude-sonnet-5",
-      max_tokens: 1200,
-      system: systemPrompt,
-      messages: [{ role: "user", content: userPrompt }]
-    })
-  });
-  if (!response.ok) {
-    const err = await response.json().catch(() => ({})) as { error?: { message?: string } };
-    throw new Error(err.error?.message ?? "تعذر إنشاء الصياغة المقترحة");
+  const messages: { role: "user" | "assistant"; content: string }[] = [{ role: "user", content: userPrompt }];
+  let full = "";
+  let stopReason: string | undefined;
+  for (let round = 0; round < 4; round++) {
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "x-api-key": apiKey,
+        "anthropic-version": "2023-06-01",
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        model: "claude-sonnet-5",
+        max_tokens: 4096,
+        system: systemPrompt,
+        messages
+      })
+    });
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({})) as { error?: { message?: string } };
+      throw new Error(err.error?.message ?? "تعذر إنشاء الصياغة المقترحة");
+    }
+    const data = await response.json() as { content?: Array<{ type?: string; text?: string }>; stop_reason?: string };
+    const part = data.content?.find((item) => item.type === "text")?.text ?? "";
+    full += part;
+    stopReason = data.stop_reason;
+    if (stopReason !== "max_tokens") break;
+    messages.push({ role: "assistant", content: part });
+    messages.push({
+      role: "user",
+      content: "أكمل النص من حيث توقفت تماماً — لا تُعد كتابة أي كلمة سبقت، ولا تضف أي مقدمة أو تعليق، تابع مباشرة حتى يكتمل النص وينتهي بخاتمته الطبيعية."
+    });
   }
-  const data = await response.json() as { content?: Array<{ type?: string; text?: string }> };
-  return data.content?.find((item) => item.type === "text")?.text?.trim() ?? "";
+  return full.trim();
 }
 
 // التحقق الإلزامي: الصياغة المقترحة تمر عبر محركي الامتثال واللغة قبل عرضها.

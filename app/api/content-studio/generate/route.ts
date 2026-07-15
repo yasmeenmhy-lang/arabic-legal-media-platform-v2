@@ -302,8 +302,14 @@ ${briefType
       // نوع موجز بلغ السقف = تضخّم خارج قالبه — يُعاد أقصر ليعكس النوع
       const inflated = !isOpenLength && truncated;
 
-      // بوابة الحاكم — حصن حتمي + عمق دلالي، إلزامية على كل الأنواع بلا استثناء
-      const gov = await governText(text, { contentType, channel, audience, purpose }, contentKind);
+      // بوابة الحاكم — حصن حتمي + عمق دلالي + جودة اللغة، إلزامية على كل الأنواع.
+      // الوسوم لا نحو لها فيُقصر فحصها على الامتثال دون اللغة.
+      const gov = await governText(
+        text,
+        { contentType, channel, audience, purpose },
+        contentKind,
+        { checkLanguage: contentType !== "وسم" }
+      );
       clean = gov.clean;
 
       // مطابق للحاكم ومطابق لقالب نوعه → يُسلَّم
