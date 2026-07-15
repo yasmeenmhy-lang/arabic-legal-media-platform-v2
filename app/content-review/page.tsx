@@ -1421,7 +1421,8 @@ export default function ContentReviewPage() {
           </details>
         ) : null}
         <div className="mt-4 flex flex-wrap gap-3">
-          {!review || isEditing ? <Button size="lg" onClick={runReview} disabled={loading || text.trim().length < 5 || !hasReviewContext} leadingIcon={loading ? <DgaSpinner size="sm" tone="violet" /> : <FileText size={17} />}>{loading ? "جار التحليل..." : contentId ? "إعادة التحليل" : "تحليل المحتوى"}</Button> : null}
+          {/* زر التحليل ظاهر دائماً — بعد ظهور النتائج يصبح «إعادة التحليل» بلا حاجة لدخول وضع التعديل */}
+          <Button size="lg" onClick={runReview} disabled={loading || text.trim().length < 5 || !hasReviewContext} leadingIcon={loading ? <DgaSpinner size="sm" tone="violet" /> : <FileText size={17} />}>{loading ? "جار التحليل..." : review || contentId ? "إعادة التحليل" : "تحليل المحتوى"}</Button>
           {review && !isEditing ? <Button variant="secondary" onClick={beginEditing} leadingIcon={<Edit3 size={16} />}>تعديل</Button> : null}
           {isEditing && contentId ? <Button variant="secondary" onClick={saveEdits} disabled={loading || text.trim().length < 5 || !hasReviewContext} leadingIcon={<Save size={16} />}>حفظ التعديلات</Button> : null}
           {isEditing ? <Button variant="secondary-gray" onClick={cancelEditing} disabled={loading} leadingIcon={<AlertTriangle size={16} />}>إلغاء</Button> : null}
