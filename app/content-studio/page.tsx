@@ -230,20 +230,16 @@ const contentSources: SourceEntry[] = [
     key: "global-news",
     label: "أخبار نظامية عالمية",
     icon: "🌐",
+    // زوايا خبر محايدة تنطبق على أي تخصص — مجال الخبر يأتي تلقائياً من «التخصص»
+    // المختار أعلاه، فلا تظهر خيارات من خارج مجاله أبداً (بقرار مالكة المنصة).
     subs: [
-      { key: "acquisitions", label: "استحواذات وصفقات كبرى" },
-      { key: "arbitration", label: "تحكيم دولي" },
-      { key: "court-rulings", label: "أحكام محاكم دولية" },
-      { key: "legislation", label: "تشريعات وأنظمة عالمية جديدة" },
+      { key: "legislation", label: "تشريع أو نظام عالمي جديد" },
+      { key: "court-rulings", label: "حكم قضائي دولي بارز" },
+      { key: "landmark-case", label: "قضية أو صفقة عالمية بارزة" },
+      { key: "research", label: "دراسة أو اتجاه عالمي" },
       { key: "profession-news", label: "مستجدات مهنة المحاماة عالمياً" },
-      { key: "human-rights", label: "قضايا حقوق الإنسان" },
-      { key: "trade-law", label: "قانون التجارة الدولية" },
-      { key: "ip-law", label: "قانون الملكية الفكرية" },
-      { key: "tech-law", label: "قانون التقنية والذكاء الاصطناعي" },
-      { key: "env-law", label: "قانون البيئة والاستدامة" },
-      { key: "investment-law", label: "قانون الاستثمار الدولي" },
-      { key: "conferences", label: "مؤتمرات وملتقيات نظامية" },
-      { key: "awards", label: "جوائز وتكريمات نظامية" },
+      { key: "conferences", label: "مؤتمر أو ملتقى دولي" },
+      { key: "awards", label: "جائزة أو تكريم دولي" },
     ],
   },
   { key: "local-news", label: "أخبار نظامية محلية", icon: "📰" },
@@ -2604,7 +2600,7 @@ export default function ContentStudioPage() {
           {source === "global-news" && (
             <div className="mb-4 rounded-lg border border-line bg-paper p-4">
               <p className="mb-2 text-xs font-bold uppercase tracking-wider text-slate-400">
-                تخصص الخبر العالمي
+                زاوية الخبر العالمي{specialty ? ` — في مجال «${specialty}»` : ""}
               </p>
               <div className="flex flex-wrap gap-2">
                 {contentSources
