@@ -71,7 +71,12 @@ function buildHolisticPrompt(text: string, contextSummary: string, entries: type
 حكم بفهمك الكامل للقواعد وسياق المهنة — لا تبحث عن كلمات أو أنماط محددة.
 إذا لم توجد أي مخالفة — أرجع مصفوفة فارغة [].
 إذا كان مستوى ثقتك "منخفض" في وجود المخالفة — لا تُدرجها.
-evidenceExcerpt يجب أن يكون نصاً حرفياً مقتبساً من النص المُعطى.
+evidenceExcerpt يجب أن يكون نصاً حرفياً مقتبساً من النص المُعطى — انسخه كما هو دون تعديل أو تلخيص؛ أي مخالفة دليلها غير منسوخ حرفياً من النص تُرفض آلياً.
+
+## ضوابط دقة الحكم (تمنع الإيجابيات الكاذبة دون خفض الحساسية)
+- ألفاظ الضمان لها استخدام نظامي مشروع ليس وعداً بنتيجة: «يضمن النظام هذا الحق»، «لضمان الامتثال»، «يتضمن العقد شروطاً»، «ضمانات المتهم» — المحظور هو وعد العميل أو الجمهور بنتيجة قضية أو مكسب محدد أو نسبة نجاح. لا تسجل مخالفة «حظر الوعود أو ضمان النتائج» إلا إذا كان في النص وعد فعلي موجه بنتيجة.
+- التوعية العامة بأهمية خدمة قانونية (كالمراجعة القانونية للعقود) دون وعد ولا مقارنة ولا استقطاب مباشر: إعلان مهني مقبول لا مخالفة فيه.
+- الحكم النهائي يجب ألا يناقض تحليلك: إن كان شرحك يثبت أن النص ضمن الحدود المقبولة فلا تسجل مخالفة عليه.
 
 ## طبقة التحليل متعددة الزوايا
 بعد التحليل الأساسي، طبّق على كل مخالفة محتملة المستويات الثلاثة الآتية قبل تسجيلها:
@@ -165,6 +170,30 @@ function extractJsonArray(raw: string): string | null {
   }
   const arr = raw.match(/\[[\s\S]*\]/);
   return arr ? arr[0] : null;
+}
+
+// تثبّت حتمي من الدليل: المخالفة لا تُقبل إلا إذا كان دليلها الحرفي موجوداً فعلاً
+// في النص المُحلَّل — بعد تطبيع شكلي (تشكيل/همزات/علامات اقتباس) يسامح فروق النسخ.
+// هذا يمنع «مخالفة بلا دليل» التي يجتهد فيها النموذج فتحجب نصاً سليماً.
+function normalizeForMatch(s: string): string {
+  return s
+    .replace(/[ً-ْـ]/g, "")
+    .replace(/[«»"'“”]/g, "")
+    .replace(/[إأآا]/g, "ا")
+    .replace(/ى/g, "ي")
+    .replace(/ة/g, "ه")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function evidenceAppearsInText(evidence: string, text: string): boolean {
+  const haystack = normalizeForMatch(text);
+  const segments = normalizeForMatch(evidence)
+    .split(/…|\.\.\./)
+    .map((s) => s.trim())
+    .filter((s) => s.length >= 4);
+  if (segments.length === 0) return false;
+  return segments.every((seg) => haystack.includes(seg));
 }
 
 function parseHolisticResponse(raw: string): HolisticViolation[] {
@@ -315,6 +344,18 @@ export async function runSemanticAnalysis(
   console.log("[semantic] violations identified by Claude:", violations.length);
 
   const findings = violations
+    .filter((violation) => {
+      // بوابة التثبّت: مخالفة دليلها غير موجود حرفياً في النص تُسقط — لا حكم بلا دليل
+      if (!evidenceAppearsInText(violation.evidenceExcerpt, text)) {
+        console.warn(
+          "[semantic] dropped finding with unverifiable evidence:",
+          violation.ruleReference,
+          violation.evidenceExcerpt.slice(0, 80)
+        );
+        return false;
+      }
+      return true;
+    })
     .map((violation) => {
       const entry = findKbEntry(violation.ruleReference);
       if (!entry) console.log(`[semantic] no KB entry for "${violation.ruleReference}" — building from violation data`);
