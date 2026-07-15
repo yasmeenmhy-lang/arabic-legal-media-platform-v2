@@ -48,6 +48,7 @@ import { QUOTE_INTEGRITY_NOTICE } from "@/lib/quote-notice";
 import type { VisualPlan } from "@/lib/visual-translator";
 import { isConditionalSource, isGlobalSubVisible, isSourceVisible } from "@/lib/source-specialty-map";
 import { FieldLabel } from "@/components/field-label";
+import { specialties } from "@/lib/specialties";
 import {
   attachVisualsToVersion,
   DEMO_USER_NAME,
@@ -202,17 +203,7 @@ const purposes = [
   "التعريف بالخبرات والمشاركات المهنية",
   "مساهمة مجتمعية وعمل تطوعي نظامي",
 ];
-const specialties = [
-  "الأنظمة التجارية والأعمال",
-  "نظام العمل",
-  "الأحوال الشخصية",
-  "العقار والتطوير العمراني",
-  "الملكية الفكرية",
-  "التحكيم وتسوية المنازعات",
-  "الأنظمة التقنية وحماية البيانات",
-  "الأنظمة الجزائية",
-  "نظام الاستثمار",
-];
+
 
 type SourceEntry = { key: string; label: string; icon: string; subs?: { key: string; label: string }[] };
 

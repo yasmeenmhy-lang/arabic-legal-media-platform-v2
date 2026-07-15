@@ -40,6 +40,7 @@ import {
 } from "lucide-react";
 import { Button, DgaSpinner, PageHeader, Panel, SectionTitle, StatusBadge } from "@/components/ui";
 import { FieldLabel } from "@/components/field-label";
+import { specialties } from "@/lib/specialties";
 import {
   LinkedInIcon,
   XIcon,
@@ -95,17 +96,7 @@ const purposes = [
   "التعريف بالخبرات والمشاركات المهنية",
   "مساهمة مجتمعية وعمل تطوعي نظامي"
 ];
-const specialties = [
-  "الأنظمة التجارية والأعمال",
-  "نظام العمل",
-  "الأحوال الشخصية",
-  "العقار والتطوير العمراني",
-  "الملكية الفكرية",
-  "التحكيم وتسوية المنازعات",
-  "الأنظمة التقنية وحماية البيانات",
-  "الأنظمة الجزائية",
-  "نظام الاستثمار"
-];
+
 const CHANNEL_CHAR_LIMITS: Partial<Record<string, number>> = {
   X: 280,
   Snapchat: 250,

@@ -17,7 +17,7 @@ export const sourceSpecialtyMap = {
     "other",
   ],
   conditional: {
-    deals: { visibleFor: ["الأنظمة التجارية والأعمال", "نظام الاستثمار"] },
+    deals: { visibleFor: ["الأنظمة التجارية والأعمال", "نظام الاستثمار", "التمويل والأوراق المالية", "الإفلاس وإعادة التنظيم"] },
   },
 } as const;
 
