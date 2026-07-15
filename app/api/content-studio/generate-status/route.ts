@@ -21,5 +21,5 @@ export async function GET(request: Request) {
   if (!job) return NextResponse.json({ status: "missing" });
   if (job.status === "done") return NextResponse.json({ status: "done", text: job.result_text ?? "", truncated: job.truncated });
   if (job.status === "error") return NextResponse.json({ status: "error", error: job.error ?? "فشل غير معروف" });
-  return NextResponse.json({ status: "pending" });
+  return NextResponse.json({ status: "pending", partial: job.partial_text ?? undefined });
 }
