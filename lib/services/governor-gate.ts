@@ -65,14 +65,18 @@ export function prohibitionsToCorrections(hits: ProhibitedHit[]): string[] {
 
 // الحاكم الكامل: النص المقترح يجب أن يخرج نظيفاً من كل النواحي دفعة واحدة —
 // (١) الحصن الحتمي (عبارات محظورة صريحة)، (٢) العمق الدلالي (نفس محرك المراجعة)،
-// (٣) جودة اللغة (إملاء ونحو). أي ملاحظة في أيّها = النص غير نظيف فيُعاد.
+// (٣) جودة اللغة بكل جوانبها: الإملاء والنحو والأسلوب والوضوح والمصطلحات —
+// بنفس معايير المدقق التي تُعرض للمستخدم، فلا تنتقد المنصة نصها بنفسها.
+// أي ملاحظة في أيّها = النص غير نظيف فيُعاد بتصحيحاته.
+// `compliant` يميز الامتثال النظامي: المخالفة النظامية تحجب التسليم نهائياً،
+// أما الملاحظة اللغوية المتبقية بعد كل المحاولات فلا تحجب نصاً ممتثلاً.
 // checkLanguage=false يقصره على الامتثال (للنصوص القصيرة كالعناوين والوسوم).
 export async function governText(
   text: string,
   context: ReviewContext | undefined,
   contentKind?: ContentKind,
   opts?: { checkLanguage?: boolean }
-): Promise<{ clean: boolean; corrections: string[] }> {
+): Promise<{ clean: boolean; compliant: boolean; corrections: string[] }> {
   const checkLanguage = opts?.checkLanguage !== false;
   const prohibitions = scanProhibited(text);
   const [gov, evaluation] = await Promise.all([
@@ -85,9 +89,16 @@ export async function governText(
     const safer = v.suggestedSaferWording ? ` — الصياغة الأسلم: ${v.suggestedSaferWording}` : "";
     return `- مخالفة لـ${ref}${title}: ${v.issue}${safer}`;
   });
-  const language = (evaluation?.language.issues ?? [])
-    .filter((i) => i.category === "spelling" || i.category === "grammar")
-    .map((i) => `- خطأ لغوي: «${i.excerpt ?? ""}» — ${i.message}${i.suggestion ? ` — التصحيح: ${i.suggestion}` : ""}`);
-  const corrections = [...prohibitionsToCorrections(prohibitions), ...semantic, ...language];
-  return { clean: corrections.length === 0, corrections };
+  const language = (evaluation?.language.issues ?? []).map((i) => {
+    const hard = i.category === "spelling" || i.category === "grammar";
+    const kind = hard ? "خطأ لغوي" : "ملاحظة أسلوب أو وضوح";
+    return `- ${kind}: «${i.excerpt ?? ""}» — ${i.message}${i.suggestion ? ` — التصحيح: ${i.suggestion}` : ""}`;
+  });
+  const complianceCorrections = [...prohibitionsToCorrections(prohibitions), ...semantic];
+  const corrections = [...complianceCorrections, ...language];
+  return {
+    clean: corrections.length === 0,
+    compliant: complianceCorrections.length === 0,
+    corrections,
+  };
 }

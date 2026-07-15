@@ -294,6 +294,7 @@ ${briefType
     let text = "";
     let truncated = false;
     let clean = false;
+    let compliant = false;
 
     for (let attempt = 0; attempt < 3; attempt++) {
       const produced = await produceComplete(promptText);
@@ -313,8 +314,9 @@ ${briefType
         { checkLanguage: contentType !== "وسم" }
       );
       clean = gov.clean;
+      compliant = gov.compliant;
 
-      // مطابق للحاكم ومطابق لقالب نوعه → يُسلَّم
+      // نظيف من كل النواحي (امتثال + لغة وأسلوب ووضوح) ومطابق لقالب نوعه → يُسلَّم
       if (clean && !inflated) {
         return NextResponse.json({ text, truncated: false });
       }
@@ -328,14 +330,14 @@ ${briefType
       promptText = `${user}\n\nتصحيحات إلزامية قبل الإخراج — النص السابق خالف حاكم المنصة (قواعد السلوك المهني واللائحة التنفيذية لنظام المحاماة)، فأعد كتابته كاملاً بحيث يخلو منها تماماً:\n${corrections.join("\n")}`;
     }
 
-    // استُنفدت المحاولات ولا يزال مخالفاً — لا يُسلَّم نص خارج إطار الحاكم
-    if (!clean) {
+    // استُنفدت المحاولات: المخالفة النظامية تحجب التسليم نهائياً — لا يُسلَّم نص خارج إطار الحاكم
+    if (!compliant) {
       return NextResponse.json(
         { error: "تعذّر إخراج نص مطابق لحاكم المنصة (قواعد السلوك المهني واللائحة التنفيذية). أعد المحاولة أو عدّل مدخلات السياق." },
         { status: 422 }
       );
     }
-    // مطابق للحاكم لكن بقي أطول من قالب النوع الموجز — يُسلَّم مع تنبيه غير معطِّل
+    // ممتثل نظامياً لكن بقيت ملاحظة لغوية/أسلوبية نادرة أو طول زائد — يُسلَّم مع تنبيه غير معطِّل
     return NextResponse.json({ text, truncated });
   } catch (error) {
     console.error("[content-studio/generate]", error);
