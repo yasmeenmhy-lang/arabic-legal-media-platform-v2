@@ -700,9 +700,8 @@ export default function ContentStudioPage() {
   // ── Generate content ──
 
   async function generateContent() {
-    // السياق الرباعي شرط للإنشاء دائماً (حتى مع ابتكار الذكاء) — الاختياري الوحيد هو صندوق الموضوع
-    if (!kind || !channel || !audience || !purpose) return;
-    // عند نقص حقل إلزامي في السياق: تمرير لأول حقل ناقص وتمييزه بدل التعطيل الصامت
+    // القناة اختيارية بقرارها — الإلزامي: النوع والجمهور والهدف والتخصص فقط.
+    // عند نقص حقل إلزامي: تمرير لأول حقل ناقص وتمييزه بدل التعطيل الصامت.
     const missing = !kind ? "kind" : !audience ? "audience" : !purpose ? "purpose" : !specialty ? "specialty" : "";
     if (missing) {
       const refMap = { kind: kindFieldRef, audience: audienceFieldRef, purpose: purposeFieldRef, specialty: specialtyFieldRef } as const;
@@ -769,8 +768,8 @@ export default function ContentStudioPage() {
   async function runReview() {
     const text = path === "create" ? generatedText : reviewText;
     if (text.trim().length < 5) return;
-    if (!kind || !channel || !audience || !purpose) {
-      setReviewError("اختر نوع المحتوى والقناة والجمهور والهدف قبل التحليل حتى ترتبط النتائج بالسياق الصحيح.");
+    if (!kind || !audience || !purpose || !specialty) {
+      setReviewError("اختر نوع المحتوى والجمهور والهدف والتخصص قبل التحليل حتى ترتبط النتائج بالسياق الصحيح.");
       return;
     }
     setReviewing(true);
