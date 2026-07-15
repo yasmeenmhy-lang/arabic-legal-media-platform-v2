@@ -747,12 +747,14 @@ export default function ContentStudioPage() {
           planDateRange: kind === "publishing_plan" ? (planDateRange || undefined) : undefined,
         }),
       });
-      const data = (await res.json()) as { text?: string; error?: string };
+      const data = (await res.json()) as { text?: string; error?: string; truncated?: boolean };
       if (!res.ok || !data.text) {
         setGenerateError(data.error ?? "فشل في إنشاء المحتوى");
         return;
       }
       setGeneratedText(data.text);
+      // نادراً: بقي النص مقطوعاً بعد محاولات الإكمال — تنبيه غير معيق
+      setGenerateError(data.truncated ? "النص طويل وقد لا يكون مكتملاً تماماً — راجع نهايته أو أعد الإنشاء." : "");
       // Reset any previous visual translation when new text is generated
       setVtSvg("");
       setVtUrl("");
