@@ -41,7 +41,15 @@ export function isSourceVisible(sourceKey: string, specialty: string): boolean {
 // مستجدات المهنة، مؤتمرات، جوائز) فتظهر دائماً.
 // بعد إعادة التصميم: الفروع زوايا خبر محايدة (تشريع/حكم/قضية/دراسة/مؤتمر/جائزة)
 // تنطبق على كل التخصصات — المجال نفسه يأتي من «التخصص» الحاكم، فلا حاجة لترشيح.
-export const globalSubSpecialtyMap: Record<string, readonly string[]> = {};
+export const globalSubSpecialtyMap: Record<string, readonly string[]> = {
+  // «صفقة أو استحواذ» زاوية تجارية بطبيعتها — تظهر فقط للتخصصات المالية والتجارية
+  "landmark-deal": [
+    "الأنظمة التجارية والأعمال",
+    "نظام الاستثمار",
+    "التمويل والأوراق المالية",
+    "الإفلاس وإعادة التنظيم",
+  ],
+};
 
 export function isGlobalSubVisible(subKey: string, specialty: string): boolean {
   if (!specialty) return true;
