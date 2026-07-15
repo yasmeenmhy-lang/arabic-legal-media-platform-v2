@@ -136,9 +136,11 @@ export function RiskIndicatorCard({ review }: { review: ReviewResult }) {
   const assessmentFailed = (review.riskScoreExplanation.explanation ?? "").includes("تعذّر");
   const tone = assessmentFailed ? ("neutral" as const) : riskKpiTone(review.riskLevel);
   const parties = review.riskScoreExplanation.affectedParties ?? [];
+  // بقرار مالكة المنصة: انعدام المخاطر يُسمى «لا توجد مخاطر» لا «منخفضة»
+  const noRisks = !assessmentFailed && riskDisplayLabel(review.riskLevel) === "منخفض" && parties.length === 0 && review.findings.length === 0;
   // ثلاثة مستويات معتمدة فقط — بعدد الجهات المتضررة
   const riskLevels = ["منخفض", "متوسط", "مرتفع"];
-  const activeCount = assessmentFailed ? 0 : riskLevels.indexOf(riskDisplayLabel(review.riskLevel)) + 1;
+  const activeCount = assessmentFailed || noRisks ? 0 : riskLevels.indexOf(riskDisplayLabel(review.riskLevel)) + 1;
   const partyIcon = (p: RiskAffectedParty) => {
     if (p === "الموكل") return <User size={13} aria-hidden="true" />;
     if (p === "المحامي") return <Scale size={13} aria-hidden="true" />;
@@ -148,7 +150,7 @@ export function RiskIndicatorCard({ review }: { review: ReviewResult }) {
     <Panel id="risk" className={`scroll-mt-24 border-t-4 shadow-md ${toneBorder(tone)}`}>
       <p className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-400">المخاطر</p>
       <div className="flex items-center justify-between gap-3">
-        <StatusBadge tone={tone}>{assessmentFailed ? "تعذّر التقييم" : riskDisplayLabel(review.riskLevel)}</StatusBadge>
+        <StatusBadge tone={tone}>{assessmentFailed ? "تعذّر التقييم" : noRisks ? "لا توجد مخاطر" : riskDisplayLabel(review.riskLevel)}</StatusBadge>
         <div className="flex gap-1.5">
           {riskLevels.map((_, i) => (
             <span key={i} className={`inline-block h-2.5 w-2.5 rounded-full ${i < activeCount ? (tone === "good" ? "bg-green-400" : tone === "gold" ? "bg-amber-400" : "bg-red-500") : "bg-slate-200"}`} />
