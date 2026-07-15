@@ -249,7 +249,14 @@ ${briefType
         "anthropic-version": "2023-06-01",
         "content-type": "application/json",
       },
-      body: JSON.stringify({ model: "claude-sonnet-5", max_tokens: maxTokens, system, messages }),
+      // تخزين مؤقت للجزء الثابت (الدستور والتعليمات) لدى المزود — قراءة واحدة تخدم كل
+      // الطلبات المتزامنة: أسرع وأوفر مع كثرة المستخدمين، ونص المستخدم لا يدخل التخزين.
+      body: JSON.stringify({
+        model: "claude-sonnet-5",
+        max_tokens: maxTokens,
+        system: [{ type: "text", text: system, cache_control: { type: "ephemeral" } }],
+        messages,
+      }),
     });
     if (!response.ok) {
       const body = await response.text().catch(() => "");
