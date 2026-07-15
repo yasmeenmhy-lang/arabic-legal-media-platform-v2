@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
+import { scanProhibited } from "@/lib/services/governor-gate";
 
 const recordSchema = z.object({
   id: z.string(),
@@ -246,6 +247,13 @@ export async function POST(request: Request) {
 
   try {
     const result = JSON.parse(jsonStr) as PlanResult;
+    // حصن الحاكم الحتمي على ملاحظات التخطيط المعروضة (الملخص والفجوات والأسباب):
+    // إن حملت أيّها عبارة محظورة صريحة، يُرجَع المخطِّط المحلي الحتمي الآمن كاملاً،
+    // فلا يظهر للمستخدم أي نص يخالف القواعد ولو كان ملاحظة تخطيط داخلية.
+    const commentary = [result.summary, ...(result.gaps ?? []), ...result.plan.map((p) => p.reason)].join("\n");
+    if (scanProhibited(commentary).length > 0) {
+      return NextResponse.json(buildLocalPlan(parsed.data));
+    }
     return NextResponse.json(result);
   } catch {
     return NextResponse.json(buildLocalPlan(parsed.data));

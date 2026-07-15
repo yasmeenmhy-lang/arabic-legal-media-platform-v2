@@ -2,7 +2,7 @@ import { z } from "zod";
 import { NextResponse } from "next/server";
 import { badRequest } from "@/lib/api";
 import { AI_CONSTITUTION } from "@/lib/governance";
-import { runSemanticAnalysis } from "@/lib/services/semantic-analysis-service";
+import { governText } from "@/lib/services/governor-gate";
 import { contentKindLabels } from "@/lib/content-types";
 import type { ContentKind } from "@/lib/types";
 
@@ -291,7 +291,7 @@ ${briefType
     let promptText = user;
     let text = "";
     let truncated = false;
-    let violations: Awaited<ReturnType<typeof runSemanticAnalysis>>["findings"] = [];
+    let clean = false;
 
     for (let attempt = 0; attempt < 3; attempt++) {
       const produced = await produceComplete(promptText);
@@ -302,12 +302,12 @@ ${briefType
       // نوع موجز بلغ السقف = تضخّم خارج قالبه — يُعاد أقصر ليعكس النوع
       const inflated = !isOpenLength && truncated;
 
-      // بوابة الحاكم — إلزامية على كل الأنواع بلا استثناء
-      const gov = await runSemanticAnalysis(text, { contentType, channel, audience, purpose }, contentKind);
-      violations = gov.findings;
+      // بوابة الحاكم — حصن حتمي + عمق دلالي، إلزامية على كل الأنواع بلا استثناء
+      const gov = await governText(text, { contentType, channel, audience, purpose }, contentKind);
+      clean = gov.clean;
 
       // مطابق للحاكم ومطابق لقالب نوعه → يُسلَّم
-      if (violations.length === 0 && !inflated) {
+      if (clean && !inflated) {
         return NextResponse.json({ text, truncated: false });
       }
 
@@ -316,17 +316,12 @@ ${briefType
       if (inflated) {
         corrections.push(`- تجاوزتَ قالب النوع «${contentType}» وطوله المحدد: النص يجب أن يلتزم بنية هذا النوع وإيجازه — أعد كتابته أقصر ومكتمل المعنى دون قطع.`);
       }
-      for (const v of violations) {
-        const ref = v.legalReference || "قواعد السلوك المهني للمحامين";
-        const title = v.articleTitle ? ` (${v.articleTitle})` : "";
-        const safer = v.suggestedSaferWording ? ` — الصياغة الأسلم: ${v.suggestedSaferWording}` : "";
-        corrections.push(`- مخالفة لـ${ref}${title}: ${v.issue}${safer}`);
-      }
+      corrections.push(...gov.corrections);
       promptText = `${user}\n\nتصحيحات إلزامية قبل الإخراج — النص السابق خالف حاكم المنصة (قواعد السلوك المهني واللائحة التنفيذية لنظام المحاماة)، فأعد كتابته كاملاً بحيث يخلو منها تماماً:\n${corrections.join("\n")}`;
     }
 
     // استُنفدت المحاولات ولا يزال مخالفاً — لا يُسلَّم نص خارج إطار الحاكم
-    if (violations.length > 0) {
+    if (!clean) {
       return NextResponse.json(
         { error: "تعذّر إخراج نص مطابق لحاكم المنصة (قواعد السلوك المهني واللائحة التنفيذية). أعد المحاولة أو عدّل مدخلات السياق." },
         { status: 422 }
