@@ -4,7 +4,7 @@ import { badRequest } from "@/lib/api";
 import { AI_CONSTITUTION } from "@/lib/governance";
 import { governText } from "@/lib/services/governor-gate";
 import { describeProviderError } from "@/lib/ai-provider-errors";
-import { completeJob, createJob, failJob, jobsDb } from "@/lib/content-jobs";
+import { completeJob, createJob, failJob, jobsDb, setJobPartial } from "@/lib/content-jobs";
 import { waitUntil } from "@vercel/functions";
 import { contentKindLabels } from "@/lib/content-types";
 import type { ContentKind } from "@/lib/types";
@@ -256,6 +256,9 @@ ${briefType
       body: JSON.stringify({
         model: "claude-sonnet-5",
         max_tokens: maxTokens,
+        // الكتابة بلا تفكير داخلي — التعليمات التفصيلية تقوم مقامه، والزمن ينخفض كثيراً؛
+        // قاضي الامتثال يبقى بتفكيره الكامل لأن دقته لا تُمس.
+        thinking: { type: "disabled" },
         system: [{ type: "text", text: system, cache_control: { type: "ephemeral" } }],
         messages,
       }),
@@ -296,7 +299,7 @@ ${briefType
   }
 
   // الدورة الكاملة: توليد ← بوابة الحاكم ← إعادة كتابة عند الملاحظات — تُرجع نتيجة أو خطأ
-  async function runPipeline(): Promise<
+  async function runPipeline(onDraft?: (text: string) => void): Promise<
     | { kind: "ok"; text: string; truncated: boolean }
     | { kind: "err"; error: string }
   > {
@@ -313,6 +316,8 @@ ${briefType
       text = produced.text;
       truncated = produced.truncated;
       if (!text) return { kind: "err", error: "لم يُنشأ أي محتوى" };
+      // المسودة تُعرض فوراً — «تحقق نهائي يجري» — فلا ينتظر المستخدم الفحص ليقرأ
+      if (attempt === 0) onDraft?.(text);
 
       // نوع موجز بلغ السقف = تضخّم خارج قالبه — يُعاد أقصر ليعكس النوع
       const inflated = !isOpenLength && truncated;
@@ -360,7 +365,9 @@ ${briefType
     await createJob(sql, jobId);
     const work = (async () => {
       try {
-        const result = await runPipeline();
+        const result = await runPipeline((draft) => {
+          void setJobPartial(sql, jobId, draft).catch(() => {});
+        });
         if (result.kind === "ok") await completeJob(sql, jobId, result.text, result.truncated);
         else await failJob(sql, jobId, result.error);
       } catch (error) {
@@ -395,7 +402,7 @@ ${briefType
       };
       const heartbeat = setInterval(() => send({ type: "ping" }), 10_000);
       try {
-        const result = await runPipeline();
+        const result = await runPipeline((draft) => send({ type: "partial", text: draft }));
         if (result.kind === "ok") send({ type: "result", text: result.text, truncated: result.truncated });
         else send({ type: "error", error: result.error });
       } catch (error) {

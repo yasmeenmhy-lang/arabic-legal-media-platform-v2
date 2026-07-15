@@ -610,6 +610,8 @@ export default function ContentStudioPage() {
   const [topic, setTopic] = useState("");
   const [generatedText, setGeneratedText] = useState("");
   const [generating, setGenerating] = useState(false);
+  // مسودة معروضة والفحص النهائي يجري — شارة غير معطلة فوق النص
+  const [finalizing, setFinalizing] = useState(false);
   const [generateError, setGenerateError] = useState("");
 
   // Review result
@@ -705,6 +707,7 @@ export default function ContentStudioPage() {
   const PENDING_GENERATION_KEY = "lawyer-media:pending-generation";
 
   function deliverGenerationOutcome(outcome: { text?: string; error?: string; truncated?: boolean }) {
+    setFinalizing(false);
     if (outcome.text) {
       setGeneratedText(outcome.text);
       setGenerateError(outcome.truncated ? "النص طويل وقد لا يكون مكتملاً تماماً — راجع نهايته أو أعد الإنشاء." : "");
@@ -717,13 +720,14 @@ export default function ContentStudioPage() {
     }
   }
 
-  async function pollGenerationJob(jobId: string): Promise<{ text?: string; error?: string; truncated?: boolean }> {
+  async function pollGenerationJob(jobId: string, onDraft?: (text: string) => void): Promise<{ text?: string; error?: string; truncated?: boolean }> {
     const deadline = Date.now() + 10 * 60 * 1000;
     for (;;) {
       if (Date.now() > deadline) return { error: "طالت المتابعة أكثر من المتوقع — أعد المحاولة." };
       try {
         const res = await fetch(`/api/content-studio/generate-status?id=${encodeURIComponent(jobId)}`);
-        const data = (await res.json()) as { status?: string; text?: string; error?: string; truncated?: boolean };
+        const data = (await res.json()) as { status?: string; text?: string; error?: string; truncated?: boolean; partial?: string };
+        if (data.status === "pending" && data.partial) onDraft?.(data.partial);
         if (data.status === "done") {
           void fetch(`/api/content-studio/generate-status?id=${encodeURIComponent(jobId)}&ack=1`).catch(() => {});
           try { window.localStorage.removeItem(scopedKey(PENDING_GENERATION_KEY)); } catch { /* بيئة بلا تخزين */ }
@@ -736,7 +740,7 @@ export default function ContentStudioPage() {
       } catch {
         /* انقطاع شبكة عابر — نواصل الاستطلاع */
       }
-      await new Promise((resolve) => setTimeout(resolve, 4000));
+      await new Promise((resolve) => setTimeout(resolve, 2500));
     }
   }
 
@@ -755,12 +759,18 @@ export default function ContentStudioPage() {
     setGenerating(true);
     setGenerateError("");
     void (async () => {
-      const outcome = await pollGenerationJob(jobId);
+      const outcome = await pollGenerationJob(jobId, showDraft);
       deliverGenerationOutcome(outcome);
       setGenerating(false);
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  function showDraft(draft: string) {
+    setGeneratedText(draft);
+    setFinalizing(true);
+    setGenerating(false);
+  }
 
   async function generateContent() {
     // القناة اختيارية بقرارها — الإلزامي: النوع والجمهور والهدف والتخصص فقط.
@@ -820,7 +830,7 @@ export default function ContentStudioPage() {
           try {
             window.localStorage.setItem(scopedKey(PENDING_GENERATION_KEY), JSON.stringify({ jobId: payload.jobId, at: Date.now() }));
           } catch { /* بيئة بلا تخزين — تبقى المتابعة داخل الجلسة فقط */ }
-          data = await pollGenerationJob(payload.jobId);
+          data = await pollGenerationJob(payload.jobId, showDraft);
         } else {
           data = payload;
         }
@@ -840,6 +850,7 @@ export default function ContentStudioPage() {
             if (!line) continue;
             try {
               const event = JSON.parse(line) as { type?: string; text?: string; error?: string; truncated?: boolean };
+              if (event.type === "partial" && event.text) showDraft(event.text);
               if (event.type === "result" || event.type === "error") data = event;
             } catch {
               /* سطر غير مكتمل — يُتجاهل */
@@ -2659,6 +2670,11 @@ export default function ContentStudioPage() {
       {/* ── 4. Generated content preview ── */}
       {path === "create" && generatedText && !review && !reviewing && (
         <Panel className="bg-violetSoft">
+          {finalizing && (
+            <p className="mb-3 rounded-lg bg-goldSoft px-3 py-2 text-xs font-medium leading-5 text-gold">
+              تحقق نهائي يجري الآن — قد يُحدَّث النص تلقائياً خلال لحظات.
+            </p>
+          )}
           <div className="mb-4 flex items-center justify-between">
             <SectionTitle title="3. المحتوى المقترح" subtitle="راجع وعدّل قبل التحليل النظامي." />
             <button

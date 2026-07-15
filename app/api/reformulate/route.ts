@@ -44,6 +44,7 @@ async function callModel(apiKey: string, systemPrompt: string, userPrompt: strin
       body: JSON.stringify({
         model: "claude-sonnet-5",
         max_tokens: 4096,
+        thinking: { type: "disabled" },
         system: systemPrompt,
         messages
       })
