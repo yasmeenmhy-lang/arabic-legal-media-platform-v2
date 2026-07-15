@@ -47,6 +47,7 @@ import { contentKindOptions, contentKindLabels } from "@/lib/content-types";
 import { QUOTE_INTEGRITY_NOTICE } from "@/lib/quote-notice";
 import type { VisualPlan } from "@/lib/visual-translator";
 import { isConditionalSource, isSourceVisible } from "@/lib/source-specialty-map";
+import { FieldLabel } from "@/components/field-label";
 import {
   attachVisualsToVersion,
   DEMO_USER_NAME,
@@ -1584,7 +1585,7 @@ export default function ContentStudioPage() {
 
         {/* Content type */}
         <div ref={kindFieldRef} className={`mb-4 rounded-xl transition-all ${missingField === "kind" ? "bg-warningSoft/60 p-3 ring-2 ring-amber-400" : ""}`}>
-          <p className="mb-2 text-sm font-semibold text-ink/85">نوع المحتوى <span className="text-xs text-ink/40">— ماذا تريد أن تنشئ أولًا</span></p>
+          <FieldLabel label="نوع المحتوى" hint="— ماذا تريد أن تنشئ أولًا" required />
           <div className="flex flex-wrap gap-2">
             {studioContentTypes.map((item) => (
               <button
@@ -2205,7 +2206,7 @@ export default function ContentStudioPage() {
 
         {/* Audience */}
         <div ref={audienceFieldRef} className={`mb-4 rounded-xl transition-all ${missingField === "audience" ? "bg-warningSoft/60 p-3 ring-2 ring-amber-400" : ""}`}>
-          <p className="mb-2 text-sm font-semibold text-ink/85">الجمهور</p>
+          <FieldLabel label="الجمهور" required />
           <div className="flex flex-wrap gap-2">
             {audiences.map((item) => (
               <button
@@ -2223,7 +2224,7 @@ export default function ContentStudioPage() {
 
         {/* Purpose */}
         <div ref={purposeFieldRef} className={`mb-4 rounded-xl transition-all ${missingField === "purpose" ? "bg-warningSoft/60 p-3 ring-2 ring-amber-400" : ""}`}>
-          <p className="mb-2 text-sm font-semibold text-ink/85">الهدف</p>
+          <FieldLabel label="الهدف" required />
           <div className="flex flex-wrap gap-2">
             {purposes.map((item) => (
               <button
@@ -2241,7 +2242,7 @@ export default function ContentStudioPage() {
 
         {/* Specialty — إجباري بقرارها: حقل خامس ظاهر دائماً ضمن السياق */}
         <div ref={specialtyFieldRef} className={`mb-4 rounded-xl transition-all ${missingField === "specialty" ? "bg-warningSoft/60 p-3 ring-2 ring-amber-400" : ""}`}>
-          <p className="mb-2 text-sm font-semibold text-ink/85">التخصص</p>
+          <FieldLabel label="التخصص" required />
           <div className="flex flex-wrap gap-2">
             {specialties.map((item) => (
               <button
@@ -2275,7 +2276,7 @@ export default function ContentStudioPage() {
           <div className={`overflow-hidden transition-all duration-300 ${advancedIsOpen ? "mt-3 max-h-[600px] opacity-100" : "max-h-0 opacity-0"}`}>
         {/* Channel — اختيارية بقرارها: بلا قناة يُكتب النص بصيغة عامة صالحة لأي منصة */}
         <div className="mb-1">
-          <p className="mb-2 text-sm font-semibold text-ink/85">القناة <span className="text-ink/40">(اختياري)</span></p>
+          <FieldLabel label="القناة" optional />
           <div className="flex flex-wrap gap-2">
             {channels.map((item) => (
               <button
@@ -2516,10 +2517,7 @@ export default function ContentStudioPage() {
 
           {/* Topic — اختياري مع «ابتكر من الذكاء الاصطناعي» */}
           <div className="mb-4">
-            <p className="mb-2 text-sm font-semibold text-ink/85">
-              الموضوع أو الفكرة
-              {source === "ai-original" && <span className="text-ink/40"> (اختياري — الذكاء يبتكر الموضوع من السياق أعلاه)</span>}
-            </p>
+            <FieldLabel label="الموضوع أو الفكرة" hint={source === "ai-original" ? "(اختياري — الذكاء يبتكر الموضوع من السياق أعلاه)" : undefined} />
             <textarea
               value={topic}
               rows={3}
