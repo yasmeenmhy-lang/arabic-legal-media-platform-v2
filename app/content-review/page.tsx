@@ -731,7 +731,7 @@ export default function ContentReviewPage() {
 
         <label className="mb-4 block text-sm">
           <span className="mb-2 flex flex-wrap items-center justify-between gap-2">
-            <span className="text-sm font-semibold text-ink/85">عنوان المحتوى <span className="text-ink/40">(للبحث في السجل ومركز التخطيط)</span></span>
+            <span className="text-sm font-semibold text-ink/85">عنوان المحتوى</span>
             <Button
               size="sm"
               variant="secondary-gray"
