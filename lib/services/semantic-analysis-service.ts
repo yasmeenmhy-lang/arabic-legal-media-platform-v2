@@ -331,7 +331,7 @@ export async function runSemanticAnalysis(
       message = await client.messages.create(
         {
           model: "claude-sonnet-5",
-          max_tokens: 4096,
+          max_tokens: 1536,
           // القواعد الثابتة كتلة system مخزّنة مؤقتاً لدى المزود — نص المستخدم لا يدخل التخزين
           system: [{ type: "text", text: system, cache_control: { type: "ephemeral" } }],
           messages: [{ role: "user", content: userMessage }],
