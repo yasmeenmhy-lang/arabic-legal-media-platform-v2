@@ -52,19 +52,19 @@ function buildValidReferencesList(entries: typeof legalKnowledgeEntries): string
   return lines.join("\n");
 }
 
-function buildHolisticPrompt(text: string, contextSummary: string, entries: typeof legalKnowledgeEntries): string {
+// الجزء الثابت من مطالبة الحكم (الشخصية + التعليمات + القواعد الـ46) — يُرسل كتلة system
+// مخزّنة مؤقتاً لدى المزود: قراءة واحدة تخدم كل طلبات المستخدمين المتزامنة، أسرع وأوفر،
+// ونص المستخدم يُرسل في رسالة المستخدم المتغيرة ولا يدخل التخزين إطلاقاً.
+function buildHolisticSystem(entries: typeof legalKnowledgeEntries): string {
   const validRefs = buildValidReferencesList(entries);
   return `أنت متخصص في قواعد السلوك المهني للمحامين في المملكة العربية السعودية (46 قاعدة، 1447هـ).
 
 ## السياق الثابت
-هذه المنصة مخصصة للمحامين المرخصين حصراً. النص التالي كتبه محامٍ ويريد نشره على وسائل التواصل الاجتماعي — سواء كان منشوراً، تغريدة، تعليقاً، رداً، أو إعلاناً.${contextSummary !== "غير محدد" ? `\nالسياق الإضافي: ${contextSummary}` : ""}
+هذه المنصة مخصصة للمحامين المرخصين حصراً. النص الذي سيصلك في رسالة المستخدم كتبه محامٍ ويريد نشره على وسائل التواصل الاجتماعي — سواء كان منشوراً، تغريدة، تعليقاً، رداً، أو إعلاناً.
 
 ## أساس الحكم
 منطق التحليل مبني حصراً على قواعد السلوك المهني للمحامين واللائحة التنفيذية لنظام المحاماة — احكم بالمعنى والسياق والغرض وفق هذه القواعد، لا بوجود كلمات أو أنماط بعينها.
 المحتوى الخارج عن نطاق المهنة الذي لا يرتبط بقاعدة محددة من القائمة أدناه: صنّفه مؤشر مخاطر مهنية بـ severity="منخفض".
-
-## النص المراد تحليله
-«${text}»
 
 ## المهمة
 اقرأ النص وحدد هل ينتهك أياً من القواعد الـ46 بشكل مباشر أو غير مباشر.
@@ -149,6 +149,12 @@ ${validRefs}
     "advice": "التوصية التطبيقية للمحامي"
   }
 ]`;
+}
+
+// الجزء المتغير: نص المستخدم وسياقه — يُرسل طازجاً في كل طلب ولا يُخزَّن
+function buildHolisticUserMessage(text: string, contextSummary: string): string {
+  return `${contextSummary !== "غير محدد" ? `السياق الإضافي: ${contextSummary}\n\n` : ""}## النص المراد تحليله
+«${text}»`;
 }
 
 interface HolisticViolation {
@@ -314,7 +320,8 @@ export async function runSemanticAnalysis(
   console.log("[semantic] starting holistic analysis: anchored to", eligibleEntries.length, "KB entries");
 
   const client = new Anthropic({ apiKey });
-  const prompt = buildHolisticPrompt(text, contextSummary, eligibleEntries);
+  const system = buildHolisticSystem(eligibleEntries);
+  const userMessage = buildHolisticUserMessage(text, contextSummary);
 
   let message: Awaited<ReturnType<typeof client.messages.create>>;
   try {
@@ -322,7 +329,13 @@ export async function runSemanticAnalysis(
     const timer = setTimeout(() => controller.abort(), 45_000);
     try {
       message = await client.messages.create(
-        { model: "claude-sonnet-5", max_tokens: 4096, messages: [{ role: "user", content: prompt }] },
+        {
+          model: "claude-sonnet-5",
+          max_tokens: 4096,
+          // القواعد الثابتة كتلة system مخزّنة مؤقتاً لدى المزود — نص المستخدم لا يدخل التخزين
+          system: [{ type: "text", text: system, cache_control: { type: "ephemeral" } }],
+          messages: [{ role: "user", content: userMessage }],
+        },
         { signal: controller.signal }
       );
     } finally {
