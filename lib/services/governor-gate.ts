@@ -11,6 +11,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 import { legalKnowledgeEntries } from "@/lib/legal-knowledge-base";
 import { runSemanticAnalysis } from "@/lib/services/semantic-analysis-service";
+import { evaluateContent } from "@/lib/services/content-evaluation-service";
 import type { ContentKind, ReviewContext } from "@/lib/types";
 
 export type ProhibitedHit = { pattern: string; legalReference: string; articleTitle: string };
@@ -62,21 +63,31 @@ export function prohibitionsToCorrections(hits: ProhibitedHit[]): string[] {
   );
 }
 
-// الحاكم الكامل: الحصن الحتمي + العمق الدلالي (نفس محرك المراجعة)، مدموجين.
-// يرجع النص نظيفاً أو قائمة تصحيحات إلزامية منسوبة لموادها لإعادة الكتابة.
+// الحاكم الكامل: النص المقترح يجب أن يخرج نظيفاً من كل النواحي دفعة واحدة —
+// (١) الحصن الحتمي (عبارات محظورة صريحة)، (٢) العمق الدلالي (نفس محرك المراجعة)،
+// (٣) جودة اللغة (إملاء ونحو). أي ملاحظة في أيّها = النص غير نظيف فيُعاد.
+// checkLanguage=false يقصره على الامتثال (للنصوص القصيرة كالعناوين والوسوم).
 export async function governText(
   text: string,
   context: ReviewContext | undefined,
-  contentKind?: ContentKind
+  contentKind?: ContentKind,
+  opts?: { checkLanguage?: boolean }
 ): Promise<{ clean: boolean; corrections: string[] }> {
+  const checkLanguage = opts?.checkLanguage !== false;
   const prohibitions = scanProhibited(text);
-  const gov = await runSemanticAnalysis(text, context, contentKind);
+  const [gov, evaluation] = await Promise.all([
+    runSemanticAnalysis(text, context, contentKind),
+    checkLanguage ? evaluateContent(text) : Promise.resolve(null),
+  ]);
   const semantic = gov.findings.map((v) => {
     const ref = v.legalReference || "قواعد السلوك المهني للمحامين";
     const title = v.articleTitle ? ` (${v.articleTitle})` : "";
     const safer = v.suggestedSaferWording ? ` — الصياغة الأسلم: ${v.suggestedSaferWording}` : "";
     return `- مخالفة لـ${ref}${title}: ${v.issue}${safer}`;
   });
-  const corrections = [...prohibitionsToCorrections(prohibitions), ...semantic];
+  const language = (evaluation?.language.issues ?? [])
+    .filter((i) => i.category === "spelling" || i.category === "grammar")
+    .map((i) => `- خطأ لغوي: «${i.excerpt ?? ""}» — ${i.message}${i.suggestion ? ` — التصحيح: ${i.suggestion}` : ""}`);
+  const corrections = [...prohibitionsToCorrections(prohibitions), ...semantic, ...language];
   return { clean: corrections.length === 0, corrections };
 }
