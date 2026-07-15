@@ -2586,7 +2586,7 @@ export default function ContentStudioPage() {
           <div className="flex flex-col items-center gap-4 py-8">
             <Bot size={32} className="animate-pulse text-violet" />
             <p className="text-sm text-ink/65">الذكاء الاصطناعي يُنشئ المحتوى...</p>
-            <p className="text-center text-xs leading-5 text-ink/45">قد يستغرق المحتوى الطويل بضع دقائق.</p>
+            <p className="text-center text-xs leading-5 text-ink/45">تستغرق دقيقتين أو ثلاثاً فقط.</p>
             <div className="h-2 w-48 overflow-hidden rounded-full bg-paper">
               <div className="h-full w-full rounded-full bg-gradient-to-r from-violetSoft via-violet/40 to-violetSoft bg-[length:200%] animate-[pulse_1.5s_ease-in-out_infinite]" />
             </div>
