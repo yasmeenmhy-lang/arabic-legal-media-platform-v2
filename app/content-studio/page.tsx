@@ -226,7 +226,8 @@ const contentSources: SourceEntry[] = [
     subs: [
       { key: "legislation", label: "تشريعات وأنظمة عالمية جديدة" },
       { key: "court-rulings", label: "حكم قضائي دولي بارز" },
-      { key: "landmark-case", label: "قضية أو صفقة عالمية بارزة" },
+      { key: "landmark-case", label: "قضية عالمية بارزة" },
+      { key: "landmark-deal", label: "صفقة أو استحواذ عالمي بارز" },
       { key: "research", label: "دراسة أو اتجاه عالمي" },
       { key: "profession-news", label: "مستجدات مهنة المحاماة عالمياً" },
       { key: "conferences", label: "مؤتمر أو ملتقى دولي" },
