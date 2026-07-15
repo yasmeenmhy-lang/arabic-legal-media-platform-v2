@@ -1642,7 +1642,23 @@ export default function ContentReviewPage() {
           <Panel id="approval" className="scroll-mt-24">
             <SectionTitle title="7. اعتماد النسخة" subtitle="لا تتاح المشاركة أو التصدير إلا للنسخة النهائية التي تمت مراجعتها واعتمادها." />
             <button type="button" onClick={approveCurrentVersion} disabled={approved || approving || review.findings.some((finding) => !finding.resolved) || !review.languageQuality.passed || ["بالغ", "حرج", "مرتفع"].includes(review.riskLevel)} className="inline-flex items-center gap-2 rounded-md bg-palm px-5 py-2.5 text-white disabled:cursor-not-allowed disabled:opacity-50"><Save size={16} />{approved ? "تم اعتماد النسخة" : approving ? "جار الاعتماد..." : "اعتماد النسخة الحالية"}</button>
-            {!approved ? <p className="mt-3 text-sm text-ink/65">عالج الحواجز الظاهرة أولاً. لن يؤدي الاعتماد إلى إخفاء ملاحظة حرجة أو تجاوزها.</p> : null}
+            {!approved ? (() => {
+              // شفافية القفل: يُعرض سبب تعطل الاعتماد بدقة لا برسالة عامة
+              const unresolvedCount = review.findings.filter((finding) => !finding.resolved).length;
+              const reasons: string[] = [];
+              if (unresolvedCount) reasons.push(`${unresolvedCount} مخالفة غير معالجة — عالجها بالصياغة المقترحة أو عدّل النص ثم أعد التحليل`);
+              if (!review.languageQuality.passed) reasons.push("جودة اللغة دون الحد المطلوب");
+              if (["بالغ", "حرج", "مرتفع"].includes(review.riskLevel)) reasons.push(`مستوى المخاطر «${review.riskLevel}» يمنع الاعتماد`);
+              return reasons.length ? (
+                <div className="mt-3 rounded-lg bg-red-50 p-3 text-sm leading-6 text-red-800">
+                  <p className="font-semibold">الاعتماد مقفول للأسباب التالية:</p>
+                  <ul className="mt-1 list-disc space-y-1 pr-5">{reasons.map((reason) => <li key={reason}>{reason}</li>)}</ul>
+                  <p className="mt-2 text-xs text-red-700/80">لن يؤدي الاعتماد إلى إخفاء ملاحظة حرجة أو تجاوزها.</p>
+                </div>
+              ) : (
+                <p className="mt-3 text-sm text-ink/65">النسخة جاهزة للاعتماد — لا حواجز متبقية.</p>
+              );
+            })() : null}
           </Panel>
 
           <Panel id="sharing" className="scroll-mt-24">
