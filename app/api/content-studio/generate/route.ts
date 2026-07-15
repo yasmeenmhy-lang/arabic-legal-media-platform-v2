@@ -2,6 +2,9 @@ import { z } from "zod";
 import { NextResponse } from "next/server";
 import { badRequest } from "@/lib/api";
 import { AI_CONSTITUTION } from "@/lib/governance";
+import { runSemanticAnalysis } from "@/lib/services/semantic-analysis-service";
+import { contentKindLabels } from "@/lib/content-types";
+import type { ContentKind } from "@/lib/types";
 
 const schema = z.object({
   contentType: z.string().min(1),
@@ -26,6 +29,15 @@ const schema = z.object({
   planFrequency: z.string().max(60).optional(),
   planDateRange: z.string().max(60).optional(),
 });
+
+// الأنواع مفتوحة الطول — يجوز لها الإكمال التلقائي عند بلوغ السقف فلا تُقطع؛
+// بقية الأنواع موجزة تلتزم قالبها، وبلوغها السقف مؤشر تضخّم يُعالَج بإعادة كتابة أقصر.
+const OPEN_LENGTH_TYPES = new Set(["مقال", "حملة", "خطة نشر"]);
+
+// عكس خريطة الأنواع: الاسم العربي ← مفتاح النوع، لتمرير النوع لمحرك الحاكم.
+const arabicToContentKind = Object.fromEntries(
+  (Object.entries(contentKindLabels) as [ContentKind, string][]).map(([key, label]) => [label, key])
+) as Record<string, ContentKind>;
 
 export async function POST(request: Request) {
   const parsed = schema.safeParse(await request.json());
@@ -246,29 +258,82 @@ ${briefType
     return { text, stopReason: payload.stop_reason };
   }
 
-  try {
-    // حلقة إكمال تلقائي: إن قُطع النص لبلوغ سقف التوكنز يُطلب إكماله من حيث توقف
-    // دون تكرار، ثم تُدمج الأجزاء — فلا يصل المحتوى ناقصاً أبداً مهما طال.
-    const messages: { role: "user" | "assistant"; content: string }[] = [{ role: "user", content: user }];
+  const contentKind = arabicToContentKind[contentType];
+  const isOpenLength = OPEN_LENGTH_TYPES.has(contentType);
+
+  // ينتج نصاً كاملاً من مطالبة معطاة:
+  // - الأنواع المفتوحة (مقال/حملة/خطة): حلقة إكمال تلقائي عند بلوغ السقف — لا يُقطع النص أبداً.
+  // - الأنواع الموجزة: استدعاء واحد بقالبها؛ بلوغها السقف مؤشر تضخّم يُبلَّغ عبر truncated.
+  async function produceComplete(promptText: string): Promise<{ text: string; truncated: boolean }> {
+    const msgs: { role: "user" | "assistant"; content: string }[] = [{ role: "user", content: promptText }];
     let full = "";
     let stopReason: string | undefined;
-    for (let attempt = 0; attempt < 4; attempt++) {
-      const part = await callSonnet(messages);
+    const maxRounds = isOpenLength ? 4 : 1;
+    for (let round = 0; round < maxRounds; round++) {
+      const part = await callSonnet(msgs);
       full += part.text;
       stopReason = part.stopReason;
       if (stopReason !== "max_tokens") break;
       // بُلغ السقف — تابع من حيث توقفت بلا إعادة أي كلمة ولا مقدمة
-      messages.push({ role: "assistant", content: part.text });
-      messages.push({
+      msgs.push({ role: "assistant", content: part.text });
+      msgs.push({
         role: "user",
         content: "أكمل النص من حيث توقفت تماماً — لا تُعد كتابة أي كلمة سبقت، ولا تضف أي مقدمة أو تعليق، تابع مباشرة حتى يكتمل النص وينتهي بخاتمته الطبيعية.",
       });
     }
+    return { text: full.trim(), truncated: stopReason === "max_tokens" };
+  }
 
-    const text = full.trim();
-    if (!text) return NextResponse.json({ error: "لم يُنشأ أي محتوى" }, { status: 500 });
-    // truncated=true فقط إن بقي مقطوعاً بعد كل محاولات الإكمال (نادر) — تُعلم الواجهة
-    return NextResponse.json({ text, truncated: stopReason === "max_tokens" });
+  try {
+    // حاكم المنصة يحكم كل مخرج: بعد الإنتاج يُعرض النص على محرك الامتثال نفسه الذي تحكم به
+    // المراجعة (قواعد السلوك المهني + اللائحة التنفيذية عبر legal-knowledge-base). أي مخالفة
+    // تُعاد الكتابة بها، ولا يُسلَّم نص خارج إطار الحاكم مهما كان النوع أو الطول.
+    let promptText = user;
+    let text = "";
+    let truncated = false;
+    let violations: Awaited<ReturnType<typeof runSemanticAnalysis>>["findings"] = [];
+
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const produced = await produceComplete(promptText);
+      text = produced.text;
+      truncated = produced.truncated;
+      if (!text) return NextResponse.json({ error: "لم يُنشأ أي محتوى" }, { status: 500 });
+
+      // نوع موجز بلغ السقف = تضخّم خارج قالبه — يُعاد أقصر ليعكس النوع
+      const inflated = !isOpenLength && truncated;
+
+      // بوابة الحاكم — إلزامية على كل الأنواع بلا استثناء
+      const gov = await runSemanticAnalysis(text, { contentType, channel, audience, purpose }, contentKind);
+      violations = gov.findings;
+
+      // مطابق للحاكم ومطابق لقالب نوعه → يُسلَّم
+      if (violations.length === 0 && !inflated) {
+        return NextResponse.json({ text, truncated: false });
+      }
+
+      // بناء تصحيحات إلزامية لإعادة الكتابة كاملةً في المحاولة التالية
+      const corrections: string[] = [];
+      if (inflated) {
+        corrections.push(`- تجاوزتَ قالب النوع «${contentType}» وطوله المحدد: النص يجب أن يلتزم بنية هذا النوع وإيجازه — أعد كتابته أقصر ومكتمل المعنى دون قطع.`);
+      }
+      for (const v of violations) {
+        const ref = v.legalReference || "قواعد السلوك المهني للمحامين";
+        const title = v.articleTitle ? ` (${v.articleTitle})` : "";
+        const safer = v.suggestedSaferWording ? ` — الصياغة الأسلم: ${v.suggestedSaferWording}` : "";
+        corrections.push(`- مخالفة لـ${ref}${title}: ${v.issue}${safer}`);
+      }
+      promptText = `${user}\n\nتصحيحات إلزامية قبل الإخراج — النص السابق خالف حاكم المنصة (قواعد السلوك المهني واللائحة التنفيذية لنظام المحاماة)، فأعد كتابته كاملاً بحيث يخلو منها تماماً:\n${corrections.join("\n")}`;
+    }
+
+    // استُنفدت المحاولات ولا يزال مخالفاً — لا يُسلَّم نص خارج إطار الحاكم
+    if (violations.length > 0) {
+      return NextResponse.json(
+        { error: "تعذّر إخراج نص مطابق لحاكم المنصة (قواعد السلوك المهني واللائحة التنفيذية). أعد المحاولة أو عدّل مدخلات السياق." },
+        { status: 422 }
+      );
+    }
+    // مطابق للحاكم لكن بقي أطول من قالب النوع الموجز — يُسلَّم مع تنبيه غير معطِّل
+    return NextResponse.json({ text, truncated });
   } catch (error) {
     console.error("[content-studio/generate]", error);
     return NextResponse.json({ error: "فشل الاتصال بخدمة الذكاء الاصطناعي" }, { status: 503 });
