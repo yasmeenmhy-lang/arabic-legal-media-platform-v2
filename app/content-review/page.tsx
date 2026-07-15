@@ -202,6 +202,8 @@ export default function ContentReviewPage() {
   const [savedVisuals, setSavedVisuals] = useState<StoredVisual[]>([]);
   const [approved, setApproved] = useState(false);
   const [approving, setApproving] = useState(false);
+  // رسالة فورية تحت زر الاعتماد — لا صمت عند أي عائق
+  const [approveMsg, setApproveMsg] = useState("");
   const [activeTab, setActiveTab] = useState<ReviewTab>("findings");
   const [isEditing, setIsEditing] = useState(false);
   const [editSnapshot, setEditSnapshot] = useState<{
@@ -531,13 +533,19 @@ export default function ContentReviewPage() {
   }
 
   async function approveCurrentVersion() {
-    if (!contentId || !versionNumber || !review || approving) return;
+    if (!review || approving || approved) return;
+    // لا صمت: غياب النسخة المحفوظة يُقال صراحة بدل تجاهل الضغطة
+    if (!contentId || !versionNumber) {
+      setApproveMsg("هذه المراجعة غير مرتبطة بنسخة محفوظة — أعد التحليل ثم جرّب الاعتماد.");
+      return;
+    }
     setApproving(true);
     setMessage("");
+    setApproveMsg("");
     try {
       const saved = approveContentVersion(contentId, versionNumber);
       if (!saved) {
-        setMessage("تعذر الاعتماد: عالج الملاحظات والحواجز الظاهرة أولاً.");
+        setApproveMsg("تعذر الاعتماد: عالج الملاحظات والحواجز الظاهرة أولاً.");
         return;
       }
       const approvedReview = await requestReview("READY_FOR_PUBLISHING");
@@ -547,7 +555,7 @@ export default function ContentReviewPage() {
       setApproved(true);
       setMessage("تم اعتماد الإصدار النهائي. أصبحت خيارات المشاركة والتصدير متاحة.");
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "تعذر إكمال الاعتماد.");
+      setApproveMsg(error instanceof Error ? error.message : "تعذر إكمال الاعتماد.");
     } finally {
       setApproving(false);
     }
@@ -1633,6 +1641,7 @@ export default function ContentReviewPage() {
           <Panel id="approval" className="scroll-mt-24">
             <SectionTitle title="7. اعتماد النسخة" subtitle="لا تتاح المشاركة أو التصدير إلا للنسخة النهائية التي تمت مراجعتها واعتمادها." />
             <button type="button" onClick={approveCurrentVersion} disabled={approved || approving || review.findings.some((finding) => !finding.resolved) || !review.languageQuality.passed || ["بالغ", "حرج", "مرتفع"].includes(review.riskLevel)} className="inline-flex items-center gap-2 rounded-md bg-palm px-5 py-2.5 text-white disabled:cursor-not-allowed disabled:opacity-50"><Save size={16} />{approved ? "تم اعتماد النسخة" : approving ? "جار الاعتماد..." : "اعتماد النسخة الحالية"}</button>
+            {approveMsg ? <p className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-sm leading-6 text-red-700">{approveMsg}</p> : null}
             {!approved ? (() => {
               // شفافية القفل: يُعرض سبب تعطل الاعتماد بدقة لا برسالة عامة
               const unresolvedCount = review.findings.filter((finding) => !finding.resolved).length;
