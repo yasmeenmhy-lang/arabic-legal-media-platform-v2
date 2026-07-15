@@ -242,7 +242,7 @@ ${briefType
   // استدعاء واحد لـSonnet — يعيد النص وسبب التوقف لكشف القطع
   const key: string = apiKey;
   async function callSonnet(messages: { role: "user" | "assistant"; content: string }[]) {
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
+    const response = await fetch(`${process.env.ANTHROPIC_BASE_URL ?? "https://api.anthropic.com"}/v1/messages`, {
       method: "POST",
       headers: {
         "x-api-key": key,
@@ -293,10 +293,11 @@ ${briefType
     return { text: full.trim(), truncated: stopReason === "max_tokens" };
   }
 
-  try {
-    // حاكم المنصة يحكم كل مخرج: بعد الإنتاج يُعرض النص على محرك الامتثال نفسه الذي تحكم به
-    // المراجعة (قواعد السلوك المهني + اللائحة التنفيذية عبر legal-knowledge-base). أي مخالفة
-    // تُعاد الكتابة بها، ولا يُسلَّم نص خارج إطار الحاكم مهما كان النوع أو الطول.
+  // الدورة الكاملة: توليد ← بوابة الحاكم ← إعادة كتابة عند الملاحظات — تُرجع نتيجة أو خطأ
+  async function runPipeline(): Promise<
+    | { kind: "ok"; text: string; truncated: boolean }
+    | { kind: "err"; error: string }
+  > {
     let promptText = user;
     let text = "";
     let truncated = false;
@@ -307,7 +308,7 @@ ${briefType
       const produced = await produceComplete(promptText);
       text = produced.text;
       truncated = produced.truncated;
-      if (!text) return NextResponse.json({ error: "لم يُنشأ أي محتوى" }, { status: 500 });
+      if (!text) return { kind: "err", error: "لم يُنشأ أي محتوى" };
 
       // نوع موجز بلغ السقف = تضخّم خارج قالبه — يُعاد أقصر ليعكس النوع
       const inflated = !isOpenLength && truncated;
@@ -325,7 +326,7 @@ ${briefType
 
       // نظيف من كل النواحي (امتثال + لغة وأسلوب ووضوح) ومطابق لقالب نوعه → يُسلَّم
       if (clean && !inflated) {
-        return NextResponse.json({ text, truncated: false });
+        return { kind: "ok", text, truncated: false };
       }
 
       // بناء تصحيحات إلزامية لإعادة الكتابة كاملةً في المحاولة التالية
@@ -339,16 +340,47 @@ ${briefType
 
     // استُنفدت المحاولات: المخالفة النظامية تحجب التسليم نهائياً — لا يُسلَّم نص خارج إطار الحاكم
     if (!compliant) {
-      return NextResponse.json(
-        { error: "تعذّر إخراج نص مطابق لحاكم المنصة (قواعد السلوك المهني واللائحة التنفيذية). أعد المحاولة أو عدّل مدخلات السياق." },
-        { status: 422 }
-      );
+      return { kind: "err", error: "تعذّر إخراج نص مطابق لحاكم المنصة (قواعد السلوك المهني واللائحة التنفيذية). أعد المحاولة أو عدّل مدخلات السياق." };
     }
     // ممتثل نظامياً لكن بقيت ملاحظة لغوية/أسلوبية نادرة أو طول زائد — يُسلَّم مع تنبيه غير معطِّل
-    return NextResponse.json({ text, truncated });
-  } catch (error) {
-    console.error("[content-studio/generate]", error);
-    const known = describeProviderError(error instanceof Error ? error.message : "");
-    return NextResponse.json({ error: known ?? "فشل الاتصال بخدمة الذكاء الاصطناعي" }, { status: 503 });
+    return { kind: "ok", text, truncated };
   }
+
+  // بث نبضات حية أثناء العمل (NDJSON): متصفحات الجوال (Safari خاصة) تقطع الطلبات الصامتة
+  // بعد نحو دقيقة — النبضة كل عشر ثوانٍ تُبقي القناة حية مهما طالت الدورة، والنتيجة سطر أخير.
+  const encoder = new TextEncoder();
+  const stream = new ReadableStream({
+    async start(controller) {
+      const send = (obj: unknown) => {
+        try {
+          controller.enqueue(encoder.encode(JSON.stringify(obj) + "\n"));
+        } catch {
+          /* أُغلقت القناة من الطرف الآخر */
+        }
+      };
+      const heartbeat = setInterval(() => send({ type: "ping" }), 10_000);
+      try {
+        const result = await runPipeline();
+        if (result.kind === "ok") send({ type: "result", text: result.text, truncated: result.truncated });
+        else send({ type: "error", error: result.error });
+      } catch (error) {
+        console.error("[content-studio/generate]", error);
+        const known = describeProviderError(error instanceof Error ? error.message : "");
+        send({ type: "error", error: known ?? "فشل الاتصال بخدمة الذكاء الاصطناعي" });
+      } finally {
+        clearInterval(heartbeat);
+        try {
+          controller.close();
+        } catch {
+          /* مغلقة أصلاً */
+        }
+      }
+    },
+  });
+  return new Response(stream, {
+    headers: {
+      "content-type": "application/x-ndjson; charset=utf-8",
+      "cache-control": "no-cache, no-transform",
+    },
+  });
 }

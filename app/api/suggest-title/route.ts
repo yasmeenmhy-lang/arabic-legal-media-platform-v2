@@ -16,7 +16,7 @@ function heuristicTitle(text: string): string {
 
 // طلب عنوان من النموذج (مع تصحيح اختياري إذا خالف العنوان السابق الحاكم)
 async function requestTitle(apiKey: string, text: string, correction: string): Promise<string> {
-  const response = await fetch("https://api.anthropic.com/v1/messages", {
+  const response = await fetch(`${process.env.ANTHROPIC_BASE_URL ?? "https://api.anthropic.com"}/v1/messages`, {
     method: "POST",
     headers: {
       "x-api-key": apiKey,
