@@ -78,11 +78,11 @@ export default function ContentManagementPage() {
     try {
       const parsed = JSON.parse(await file.text()) as unknown;
       const result = importContentRecords(parsed);
-      if (!result) { setTransferMsg("الملف غير صالح — اختاري ملف تصدير سجل صادراً من المنصة."); return; }
+      if (!result) { setTransferMsg("الملف غير صالح — اختر ملف تصدير سجل صادراً من المنصة."); return; }
       setRecords(loadContentRecords());
       setTransferMsg(`اكتمل الاستيراد: ${result.added} أُضيف، ${result.updated} حُدّث، ${result.skipped} كان أحدث محلياً فبقي.`);
     } catch {
-      setTransferMsg("تعذر قراءة الملف — تأكدي أنه ملف تصدير السجل نفسه دون تعديل.");
+      setTransferMsg("تعذر قراءة الملف — تأكد أنه ملف تصدير السجل نفسه دون تعديل.");
     }
   }
 
@@ -301,7 +301,7 @@ export default function ContentManagementPage() {
         <div>
           <p className="text-sm font-semibold text-ink">نسخة احتياطية من السجل</p>
           <p className="mt-1 text-xs leading-6 text-ink/60">
-            صدّر سجلك ملفاً للاحتفاظ بنسخة منه، واستورده عند الانتقال إلى جهاز آخر. الاستيراد يضيف ولا يحذف شيئاً من سجلك.
+            احتفظ بنسخة من سجلك عبر التصدير، واسترجعها متى شئت وعلى أي جهاز عبر الاستيراد، مع بقاء سجلك الحالي كما هو دون أي حذف.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">

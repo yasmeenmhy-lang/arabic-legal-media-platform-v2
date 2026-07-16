@@ -29,7 +29,7 @@ export function SmartAssistantPanel({ review }: { review: ReviewResult }) {
     <Panel id="smart-assistant">
       <SectionTitle
         title="المساعد الذكي داخل النافذة"
-        subtitle="يساعدك على فهم الملاحظة وسببها والقاعدة المرتبطة بها وطريقة تعديل النص، دون أن يحل محل مسؤولية المستخدم في النشر."
+        subtitle="يساعدك على فهم الملاحظة وسببها والقاعدة المرتبطة بها وطريقة تعديل النص — وقرار النشر يبقى لك."
       />
       <div className="rounded-xl border border-violetBorder bg-violetSoft p-4">
         <div className="flex items-center gap-2 text-violet"><Bot size={20} aria-hidden="true" /><h3 className="font-semibold">توجيه عملي للمراجعة الحالية</h3></div>

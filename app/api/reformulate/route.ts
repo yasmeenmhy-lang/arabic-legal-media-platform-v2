@@ -101,7 +101,7 @@ export async function POST(request: Request) {
   if (!parsed.success) return badRequest("بيانات غير صالحة");
 
   const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) return NextResponse.json({ error: "خدمة التحليل غير مهيأة — تأكد من ضبط متغيرات البيئة." }, { status: 503 });
+  if (!apiKey) return NextResponse.json({ error: "خدمة التحليل غير متاحة حالياً — تواصل مع مسؤول المنصة." }, { status: 503 });
 
   const { text, contentType, channel, audience, purpose, charLimit, findings, languageIssues } = parsed.data;
   const context = { contentType, channel, audience, purpose };

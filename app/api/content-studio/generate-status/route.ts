@@ -20,6 +20,6 @@ export async function GET(request: Request) {
   const job = await getJob(sql, id);
   if (!job) return NextResponse.json({ status: "missing" });
   if (job.status === "done") return NextResponse.json({ status: "done", text: job.result_text ?? "", truncated: job.truncated });
-  if (job.status === "error") return NextResponse.json({ status: "error", error: job.error ?? "فشل غير معروف" });
+  if (job.status === "error") return NextResponse.json({ status: "error", error: job.error ?? "تعذر إنشاء المحتوى — حاول مرة أخرى." });
   return NextResponse.json({ status: "pending", partial: job.partial_text ?? undefined });
 }

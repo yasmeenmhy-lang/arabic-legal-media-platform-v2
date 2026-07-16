@@ -710,7 +710,7 @@ export default function ContentStudioPage() {
       setVtVisual(null);
       setVtError("");
     } else {
-      setGenerateError(outcome.error ?? "فشل في إنشاء المحتوى");
+      setGenerateError(outcome.error ?? "تعذر إنشاء المحتوى — حاول مرة أخرى.");
     }
   }
 
@@ -729,7 +729,7 @@ export default function ContentStudioPage() {
         }
         if (data.status === "error" || data.status === "missing") {
           try { window.localStorage.removeItem(scopedKey(PENDING_GENERATION_KEY)); } catch { /* بيئة بلا تخزين */ }
-          return { error: data.status === "missing" ? "انتهت صلاحية المهمة — أعد الإنشاء." : data.error ?? "فشل في إنشاء المحتوى" };
+          return { error: data.status === "missing" ? "انتهت صلاحية هذا الإنشاء — أعد المحاولة." : data.error ?? "تعذر إنشاء المحتوى — حاول مرة أخرى." };
         }
       } catch {
         /* انقطاع شبكة عابر — نواصل الاستطلاع */
@@ -1003,7 +1003,7 @@ export default function ContentStudioPage() {
       createDraftRecord(activeText, { kind, channel, audience, purpose }, visuals);
       router.push("/content-management");
     } catch {
-      flash("فشل حفظ المسودة");
+      flash("تعذر حفظ المسودة — حاول مرة أخرى.");
     }
   }
 
@@ -1218,7 +1218,7 @@ export default function ContentStudioPage() {
         }),
       });
       const data = (await res.json()) as { svgCode?: string; imageUrl?: string; imageBase64?: string; provider?: string; providerNote?: string; premiumError?: string; visual?: VisualStructure; error?: string };
-      if (!res.ok) { setVtError(data.error ?? "فشل في إنشاء المرئي"); return; }
+      if (!res.ok) { setVtError(data.error ?? "تعذر إنشاء المرئي — حاول مرة أخرى."); return; }
       if (data.svgCode) {
         setVtSvg(data.svgCode);
         setVtVisual(data.visual ?? null);
@@ -1542,7 +1542,7 @@ export default function ContentStudioPage() {
       if (!res.ok || !data.visualType) return;
       // نوع «صورة» مرتبط بالمزود الاحترافي حصراً — لا يُطبق الاقتراح إذا كان المزود معطلاً
       if (data.visualType === "image" && !premiumUsable) {
-        setVtSuggestionReason("اقترح الذكاء صورة، لكن مزود المرئي الاحترافي غير متاح حالياً — اختر نوعاً آخر");
+        setVtSuggestionReason("اقترح الذكاء صورة، لكن المرئي الاحترافي غير متاح حالياً — اختر نوعاً آخر");
         return;
       }
       setVtType(data.visualType);
@@ -1601,7 +1601,7 @@ export default function ContentStudioPage() {
       });
       const data = (await res.json()) as { svgCode?: string; imageUrl?: string; imageBase64?: string; premiumError?: string; providerNote?: string; prompt?: string; error?: string };
       if (!res.ok) {
-        setImageGenError(data.error ?? "فشل في إنشاء الصورة");
+        setImageGenError(data.error ?? "تعذر إنشاء الصورة — حاول مرة أخرى.");
         return;
       }
       if (data.svgCode) {
@@ -2761,7 +2761,7 @@ export default function ContentStudioPage() {
                       key={t.key}
                       type="button"
                       disabled={disabled}
-                      title={soon ? "قريبًا — لم يُفعّل بعد" : needsProvider ? "غير مفعّل حاليًا — مزود المرئي الاحترافي غير متاح" : undefined}
+                      title={soon ? "قريبًا — لم يُفعّل بعد" : needsProvider ? "غير مفعّل حالياً — المرئي الاحترافي غير متاح" : undefined}
                       onClick={() => { if (disabled || !t.engine) return; setVtOutputChoice(t.key); setVtType(t.engine); if (t.engine === "image" || (premiumUsable && (t.engine === "carousel" || t.engine === "storyboard"))) setVtOutputMode("premium_image"); setVtSvg(""); setVtUrl(""); setVtVisual(null); setVtPremiumUrl(""); setVtProvider(""); setVtProviderNote(""); setVtPremiumError(""); setVtPlan(null); setVtPlanEditing(false); setVtError(""); setVtConfirming(false); setVtSuggestionReason(""); }}
                       className={`rounded-lg border px-3 py-1.5 text-xs font-medium transition ${
                         selected
@@ -2799,7 +2799,7 @@ export default function ContentStudioPage() {
                       return (
                         <button key={m.key} type="button"
                           disabled={locked || imageOnly}
-                          title={locked ? "غير متاح — مشكلة مفتاح OpenAI" : imageOnly ? "نوع «صورة» يُنتج عبر المزود الاحترافي فقط" : undefined}
+                          title={locked ? "غير متاح حالياً — تواصل مع مسؤول المنصة" : imageOnly ? "نوع «صورة» يُنتج عبر المزود الاحترافي فقط" : undefined}
                           onClick={() => setVtOutputMode(m.key)}
                           className={`rounded-lg border px-3 py-1.5 text-xs font-medium transition ${
                             vtOutputMode === m.key
@@ -2814,19 +2814,18 @@ export default function ContentStudioPage() {
                     })}
                     {premiumUsable && providerInfo && (
                       <span className="text-xs text-palm">
-                        {providerInfo.openai && providerInfo.openaiVerified ? "OpenAI متصل — تم التحقق من المفتاح" : "Gemini / Nano Banana مهيأ"}
+                        المرئي الاحترافي جاهز
                       </span>
                     )}
                   </div>
                   {providerInfo && !premiumUsable && (
                     providerInfo.mode === "mock" ? (
                       <p className="rounded-lg bg-warningSoft px-3 py-2 text-xs font-medium leading-5 text-warningDark">
-                        وضع تجريبي (demo) مفعّل — المرئي الاحترافي معطل والناتج عنصر نائب للعرض التقني فقط.
+                        الوضع التجريبي مفعّل — المرئي الاحترافي معطل مؤقتاً والناتج للعرض فقط.
                       </p>
                     ) : (
                       <p className="rounded-lg bg-warningSoft px-3 py-2 text-xs font-medium leading-5 text-warningDark">
-                        OpenAI غير متاح حاليًا — استخدم SVG القابل للتعديل.
-                        {providerInfo.verifyNote ? ` ${providerInfo.verifyNote}` : ""}
+                        المرئي الاحترافي غير متاح حالياً — استخدم المخرج القابل للتعديل، أو تواصل مع مسؤول المنصة.
                       </p>
                     )
                   )}
@@ -3069,7 +3068,7 @@ export default function ContentStudioPage() {
                 return (
                 <div className={`overflow-hidden rounded-xl border ${real ? "border-line" : "border-warningBorder"} bg-white`}>
                   <p className={`border-b px-3 py-1.5 text-xs font-bold ${real ? "border-line bg-paper/70 text-ink/60" : "border-warningBorder bg-warningSoft text-warningDark"}`}>
-                    {real ? "المرئي الاحترافي" : "تجريبي فقط — وضع demo، غير مخصص للاعتماد"}
+                    {real ? "المرئي الاحترافي" : "تجريبي فقط — غير مخصص للاعتماد"}
                   </p>
                   {/* معاينة مضبوطة تناسب المنصة — التنزيل يحفظ الملف الأصلي بدقته الكاملة */}
                   <div className="flex justify-center bg-paper/40 p-3">
@@ -3081,8 +3080,8 @@ export default function ContentStudioPage() {
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="text-xs text-ink/55">
                         {real
-                          ? `مرئي احترافي — المزود: ${vtProvider === "openai" ? "OpenAI" : "Gemini / Nano Banana"}`
-                          : "عنصر نائب تجريبي (IMAGE_PROVIDER=mock)"}
+                          ? "مرئي احترافي بالذكاء الاصطناعي"
+                          : "عنصر نائب تجريبي — للعرض فقط"}
                       </span>
                       {real && (
                         <a href={vtPremiumUrl} download="premium-visual.png" target="_blank" rel="noopener noreferrer"
@@ -3091,7 +3090,7 @@ export default function ContentStudioPage() {
                     </div>
                     {!real && (
                       <p className="text-xs leading-5 text-warningDark">
-                        وضع تجريبي صريح للعرض التقني — لا يمثل مزودًا احترافيًا ولا يصلح للاعتماد النهائي.
+                        وضع تجريبي للعرض فقط — لا يصلح للاعتماد النهائي.
                       </p>
                     )}
                   </div>

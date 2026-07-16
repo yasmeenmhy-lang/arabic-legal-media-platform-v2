@@ -1300,10 +1300,8 @@ export async function POST(request: Request) {
       }).filter(([, v]) => v !== undefined && v !== null));
     } else {
       // فشل المزود الحقيقي: بطاقة حالة صادقة فقط — لا صورة احتياطية تُعرض للاعتماد
-      const ps = providerStatus();
-      const who = ps.openai ? "OpenAI" : ps.gemini ? "Gemini" : "مزود الصور";
       premiumExtras = Object.fromEntries(Object.entries({
-        premiumError: `تعذر توليد المرئي الاحترافي لأن ${who} لم يعمل.`,
+        premiumError: "تعذر إنشاء المرئي الاحترافي — أعد المحاولة، وإن استمرت المشكلة تواصل مع مسؤول المنصة.",
         providerNote: img.failureNote,
       }).filter(([, v]) => v !== undefined && v !== null));
     }
@@ -1316,11 +1314,11 @@ export async function POST(request: Request) {
     if (outputMode === "both" && (premiumExtras.imageBase64 || premiumExtras.imageUrl)) {
       return NextResponse.json({
         ...premiumExtras,
-        svgError: "تعذر توليد البنية القابلة للتعديل (ANTHROPIC_API_KEY غير مهيأ) — الصورة الاحترافية جاهزة.",
+        svgError: "تعذر توليد النسخة القابلة للتعديل — الصورة الاحترافية جاهزة.",
       });
     }
     return NextResponse.json(
-      { error: "هذه النسخة من المنصة غير مهيأة بمفاتيح الذكاء الاصطناعي. افتح المنصة من الرابط الأساسي: lawyer-media-platform.vercel.app — وإن استمرت الرسالة هناك فأبلغ مسؤول المنصة بضبط المفاتيح في إعدادات Vercel ثم إعادة النشر." },
+      { error: "خدمة الذكاء الاصطناعي غير متاحة حالياً — تواصل مع مسؤول المنصة." },
       { status: 503 }
     );
   }
@@ -1335,7 +1333,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ svgCode, visual: { type: "chart", chartType: chartType ?? "", data }, visualPlan: visualPlan ?? undefined, ...premiumExtras });
     } catch (e) {
       console.error("[chart]", e);
-      return NextResponse.json({ error: "فشل إنشاء الرسم البياني" }, { status: 500 });
+      return NextResponse.json({ error: "تعذر إنشاء الرسم البياني — حاول مرة أخرى." }, { status: 500 });
     }
   }
 
@@ -1349,7 +1347,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ svgCode, visual: { type: "mindmap", data }, visualPlan: visualPlan ?? undefined, ...premiumExtras });
     } catch (e) {
       console.error("[mindmap]", e);
-      return NextResponse.json({ error: "فشل إنشاء الخريطة الذهنية" }, { status: 500 });
+      return NextResponse.json({ error: "تعذر إنشاء الخريطة الذهنية — حاول مرة أخرى." }, { status: 500 });
     }
   }
 
@@ -1363,7 +1361,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ svgCode, visual: { type: "infographic", data }, visualPlan: visualPlan ?? undefined, ...premiumExtras });
     } catch (e) {
       console.error("[infographic]", e);
-      return NextResponse.json({ error: "فشل إنشاء الإنفوغراف" }, { status: 500 });
+      return NextResponse.json({ error: "تعذر إنشاء الإنفوغراف — حاول مرة أخرى." }, { status: 500 });
     }
   }
 
@@ -1376,7 +1374,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ svgCode, visual: { type: "quote_card", data }, visualPlan: visualPlan ?? undefined, ...premiumExtras });
     } catch (e) {
       console.error("[quote_card]", e);
-      return NextResponse.json({ error: "فشل إنشاء بطاقة الاقتباس" }, { status: 500 });
+      return NextResponse.json({ error: "تعذر إنشاء بطاقة الاقتباس — حاول مرة أخرى." }, { status: 500 });
     }
   }
 
@@ -1396,7 +1394,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ svgCode, visual: { type: visualType, data }, visualPlan: visualPlan ?? undefined, ...premiumExtras });
     } catch (e) {
       console.error("[cards]", visualType, e);
-      return NextResponse.json({ error: "فشل إنشاء البطاقات المتسلسلة" }, { status: 500 });
+      return NextResponse.json({ error: "تعذر إنشاء البطاقات المتسلسلة — حاول مرة أخرى." }, { status: 500 });
     }
   }
 
@@ -1435,14 +1433,12 @@ Output ONLY the English prompt, nothing else.`
       }).filter(([, v]) => v !== undefined && v !== null)));
     }
     // فشل المزود الحقيقي: بطاقة حالة صادقة فقط — لا صورة بديلة
-    const ps = providerStatus();
-    const who = ps.openai ? "OpenAI" : ps.gemini ? "Gemini" : "مزود الصور";
     return NextResponse.json(Object.fromEntries(Object.entries({
-      premiumError: `تعذر توليد المرئي الاحترافي لأن ${who} لم يعمل.`,
+      premiumError: "تعذر إنشاء المرئي الاحترافي — أعد المحاولة، وإن استمرت المشكلة تواصل مع مسؤول المنصة.",
       providerNote: img.failureNote,
     }).filter(([, v]) => v !== undefined && v !== null)));
   } catch (e) {
     console.error("[image]", e);
-    return NextResponse.json({ error: "فشل إنشاء الصورة" }, { status: 500 });
+    return NextResponse.json({ error: "تعذر إنشاء الصورة — حاول مرة أخرى." }, { status: 500 });
   }
 }

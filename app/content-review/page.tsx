@@ -328,7 +328,7 @@ export default function ContentReviewPage() {
       });
       const data = (await res.json()) as { imageUrl?: string; prompt?: string; error?: string };
       if (!res.ok) {
-        setImageGenError(data.error ?? "فشل في إنشاء الصورة");
+        setImageGenError(data.error ?? "تعذر إنشاء الصورة — حاول مرة أخرى.");
         return;
       }
       setImageGenUrl(data.imageUrl ?? "");
@@ -666,7 +666,7 @@ export default function ContentReviewPage() {
       });
       const payload = await response.json().catch(() => null) as { data?: { suggestedText?: string }; error?: string } | null;
       if (!response.ok || !payload) {
-        throw new Error(payload?.error ?? "تعذر إنشاء الصياغة المقترحة — تحقق من إعدادات الخدمة.");
+        throw new Error(payload?.error ?? "تعذر إنشاء الصياغة المقترحة — حاول مرة أخرى.");
       }
       const suggested = payload.data?.suggestedText?.trim() ?? "";
       if (!suggested) throw new Error("أعاد النموذج نصًا فارغًا، حاول مرة أخرى.");
@@ -945,7 +945,7 @@ export default function ContentReviewPage() {
                       </div>
                       {imageGenPrompt && (
                         <details className="border-t border-line">
-                          <summary className="cursor-pointer px-3 py-2 text-xs text-ink/40 hover:text-ink/60">Prompt المستخدم (للاستخدام مع DALL-E أو Midjourney)</summary>
+                          <summary className="cursor-pointer px-3 py-2 text-xs text-ink/40 hover:text-ink/60">وصف الصورة لأدوات التوليد الخارجية</summary>
                           <p className="select-all px-3 pb-3 pt-1 text-xs leading-5 text-ink/55">{imageGenPrompt}</p>
                         </details>
                       )}

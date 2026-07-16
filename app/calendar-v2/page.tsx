@@ -1368,7 +1368,7 @@ export default function CalendarV2Page() {
       });
       const data = await res.json() as SmartPlanResult & { error?: string };
       if (!res.ok || data.error) {
-        setSmartPlanError(data.error ?? "حدث خطأ غير متوقع");
+        setSmartPlanError(data.error ?? "تعذر إنشاء الخطة — حاول مرة أخرى.");
       } else {
         setSmartPlanResult(data);
       }
