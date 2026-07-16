@@ -80,7 +80,6 @@ export type ContentKind =
   | "caption"
   | "publishing_plan"
   | "social_export"
-  | "commentary"
   | "statement"
   | "diary";
 

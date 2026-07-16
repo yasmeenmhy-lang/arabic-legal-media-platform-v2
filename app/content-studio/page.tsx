@@ -79,7 +79,6 @@ const studioContentTypes = contentKindOptions.filter((item) =>
   (
     [
       "post",
-      "commentary",
       "statement",
       "diary",
       "advertisement",
