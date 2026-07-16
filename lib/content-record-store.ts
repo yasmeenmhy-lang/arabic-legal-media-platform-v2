@@ -489,7 +489,7 @@ export function attachVisualsToVersion(
     saveContentRecords(records);
     return "saved";
   } catch {
-    version.visuals = version.visuals.filter((v) => !v.imageUrl || v.imageUrl.length < 200_000);
+    version.visuals = version.visuals.filter((v) => !v.imageUrl || v.imageUrl.length < 320_000);
     try {
       saveContentRecords(records);
       return "saved-partial";
