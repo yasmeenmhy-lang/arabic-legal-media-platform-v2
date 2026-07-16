@@ -61,6 +61,8 @@ export default function ContentManagementPage() {
   const [searchFocus, setSearchFocus] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState<string>();
   const [loaded, setLoaded] = useState(false);
+  // حالة المزامنة السحابية — يراها المستخدم فيعرف أن سجله محفوظ ومتاح على أجهزته
+  const [syncState, setSyncState] = useState<"synced" | "offline" | "signedout" | "unknown">("unknown");
   // تصدير/استيراد السجل — بقرار مالكة المنصة: النقل الآمن بين المتصفحات والعناوين
   const importInputRef = useRef<HTMLInputElement>(null);
   const [transferMsg, setTransferMsg] = useState("");
@@ -94,8 +96,13 @@ export default function ContentManagementPage() {
     setLoaded(true);
     // عند اكتمال المزامنة السحابية (سجلات من أجهزة أخرى) تُحدَّث القائمة فوراً
     const onSynced = () => setRecords(loadContentRecords());
+    const onStatus = (e: Event) => setSyncState((e as CustomEvent).detail);
     window.addEventListener("lm-records-synced", onSynced);
-    return () => window.removeEventListener("lm-records-synced", onSynced);
+    window.addEventListener("lm-sync-status", onStatus);
+    return () => {
+      window.removeEventListener("lm-records-synced", onSynced);
+      window.removeEventListener("lm-sync-status", onStatus);
+    };
   }, []);
 
   const counts = useMemo(() => ({
@@ -310,6 +317,21 @@ export default function ContentManagementPage() {
           الفحص لأي إجراء تأديبي أو مساءلة، وتظل بياناتك ومحتواك في سرية تامة دون اطلاع أي جهة عليها.
         </p>
       </div>
+
+      {/* حالة المزامنة بالحساب — يعرف المستخدم أن سجله متاح على كل أجهزته */}
+      {syncState !== "unknown" && (
+        <div className={`flex items-center gap-2 rounded-xl border p-3 text-sm ${
+          syncState === "synced" ? "border-palm/30 bg-mint/50 text-palmDeep"
+          : syncState === "signedout" ? "border-goldBorder bg-goldSoft text-goldDark"
+          : "border-line bg-paper text-ink/60"}`}>
+          <span className={`inline-block h-2.5 w-2.5 rounded-full ${syncState === "synced" ? "bg-palm" : syncState === "signedout" ? "bg-gold" : "bg-warmGray"}`} />
+          {syncState === "synced"
+            ? "سجلك محفوظ بحسابك ويظهر على كل أجهزتك — يُزامَن تلقائياً."
+            : syncState === "signedout"
+              ? "سجّل الدخول بحسابك لتُزامَن سجلاتك عبر أجهزتك؛ وإلا تبقى على هذا الجهاز فقط."
+              : "المزامنة غير متاحة مؤقتاً — سجلك محفوظ على هذا الجهاز، وسيُزامَن تلقائياً عند عودة الاتصال."}
+        </div>
+      )}
 
       {/* بقرار مالكة المنصة: تصدير/استيراد السجل — نقل آمن بين المتصفحات والعناوين بلا فقدان */}
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-line bg-white p-4 shadow-sm">

@@ -50,16 +50,26 @@ export async function pushAllToCloud() {
   }
 }
 
+function broadcastStatus(state: "synced" | "offline" | "signedout") {
+  try {
+    window.dispatchEvent(new CustomEvent("lm-sync-status", { detail: state }));
+  } catch {
+    /* بيئة بلا نافذة */
+  }
+}
+
 export async function pullAndMergeFromCloud() {
   try {
     const res = await fetch("/api/user-records");
-    if (!res.ok) return;
+    if (res.status === 401) { broadcastStatus("signedout"); return; }
+    if (!res.ok) { broadcastStatus("offline"); return; }
     const payload = (await res.json()) as {
       sync?: boolean;
       records?: StoredContentRecord[];
       deletedIds?: string[];
     };
-    if (!payload.sync || !Array.isArray(payload.records)) return;
+    if (!payload.sync || !Array.isArray(payload.records)) { broadcastStatus("offline"); return; }
+    broadcastStatus("synced");
 
     const local = loadContentRecords();
     const merged = new Map<string, StoredContentRecord>(local.map((r) => [r.id, r]));
