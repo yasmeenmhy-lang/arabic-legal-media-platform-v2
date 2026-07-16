@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { badRequest } from "@/lib/api";
+import { KINGDOM_STYLE_RULE } from "@/lib/governance";
 import { generatePremiumImage, providerStatus, verifyOpenAIKey } from "@/lib/image-providers";
 import { generateVisualPlan, planToEngineDescription, type VisualPlan } from "@/lib/visual-translator";
 
@@ -58,6 +59,7 @@ async function generateVisualBrief(
     const prompt = `حوّل النص التالي إلى موجز بصري JSON مضغوط لتصميم مرئي قانوني احترافي. أخرج JSON فقط بالمفاتيح:
 {"centralMessage":"الرسالة المركزية بجملة واحدة","objective":"هدف المرئي","targetAudience":"الجمهور","channel":"القناة","visualType":"نوع المرئي","planningType":"نمط التخطيط","keyPoints":["3-5 نقاط موجزة"],"suggestedSections":["أقسام مقترحة"],"importantNumbers":["أرقام أو مواد نظامية مهمة"],"complianceSensitivePhrases":["أي عبارات في النص تعد وعداً بنتيجة أو تفوقاً أو نسب نجاح — انقلها حرفياً لتجنبها"],"recommendedTone":"النبرة","rtlArabicNotes":"ملاحظات اتجاه/خط عربي"}
 معادلة السياق (كل عامل حاكم يجب أن يظهر أثره في الموجز): القناة ${ctx.channel ?? "عام"} تحدد إيقاع النصوص — الجمهور ${ctx.audience ?? "عام"} يحدد مستوى اللغة — الهدف ${ctx.purpose ?? "توعية"} يحدد الرسالة المركزية — النوع البصري ${ctx.visualType}${ctx.planningType ? ` — النمط ${ctx.planningType}` : ""}${ctx.contentType ? ` — نوع المحتوى ${ctx.contentType} يحدد طابع النصوص` : ""}${ctx.specialty ? ` — التخصص ${ctx.specialty} يحصر المجال` : ""}${ctx.source ? ` — مصدر الفكرة ${ctx.source} منطلق المضمون` : ""}
+${KINGDOM_STYLE_RULE}
 النص:
 ${description.slice(0, 2500)}`;
     const raw = await callClaude(apiKey, "claude-haiku-4-5-20251001", 900, prompt);
@@ -139,6 +141,7 @@ Cultural and professional fit is mandatory — this design is for a Saudi legal 
   return `أنشئ مرئياً تصميمياً تحريرياً مصقولاً عالي الجودة باللغة العربية، اتجاه RTL كامل.${alwaysBan}${designDirectives}
 ${core}
 معادلة السياق الحاكمة: القناة ${ctx.channel ?? "عام"} (التنسيق ${dims.label}) — الجمهور ${ctx.audience ?? "عام"} يحدد مستوى أي نص داخل الصورة وطابع الرسوم — الهدف ${ctx.purpose ?? "توعية"} يحدد الرسالة البصرية المركزية${ctx.contentType ? ` — نوع المحتوى ${ctx.contentType}` : ""}${ctx.specialty ? ` — التخصص ${ctx.specialty}: الرموز والمشاهد من مجاله حصراً` : ""}${ctx.source ? ` — مصدر الفكرة: ${ctx.source}` : ""}${ctx.style ? ` — الأسلوب: ${ctx.style}` : ""}
+${KINGDOM_STYLE_RULE}
 مواصفات تكوين بمستوى استوديو تصميم عالمي (إلزامية): شبكة تخطيط منضبطة الاصطفاف بهوامش سخية متساوية؛ عائلة أيقونات واحدة متسقة السماكة والأسلوب (خطية أنيقة بلمسات تعبئة ناعمة) — لا خلط أساليب؛ عمق بصري عبر طبقات وظلال ناعمة جداً وخلفيات بطاقات متنوعة الدرجات من اللوحة؛ ترقيم متسلسل كامل بلا قفز (١ ثم ٢ ثم ٣ ثم ٤)؛ عنصر بطل واحد أكبر يقود العين ثم عناصر متدرجة الأهمية؛ خط عربي هندسي حديث نظيف كبير للعنوان بلا أي تشويه أو قص — النتيجة تصميم يُظن أنه من استوديو هوية محترف، لا قالب مبتدئ متكرر.
 لوحة الألوان إلزامية — لوحة «كود المنصات» الرسمية كاملة، استخدمها بثراء وتنوع لا بلون واحد باهت:
 - الخلفية: أبيض نقي #FFFFFF أو ورقي #FCFCFD
@@ -344,7 +347,7 @@ function renderBarChartSvg(d: ChartData): string {
 <text x="${x + bw / 2}" y="${H - MB + 22}" text-anchor="middle" font-family="${FONT}" font-size="13" fill="${INK_SEC}">${trunc(item.label, 10)}</text>`;
   }).join("\n");
 
-  return `<svg width="100%" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
+  return `<svg width="100%" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" style="max-width:960px;display:block;margin-inline:auto">
 <rect width="${W}" height="${H}" fill="${CANVAS_BG}"/>
 <text x="${W / 2}" y="56" text-anchor="middle" font-family="${FONT}" font-size="28" font-weight="700" fill="${INK}">${trunc(d.title, 36)}</text>
 <text x="${W / 2}" y="84" text-anchor="middle" font-family="${FONT}" font-size="16" fill="${INK_TER}">${trunc(d.yLabel, 40)}</text>
@@ -380,7 +383,7 @@ function renderLineChartSvg(d: ChartData): string {
 <text x="${toX(i)}" y="${H - MB + 22}" text-anchor="middle" font-family="${FONT}" font-size="13" fill="${INK_SEC}">${trunc(it.label, 10)}</text>`
   ).join("\n");
 
-  return `<svg width="100%" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
+  return `<svg width="100%" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" style="max-width:960px;display:block;margin-inline:auto">
 <rect width="${W}" height="${H}" fill="${CANVAS_BG}"/>
 <text x="${W / 2}" y="56" text-anchor="middle" font-family="${FONT}" font-size="28" font-weight="700" fill="${INK}">${trunc(d.title, 36)}</text>
 <text x="${W / 2}" y="84" text-anchor="middle" font-family="${FONT}" font-size="16" fill="${INK_TER}">${trunc(d.yLabel, 40)}</text>
@@ -418,7 +421,7 @@ function renderAreaChartSvg(d: ChartData): string {
 <text x="${toX(i)}" y="${H - MB + 22}" text-anchor="middle" font-family="${FONT}" font-size="13" fill="${INK_SEC}">${trunc(it.label, 10)}</text>`
   ).join("\n");
 
-  return `<svg width="100%" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
+  return `<svg width="100%" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" style="max-width:960px;display:block;margin-inline:auto">
 <rect width="${W}" height="${H}" fill="${CANVAS_BG}"/>
 <text x="${W / 2}" y="56" text-anchor="middle" font-family="${FONT}" font-size="28" font-weight="700" fill="${INK}">${trunc(d.title, 36)}</text>
 <text x="${W / 2}" y="84" text-anchor="middle" font-family="${FONT}" font-size="16" fill="${INK_TER}">${trunc(d.yLabel, 40)}</text>
@@ -455,7 +458,7 @@ function renderHBarChartSvg(d: ChartData): string {
 <text x="${ML - 12}" y="${y + bh / 2 + 5}" text-anchor="end" font-family="${FONT}" font-size="13" fill="${INK_SEC}">${trunc(item.label, 12)}</text>`;
   }).join("\n");
 
-  return `<svg width="100%" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
+  return `<svg width="100%" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" style="max-width:960px;display:block;margin-inline:auto">
 <rect width="${W}" height="${H}" fill="${CANVAS_BG}"/>
 <text x="${W / 2}" y="56" text-anchor="middle" font-family="${FONT}" font-size="28" font-weight="700" fill="${INK}">${trunc(d.title, 36)}</text>
 <text x="${W / 2}" y="84" text-anchor="middle" font-family="${FONT}" font-size="16" fill="${INK_TER}">${trunc(d.yLabel, 40)}</text>
@@ -510,7 +513,7 @@ ${pct >= 5 ? `<text x="${lx}" y="${ly + 6}" text-anchor="middle" font-family="${
 <text x="${cx}" y="${cy + 22}" text-anchor="middle" font-family="${FONT}" font-size="18" fill="${INK_SEC}">${trunc(items[0].label, 12)}</text>`
     : "";
 
-  return `<svg width="100%" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
+  return `<svg width="100%" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" style="max-width:960px;display:block;margin-inline:auto">
 <rect width="${W}" height="${H}" fill="${CANVAS_BG}"/>
 <text x="${W / 2}" y="64" text-anchor="middle" font-family="${FONT}" font-size="30" font-weight="700" fill="${INK}">${trunc(d.title, 32)}</text>
 ${slices.join("\n")}
@@ -549,7 +552,7 @@ function quoteCardDataPrompt(desc: string): string {
 المحتوى: ${desc}
 أخرج JSON فقط بلا أي نص آخر:
 {"title":"عنوان قصير للبطاقة (٣-٦ كلمات)","quote":"الجملة الأبرز (١٥-٣٥ كلمة) — النص النظامي يُنقل حرفياً","attribution":"نسبة الاقتباس لمصدره (المادة/النظام/الجهة) أو \"\" إن كان صياغة عامة","note":"سطر توضيحي قصير اختياري"}
-ممنوع: وعود بنتائج، مقارنات، أسماء جهات كشعارات، أخطاء إملائية.\nقاعدة حاكمة (بأمر مالكة المنصة): أنت تترجم المحتوى أعلاه بصرياً — كل نص ورقم ومادة نظامية في الناتج يجب أن يكون مستخرجاً أو معاد صياغته من المحتوى المعطى حصراً؛ ممنوع اختراع معلومة أو رقم أو مثال أو مادة لم ترد فيه.`;
+ممنوع: وعود بنتائج، مقارنات، أسماء جهات كشعارات، أخطاء إملائية.\nقاعدة حاكمة (بأمر مالكة المنصة): أنت تترجم المحتوى أعلاه بصرياً — كل نص ورقم ومادة نظامية في الناتج يجب أن يكون مستخرجاً أو معاد صياغته من المحتوى المعطى حصراً؛ ممنوع اختراع معلومة أو رقم أو مثال أو مادة لم ترد فيه.\n${KINGDOM_STYLE_RULE}`;
 }
 
 function cardsDataPrompt(desc: string, kind: "carousel" | "storyboard" | "motion"): string {
@@ -562,7 +565,7 @@ function cardsDataPrompt(desc: string, kind: "carousel" | "storyboard" | "motion
 المحتوى: ${desc}
 أخرج JSON فقط بلا أي نص آخر:
 {"title":"عنوان علوي موجز","subtitle":"سطر فرعي اختياري","cards":[{"tag":"","heading":"","line1":"","line2":"","meta":""}]}
-نصوص عربية فصحى موجزة مصقولة. ممنوع: وعود بنتائج، مقارنات، شعارات، أخطاء إملائية.\nقاعدة حاكمة (بأمر مالكة المنصة): أنت تترجم المحتوى أعلاه بصرياً — كل نص ورقم ومادة نظامية في الناتج يجب أن يكون مستخرجاً أو معاد صياغته من المحتوى المعطى حصراً؛ ممنوع اختراع معلومة أو رقم أو مثال أو مادة لم ترد فيه.`;
+نصوص عربية فصحى موجزة مصقولة. ممنوع: وعود بنتائج، مقارنات، شعارات، أخطاء إملائية.\nقاعدة حاكمة (بأمر مالكة المنصة): أنت تترجم المحتوى أعلاه بصرياً — كل نص ورقم ومادة نظامية في الناتج يجب أن يكون مستخرجاً أو معاد صياغته من المحتوى المعطى حصراً؛ ممنوع اختراع معلومة أو رقم أو مثال أو مادة لم ترد فيه.\n${KINGDOM_STYLE_RULE}`;
 }
 
 // بطاقة الاقتباس — لغة هوية بصرية بمستوى استوديو (مرجعية مالكة المنصة):
@@ -849,7 +852,7 @@ ${pips}
   const tick = (tx: number, tyk: number, dx: number, dy: number) =>
     `<path d="M${tx} ${tyk + dy * 26} L${tx} ${tyk} L${tx + dx * 26} ${tyk}" stroke="${PALM}" stroke-width="2.5" fill="none" stroke-linecap="round"/>`;
 
-  return `<svg width="100%" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" direction="ltr" style="direction:ltr">
+  return `<svg width="100%" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" direction="ltr" style="direction:ltr;max-width:960px;display:block;margin-inline:auto">
 <defs><filter id="crdShad" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="2" stdDeviation="5" flood-color="${INK}" flood-opacity="0.08"/></filter>
 <linearGradient id="cvGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="${PALM_DEEP}"/><stop offset="100%" stop-color="${PALM_DARK}"/></linearGradient>
 <pattern id="crdDots" width="26" height="26" patternUnits="userSpaceOnUse"><circle cx="2.5" cy="2.5" r="1.7" fill="${PALM_DEEP}" opacity="0.06"/></pattern></defs>
@@ -1004,7 +1007,7 @@ ${hLines.map((ln, i) => `<text x="${W / 2}" y="${titleBase + i * 44}" text-ancho
   const tick = (tx: number, tyk: number, dx: number, dy: number) =>
     `<path d="M${tx} ${tyk + dy * 26} L${tx} ${tyk} L${tx + dx * 26} ${tyk}" stroke="${PALM}" stroke-width="2.5" fill="none" stroke-linecap="round"/>`;
 
-  return `<svg width="100%" viewBox="0 0 ${W} ${Math.round(H)}" xmlns="http://www.w3.org/2000/svg" direction="rtl">
+  return `<svg width="100%" viewBox="0 0 ${W} ${Math.round(H)}" xmlns="http://www.w3.org/2000/svg" direction="rtl" style="max-width:1000px;display:block;margin-inline:auto">
 <defs>
   <pattern id="dotGrid" x="0" y="0" width="28" height="28" patternUnits="userSpaceOnUse">
     <circle cx="14" cy="14" r="1.5" fill="${PALM_DEEP}" opacity="0.06"/>
@@ -1037,7 +1040,7 @@ function renderInfographicSvg(d: InfographicData): string {
   // لون مميز لكل قسم من لوحة العلامة، وظلال بطاقات — بنفس مستوى الخريطة الذهنية.
   const W = 1080, PAD = 56;
   // لوحة الهوية الملتزمة: تناوب ذهبي/نعناعي فقط — لا ألوان خارج العالم اللوني
-  const ACCENTS = ["#25935F", "#88D8AD", "#25935F", "#88D8AD"]; // SA-500 / SA-300
+  const ACCENTS = ["#25935F", "#DBA102", "#80519F", "#1570EF"]; // أخضر/ذهبي/خزامي/أزرق — تنويع من اللوحة الرسمية بلا تكرار
   const CARD_W = W - 2 * PAD;
   const BAR_W = 10;
   const TR = W - PAD - 34;              // مرساة النص يمين (RTL) داخل البطاقة
@@ -1083,7 +1086,7 @@ function renderInfographicSvg(d: InfographicData): string {
     const y0 = y;
     y += m.h + GAP;
     let ty = y0 + 26 + 20;
-    const headingText = `<text x="${TR}" y="${ty}" text-anchor="end" font-family="${FONT}" font-size="21" font-weight="700" fill="${DK_TEXT}">${m.heading[0]}${m.heading.slice(1).map(() => "").join("")}${m.heading.slice(1).map((l) => `<tspan x="${TR}" dy="30">${l}</tspan>`).join("")}</text>`;
+    const headingText = `<text x="${TR}" y="${ty}" text-anchor="end" font-family="${FONT}" font-size="18" font-weight="700" fill="${DK_TEXT}">${m.heading[0]}${m.heading.slice(1).map(() => "").join("")}${m.heading.slice(1).map((l) => `<tspan x="${TR}" dy="30">${l}</tspan>`).join("")}</text>`;
     ty += (m.heading.length - 1) * 30 + 10;
     const divider = `<line x1="${TR}" y1="${ty + 6}" x2="${TR - 64}" y2="${ty + 6}" stroke="${ac}" stroke-width="2.5"/><rect x="${TR - 81}" y="${ty + 1}" width="10" height="10" fill="${ac}" transform="rotate(45 ${TR - 76} ${ty + 6})"/>`;
     ty += 18;
@@ -1105,7 +1108,7 @@ function renderInfographicSvg(d: InfographicData): string {
       : "";
     return `<rect x="${PAD}" y="${y0}" width="${CARD_W}" height="${m.h}" rx="20" fill="#FFFFFF" stroke="${LINE}" stroke-width="1"/>
 <rect x="${W - PAD - BAR_W}" y="${y0}" width="${BAR_W}" height="${m.h}" rx="5" fill="${ac}"/>
-<text x="${PAD + 64}" y="${y0 + m.h / 2 + 42}" text-anchor="middle" font-family="${FONT}" font-size="120" font-weight="800" fill="${ac}" opacity="0.08">${MM_AR[i] ?? i + 1}</text>
+<text x="${PAD + 64}" y="${y0 + m.h / 2 + 42}" text-anchor="middle" font-family="${FONT}" font-size="76" font-weight="800" fill="${ac}" opacity="0.07">${MM_AR[i] ?? i + 1}</text>
 <circle cx="${PAD + 60}" cy="${y0 + 54}" r="24" fill="none" stroke="${ac}" stroke-width="2" stroke-dasharray="2 6" stroke-linecap="round"/>
 <circle cx="${PAD + 60}" cy="${y0 + 54}" r="17" fill="${ac}" opacity="0.13"/>
 <g stroke="${ac}" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" transform="translate(${PAD + 48},${y0 + 42})">${INF_ICONS[i % INF_ICONS.length]}</g>
@@ -1127,7 +1130,7 @@ ${titleLines.map((l, i) => `<text x="${W / 2}" y="${124 + i * 44}" text-anchor="
   const tick = (tx: number, tyk: number, dx: number, dy: number) =>
     `<path d="M${tx} ${tyk + dy * 24} L${tx} ${tyk} L${tx + dx * 24} ${tyk}" stroke="${PALM}" stroke-width="2.5" fill="none" stroke-linecap="round"/>`;
 
-  return `<svg width="100%" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" direction="ltr" style="direction:ltr">
+  return `<svg width="100%" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" direction="ltr" style="direction:ltr;max-width:960px;display:block;margin-inline:auto">
 <defs><linearGradient id="qcBg2" x1="0" y1="0" x2="0.6" y2="1"><stop offset="0" stop-color="${DK_BG1}"/><stop offset="1" stop-color="${DK_BG2}"/></linearGradient></defs>
 <rect width="${W}" height="${H}" fill="url(#qcBg2)"/>
 ${rings(30, 30, 60, 5, DK_LINE)}
@@ -1164,7 +1167,7 @@ Rules:
 - Exactly 5 data items
 - Labels: short Arabic (5-8 chars max), relevant to the legal topic
 - Values: استخدم فقط الأرقام الواردة صراحةً في المحتوى (مواد، مهل، نسب، مبالغ)؛ وإن خلا المحتوى من أرقام قابلة للرسم فمثّل عناصره بقيم ترتيبية تعكس تسلسلها أو أولويتها كما وردت مع yLabel صادق مثل "ترتيب الأهمية" — لا تختلق إحصائية خارجية
-- Title: concise and informative\nقاعدة حاكمة (بأمر مالكة المنصة): أنت تترجم المحتوى أعلاه بصرياً — كل نص ورقم ومادة نظامية في الناتج يجب أن يكون مستخرجاً أو معاد صياغته من المحتوى المعطى حصراً؛ ممنوع اختراع معلومة أو رقم أو مثال أو مادة لم ترد فيه.`;
+- Title: concise and informative\nقاعدة حاكمة (بأمر مالكة المنصة): أنت تترجم المحتوى أعلاه بصرياً — كل نص ورقم ومادة نظامية في الناتج يجب أن يكون مستخرجاً أو معاد صياغته من المحتوى المعطى حصراً؛ ممنوع اختراع معلومة أو رقم أو مثال أو مادة لم ترد فيه.\n${KINGDOM_STYLE_RULE}`;
 }
 
 function mindMapDataPrompt(description: string): string {
@@ -1190,7 +1193,7 @@ Rules:
 - center: short core concept for the central circle ≤13 Arabic chars
 - branch labels: ≤14 Arabic chars — abbreviate if needed (حق → حقوق الملكية ✗, حق الملكية ✓)
 - sub-labels: ≤12 Arabic chars each
-- All content must be legally accurate and topic-specific\nقاعدة حاكمة (بأمر مالكة المنصة): أنت تترجم المحتوى أعلاه بصرياً — كل نص ورقم ومادة نظامية في الناتج يجب أن يكون مستخرجاً أو معاد صياغته من المحتوى المعطى حصراً؛ ممنوع اختراع معلومة أو رقم أو مثال أو مادة لم ترد فيه.`;
+- All content must be legally accurate and topic-specific\nقاعدة حاكمة (بأمر مالكة المنصة): أنت تترجم المحتوى أعلاه بصرياً — كل نص ورقم ومادة نظامية في الناتج يجب أن يكون مستخرجاً أو معاد صياغته من المحتوى المعطى حصراً؛ ممنوع اختراع معلومة أو رقم أو مثال أو مادة لم ترد فيه.\n${KINGDOM_STYLE_RULE}`;
 }
 
 function infographicDataPrompt(description: string): string {
@@ -1221,7 +1224,7 @@ Rules:
 - All text in Arabic, professional legal tone with accurate information
 - stat is optional — use only when there is a real article number or statistic
 - source must be a proper legal citation: the relevant Saudi law/regulation name + article number (معايير الاقتباس)
-- source must NEVER contain an entity or authority name such as "وزارة العدل" or "هيئة المحامين" — cite the document, not the entity\nقاعدة حاكمة (بأمر مالكة المنصة): أنت تترجم المحتوى أعلاه بصرياً — كل نص ورقم ومادة نظامية في الناتج يجب أن يكون مستخرجاً أو معاد صياغته من المحتوى المعطى حصراً؛ ممنوع اختراع معلومة أو رقم أو مثال أو مادة لم ترد فيه.`;
+- source must NEVER contain an entity or authority name such as "وزارة العدل" or "هيئة المحامين" — cite the document, not the entity\nقاعدة حاكمة (بأمر مالكة المنصة): أنت تترجم المحتوى أعلاه بصرياً — كل نص ورقم ومادة نظامية في الناتج يجب أن يكون مستخرجاً أو معاد صياغته من المحتوى المعطى حصراً؛ ممنوع اختراع معلومة أو رقم أو مثال أو مادة لم ترد فيه.\n${KINGDOM_STYLE_RULE}`;
 }
 
 // ── Route ──────────────────────────────────────────────────────────────────
