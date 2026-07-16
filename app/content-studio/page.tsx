@@ -1533,6 +1533,20 @@ export default function ContentStudioPage() {
       const hIn = Math.min(7.5, (h / w) * 10);
       const wIn = hIn >= 7.5 ? (w / h) * 7.5 : 10;
       slide.addImage({ data: dataUrl, x: (10 - wIn) / 2, y: (7.5 - hIn) / 2, w: wIn, h: hIn });
+      // بقرار مالكة المنصة: الصورة النقطية لا يُعدَّل ما بداخلها — فتُرفق شريحة ثانية
+      // تحمل نصوص الخطة البصرية كاملة كنصوص أصلية قابلة للتعديل والنسخ
+      if (vtPlan) {
+        const ts = pptx.addSlide();
+        ts.background = { color: "FCFCFD" };
+        ts.addText("نصوص المرئي — قابلة للتعديل", { x: 0.5, y: 0.3, w: 9, h: 0.4, align: "right", color: "B87B02", bold: true, fontSize: 13, rtlMode: true, lang: "ar-SA" });
+        ts.addText(vtPlan.title, { x: 0.5, y: 0.75, w: 9, h: 0.6, align: "right", color: PPT.ink, bold: true, fontSize: 22, rtlMode: true, lang: "ar-SA" });
+        if (vtPlan.subtitle) ts.addText(vtPlan.subtitle, { x: 0.5, y: 1.35, w: 9, h: 0.45, align: "right", color: PPT.inkSec, fontSize: 14, rtlMode: true, lang: "ar-SA" });
+        const rows = (vtPlan.keySections ?? []).slice(0, 5).flatMap((sec) => [
+          { text: sec.heading + (sec.stat ? ` — ${sec.stat}` : ""), options: { bold: true, color: PPT.palmDeep, fontSize: 14, breakLine: true } },
+          ...(sec.bullets ?? []).slice(0, 3).map((b) => ({ text: b, options: { color: PPT.inkSec, fontSize: 12.5, bullet: true, breakLine: true } })),
+        ]);
+        if (rows.length) ts.addText(rows, { x: 0.5, y: 1.95, w: 9, h: 5.0, align: "right", valign: "top", rtlMode: true, lang: "ar-SA", lineSpacingMultiple: 1.25 });
+      }
       await pptx.writeFile({ fileName: filename });
     } catch {
       flash("تعذر إنشاء ملف PowerPoint");
