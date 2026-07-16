@@ -186,13 +186,13 @@ export function RiskIndicatorCard({ review }: { review: ReviewResult }) {
 }
 
 export function ProfessionalismIndicatorCard({ review }: { review: ReviewResult }) {
-  if (review.analysisMode === "pattern-only") return <DegradedNotice title="الكتابة المهنية" />;
+  if (review.analysisMode === "pattern-only") return <DegradedNotice title="الجوانب المهنية" />;
   const tone = professionalismKpiTone(review.professionalismScore);
   const passed = review.professionalismScore >= 80;
   const { explanation, action } = professionalismExplanation(review.professionalismScore);
   return (
     <Panel className={`scroll-mt-24 border-t-4 shadow-md ${toneBorder(tone)}`}>
-      <p className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-400">الكتابة المهنية</p>
+      <p className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-400">الجوانب المهنية</p>
       <StatusBadge tone={tone}>{passed ? "ناجح" : "يحتاج تحسين"}</StatusBadge>
       <p className="mt-4 rounded-lg border-r-2 border-amber-300 bg-amber-50 p-3 text-sm leading-6">{explanation}</p>
       <div className="mt-3 rounded-lg bg-slate-50 p-3 text-sm leading-6">

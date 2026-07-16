@@ -56,7 +56,7 @@ const MOCK_REVIEW: ReviewResult = {
     factors: [
       { key: "compliance", label: "الامتثال", sourceScore: 30, weight: 0.4, weightedScore: 12 },
       { key: "risk",       label: "المخاطر",  sourceScore: 55, weight: 0.3, weightedScore: 16.5 },
-      { key: "professionalism", label: "الكتابة المهنية", sourceScore: 100, weight: 0.2, weightedScore: 20 },
+      { key: "professionalism", label: "الجوانب المهنية", sourceScore: 100, weight: 0.2, weightedScore: 20 },
       { key: "language",  label: "اللغة",    sourceScore: 72,  weight: 0.1, weightedScore: 7.2 },
     ],
   },
