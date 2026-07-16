@@ -157,6 +157,7 @@ async function requestAnthropicJson(input: AIProviderRequest) {
     body: JSON.stringify({
       model: "claude-sonnet-5",
       max_tokens: input.maxTokens ?? 1600,
+      thinking: { type: "disabled" },
       temperature: 0.2,
       system: input.system,
       messages: [{ role: "user", content: input.user }]
@@ -303,6 +304,7 @@ export async function diagnoseAIEnhancementProvider(): Promise<AIProviderDiagnos
           body: JSON.stringify({
             model: "claude-sonnet-5",
             max_tokens: 700,
+            thinking: { type: "disabled" },
             temperature: 0,
             system,
             messages: [{ role: "user", content: user }]

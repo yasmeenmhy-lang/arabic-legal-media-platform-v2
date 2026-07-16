@@ -60,10 +60,11 @@ ${text.slice(0, 3500)}
 
 أخرج كائن JSON فقط — لا أي نص قبله أو بعده.`;
 
-    const res = await fetch("https://api.anthropic.com/v1/messages", {
+    const res = await fetch(`${process.env.ANTHROPIC_BASE_URL ?? "https://api.anthropic.com"}/v1/messages`, {
       method: "POST",
       headers: { "x-api-key": apiKey, "anthropic-version": "2023-06-01", "content-type": "application/json" },
-      body: JSON.stringify({ model: "claude-sonnet-5", max_tokens: 3200, messages: [{ role: "user", content: prompt }] }),
+      // استخراج JSON محض — التفكير الداخلي معطّل وإلا استهلك السقف وقُطعت الخطة (سبب «تعذر توليد الخطة البصرية»)
+      body: JSON.stringify({ model: "claude-sonnet-5", max_tokens: 3200, thinking: { type: "disabled" }, messages: [{ role: "user", content: prompt }] }),
     });
     if (!res.ok) throw new Error(`plan ${res.status}`);
     const payload = (await res.json()) as { content?: { type: string; text: string }[]; stop_reason?: string };
