@@ -2,6 +2,7 @@ import { z } from "zod";
 import { NextResponse } from "next/server";
 import { badRequest } from "@/lib/api";
 import { AI_CONSTITUTION } from "@/lib/governance";
+import { sanitizeKingdom } from "@/lib/kingdom-guard";
 import { governText } from "@/lib/services/governor-gate";
 import { describeProviderError } from "@/lib/ai-provider-errors";
 import { completeJob, createJob, failJob, jobsDb, setJobPartial } from "@/lib/content-jobs";
@@ -324,7 +325,8 @@ ${briefType
     // النظامية المتبقية بعدهما تحجب التسليم أصلاً فلا خصم على الامتثال.
     for (let attempt = 0; attempt < 2; attempt++) {
       const produced = await produceComplete(promptText);
-      text = produced.text;
+      // حارس نطاق المملكة الحتمي — يُطبَّق قبل المسودة والحاكم والتسليم فلا يظهر كيان خاطئ في أي مرحلة
+      text = sanitizeKingdom(produced.text);
       truncated = produced.truncated;
       if (!text) return { kind: "err", error: "لم يُنشأ أي محتوى" };
       // المسودة تُعرض فوراً — «تحقق نهائي يجري» — فلا ينتظر المستخدم الفحص ليقرأ

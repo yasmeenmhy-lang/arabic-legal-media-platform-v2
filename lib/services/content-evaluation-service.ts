@@ -5,6 +5,7 @@
 
 import Anthropic from "@anthropic-ai/sdk";
 import { AUTHORITIES_RULE, KINGDOM_STYLE_RULE } from "@/lib/governance";
+import { sanitizeKingdom } from "@/lib/kingdom-guard";
 import type {
   ContentEvaluation,
   ContentEvaluationLanguage,
@@ -139,19 +140,20 @@ function parseEvaluationResponse(raw: string): ContentEvaluation {
   const affectedParties = (Array.isArray(rawRisks.affectedParties) ? rawRisks.affectedParties : [])
     .filter((p): p is RiskAffectedParty => VALID_PARTIES.includes(p as RiskAffectedParty));
 
+  // حارس نطاق المملكة الحتمي على النصوص الإنشائية فقط (لا يمس excerpt المنقول حرفياً)
   const risks: ContentEvaluationRisks = {
     level: riskLevel,
     affectedParties,
-    explanation: String(rawRisks.explanation ?? ""),
-    fix: String(rawRisks.fix ?? "")
+    explanation: sanitizeKingdom(String(rawRisks.explanation ?? "")),
+    fix: sanitizeKingdom(String(rawRisks.fix ?? ""))
   };
 
   const profScore = Math.max(0, Math.min(100, Number(rawWriting.score) || 0));
   const professionalWriting: ContentEvaluationProfessionalWriting = {
     score: profScore,
     passed: Boolean(rawWriting.passed ?? profScore >= PROFESSIONALISM_THRESHOLD),
-    explanation: String(rawWriting.explanation ?? ""),
-    fix: String(rawWriting.fix ?? "")
+    explanation: sanitizeKingdom(String(rawWriting.explanation ?? "")),
+    fix: sanitizeKingdom(String(rawWriting.fix ?? ""))
   };
 
   const langScore = Math.max(0, Math.min(100, Number(rawLanguage.score) || 0));
@@ -165,9 +167,9 @@ function parseEvaluationResponse(raw: string): ContentEvaluation {
       severity: VALID_SEVERITIES.includes(issue.severity as LanguageIssueSeverity)
         ? issue.severity as LanguageIssueSeverity
         : "medium",
-      excerpt: String(issue.excerpt ?? ""),
-      message: String(issue.message ?? issue.description ?? ""),
-      suggestion: String(issue.suggestion ?? issue.fix ?? "")
+      excerpt: String(issue.excerpt ?? ""), // منقول حرفياً من نص المستخدم — لا يُمس
+      message: sanitizeKingdom(String(issue.message ?? issue.description ?? "")),
+      suggestion: sanitizeKingdom(String(issue.suggestion ?? issue.fix ?? ""))
     }));
 
   const language: ContentEvaluationLanguage = {
