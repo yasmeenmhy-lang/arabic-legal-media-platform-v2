@@ -1417,29 +1417,15 @@ export async function POST(request: Request) {
     }
   }
 
-  // ── نوع «صورة» (مسار الوصف المباشر) — موحّد مع طبقة المزود الصادقة: لا Flux ولا احتياط خفي
+  // ── نوع «صورة» (مسار الوصف المباشر) — يمر بالموجّه المحكوم نفسه بكل قواعده:
+  // لوحة كود المنصات، حظر الوجوه والنص اللاتيني، الملاءمة الثقافية — لا موجه جانبي يتجاوزها
   try {
-    // خطوة تحسين المطالبة اختيارية: فشلها لا يقطع المسار — يُستخدم الوصف مباشرة
-    const promptRaw = await callClaude(
-      apiKey,
-      "claude-haiku-4-5-20251001",
-      300,
-      `Convert this Arabic legal media description into a high-quality English prompt for a professional AI image generation model.
-Description: ${effectiveDescription}
-Style: ${style ?? "professional, clean, corporate"}
-Platform: ${channel ?? "social media"}
-Format: ${dimensions ?? "square"}
-
-Rules:
-- Professional corporate aesthetic — law office, justice, document, scale of justice themes
-- NO human faces or identifiable people
-- NO logos, official seals, government marks, or watermarks
-- Soft neutral backgrounds (light grey, off-white, or pale green)
-- Sharp details, clean lines, high resolution, professional studio lighting
-- Add quality boosters: "sharp focus, high detail, clean composition"
-- Maximum 120 words
-Output ONLY the English prompt, nothing else.`
-    ).catch(() => `Professional Saudi corporate legal visual design, clean composition, no people, no logos or official seals: ${effectiveDescription.slice(0, 300)}`);
+    const promptRaw = premiumImagePrompt(
+      null,
+      effectiveDescription,
+      { channel, audience, purpose, visualType: "image", style, photoAllowed: isPhotoExplicitlyRequested(effectiveDescription), contentType, specialty, source },
+      { label: dimensions === "16:9" ? "عرضي 16:9" : dimensions === "9:16" ? "طولي 9:16" : dimensions === "4:5" ? "طولي 4:5" : "مربع 1:1" }
+    );
     const [w, h] = getDimensions(dimensions);
     const img = await generatePremiumImage(promptRaw, w, h);
     if (img.imageBase64 || img.imageUrl) {
