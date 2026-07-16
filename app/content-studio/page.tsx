@@ -33,6 +33,7 @@ import {
   Upload,
   Video,
   XCircle,
+  RefreshCw,
 } from "lucide-react";
 import { Button, ButtonLink, PageHeader, Panel, SectionTitle, StatusBadge } from "@/components/ui";
 import {
@@ -579,6 +580,9 @@ export default function ContentStudioPage() {
   const [vtProvider, setVtProvider] = useState("");
   const [vtProviderNote, setVtProviderNote] = useState("");
   const [vtPremiumError, setVtPremiumError] = useState("");
+  // مسار الاستوديو: ثلاث نسخ يختار منها المستخدم + نصوص الخطة للمقارنة (كشف تشويه العربي)
+  const [vtVariants, setVtVariants] = useState<string[]>([]);
+  const [vtPlanTexts, setVtPlanTexts] = useState<{ title?: string; subtitle?: string; sections?: { heading: string; bullets: string[]; stat?: string }[]; importantNumbers?: string[] } | null>(null);
   // المرئي مكمّل للنص: القسم يظهر مباشرة للأنواع البصرية فقط، وبقية الأنواع تفتحه اختيارياً بعد النص
   const [vtSectionOpen, setVtSectionOpen] = useState(false);
   const [vtPlanCollapsed, setVtPlanCollapsed] = useState(false);
@@ -1224,7 +1228,11 @@ export default function ContentStudioPage() {
     setVtProvider("");
     setVtProviderNote("");
     setVtPremiumError("");
+    setVtVariants([]);
+    setVtPlanTexts(null);
     if (!approvedPlan) { setVtPlan(null); setVtPlanEditing(false); }
+    // منع دوران لا نهائي عند السقوط للمحرك المتجهي
+    const forceVector = editInstruction === "__force_vector__";
     try {
       const res = await fetch("/api/content-studio/generate-image", {
         method: "POST",
@@ -1238,10 +1246,14 @@ export default function ContentStudioPage() {
           style: vtType === "image" ? (vtStyle || undefined) : undefined,
           dimensions: vtType === "image" ? (vtDimensions || undefined) : undefined,
           channel: channel || undefined,
-          editInstruction: editInstruction?.trim() || undefined,
+          editInstruction: forceVector ? undefined : (editInstruction?.trim() || undefined),
           // البنية الحالية تُرسل مع طلب التعديل ليُطبَّق عليها لا أن يعاد التوليد من الصفر
-          previousVisual: editInstruction?.trim() && vtVisual ? vtVisual : undefined,
-          outputMode: vtOutputMode,
+          previousVisual: !forceVector && editInstruction?.trim() && vtVisual ? vtVisual : undefined,
+          // مسار الاستوديو الموحّد: الأنواع التصويرية تمر عبر نموذج الصور (٣ نسخ)؛
+          // الرسم البياني والخريطة الذهنية يبقيان متجهيين (SVG) صادقين؛ والسقوط يفرض SVG.
+          outputMode: forceVector
+            ? "editable_svg"
+            : (["infographic", "quote_card", "carousel", "storyboard", "motion_script", "image"].includes(vtType) ? "premium_image" : vtOutputMode),
           audience: audience || undefined,
           purpose: purpose || undefined,
           contentType: kind ? contentKindLabels[kind] : undefined,
@@ -1249,8 +1261,21 @@ export default function ContentStudioPage() {
           source: contextSourceLabel || undefined,
         }),
       });
-      const data = (await res.json()) as { svgCode?: string; imageUrl?: string; imageBase64?: string; provider?: string; providerNote?: string; premiumError?: string; visual?: VisualStructure; error?: string };
+      const data = (await res.json()) as { svgCode?: string; imageUrl?: string; imageBase64?: string; provider?: string; providerNote?: string; premiumError?: string; visual?: VisualStructure; error?: string; variants?: string[]; planTexts?: typeof vtPlanTexts; variantsError?: string; fallbackToVector?: boolean };
       if (!res.ok) { setVtError(data.error ?? "تعذر إنشاء المرئي — حاول مرة أخرى."); return; }
+      // مسار الاستوديو: ثلاث نسخ يختار منها المستخدم
+      if (data.variants && data.variants.length) {
+        setVtVariants(data.variants);
+        setVtPlanTexts(data.planTexts ?? null);
+        setVtEditText("");
+        return;
+      }
+      // فشل مزود الصور كلياً: سقوط تلقائي لشبكة الأمان المتجهية (SVG) بلا كسر
+      if (data.fallbackToVector && !forceVector) {
+        setVtPremiumError(data.variantsError ? `تعذّر توليد الصور (${data.variantsError}) — عُرضت النسخة القابلة للتعديل بدلاً منها.` : "");
+        await generateVisualTranslation("__force_vector__", approvedPlan);
+        return;
+      }
       if (data.svgCode) {
         setVtSvg(data.svgCode);
         setVtVisual(data.visual ?? null);
@@ -2736,7 +2761,7 @@ export default function ContentStudioPage() {
             <SectionTitle title="3. المحتوى المقترح" subtitle="راجع وعدّل قبل التحليل النظامي." />
             <button
               type="button"
-              onClick={() => { setGeneratedText(""); setTopic(""); setVtSvg(""); setVtUrl(""); setVtVisual(null); setVtError(""); setVtConfirming(false); setVtSuggestionReason(""); setVtSectionOpen(false); setVtOutputChoice(""); setVtPremiumUrl(""); setVtProvider(""); setVtProviderNote(""); setVtPremiumError(""); setVtPlan(null); setVtPlanEditing(false); }}
+              onClick={() => { setGeneratedText(""); setTopic(""); setVtSvg(""); setVtUrl(""); setVtVisual(null); setVtError(""); setVtConfirming(false); setVtSuggestionReason(""); setVtSectionOpen(false); setVtOutputChoice(""); setVtPremiumUrl(""); setVtProvider(""); setVtProviderNote(""); setVtPremiumError(""); setVtVariants([]); setVtPlanTexts(null); setVtPlan(null); setVtPlanEditing(false); }}
               className="text-xs text-ink/50 transition hover:text-ink"
             >
               أعد الإنشاء
@@ -3124,6 +3149,43 @@ export default function ContentStudioPage() {
                 </div>
               )}
 
+              {/* مسار الاستوديو: ثلاث نسخ يختار منها المستخدم + نصوص الخطة للمقارنة (كشف تشويه العربي) */}
+              {vtVariants.length > 0 && !vtPremiumUrl && !vtLoading && (
+                <div className="space-y-3 rounded-xl border border-line bg-white p-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <p className="text-sm font-semibold text-ink">اختر النسخة الأنسب ({vtVariants.length})</p>
+                    <button type="button" onClick={() => generateVisualTranslation(undefined, vtPlan)}
+                      className="inline-flex items-center gap-1 rounded-lg border border-line px-3 py-1.5 text-xs font-medium text-palm transition hover:border-palm hover:bg-mint focus-ring">
+                      <RefreshCw size={13} /> إعادة توليد ٣ نسخ جديدة
+                    </button>
+                  </div>
+                  <div className="grid gap-3 sm:grid-cols-3">
+                    {vtVariants.map((v, i) => (
+                      <button key={i} type="button" onClick={() => { setVtPremiumUrl(v); setVtProvider("openai"); persistVisualToRecord({ visualType: "image", visualTypeLabel: "مرئي احترافي", imageUrl: v, provider: "openai" }); }}
+                        className="group overflow-hidden rounded-lg border border-line bg-paper/40 p-1 text-right transition hover:border-palm focus-ring">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={v} alt={`نسخة ${i + 1}`} className="h-auto w-full rounded object-contain" />
+                        <span className="mt-1 block px-1 pb-1 text-xs font-medium text-palm opacity-0 transition group-hover:opacity-100">اختر هذه النسخة ←</span>
+                      </button>
+                    ))}
+                  </div>
+                  {vtPlanTexts && (
+                    <div className="rounded-lg border border-palm/25 bg-mint/40 p-3">
+                      <p className="mb-2 text-xs font-semibold text-palmDeep">النصوص المعتمدة في الخطة — قارنها بالصورة قبل الاختيار للتأكد أن العربي سليم:</p>
+                      <div className="space-y-1 text-xs leading-6 text-ink/80" dir="rtl">
+                        {vtPlanTexts.title && <p><span className="font-semibold">العنوان:</span> {vtPlanTexts.title}</p>}
+                        {vtPlanTexts.subtitle && <p><span className="font-semibold">الوصف:</span> {vtPlanTexts.subtitle}</p>}
+                        {vtPlanTexts.sections?.map((s, i) => (
+                          <p key={i}>• <span className="font-semibold">{s.heading}</span>{s.stat ? ` — ${s.stat}` : ""}{s.bullets?.length ? `: ${s.bullets.join(" · ")}` : ""}</p>
+                        ))}
+                        {vtPlanTexts.importantNumbers?.length ? <p><span className="font-semibold">أرقام:</span> {vtPlanTexts.importantNumbers.join(" | ")}</p> : null}
+                      </div>
+                      <p className="mt-2 text-[11px] leading-5 text-ink/55">إن ظهر أي حرف عربي مشوّهاً في الصورة، اختر «إعادة توليد» — نماذج الصور قد تخطئ رسم العربية، وهذه المقارنة لكشفها قبل الاعتماد.</p>
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* الصورة الاحترافية بالذكاء الاصطناعي — أو عنصر demo النائب بوضع mock الصريح فقط */}
               {vtPremiumUrl && !vtLoading && (() => {
                 const real = vtProvider === "openai" || vtProvider === "gemini";
@@ -3225,7 +3287,7 @@ export default function ContentStudioPage() {
             <Button onClick={runReview} disabled={generatedText.trim().length < 5} leadingIcon={<FileCheck2 size={16} aria-hidden="true" />}>
               راجع قانونياً
             </Button>
-            <Button variant="secondary-gray" onClick={() => { setGeneratedText(""); setTopic(""); setVtSvg(""); setVtUrl(""); setVtVisual(null); setVtError(""); setVtConfirming(false); setVtSuggestionReason(""); setVtSectionOpen(false); setVtOutputChoice(""); setVtPremiumUrl(""); setVtProvider(""); setVtProviderNote(""); setVtPremiumError(""); setVtPlan(null); setVtPlanEditing(false); }} leadingIcon={<Edit3 size={16} />}>
+            <Button variant="secondary-gray" onClick={() => { setGeneratedText(""); setTopic(""); setVtSvg(""); setVtUrl(""); setVtVisual(null); setVtError(""); setVtConfirming(false); setVtSuggestionReason(""); setVtSectionOpen(false); setVtOutputChoice(""); setVtPremiumUrl(""); setVtProvider(""); setVtProviderNote(""); setVtPremiumError(""); setVtVariants([]); setVtPlanTexts(null); setVtPlan(null); setVtPlanEditing(false); }} leadingIcon={<Edit3 size={16} />}>
               عدّل الطلب
             </Button>
           </div>

@@ -14,6 +14,8 @@ export type VisualPlan = {
   centralMessage: string;
   objective: string;
   audience: string;
+  // توجيه أسلوب بصري يقترحه Claude بما يناسب الموضوع — يُغذّى لنموذج الصور، ويعدّله المستخدم
+  styleDirective?: string;
   recommendedOutputFormat: "infographic" | "chart" | "mindmap" | "image" | "executive" | "carousel" | "storyboard" | "quote_card" | "motion_script";
   visualStyle: "رسمي" | "تعليمي";
   layoutStrategy: string;   // مثل: خطوات متسلسلة / مقارنة / إحصائي / زمني
@@ -51,7 +53,7 @@ export async function generateVisualPlan(
     const prompt = `${PLAN_PROMPT_RULES}
 
 حوّل النص إلى خطة بصرية JSON فقط بالمفاتيح التالية حرفياً:
-{"centralMessage":"","objective":"","audience":"","recommendedOutputFormat":"infographic|chart|mindmap|image|executive","visualStyle":"رسمي|تعليمي","layoutStrategy":"خطوات متسلسلة|مقارنة|إحصائي|زمني|تفرعي","title":"","subtitle":"","shortVisualCopy":"","keySections":[{"heading":"","bullets":[""],"stat":"","icon":""}],"importantNumbers":[""],"iconsSuggestions":[""],"complianceSensitivePhrases":["انقل حرفياً أي وعد بنتيجة/تفوق/نسبة نجاح وردت في النص"],"complianceNotes":"","rtlArabicNotes":""}
+{"centralMessage":"","objective":"","audience":"","recommendedOutputFormat":"infographic|chart|mindmap|image|executive","visualStyle":"رسمي|تعليمي","styleDirective":"جملة إنجليزية موجزة تقترح الأسلوب البصري الأنسب لهذا الموضوع تحديداً لنموذج توليد صور: نوع الرسم (flat vector / isometric / editorial illustration)، المزاج، والعناصر الرمزية القانونية المناسبة — بلا ذكر ألوان (الألوان محكومة بالهوية)","layoutStrategy":"خطوات متسلسلة|مقارنة|إحصائي|زمني|تفرعي","title":"","subtitle":"","shortVisualCopy":"","keySections":[{"heading":"","bullets":[""],"stat":"","icon":""}],"importantNumbers":[""],"iconsSuggestions":[""],"complianceSensitivePhrases":["انقل حرفياً أي وعد بنتيجة/تفوق/نسبة نجاح وردت في النص"],"complianceNotes":"","rtlArabicNotes":""}
 
 معادلة السياق — كل عامل أدناه حاكم ويجب أن يظهر أثره في الخطة، وخطة لا تعكس أي عامل منها ناتج خاطئ يعاد حسابه:
 - الصيغة البصرية المطلوبة: ${ctx.visualType ?? "إنفوغراف"} — تحدد بنية الأقسام وعددها
