@@ -11,7 +11,7 @@ import type { StoredVisual } from "@/lib/content-record-store";
 type TextNode = { path: number[]; value: string };
 
 // استخراج عقد النص من SVG بترتيب ثابت — كل <text>/<tspan> يحمل نصاً مباشراً
-function extractTextNodes(svg: string): { doc: Document | null; nodes: TextNode[] } {
+export function extractTextNodes(svg: string): { doc: Document | null; nodes: TextNode[] } {
   if (typeof window === "undefined") return { doc: null, nodes: [] };
   const doc = new DOMParser().parseFromString(svg, "image/svg+xml");
   if (doc.querySelector("parsererror")) return { doc: null, nodes: [] };
@@ -36,7 +36,7 @@ function extractTextNodes(svg: string): { doc: Document | null; nodes: TextNode[
   return { doc, nodes };
 }
 
-function applyEdits(svg: string, edits: string[]): string {
+export function applyEdits(svg: string, edits: string[]): string {
   const { doc, nodes } = extractTextNodes(svg);
   if (!doc) return svg;
   const resolve = (path: number[]): Element | null => {
