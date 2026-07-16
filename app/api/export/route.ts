@@ -7,7 +7,7 @@ const schema = z.object({
   body: z.string().min(5),
   platform: z.string().min(1),
   format: z
-    .enum(["post", "advertisement", "article", "script", "campaign", "visual_content", "infographic", "title", "hashtag", "caption", "publishing_plan", "social_export"])
+    .enum(["post", "advertisement", "article", "script", "campaign", "visual_content", "infographic", "title", "hashtag", "caption", "publishing_plan", "social_export", "statement", "diary"])
     .default("social_export")
 });
 

@@ -4,7 +4,7 @@ import { reviewLanguageQuality } from "@/lib/services/language-quality-service";
 
 const schema = z.object({
   text: z.string().min(1),
-  kind: z.enum(["post", "advertisement", "article", "script", "campaign", "visual_content", "infographic", "title", "hashtag", "caption", "publishing_plan", "social_export"]),
+  kind: z.enum(["post", "advertisement", "article", "script", "campaign", "visual_content", "infographic", "title", "hashtag", "caption", "publishing_plan", "social_export", "statement", "diary"]),
   platform: z.string().optional(),
   requiredTerms: z.array(z.string()).optional(),
   terminologyMap: z.record(z.array(z.string())).optional()

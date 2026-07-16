@@ -3520,7 +3520,7 @@ export default function ContentStudioPage() {
             return (
               <Panel className={`border-t-4 shadow-md ${toneBorder(tone)}`}>
                 <p className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-400">الجوانب المهنية</p>
-                <StatusBadge tone={tone}>{passed ? "ناجح" : "يحتاج تحسين"}</StatusBadge>
+                <StatusBadge tone={tone}>{passed ? "مستوفٍ للمعايير" : "يتطلب تحسيناً"}</StatusBadge>
                 <p className="mt-4 rounded-lg border-r-2 border-amber-300 bg-amber-50 p-3 text-sm leading-6">{explanation}</p>
                 <div className="mt-3 rounded-lg bg-slate-50 p-3 text-sm leading-6">
                   <span className="mb-1 block text-xs font-bold uppercase tracking-wider text-slate-400">الإصلاح المقترح</span>
