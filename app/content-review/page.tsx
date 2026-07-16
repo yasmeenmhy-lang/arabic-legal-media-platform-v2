@@ -73,7 +73,6 @@ import { riskDisplayLabel, type ContentKind, type ReviewResult, type RiskLevel }
 import { FindingsList } from "@/components/content-review/FindingCard";
 import {
   ComplianceIndicatorCard,
-  ContentQualityIndicatorCard,
   LanguageIndicatorCard,
   ProfessionalismIndicatorCard,
   ReadinessIndicatorCard,
@@ -82,7 +81,7 @@ import {
 import { InlineContentGuidance } from "@/components/content-review/InlineGuidance";
 
 const contentTypes = contentKindOptions.filter((item) =>
-  (["post", "advertisement", "campaign", "article", "script", "caption", "visual_content", "infographic", "publishing_plan"] as ContentKind[]).includes(item.value)
+  (["post", "commentary", "statement", "advertisement", "campaign", "article", "script", "caption", "visual_content", "infographic", "publishing_plan"] as ContentKind[]).includes(item.value)
 );
 const channels = ["LinkedIn", "X", "Instagram", "TikTok", "Snapchat", "YouTube", "الموقع الإلكتروني"];
 const audiences = ["عملاء محتملون من الأفراد", "منشآت ورواد أعمال", "زملاء والقطاع العدلي", "الجمهور العام"];
@@ -1495,7 +1494,6 @@ export default function ContentReviewPage() {
               <RiskIndicatorCard review={review} />
               <ProfessionalismIndicatorCard review={review} />
               <LanguageIndicatorCard review={review} />
-              <ContentQualityIndicatorCard review={review} />
               <ReadinessIndicatorCard review={review} />
             </div>
           </section>

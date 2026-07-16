@@ -13,7 +13,9 @@ export const contentKindLabels: Record<ContentKind, string> = {
   publishing_plan: "خطة نشر",
   title: "عنوان",
   hashtag: "وسم",
-  social_export: "تصدير اجتماعي"
+  social_export: "تصدير اجتماعي",
+  commentary: "رد ومحادثة",
+  statement: "تصريح"
 };
 
 export const contentKindOptions: Array<{ value: ContentKind; label: string }> = (
