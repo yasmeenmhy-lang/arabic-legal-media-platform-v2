@@ -278,7 +278,8 @@ function buildSemanticFinding(
     articleTitle,
     articleTextExcerpt: entry?.fullText ?? "",
     explanation: violation.explanation,
-    legalExplanation: `العبارة «${evidence}» تُعد مخالفة ${violation.violationType} لـ${legalReference} من ${sourceDocument}: ${violation.explanation}`,
+    // تأنيث نوع المخالفة ليطابق «مخالفة» المؤنثة (كان: «مخالفة ضمني» ← الصواب «مخالفة ضمنية»)
+    legalExplanation: `العبارة «${evidence}» تُعد مخالفة ${({ "صريح": "صريحة", "ضمني": "ضمنية", "سياقي": "سياقية" } as const)[violation.violationType] ?? violation.violationType} لـ${legalReference} من ${sourceDocument}: ${violation.explanation}`,
     reviewOutcome: "رصدت ملاحظة" as const,
     confidenceLevel: violation.confidenceLevel,
     sourceUrl,

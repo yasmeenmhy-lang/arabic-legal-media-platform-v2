@@ -79,6 +79,8 @@ const studioContentTypes = contentKindOptions.filter((item) =>
   (
     [
       "post",
+      "commentary",
+      "statement",
       "advertisement",
       "campaign",
       "article",
@@ -3569,48 +3571,6 @@ export default function ContentStudioPage() {
                   </div>
                 ) : (
                   <p className="mt-4 text-sm leading-7 text-slate-500">لم ترصد ملاحظات لغوية أو إملائية.</p>
-                )}
-              </Panel>
-            );
-          })()}
-
-          {/* بطاقة جودة المحتوى */}
-          {(() => {
-            if (review.analysisMode === "pattern-only" || review.evaluationIncomplete) return (
-              <Panel className={`border-t-4 shadow-md ${toneBorder("neutral")}`}>
-                <p className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-400">جودة المحتوى</p>
-                <StatusBadge tone="neutral">تعذّر التحليل</StatusBadge>
-                <p className="mt-4 text-sm leading-7 text-slate-500">التحليل غير مكتمل بسبب عطل — أعد التحليل قبل الاعتماد على هذه النتيجة.</p>
-              </Panel>
-            );
-            const exp = review.contentQualityScoreExplanation;
-            const hasViolations = review.findings.length > 0;
-            const statusTone = (exp.redLine || hasViolations) ? "danger" as const : review.contentQualityScore >= 80 ? "good" as const : "gold" as const;
-            const statusLabel = (exp.redLine || hasViolations) ? "خط أحمر مُفعَّل" : review.contentQualityScore >= 80 ? "متوازن" : "يحتاج تحسين";
-            return (
-              <Panel className={`border-t-4 shadow-md ${toneBorder(statusTone)}`}>
-                <p className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-400">جودة المحتوى</p>
-                <StatusBadge tone={statusTone}>{statusLabel}</StatusBadge>
-                <div className="mt-4 space-y-2.5">
-                  {exp.factors.map((factor) => {
-                    const isCompliance = factor.key === "compliance";
-                    const q = isCompliance
-                      ? (review.findings.length === 0
-                          ? { label: "ملتزم", cls: "bg-green-100 text-green-800" }
-                          : { label: "غير ملتزم", cls: "bg-red-100 text-red-800" })
-                      : qualLabel(factor.sourceScore);
-                    return (
-                      <div key={factor.key} className="flex items-center justify-between gap-3">
-                        <span className="text-sm text-slate-600">{factor.label}</span>
-                        <span className={`rounded px-2 py-0.5 text-xs font-bold ${q.cls}`}>{q.label}</span>
-                      </div>
-                    );
-                  })}
-                </div>
-                {exp.redLine && (
-                  <p className="mt-4 rounded-lg bg-red-50 p-3 text-xs font-medium leading-6 text-red-700">
-                    يوجد مخالفة قانونية — النشر غير متاح حتى المعالجة
-                  </p>
                 )}
               </Panel>
             );

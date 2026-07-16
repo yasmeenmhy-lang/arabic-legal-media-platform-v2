@@ -79,7 +79,9 @@ export type ContentKind =
   | "hashtag"
   | "caption"
   | "publishing_plan"
-  | "social_export";
+  | "social_export"
+  | "commentary"
+  | "statement";
 
 export type LanguageIssueCategory = "spelling" | "grammar" | "style" | "readability" | "اتساق المصطلحات";
 
