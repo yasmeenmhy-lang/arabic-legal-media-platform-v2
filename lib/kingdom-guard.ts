@@ -27,12 +27,21 @@ const CORRECTIONS: { pattern: RegExp; to: string }[] = [
   { pattern: /وزارة\s+التجارة\s+والاستثمار/g, to: "وزارة التجارة" },
 ];
 
+// تصحيحات إملائية حتمية لزلّات النموذج المتكررة — النموذج (وبخاصة haiku) يُنتج
+// أحياناً خطأً إملائياً عرضياً حتى في كلمة شائعة. هذه الكلمات ليست ألفاظاً عربية
+// صحيحة في سياق المنصة، فاستبدالها آمن ولا يسبب إيجابيات كاذبة. تُضاف إليها أي
+// زلّة متكررة تُرصد لاحقاً فتُقفل نهائياً.
+const SPELLING_FIXES: { pattern: RegExp; to: string }[] = [
+  { pattern: /قواعس/g, to: "قواعد" },      // قواعد السلوك المهني — رُصدت مرتين
+  { pattern: /السلوك المهنى/g, to: "السلوك المهني" }, // ياء بلا نقطتين شائعة
+];
+
 // تصحيح النص المولّد وإرجاع ما صُحّح (للتتبع الداخلي عند الحاجة)
 export function sanitizeKingdomEntities(text: string): { text: string; corrections: EntityCorrection[] } {
   if (!text) return { text, corrections: [] };
   let out = text;
   const corrections: EntityCorrection[] = [];
-  for (const { pattern, to } of CORRECTIONS) {
+  for (const { pattern, to } of [...CORRECTIONS, ...SPELLING_FIXES]) {
     out = out.replace(pattern, (match) => {
       corrections.push({ from: match, to });
       return to;
