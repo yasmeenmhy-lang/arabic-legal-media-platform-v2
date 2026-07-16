@@ -2,6 +2,7 @@ import { z } from "zod";
 import { NextResponse } from "next/server";
 import { badRequest, ok } from "@/lib/api";
 import { AI_CONSTITUTION } from "@/lib/governance";
+import { sanitizeKingdom } from "@/lib/kingdom-guard";
 import { runSemanticAnalysis } from "@/lib/services/semantic-analysis-service";
 import { evaluateContent } from "@/lib/services/content-evaluation-service";
 import { describeProviderError } from "@/lib/ai-provider-errors";
@@ -202,7 +203,8 @@ export async function POST(request: Request) {
       );
     }
 
-    return ok({ suggestedText });
+    // حارس نطاق المملكة الحتمي على النص النهائي المنشور
+    return ok({ suggestedText: sanitizeKingdom(suggestedText) });
   } catch (error) {
     const raw = error instanceof Error ? error.message : "خطأ غير متوقع";
     // أخطاء المزود المعروفة (رصيد/مفتاح/ضغط) تُعرض بالعربية بسببها وإجرائها — لا بنصها الإنجليزي الخام
