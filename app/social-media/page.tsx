@@ -217,7 +217,7 @@ export default function SocialMediaPage() {
       <PageHeader
         eyebrow="المشاركة والتصدير"
         title="تجهيز مخرجات النشر المعتمدة"
-        description="اختر نسخة معتمدة، ثم انسخها أو عدّلها أو نزّل حزمها أو افتح قناة المشاركة. لا تنشر المنصة تلقائياً نيابة عن المستخدم."
+        description="اختر نسخة معتمدة، ثم انسخها أو عدّلها أو نزّل حزمها أو افتح قناة المشاركة."
       />
       <Link href="/content-review" className="inline-flex rounded-md border border-line px-4 py-2 text-sm text-palm transition hover:border-palm hover:bg-mint focus-ring">
         عودة إلى نتائج المراجعة
@@ -226,7 +226,7 @@ export default function SocialMediaPage() {
       {approvedItems.length ? (
         <>
           <Panel>
-            <SectionTitle title="المحتوى المعتمد" subtitle="تعرض القائمة النسخ التي اجتازت المراجعة واعتمدها المستخدم فقط." />
+            <SectionTitle title="المحتوى المعتمد" subtitle="تعرض القائمة النسخ المعتمدة فقط." />
             <select value={selected?.record.id} onChange={(event) => setSelectedId(event.target.value)} className="w-full rounded-md border border-line bg-white px-3 py-3">
               {approvedItems.map(({ record, version }) => <option key={record.id} value={record.id}>{record.title} — الإصدار {version.version}</option>)}
             </select>
