@@ -2,11 +2,57 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { badRequest } from "@/lib/api";
 import { KINGDOM_STYLE_RULE } from "@/lib/governance";
-import { generatePremiumImage, providerStatus, verifyOpenAIKey } from "@/lib/image-providers";
+import { generatePremiumImage, generatePremiumVariants, providerStatus, verifyOpenAIKey } from "@/lib/image-providers";
 import { generateVisualPlan, planToEngineDescription, type VisualPlan } from "@/lib/visual-translator";
 
-// توليد الصور عبر مزودين خارجيين قد يستغرق حتى دقيقة
-export const maxDuration = 60;
+// توليد الصور عبر مزودين خارجيين قد يستغرق حتى دقيقة (ثلاث نسخ = أطول قليلاً)
+export const maxDuration = 120;
+
+// ── موجّه الاستوديو رباعي الكتل (بأمر مالكة المنصة) لنموذج توليد الصور ──────────
+// كتلة جودة ثابتة + توجيه أسلوب متغير + بنية المحتوى من الخطة + النصوص العربية حرفياً.
+// الألوان محكومة بهوية كود المنصات، والوجوه ممنوعة، والعربي يُكتب حرفاً بحرف.
+function buildStudioImagePrompt(
+  plan: VisualPlan | null,
+  styleDirective: string,
+  fallbackDescription: string,
+  dims: { label: string },
+): string {
+  // (١) كتلة الجودة الثابتة
+  const quality = "Professional studio-grade visual, rich detailed illustrations, cohesive composition, clear visual hierarchy, one prominent focal element, generous whitespace, crisp clean lines, high resolution.";
+
+  // (٢) توجيه الأسلوب المتغير
+  const styleBlock = `Art direction: ${styleDirective}.`;
+
+  // (٣) بنية المحتوى من الخطة المعتمدة
+  const structure = plan
+    ? [
+        `Central message (the focal idea): «${plan.centralMessage}».`,
+        `Title (headline): «${plan.title}».`,
+        plan.subtitle ? `Subtitle: «${plan.subtitle}».` : "",
+        plan.keySections?.length
+          ? `Sections (each a distinct visual block with its own icon/illustration):\n${plan.keySections.map((s, i) => `  ${i + 1}. «${s.heading}»${s.bullets?.length ? ` — ${s.bullets.join(" · ")}` : ""}${s.stat ? ` [${s.stat}]` : ""}`).join("\n")}`
+          : "",
+        plan.importantNumbers?.length ? `Numbers to feature (taken ONLY from the user's content, never invent): ${plan.importantNumbers.join(" | ")}.` : "",
+      ].filter(Boolean).join("\n")
+    : `Subject: ${fallbackDescription.slice(0, 600)}.`;
+
+  // (٤) النصوص العربية حرفياً + تعليمة الكتابة الدقيقة
+  const arabicStrings = plan
+    ? [plan.title, plan.subtitle, ...(plan.keySections?.flatMap((s) => [s.heading, ...(s.bullets ?? []), s.stat ?? ""]) ?? [])]
+        .map((t) => (t ?? "").trim())
+        .filter(Boolean)
+    : [];
+  const arabicBlock = arabicStrings.length
+    ? `Arabic text to render inside the image — write each string EXACTLY letter by letter in a clear correct Arabic font, right-to-left, with NO change, NO transliteration, and NO extra words. Only these exact strings may appear:\n${arabicStrings.map((t) => `  «${t}»`).join("\n")}`
+    : "Do not write any Arabic text inside the image.";
+
+  // الحواكم الثابتة: هوية اللون، منع الوجوه، الملاءمة الثقافية
+  const guards = `Mandatory color palette — official Saudi platform (DGA) identity used richly: white/off-white background; dominant green family #166A45/#1B8354/#25935F/#54C08A/#88D8AD/#B8EACB/#DFF6E7; gold accents #DBA102/#B87B02; supporting lavender #80519F and info blue #1570EF for section distinction; small semantic red #D92D20 for warnings only; dark neutrals #0D121C/#384250 for text. FORBIDDEN: beige, cream, orange, brown, warm/earthy palettes.
+ABSOLUTE: never draw people, human faces, figures, or characters (not even illustrated) — express ideas through objects, documents, legal symbols (scales, law book, gavel, contract, shield), and icons only. No pigs/piggy-banks (use a safe/wallet/coins), no dogs, no alcohol, no religious symbols, no statues, no invented logos/seals/government marks, no Latin filler text, no watermark.
+Format: ${dims.label}, Arabic RTL layout.`;
+
+  return [quality, styleBlock, "", structure, "", arabicBlock, "", guards, "", KINGDOM_STYLE_RULE].join("\n");
+}
 
 const schema = z.object({
   description: z.string().min(5),
@@ -1278,6 +1324,49 @@ export async function POST(request: Request) {
   const engineDescription = visualPlan
     ? `${planToEngineDescription(visualPlan)}${editInstruction?.trim() ? `\n\nطلب تعديل يجب تطبيقه: ${editInstruction.trim()}` : ""}`
     : effectiveDescription;
+
+  // ════════════════════════════════════════════════════════════════════════
+  // المسار الاستوديو الموحّد (بأمر مالكة المنصة): كل توليد بصري تصويري يمر عبر نموذج
+  // الصور (gpt-image-1 جودة high، Gemini احتياطاً) بثلاث نسخ يختار منها المستخدم.
+  // الأنواع التي يفسدها نموذج الصور (رسم بياني: أرقام مزيّفة، خريطة ذهنية: بنية غير دقيقة)
+  // تبقى على المحرك المتجهي الصادق — إيقاف مسار الصورة لها مع بيان السبب (النقطة ٤).
+  // ════════════════════════════════════════════════════════════════════════
+  const STUDIO_TYPES = new Set(["infographic", "quote_card", "carousel", "storyboard", "motion_script", "image"]);
+  if (STUDIO_TYPES.has(visualType) && outputMode !== "editable_svg") {
+    const key = process.env.OPENAI_API_KEY;
+    const hasImageProvider = Boolean(key || process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || (process.env.IMAGE_PROVIDER ?? "").toLowerCase() === "mock");
+    if (hasImageProvider) {
+      const dims = premiumDims(channel);
+      // نصوص الخطة الحرفية — تُعرض بجانب النسخ لكشف أي تشويه في العربي قبل الاعتماد
+      const planTexts = visualPlan
+        ? {
+            title: visualPlan.title,
+            subtitle: visualPlan.subtitle,
+            sections: visualPlan.keySections.map((s) => ({ heading: s.heading, bullets: s.bullets, stat: s.stat ?? "" })),
+            importantNumbers: visualPlan.importantNumbers ?? [],
+          }
+        : null;
+      const styleDirective = (editInstruction?.trim() && /أسلوب|ستايل|style/i.test(editInstruction))
+        ? editInstruction.trim()
+        : style?.trim() || visualPlan?.styleDirective?.trim() || "clean flat vector editorial illustration, professional and calm";
+      const prompt = buildStudioImagePrompt(visualPlan, styleDirective, effectiveDescription, dims);
+      const { images, failureNote } = await generatePremiumVariants(prompt, dims.w, dims.h, 3);
+      if (images.length) {
+        return NextResponse.json({
+          variants: images.map((im) => im.imageBase64 ?? im.imageUrl).filter(Boolean),
+          provider: images[0]?.provider,
+          planTexts,
+          visualPlan: visualPlan ?? undefined,
+          prompt,
+        });
+      }
+      // فشل مزود الصور كلياً: لا نكسر المنصة — نسقط لشبكة الأمان المتجهية (SVG) مع تنبيه صادق
+      return NextResponse.json({
+        variantsError: failureNote ?? "تعذر إنشاء الصور — أعد المحاولة.",
+        fallbackToVector: true,
+      }, { status: 200 });
+    }
+  }
 
   // ── المسار الاحترافي (premium_image / both) — يعمل بجانب المحركات دون مساسها
   let premiumExtras: Record<string, unknown> = {};
