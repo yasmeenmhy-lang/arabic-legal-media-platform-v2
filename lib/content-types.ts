@@ -15,7 +15,8 @@ export const contentKindLabels: Record<ContentKind, string> = {
   hashtag: "وسم",
   social_export: "تصدير اجتماعي",
   commentary: "رد ومحادثة",
-  statement: "تصريح"
+  statement: "تصريح",
+  diary: "يوميات"
 };
 
 export const contentKindOptions: Array<{ value: ContentKind; label: string }> = (

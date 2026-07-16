@@ -81,7 +81,7 @@ import {
 import { InlineContentGuidance } from "@/components/content-review/InlineGuidance";
 
 const contentTypes = contentKindOptions.filter((item) =>
-  (["post", "commentary", "statement", "advertisement", "campaign", "article", "script", "caption", "visual_content", "infographic", "publishing_plan"] as ContentKind[]).includes(item.value)
+  (["post", "commentary", "statement", "diary", "advertisement", "campaign", "article", "script", "caption", "visual_content", "infographic", "publishing_plan"] as ContentKind[]).includes(item.value)
 );
 const channels = ["LinkedIn", "X", "Instagram", "TikTok", "Snapchat", "YouTube", "الموقع الإلكتروني"];
 const audiences = ["عملاء محتملون من الأفراد", "منشآت ورواد أعمال", "زملاء والقطاع العدلي", "الجمهور العام"];
