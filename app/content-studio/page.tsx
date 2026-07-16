@@ -437,6 +437,35 @@ function partyIcon(p: RiskAffectedParty) {
   return <Award size={13} aria-hidden="true" />;
 }
 
+// ضغط صورة للتخزين المحلي — علاج «المرئيات تختفي بعد الحفظ»: حصة المتصفح ~5MB
+// والصورة الاحترافية الخام 1-3MB فكانت تُسقط عند الامتلاء؛ التصغير إلى 900px بصيغة JPEG
+// يجعلها ~150KB فتُحفظ دائماً وتظهر في المسودة والسجل وكل المحطات.
+function compressImageForStorage(url: string): Promise<string> {
+  return new Promise((resolve) => {
+    if (!url || (url.startsWith("data:") && url.length < 180_000)) { resolve(url); return; }
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => {
+      try {
+        const maxSide = Math.max(img.naturalWidth || 1, img.naturalHeight || 1);
+        const scale = Math.min(1, 900 / maxSide);
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.max(1, Math.round((img.naturalWidth || 900) * scale));
+        canvas.height = Math.max(1, Math.round((img.naturalHeight || 900) * scale));
+        const ctx = canvas.getContext("2d");
+        if (!ctx) { resolve(url); return; }
+        ctx.fillStyle = "#FFFFFF";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        const out = canvas.toDataURL("image/jpeg", 0.78);
+        resolve(out.length < url.length ? out : url);
+      } catch { resolve(url); }
+    };
+    img.onerror = () => resolve(url);
+    img.src = url;
+  });
+}
+
 function createDraftRecord(
   body: string,
   ctx: { kind: ContentKind | null; channel: string; audience: string; purpose: string },
@@ -495,7 +524,7 @@ function createDraftRecord(
     saveContentRecords([...existing, record]);
   } catch {
     // حصة التخزين — تُسقط بيانات الصور الضخمة فقط ويبقى النص ومرئيات SVG
-    version.visuals = version.visuals?.filter((v) => !v.imageUrl || v.imageUrl.length < 200_000);
+    version.visuals = version.visuals?.filter((v) => !v.imageUrl || v.imageUrl.length < 320_000);
     saveContentRecords([...existing, record]);
   }
   setActiveContentSelection(id, 1);
@@ -962,7 +991,7 @@ export default function ContentStudioPage() {
 
   function persistVisualToRecord(visual: Omit<StoredVisual, "id" | "createdAt">) {
     if (!contentId) return;
-    const key = `${contentId}::${visual.visualType}::${visual.svg?.length ?? 0}::${visual.imageUrl?.slice(0, 80) ?? ""}`;
+    const key = `${contentId}::${visual.visualType}::${visual.svg?.length ?? 0}::${visual.imageUrl?.length ?? 0}`;
     if (persistedVisualKeysRef.current.has(key)) return;
     const record = loadContentRecords().find((item) => item.id === contentId);
     if (!record) return;
@@ -977,29 +1006,32 @@ export default function ContentStudioPage() {
   // (مراقبة خارجية للمعرّف — دون أي مساس بدالة المراجعة نفسها)
   useEffect(() => {
     if (!contentId) return;
-    collectSessionVisuals().forEach((visual) => persistVisualToRecord(visual));
+    void (async () => {
+      (await collectSessionVisuals()).forEach((visual) => persistVisualToRecord(visual));
+    })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [contentId]);
 
-  // بقرار مالكة المنصة: كل مرئي مولّد في الجلسة يُحفظ مع المحتوى في السجل فلا يختفي
-  function collectSessionVisuals(): Omit<StoredVisual, "id" | "createdAt">[] {
+  // بقرار مالكة المنصة: كل مرئي مولّد في الجلسة يُحفظ مع المحتوى في السجل فلا يختفي —
+  // والصور تُضغط قبل الحفظ فلا تسقط بسبب حصة التخزين
+  async function collectSessionVisuals(): Promise<Omit<StoredVisual, "id" | "createdAt">[]> {
     const visuals: Omit<StoredVisual, "id" | "createdAt">[] = [];
     if (vtSvg) visuals.push({ visualType: vtType, visualTypeLabel: VISUAL_ENGINE_LABELS[vtType] ?? "مرئي", svg: vtSvg });
     if (vtPremiumUrl) visuals.push({
       visualType: "image",
       visualTypeLabel: "مرئي احترافي",
-      imageUrl: vtPremiumUrl,
+      imageUrl: await compressImageForStorage(vtPremiumUrl),
       provider: vtProvider || undefined,
     });
     if (imageGenSvg) visuals.push({ visualType: "image", visualTypeLabel: "مرئي من وصف", svg: imageGenSvg });
-    if (imageGenUrl) visuals.push({ visualType: "image", visualTypeLabel: "صورة من وصف", imageUrl: imageGenUrl });
+    if (imageGenUrl) visuals.push({ visualType: "image", visualTypeLabel: "صورة من وصف", imageUrl: await compressImageForStorage(imageGenUrl) });
     return visuals;
   }
 
-  function saveDraft() {
+  async function saveDraft() {
     if (!activeText.trim()) return;
     try {
-      const visuals = collectSessionVisuals();
+      const visuals = await collectSessionVisuals();
       createDraftRecord(activeText, { kind, channel, audience, purpose }, visuals);
       router.push("/content-management");
     } catch {
