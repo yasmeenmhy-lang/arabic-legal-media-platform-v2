@@ -1651,7 +1651,7 @@ export default function ContentReviewPage() {
               if (["بالغ", "حرج", "مرتفع"].includes(review.riskLevel)) reasons.push(`مستوى المخاطر «${review.riskLevel}» يمنع الاعتماد`);
               return reasons.length ? (
                 <div className="mt-3 rounded-lg bg-red-50 p-3 text-sm leading-6 text-red-800">
-                  <p className="font-semibold">الاعتماد مقفول للأسباب التالية:</p>
+                  <p className="font-semibold">يتعذّر اعتماد النسخة الحالية للأسباب التالية:</p>
                   <ul className="mt-1 list-disc space-y-1 pr-5">{reasons.map((reason) => <li key={reason}>{reason}</li>)}</ul>
                   <p className="mt-2 text-xs text-red-700/80">لن يؤدي الاعتماد إلى إخفاء ملاحظة حرجة أو تجاوزها.</p>
                 </div>

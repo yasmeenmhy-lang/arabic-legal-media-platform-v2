@@ -24,7 +24,7 @@ async function requestTitle(apiKey: string, text: string, correction: string): P
       "content-type": "application/json",
     },
     body: JSON.stringify({
-      model: "claude-haiku-4-5-20251001",
+      model: "claude-sonnet-5",
       max_tokens: 100,
       messages: [{
         role: "user",
