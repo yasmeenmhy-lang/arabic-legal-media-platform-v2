@@ -203,6 +203,8 @@ export function saveContentRecords(records: StoredContentRecord[]) {
   if (typeof window === "undefined") return;
   window.localStorage.setItem(scopedKey(CONTENT_RECORDS_KEY), JSON.stringify(records));
   window.dispatchEvent(new Event("lawyer-media:records-updated"));
+  // إشعار طبقة المزامنة السحابية — بأمر مالكة المنصة: الحساب يرى سجله على كل الأجهزة
+  try { window.dispatchEvent(new CustomEvent("lm-records-changed")); } catch { /* بيئة بلا نافذة */ }
 }
 
 export function getActiveContentSelection() {

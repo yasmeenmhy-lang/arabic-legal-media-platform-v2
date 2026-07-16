@@ -12,6 +12,7 @@ import {
   setActiveContentSelection,
   type StoredContentRecord
 } from "@/lib/content-record-store";
+import { deleteRecordFromCloud } from "@/lib/records-cloud-sync";
 import { riskDisplayLabel, type ReviewResult, type RiskLevel } from "@/lib/types";
 import { normalizeReviewResult } from "@/lib/review-normalizer";
 import { smartMatch } from "@/lib/arabic-search";
@@ -89,6 +90,10 @@ export default function ContentManagementPage() {
   useEffect(() => {
     setRecords(loadContentRecords());
     setLoaded(true);
+    // عند اكتمال المزامنة السحابية (سجلات من أجهزة أخرى) تُحدَّث القائمة فوراً
+    const onSynced = () => setRecords(loadContentRecords());
+    window.addEventListener("lm-records-synced", onSynced);
+    return () => window.removeEventListener("lm-records-synced", onSynced);
   }, []);
 
   const counts = useMemo(() => ({
@@ -118,6 +123,7 @@ export default function ContentManagementPage() {
     const next = records.filter((item) => item.id !== id);
     setRecords(next);
     saveContentRecords(next);
+    deleteRecordFromCloud(id); // الحذف يسري على كل الأجهزة لا هذا الجهاز فقط
     setConfirmDelete(undefined);
     if (expanded === id) setExpanded(undefined);
     if (detailsId === id) setDetailsId(undefined);

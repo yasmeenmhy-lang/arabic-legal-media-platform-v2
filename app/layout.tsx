@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { AppShell } from "@/components/app-shell";
 import { AccessTracker } from "@/components/access-tracker";
+import { RecordsCloudSync } from "@/components/records-cloud-sync";
 
 export const metadata: Metadata = {
   title: "إدارة المحتوى الإعلامي والإعلاني للمحامين",
@@ -28,6 +29,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body>
         <AccessTracker />
+        <RecordsCloudSync />
         <AppShell>{children}</AppShell>
         <div
           dir="ltr"
