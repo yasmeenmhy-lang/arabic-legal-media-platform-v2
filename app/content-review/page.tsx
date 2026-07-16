@@ -1662,7 +1662,7 @@ export default function ContentReviewPage() {
           </Panel>
 
           <Panel id="sharing" className="scroll-mt-24">
-            <SectionTitle title="8. المشاركة والتصدير" subtitle="وحدة واحدة تحفظ النسخ والتنزيل والتقارير والمشاركة دون ادعاء نشر تلقائي." />
+            <SectionTitle title="8. المشاركة والتصدير" subtitle="احفظ النسخ ونزّلها وشاركها من مكان واحد." />
             <div className="flex flex-wrap gap-3">
               <button type="button" onClick={downloadWord} disabled={!approved} className="inline-flex items-center gap-2 rounded-md border border-line px-4 py-2.5 disabled:opacity-40"><FileDown size={16} />تقرير Word</button>
               <button type="button" onClick={prepareSharing} disabled={!approved} className="inline-flex items-center gap-2 rounded-md bg-palm px-4 py-2.5 text-white disabled:opacity-40"><Share2 size={16} />المشاركة</button>

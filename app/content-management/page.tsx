@@ -301,7 +301,7 @@ export default function ContentManagementPage() {
         <div>
           <p className="text-sm font-semibold text-ink">نسخة احتياطية من السجل</p>
           <p className="mt-1 text-xs leading-6 text-ink/60">
-            السجل محفوظ في هذا المتصفح. صدّريه ملفاً قبل تغيير رابط المنصة أو الانتقال لجهاز آخر، ثم استوردي الملف هناك — الاستيراد يضيف ويحدّث ولا يحذف شيئاً.
+            صدّر سجلك ملفاً للاحتفاظ بنسخة منه، واستورده عند الانتقال إلى جهاز آخر. الاستيراد يضيف ولا يحذف شيئاً من سجلك.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
