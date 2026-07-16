@@ -87,6 +87,6 @@ ${excerpt}
     return NextResponse.json(suggestion);
   } catch (e) {
     console.error("[suggest-visual]", e);
-    return NextResponse.json({ error: "فشل الاقتراح — حاول مرة أخرى" }, { status: 500 });
+    return NextResponse.json({ error: "تعذر إعداد الاقتراح — حاول مرة أخرى." }, { status: 500 });
   }
 }

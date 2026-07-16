@@ -32,7 +32,7 @@ function tooManyAttempts(key: string): boolean {
 
 export async function POST(request: Request) {
   if (!isAuthConfigured()) {
-    return NextResponse.json({ error: "نظام الدخول غير مهيأ بعد — تُضبط متغيرات البيئة أولاً." }, { status: 503 });
+    return NextResponse.json({ error: "نظام الدخول غير مهيأ بعد — تواصل مع مسؤول المنصة." }, { status: 503 });
   }
 
   const body = (await request.json().catch(() => null)) as { username?: string; code?: string } | null;
@@ -97,6 +97,6 @@ export async function POST(request: Request) {
     cookies().set(SESSION_COOKIE, token, sessionCookieOptions(expiresAt));
     return NextResponse.json({ ok: true, role });
   } catch {
-    return NextResponse.json({ error: "تعذر الاتصال بقاعدة البيانات — أبلغ مسؤول المنصة." }, { status: 503 });
+    return NextResponse.json({ error: "تعذر الدخول مؤقتاً — حاول بعد قليل، وإن استمرت المشكلة تواصل مع مسؤول المنصة." }, { status: 503 });
   }
 }

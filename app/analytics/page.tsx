@@ -117,7 +117,7 @@ export default function AnalyticsPage() {
               ]} tone="good" />
             </Panel>
             <Panel>
-              <SectionTitle title="التحركات والتغييرات" subtitle="كل تعديل وتحليل واعتماد ومشاركة مسجل باسم المستخدم والتاريخ والحالة." />
+              <SectionTitle title="التحركات والتغييرات" subtitle="كل تعديل وتحليل واعتماد ومشاركة مسجّل بالاسم والتاريخ والحالة." />
               <p className="text-3xl font-normal text-palm">{actionCount}</p>
               <Button onClick={downloadReport} className="mt-4" leadingIcon={<Download size={16} />}>
                 تنزيل التقرير التفصيلي

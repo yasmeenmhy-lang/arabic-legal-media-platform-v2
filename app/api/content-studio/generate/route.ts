@@ -49,7 +49,7 @@ export async function POST(request: Request) {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
     return NextResponse.json(
-      { error: "هذه النسخة من المنصة غير مهيأة بمفاتيح الذكاء الاصطناعي. افتح المنصة من الرابط الأساسي: lawyer-media-platform.vercel.app — وإن استمرت الرسالة هناك فأبلغ مسؤول المنصة بضبط المفاتيح في إعدادات Vercel ثم إعادة النشر." },
+      { error: "خدمة الذكاء الاصطناعي غير متاحة حالياً — تواصل مع مسؤول المنصة." },
       { status: 503 }
     );
   }
@@ -373,7 +373,7 @@ ${briefType
       } catch (error) {
         console.error("[content-studio/generate:job]", error);
         const known = describeProviderError(error instanceof Error ? error.message : "");
-        await failJob(sql, jobId, known ?? "فشل الاتصال بخدمة الذكاء الاصطناعي").catch(() => {});
+        await failJob(sql, jobId, known ?? "تعذر الاتصال بخدمة الذكاء الاصطناعي — حاول مرة أخرى.").catch(() => {});
       }
     })();
     try {
@@ -408,7 +408,7 @@ ${briefType
       } catch (error) {
         console.error("[content-studio/generate]", error);
         const known = describeProviderError(error instanceof Error ? error.message : "");
-        send({ type: "error", error: known ?? "فشل الاتصال بخدمة الذكاء الاصطناعي" });
+        send({ type: "error", error: known ?? "تعذر الاتصال بخدمة الذكاء الاصطناعي — حاول مرة أخرى." });
       } finally {
         clearInterval(heartbeat);
         try {

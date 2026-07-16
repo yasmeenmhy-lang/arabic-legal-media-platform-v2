@@ -31,7 +31,7 @@ export function providerStatus(): ProviderStatus {
 let openaiVerifyCache: { at: number; verified: boolean; note?: string } | null = null;
 export async function verifyOpenAIKey(): Promise<{ verified: boolean; note?: string }> {
   const key = process.env.OPENAI_API_KEY;
-  if (!key) return { verified: false, note: "OPENAI_API_KEY غير مهيأ في Vercel" };
+  if (!key) return { verified: false, note: "مزود الصور الاحترافي غير مهيأ — تواصل مع مسؤول المنصة" };
   const now = Date.now();
   if (openaiVerifyCache && now - openaiVerifyCache.at < 5 * 60_000) {
     return { verified: openaiVerifyCache.verified, note: openaiVerifyCache.note };
@@ -45,7 +45,7 @@ export async function verifyOpenAIKey(): Promise<{ verified: boolean; note?: str
       ? { verified: true }
       : { verified: false, note: describeFailure("openai", new Error(`OpenAI ${res.status}`)) };
   } catch {
-    out = { verified: false, note: "تعذر الاتصال بـ OpenAI للتحقق من المفتاح" };
+    out = { verified: false, note: "تعذر التحقق من جاهزية خدمة الصور الاحترافية" };
   }
   openaiVerifyCache = { at: now, ...out };
   return out;
@@ -111,13 +111,13 @@ function describeFailure(name: "openai" | "gemini", e: unknown): string {
   const raw = e instanceof Error ? e.message : "خطأ غير معروف";
   const msg = raw.replace(/Bearer\s+\S+/gi, "").slice(0, 60);
   if (name === "openai") {
-    if (/\b401\b/.test(msg)) return "OpenAI 401 — المفتاح غير صالح أو غير مخوّل. تحقق من OPENAI_API_KEY في Vercel.";
-    if (/\b403\b/.test(msg)) return "OpenAI 403 — الحساب غير مخوّل لهذا النموذج. قد يلزم توثيق المؤسسة (Verify Organization) في OpenAI.";
-    if (/\b429\b/.test(msg)) return "OpenAI 429 — تجاوز حد الاستخدام أو نفاد الرصيد. تحقق من رصيد حساب OpenAI.";
-    return `OpenAI: ${msg}`;
+    if (/\b401\b/.test(msg)) return "خدمة الصور الاحترافية غير متاحة حالياً — تواصل مع مسؤول المنصة.";
+    if (/\b403\b/.test(msg)) return "خدمة الصور الاحترافية غير متاحة حالياً — تواصل مع مسؤول المنصة.";
+    if (/\b429\b/.test(msg)) return "ازدحام مؤقت على خدمة الصور — أعد المحاولة بعد قليل.";
+    return "تعذر إنشاء الصورة عبر الخدمة الاحترافية — أعد المحاولة، وإن استمرت المشكلة تواصل مع مسؤول المنصة.";
   }
-  if (/\b40[13]\b/.test(msg)) return "Gemini — المفتاح غير صالح أو غير مخوّل. تحقق من GEMINI_API_KEY في Vercel.";
-  return `Gemini: ${msg}`;
+  if (/\b40[13]\b/.test(msg)) return "خدمة الصور الاحترافية غير متاحة حالياً — تواصل مع مسؤول المنصة.";
+  return "تعذر إنشاء الصورة عبر الخدمة الاحترافية — أعد المحاولة، وإن استمرت المشكلة تواصل مع مسؤول المنصة.";
 }
 
 // التوليد الاحترافي وفق IMAGE_PROVIDER — لا يرمي أبداً، والفشل يُعاد فشلاً صادقاً بلا صورة بديلة
@@ -137,20 +137,18 @@ export async function generatePremiumImage(prompt: string, w: number, h: number)
   const failures: string[] = [];
   if (!attempts.length) {
     failures.push(
-      mode === "openai" ? "OPENAI_API_KEY غير مهيأ في Vercel"
-      : mode === "gemini" ? "GEMINI_API_KEY غير مهيأ في Vercel"
-      : "لا يوجد مفتاح مزود صور مهيأ (OPENAI_API_KEY أو GEMINI_API_KEY)"
+      "خدمة الصور الاحترافية غير مهيأة — تواصل مع مسؤول المنصة."
     );
   }
   for (const a of attempts) {
     try {
       const r = await a.run();
       if (r) return r;
-      failures.push(`${a.name === "openai" ? "OpenAI" : "Gemini"}: استجابة بلا صورة`);
+      failures.push("لم تصل صورة من الخدمة — أعد المحاولة.");
     } catch (e) {
       failures.push(describeFailure(a.name, e));
       console.error("[image-provider]", a.name, e instanceof Error ? e.message : e);
     }
   }
-  return { provider: "none", failureNote: failures.join(" | ") || "سبب غير معروف" };
+  return { provider: "none", failureNote: [...new Set(failures)].join(" | ") || "تعذر إنشاء الصورة — أعد المحاولة." };
 }

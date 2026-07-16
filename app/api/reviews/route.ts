@@ -46,7 +46,7 @@ export async function POST(request: Request) {
     const message = error instanceof Error ? error.message : "خطأ غير متوقع في معالجة المراجعة";
     const isConfigError = message.includes("ANTHROPIC_API_KEY") || message.includes("غير مهيأ");
     return NextResponse.json(
-      { error: isConfigError ? "خدمة التحليل غير مهيأة — تأكد من ضبط متغيرات البيئة." : message },
+      { error: isConfigError ? "خدمة التحليل غير متاحة حالياً — تواصل مع مسؤول المنصة." : message },
       { status: 503 }
     );
   }
