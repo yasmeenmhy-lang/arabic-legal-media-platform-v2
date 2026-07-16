@@ -234,7 +234,7 @@ export function ProfessionalismIndicatorCard({ review }: { review: ReviewResult 
     <IndicatorShell
       title="الجوانب المهنية"
       tone={tone}
-      badge={<StatusBadge tone={tone}>{passed ? "ناجح" : "يحتاج تحسين"}</StatusBadge>}
+      badge={<StatusBadge tone={tone}>{passed ? "مستوفٍ للمعايير" : "يتطلب تحسيناً"}</StatusBadge>}
     >
       <p className="rounded-lg border-r-2 border-amber-300 bg-amber-50 p-3 text-sm leading-6">{explanation}</p>
       <div className="mt-3 rounded-lg bg-slate-50 p-3 text-sm leading-6">
@@ -292,7 +292,7 @@ export function ContentQualityIndicatorCard({ review }: { review: ReviewResult }
   const exp = review.contentQualityScoreExplanation ?? { redLine: false, factors: [] };
   const hasViolations = review.findings.length > 0;
   const statusTone = (exp.redLine || hasViolations) ? "danger" as const : review.contentQualityScore >= 80 ? "good" as const : "gold" as const;
-  const statusLabel = (exp.redLine || hasViolations) ? "خط أحمر مُفعَّل" : review.contentQualityScore >= 80 ? "متوازن" : "يحتاج تحسين";
+  const statusLabel = (exp.redLine || hasViolations) ? "خط أحمر مُفعَّل" : review.contentQualityScore >= 80 ? "متوازن" : "يتطلب تحسيناً";
   return (
     <Panel className={`scroll-mt-24 border-t-4 shadow-md ${toneBorder(statusTone)}`}>
       <p className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-400">جودة المحتوى</p>

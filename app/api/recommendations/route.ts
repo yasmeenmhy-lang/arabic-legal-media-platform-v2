@@ -10,7 +10,7 @@ export async function GET() {
 const schema = z.object({
   text: z.string().min(5),
   kind: z
-    .enum(["post", "advertisement", "article", "script", "campaign", "visual_content", "infographic", "title", "hashtag", "caption", "publishing_plan", "social_export"])
+    .enum(["post", "advertisement", "article", "script", "campaign", "visual_content", "infographic", "title", "hashtag", "caption", "publishing_plan", "social_export", "statement", "diary"])
     .optional(),
   contentType: z.string().optional(),
   channel: z.string().optional(),
