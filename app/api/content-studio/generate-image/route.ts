@@ -140,13 +140,14 @@ Cultural and professional fit is mandatory — this design is for a Saudi legal 
 ${core}
 معادلة السياق الحاكمة: القناة ${ctx.channel ?? "عام"} (التنسيق ${dims.label}) — الجمهور ${ctx.audience ?? "عام"} يحدد مستوى أي نص داخل الصورة وطابع الرسوم — الهدف ${ctx.purpose ?? "توعية"} يحدد الرسالة البصرية المركزية${ctx.contentType ? ` — نوع المحتوى ${ctx.contentType}` : ""}${ctx.specialty ? ` — التخصص ${ctx.specialty}: الرموز والمشاهد من مجاله حصراً` : ""}${ctx.source ? ` — مصدر الفكرة: ${ctx.source}` : ""}${ctx.style ? ` — الأسلوب: ${ctx.style}` : ""}
 مواصفات إلزامية: تصميم مؤسسي سعودي احترافي راقٍ، خط عربي نظيف كبير مقروء تماماً بلا أي تشويه أو قص، تسلسل بصري واضح، هوامش وتباعد سخي.
-لوحة الألوان إلزامية لا خيار فيها — هوية المنصة الرسمية (كود المنصات السعودي):
-- الخلفية: أبيض نقي #FFFFFF أو ورقي فاتح #FCFCFD فقط
-- اللون الرئيسي: الأخضر الرسمي #25935F ودرجاته الداكنة #1B8354 و#166A45
-- الخلفيات الثانوية والمساحات الناعمة: النعناعي الفاتح #DFF6E7 و#B8EACB
-- لمسات دقيقة صغيرة فقط: الذهبي #DBA102
-- النصوص: الرمادي الداكن جداً #0D121C
-Mandatory color palette — Saudi platform identity: pure white/off-white background, official green #25935F with #1B8354/#166A45, soft mint #DFF6E7/#B8EACB surfaces, tiny gold #DBA102 accents, near-black #0D121C text. STRICTLY FORBIDDEN: beige, cream, orange, brown, warm/earthy palettes, or any colors outside this list.
+لوحة الألوان إلزامية — لوحة «كود المنصات» الرسمية كاملة، استخدمها بثراء وتنوع لا بلون واحد باهت:
+- الخلفية: أبيض نقي #FFFFFF أو ورقي #FCFCFD
+- العائلة الرئيسية المهيمنة (الأخضر الرسمي بكل درجاته): #166A45 و#1B8354 و#25935F و#54C08A و#88D8AD و#B8EACB والنعناعي #DFF6E7 و#F3FCF6 — نوّع بين الداكن والمتوسط والفاتح لعمق بصري حقيقي
+- الذهبي الثانوي للإبراز والأرقام والشارات: #DBA102 و#B87B02 وخلفياته الناعمة #FFFCE6 و#FCF3BD
+- البنفسجي الخزامي كلون مساند ثالث للتمييز بين الأقسام عند الحاجة: #80519F و#6D428F وخلفيته #F9F5FA
+- النصوص والعناصر الداكنة: #0D121C و#384250
+- التدرجات المعتمدة مسموحة: من #1B8354 إلى #25935F ومن #166A45 إلى #1B8354
+Mandatory palette — the FULL official Saudi platform design-system palette, used RICHLY (multi-tone, layered, alive — not flat monochrome): dominant green family #166A45/#1B8354/#25935F/#54C08A/#88D8AD/#B8EACB/#DFF6E7 on white, secondary gold #DBA102/#B87B02 with soft #FFFCE6 chips for numbers and highlights, supporting lavender #80519F/#6D428F with soft #F9F5FA for section distinction, dark neutrals #0D121C/#384250 for text, official gradients green-to-green allowed. STRICTLY FORBIDDEN: beige, cream, orange, brown, warm/earthy palettes, or any color outside this official list.
 ${strictTextRule}
 ممنوع منعاً باتاً: أي كلمة عربية مؤلفة من عندك — كل نص عربي داخل الصورة منسوخ حرفاً حرفاً من النصوص المعطاة أعلاه وإلا فلا تكتبه، ${ctx.visualType !== "image" ? "أي صور أشخاص أو وجوه أو شخصيات — التصميم معلوماتي تخطيطي بحت (بطاقات، أيقونات خطية، أرقام)، " : ""}أي شعارات أو أختام أو علامات حكومية رسمية، أي إيحاء باعتماد رسمي، أي وعد بنتيجة قانونية أو ضمان أو نسب نجاح أو ادعاء أفضلية${avoid.length ? `، وتجنب حرفياً هذه العبارات: ${avoid.slice(0, 10).join(" ، ")}` : ""}.`;
 }
