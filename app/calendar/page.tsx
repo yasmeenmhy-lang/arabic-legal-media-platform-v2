@@ -90,6 +90,7 @@ export default function CalendarPage() {
   function saveSchedule() {
     if (!selectedId || !targetDate) return;
     window.localStorage.setItem(scopedKey(`lawyer-media:target-publication-date:${selectedId}`), targetDate);
+    try { window.dispatchEvent(new Event("lm-work-changed")); } catch { /* بيئة بلا نافذة */ }
     setMessage("تم حفظ الموعد المستهدف للمحتوى المختار ضمن الخطة الاسترشادية.");
   }
 
