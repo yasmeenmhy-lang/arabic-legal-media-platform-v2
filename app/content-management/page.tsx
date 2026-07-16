@@ -12,7 +12,9 @@ import {
   setActiveContentSelection,
   type StoredContentRecord
 } from "@/lib/content-record-store";
-import { deleteRecordFromCloud } from "@/lib/records-cloud-sync";
+import { updateVersionVisual, deleteVersionVisual } from "@/lib/content-record-store";
+import { deleteRecordFromCloud, scheduleCloudPush } from "@/lib/records-cloud-sync";
+import { EditableSavedVisual } from "@/components/editable-visual";
 import { riskDisplayLabel, type ReviewResult, type RiskLevel } from "@/lib/types";
 import { normalizeReviewResult } from "@/lib/review-normalizer";
 import { smartMatch } from "@/lib/arabic-search";
@@ -182,25 +184,32 @@ export default function ContentManagementPage() {
                   <p className="mt-3 text-xs text-palm">اعتمده {version.approvedBy} في {formatDate(version.approvedAt)}</p>
                 )}
                 {version.visuals?.length ? (
-                  <details className="mt-3">
-                    <summary className="cursor-pointer text-sm text-palm">المرئيات المحفوظة مع هذا الإصدار ({version.visuals.length})</summary>
+                  <details className="mt-3" open>
+                    <summary className="cursor-pointer text-sm text-palm">المرئيات المحفوظة مع هذا الإصدار ({version.visuals.length}) — قابلة للتعديل</summary>
                     <div className="mt-3 grid gap-3 md:grid-cols-2">
                       {version.visuals.map((visual) => (
-                        <figure key={visual.id} className="rounded-md border border-line bg-white p-2">
-                          <figcaption className="mb-2 flex items-center justify-between gap-2 px-1 text-xs text-ink/60">
-                            <span className="font-medium text-ink/80">{visual.visualTypeLabel}</span>
-                            <span>{formatDate(visual.createdAt)}</span>
-                          </figcaption>
-                          {visual.svg ? (
-                            <div className="rounded bg-paper/40 p-2 [&_svg]:mx-auto [&_svg]:block [&_svg]:h-auto [&_svg]:max-h-[360px] [&_svg]:w-full"
-                              dangerouslySetInnerHTML={{ __html: visual.svg }} />
-                          ) : visual.imageUrl ? (
-                            /* eslint-disable-next-line @next/next/no-img-element */
-                            <div className="flex justify-center rounded bg-paper/40 p-2">
-                              <img src={visual.imageUrl} alt={visual.visualTypeLabel} className="max-h-[360px] w-auto max-w-full object-contain" />
-                            </div>
-                          ) : null}
-                        </figure>
+                        <EditableSavedVisual
+                          key={visual.id}
+                          visual={visual}
+                          onSaveSvg={(svg) => {
+                            if (updateVersionVisual(record.id, version.version, visual.id, { svg })) {
+                              setRecords(loadContentRecords());
+                              scheduleCloudPush();
+                            }
+                          }}
+                          onRename={(label) => {
+                            if (updateVersionVisual(record.id, version.version, visual.id, { visualTypeLabel: label })) {
+                              setRecords(loadContentRecords());
+                              scheduleCloudPush();
+                            }
+                          }}
+                          onDelete={() => {
+                            if (deleteVersionVisual(record.id, version.version, visual.id)) {
+                              setRecords(loadContentRecords());
+                              scheduleCloudPush();
+                            }
+                          }}
+                        />
                       ))}
                     </div>
                   </details>

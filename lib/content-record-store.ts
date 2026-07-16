@@ -501,6 +501,53 @@ export function attachVisualsToVersion(
   }
 }
 
+// تعديل مرئي محفوظ داخل إصدار — بأمر مالكة المنصة: المستخدم مسؤول عن محتواه فله
+// الصلاحية الكاملة لتحرير نصوص المرئي المحفوظ أو تسميته. يُحدَّث SVG و/أو التسمية
+// ويُبصم الوقت فتلتقطه المزامنة السحابية وتنشره على كل الأجهزة.
+export function updateVersionVisual(
+  contentId: string,
+  versionNumber: number,
+  visualId: string,
+  patch: { svg?: string; visualTypeLabel?: string }
+): boolean {
+  const records = loadContentRecords();
+  const record = records.find((item) => item.id === contentId);
+  const version = record?.versions.find((item) => item.version === versionNumber);
+  const visual = version?.visuals?.find((v) => v.id === visualId);
+  if (!record || !version || !visual) return false;
+  if (typeof patch.svg === "string") visual.svg = patch.svg;
+  if (typeof patch.visualTypeLabel === "string" && patch.visualTypeLabel.trim()) visual.visualTypeLabel = patch.visualTypeLabel.trim();
+  const timestamp = now();
+  version.updatedAt = timestamp;
+  record.updatedAt = timestamp;
+  try {
+    saveContentRecords(records);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+// حذف مرئي محفوظ من إصدار — صلاحية كاملة للمستخدم على محتواه
+export function deleteVersionVisual(contentId: string, versionNumber: number, visualId: string): boolean {
+  const records = loadContentRecords();
+  const record = records.find((item) => item.id === contentId);
+  const version = record?.versions.find((item) => item.version === versionNumber);
+  if (!record || !version || !version.visuals?.length) return false;
+  const before = version.visuals.length;
+  version.visuals = version.visuals.filter((v) => v.id !== visualId);
+  if (version.visuals.length === before) return false;
+  const timestamp = now();
+  version.updatedAt = timestamp;
+  record.updatedAt = timestamp;
+  try {
+    saveContentRecords(records);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export function markContentShared(contentId: string, versionNumber: number) {
   const records = loadContentRecords();
   const record = records.find((item) => item.id === contentId);
