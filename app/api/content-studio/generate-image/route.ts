@@ -203,6 +203,37 @@ async function callClaude(
   return payload.content?.find((c) => c.type === "text")?.text?.trim() ?? "";
 }
 
+// بقرار مالكة المنصة: بيانات المرئيات المرسومة (الرسوم البيانية والإنفوغراف والبطاقات)
+// تُستخرج عبر مفتاح OpenAI أولاً، وعند غيابه أو فشله يتولى Claude تلقائياً — لا توقف للمرئيات.
+async function callOpenAIExtractor(maxTokens: number, prompt: string): Promise<string | null> {
+  const key = process.env.OPENAI_API_KEY;
+  if (!key) return null;
+  try {
+    const res = await fetch(`${process.env.OPENAI_BASE_URL ?? "https://api.openai.com"}/v1/chat/completions`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${key}`, "content-type": "application/json" },
+      body: JSON.stringify({
+        model: "gpt-4o-mini",
+        max_tokens: maxTokens,
+        response_format: { type: "json_object" },
+        messages: [{ role: "user", content: prompt }],
+      }),
+    });
+    if (!res.ok) throw new Error(`openai-extract ${res.status}`);
+    const payload = (await res.json()) as { choices?: { message?: { content?: string } }[] };
+    return payload.choices?.[0]?.message?.content?.trim() || null;
+  } catch (e) {
+    console.error("[extract-openai]", e instanceof Error ? e.message : e);
+    return null;
+  }
+}
+
+async function callExtractor(apiKey: string, maxTokens: number, prompt: string): Promise<string> {
+  const viaOpenAI = await callOpenAIExtractor(maxTokens, prompt);
+  if (viaOpenAI) return viaOpenAI;
+  return callClaude(apiKey, "claude-haiku-4-5-20251001", maxTokens, prompt);
+}
+
 function parseJson<T>(raw: string): T {
   const cleaned = raw
     .replace(/^```json\s*/i, "")
@@ -509,7 +540,7 @@ function quoteCardDataPrompt(desc: string): string {
 المحتوى: ${desc}
 أخرج JSON فقط بلا أي نص آخر:
 {"title":"عنوان قصير للبطاقة (٣-٦ كلمات)","quote":"الجملة الأبرز (١٥-٣٥ كلمة) — النص النظامي يُنقل حرفياً","attribution":"نسبة الاقتباس لمصدره (المادة/النظام/الجهة) أو \"\" إن كان صياغة عامة","note":"سطر توضيحي قصير اختياري"}
-ممنوع: وعود بنتائج، مقارنات، أسماء جهات كشعارات، أخطاء إملائية.`;
+ممنوع: وعود بنتائج، مقارنات، أسماء جهات كشعارات، أخطاء إملائية.\nقاعدة حاكمة (بأمر مالكة المنصة): أنت تترجم المحتوى أعلاه بصرياً — كل نص ورقم ومادة نظامية في الناتج يجب أن يكون مستخرجاً أو معاد صياغته من المحتوى المعطى حصراً؛ ممنوع اختراع معلومة أو رقم أو مثال أو مادة لم ترد فيه.`;
 }
 
 function cardsDataPrompt(desc: string, kind: "carousel" | "storyboard" | "motion"): string {
@@ -522,7 +553,7 @@ function cardsDataPrompt(desc: string, kind: "carousel" | "storyboard" | "motion
 المحتوى: ${desc}
 أخرج JSON فقط بلا أي نص آخر:
 {"title":"عنوان علوي موجز","subtitle":"سطر فرعي اختياري","cards":[{"tag":"","heading":"","line1":"","line2":"","meta":""}]}
-نصوص عربية فصحى موجزة مصقولة. ممنوع: وعود بنتائج، مقارنات، شعارات، أخطاء إملائية.`;
+نصوص عربية فصحى موجزة مصقولة. ممنوع: وعود بنتائج، مقارنات، شعارات، أخطاء إملائية.\nقاعدة حاكمة (بأمر مالكة المنصة): أنت تترجم المحتوى أعلاه بصرياً — كل نص ورقم ومادة نظامية في الناتج يجب أن يكون مستخرجاً أو معاد صياغته من المحتوى المعطى حصراً؛ ممنوع اختراع معلومة أو رقم أو مثال أو مادة لم ترد فيه.`;
 }
 
 // بطاقة الاقتباس — لغة هوية بصرية بمستوى استوديو (مرجعية مالكة المنصة):
@@ -544,13 +575,17 @@ function renderQuoteCardSvg(d: QuoteCardData): string {
   const X = (t?: string) => (t ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
   const W = 1200;
   const RX = W - 120;
-  const quoteLines = wrapFull(d.quote ?? "", 24);
+  // مقاس تكيفي بقرار مالكة المنصة: الاقتباس القصير بطل كبير، والطويل يصغر ويلتف أعرض فلا يتضخم
+  const qLen = (d.quote ?? "").length;
+  const qFS = qLen > 110 ? 40 : qLen > 70 ? 48 : 58;
+  const qWrap = qLen > 110 ? 38 : qLen > 70 ? 32 : 24;
+  const quoteLines = wrapFull(d.quote ?? "", qWrap);
   const noteLines = d.note ? wrapFull(d.note, 54) : [];
-  const qLH = 92, qY = 366;
+  const qLH = Math.round(qFS * 1.6), qY = 366;
   const attrY = qY + quoteLines.length * qLH + 14;
   const noteY = attrY + (d.attribution ? 70 : 12);
   const H = Math.max(700, noteY + noteLines.length * 40 + 130);
-  return `<svg width="100%" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" direction="ltr" style="direction:ltr">
+  return `<svg width="100%" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" direction="ltr" style="direction:ltr;max-width:1100px;display:block;margin-inline:auto">
 <defs><linearGradient id="qcBg" x1="0" y1="0" x2="0.6" y2="1"><stop offset="0" stop-color="${DK_BG1}"/><stop offset="1" stop-color="${DK_BG2}"/></linearGradient></defs>
 <rect width="${W}" height="${H}" fill="url(#qcBg)"/>
 ${rings(96, H - 60, 90, 6, DK_LINE)}
@@ -560,7 +595,7 @@ ${spark(RX - 190, 136, 11, DK_GOLD)}
 <text x="${RX - 214}" y="144" text-anchor="end" font-family="${FONT}" font-size="18" font-weight="600" fill="${DK_GOLD}">بطاقة اقتباس</text>
 <text x="${RX}" y="216" text-anchor="end" font-family="${FONT}" font-size="38" font-weight="800" fill="${DK_TEXT}">${X(d.title)}</text>
 <rect x="${RX - 84}" y="244" width="84" height="5" rx="2.5" fill="${DK_GOLD_DEEP}"/>
-${quoteLines.map((ln, i) => `<text x="${RX}" y="${qY + i * qLH}" text-anchor="end" font-family="${FONT}" font-size="58" font-weight="700" fill="${DK_TEXT}">${X(ln)}</text>`).join("\n")}
+${quoteLines.map((ln, i) => `<text x="${RX}" y="${qY + i * qLH}" text-anchor="end" font-family="${FONT}" font-size="${qFS}" font-weight="700" fill="${DK_TEXT}">${X(ln)}</text>`).join("\n")}
 ${d.attribution ? `${spark(RX - 8, attrY - 9, 8, DK_GOLD)}
 <text x="${RX - 28}" y="${attrY}" text-anchor="end" font-family="${FONT}" font-size="25" font-weight="600" fill="${DK_GOLD}">${X(d.attribution)}</text>` : ""}
 ${noteLines.map((ln, i) => `<text x="${RX}" y="${noteY + i * 40}" text-anchor="end" font-family="${FONT}" font-size="22" font-weight="400" fill="${DK_MINT}">${X(ln)}</text>`).join("\n")}
@@ -1119,8 +1154,8 @@ Return ONLY valid JSON with no markdown fences or explanation:
 Rules:
 - Exactly 5 data items
 - Labels: short Arabic (5-8 chars max), relevant to the legal topic
-- Values: realistic positive integers plausible for the context
-- Title: concise and informative`;
+- Values: استخدم فقط الأرقام الواردة صراحةً في المحتوى (مواد، مهل، نسب، مبالغ)؛ وإن خلا المحتوى من أرقام قابلة للرسم فمثّل عناصره بقيم ترتيبية تعكس تسلسلها أو أولويتها كما وردت مع yLabel صادق مثل "ترتيب الأهمية" — لا تختلق إحصائية خارجية
+- Title: concise and informative\nقاعدة حاكمة (بأمر مالكة المنصة): أنت تترجم المحتوى أعلاه بصرياً — كل نص ورقم ومادة نظامية في الناتج يجب أن يكون مستخرجاً أو معاد صياغته من المحتوى المعطى حصراً؛ ممنوع اختراع معلومة أو رقم أو مثال أو مادة لم ترد فيه.`;
 }
 
 function mindMapDataPrompt(description: string): string {
@@ -1146,7 +1181,7 @@ Rules:
 - center: short core concept for the central circle ≤13 Arabic chars
 - branch labels: ≤14 Arabic chars — abbreviate if needed (حق → حقوق الملكية ✗, حق الملكية ✓)
 - sub-labels: ≤12 Arabic chars each
-- All content must be legally accurate and topic-specific`;
+- All content must be legally accurate and topic-specific\nقاعدة حاكمة (بأمر مالكة المنصة): أنت تترجم المحتوى أعلاه بصرياً — كل نص ورقم ومادة نظامية في الناتج يجب أن يكون مستخرجاً أو معاد صياغته من المحتوى المعطى حصراً؛ ممنوع اختراع معلومة أو رقم أو مثال أو مادة لم ترد فيه.`;
 }
 
 function infographicDataPrompt(description: string): string {
@@ -1162,13 +1197,13 @@ Return ONLY valid JSON with no markdown fences or explanation:
       "line1": "نص عربي وصفي أول — أقصى 36 حرفاً",
       "line2": "نص عربي وصفي ثانٍ — أقصى 36 حرفاً",
       "line3": "نص عربي ثالث اختياري — أقصى 36 حرفاً",
-      "stat": "مثال: المادة 74 — نظام العمل السعودي"
+      "stat": "مثال: المادة ٧٤ — نظام العمل"
     },
     { "heading": "...", "line1": "...", "line2": "...", "stat": "..." },
     { "heading": "...", "line1": "...", "line2": "..." },
     { "heading": "...", "line1": "...", "line2": "...", "line3": "..." }
   ],
-  "source": "المرجع: نظام العمل السعودي — المادة ٧٤"
+  "source": "المرجع: نظام العمل — المادة ٧٤"
 }
 
 Rules:
@@ -1177,7 +1212,7 @@ Rules:
 - All text in Arabic, professional legal tone with accurate information
 - stat is optional — use only when there is a real article number or statistic
 - source must be a proper legal citation: the relevant Saudi law/regulation name + article number (معايير الاقتباس)
-- source must NEVER contain an entity or authority name such as "وزارة العدل" or "هيئة المحامين" — cite the document, not the entity`;
+- source must NEVER contain an entity or authority name such as "وزارة العدل" or "هيئة المحامين" — cite the document, not the entity\nقاعدة حاكمة (بأمر مالكة المنصة): أنت تترجم المحتوى أعلاه بصرياً — كل نص ورقم ومادة نظامية في الناتج يجب أن يكون مستخرجاً أو معاد صياغته من المحتوى المعطى حصراً؛ ممنوع اختراع معلومة أو رقم أو مثال أو مادة لم ترد فيه.`;
 }
 
 // ── Route ──────────────────────────────────────────────────────────────────
@@ -1301,7 +1336,7 @@ export async function POST(request: Request) {
   // ── Chart ─────────────────────────────────────────────────────────────────
   if (visualType === "chart") {
     try {
-      const raw = await callClaude(apiKey, "claude-haiku-4-5-20251001", 600, chartDataPrompt(engineDescription, chartType ?? ""));
+      const raw = await callExtractor(apiKey, 600, chartDataPrompt(engineDescription, chartType ?? ""));
       const data = parseJson<ChartData>(raw);
       const svgCode = renderChartSvg(data, chartType ?? "");
       // visual: بيانات البنية لتصدير PowerPoint قابل للتعديل عنصراً عنصراً
@@ -1315,7 +1350,7 @@ export async function POST(request: Request) {
   // ── Mind map ──────────────────────────────────────────────────────────────
   if (visualType === "mindmap") {
     try {
-      const raw = await callClaude(apiKey, "claude-haiku-4-5-20251001", 600, mindMapDataPrompt(engineDescription));
+      const raw = await callExtractor(apiKey, 600, mindMapDataPrompt(engineDescription));
       const data = parseJson<MindMapData>(raw);
       // المحرك الداخلي دائماً: يتيح تصدير PowerPoint بعناصر قابلة للتعديل (لا صورة مسطحة)
       const svgCode = renderMindMapSvg(data);
@@ -1329,7 +1364,7 @@ export async function POST(request: Request) {
   // ── Infographic ───────────────────────────────────────────────────────────
   if (visualType === "infographic") {
     try {
-      const raw = await callClaude(apiKey, "claude-haiku-4-5-20251001", 800, infographicDataPrompt(engineDescription));
+      const raw = await callExtractor(apiKey, 800, infographicDataPrompt(engineDescription));
       const data = parseJson<InfographicData>(raw);
       // المحرك الداخلي دائماً: يتيح تصدير PowerPoint بعناصر قابلة للتعديل (لا صورة مسطحة)
       const svgCode = renderInfographicSvg(data);
@@ -1343,7 +1378,7 @@ export async function POST(request: Request) {
   // ── بطاقة اقتباس ─────────────────────────────────────────────────────────
   if (visualType === "quote_card") {
     try {
-      const raw = await callClaude(apiKey, "claude-haiku-4-5-20251001", 800, quoteCardDataPrompt(engineDescription));
+      const raw = await callExtractor(apiKey, 800, quoteCardDataPrompt(engineDescription));
       const data = parseJson<QuoteCardData>(raw);
       const svgCode = renderQuoteCardSvg(data);
       return NextResponse.json({ svgCode, visual: { type: "quote_card", data }, visualPlan: visualPlan ?? undefined, ...premiumExtras });
@@ -1360,10 +1395,10 @@ export async function POST(request: Request) {
       // سقف أوسع: ستوري بورد من ستة مشاهد عربية غنية يتجاوز ٩٠٠ توكن فيقتطع JSON ويفشل التحليل
       let data: CardsData;
       try {
-        data = parseJson<CardsData>(await callClaude(apiKey, "claude-haiku-4-5-20251001", 2000, cardsDataPrompt(engineDescription, variant)));
+        data = parseJson<CardsData>(await callExtractor(apiKey, 2000, cardsDataPrompt(engineDescription, variant)));
       } catch {
         // محاولة ثانية واحدة قبل إعلان الفشل — استجابة النموذج غير حتمية
-        data = parseJson<CardsData>(await callClaude(apiKey, "claude-haiku-4-5-20251001", 2000, cardsDataPrompt(engineDescription, variant)));
+        data = parseJson<CardsData>(await callExtractor(apiKey, 2000, cardsDataPrompt(engineDescription, variant)));
       }
       const svgCode = renderCardsSheetSvg(data, variant);
       return NextResponse.json({ svgCode, visual: { type: visualType, data }, visualPlan: visualPlan ?? undefined, ...premiumExtras });
