@@ -36,14 +36,15 @@ function buildStudioImagePrompt(
       ].filter(Boolean).join("\n")
     : `Subject: ${fallbackDescription.slice(0, 600)}.`;
 
-  // (٤) النصوص العربية حرفياً + تعليمة الكتابة الدقيقة
+  // (٤) النصوص العربية حرفياً — بأمر مالكة المنصة: أقل نص = أقل تشويه. داخل الصورة العنوان
+  // والعناوين القصيرة فقط؛ التفاصيل الدقيقة (النقاط) تُعرض نصاً في المنشور المرافق لا داخل الصورة.
   const arabicStrings = plan
-    ? [plan.title, plan.subtitle, ...(plan.keySections?.flatMap((s) => [s.heading, ...(s.bullets ?? []), s.stat ?? ""]) ?? [])]
+    ? [plan.title, ...(plan.keySections?.map((s) => s.heading) ?? [])]
         .map((t) => (t ?? "").trim())
-        .filter(Boolean)
+        .filter((t) => t && t.length <= 30) // عناوين قصيرة فقط
     : [];
   const arabicBlock = arabicStrings.length
-    ? `Arabic text to render inside the image — write each string EXACTLY letter by letter in a clear correct Arabic font, right-to-left, with NO change, NO transliteration, and NO extra words. Only these exact strings may appear:\n${arabicStrings.map((t) => `  «${t}»`).join("\n")}`
+    ? `Arabic text inside the image — ONLY the short headline and short section labels below. Write each EXACTLY letter by letter in a clear correct Arabic font, right-to-left, with NO change, NO transliteration, NO extra words, and NO invented Arabic. Do NOT write any long sentences, bullet details, or paragraphs inside the image (those live in the accompanying post text). Only these exact strings may appear:\n${arabicStrings.map((t) => `  «${t}»`).join("\n")}\nIf you cannot render any of these strings perfectly, render it as an icon instead of misspelled text.`
     : "Do not write any Arabic text inside the image.";
 
   // الحواكم الثابتة: هوية اللون، منع الوجوه، الملاءمة الثقافية
@@ -52,6 +53,69 @@ ABSOLUTE: never draw people, human faces, figures, or characters (not even illus
 Format: ${dims.label}, Arabic RTL layout.`;
 
   return [quality, styleBlock, "", structure, "", arabicBlock, "", guards, "", KINGDOM_STYLE_RULE].join("\n");
+}
+
+// ── فحص OCR للعربي داخل الصورة المولّدة (بأمر مالكة المنصة) ────────────────────
+// نستخرج النص العربي من الصورة عبر رؤية Claude، ونقارنه بعناوين الخطة المعتمدة؛
+// النسخة التي لا يطابق نصها الخطة تُعلَّم بتحذير أحمر فلا تصل للمستخدم دون إنذار.
+function normalizeAr(s: string): string {
+  return (s || "")
+    .replace(/[ً-ْٰـ]/g, "")      // تشكيل وتطويل
+    .replace(/[أإآ]/g, "ا").replace(/ى/g, "ي").replace(/ة/g, "ه")
+    .replace(/[^؀-ۿ]/g, "")                  // أبقِ الحروف العربية فقط
+    .trim();
+}
+function levSim(a: string, b: string): number {
+  if (!a && !b) return 1; if (!a || !b) return 0;
+  const m = a.length, n = b.length;
+  const d = Array.from({ length: m + 1 }, (_, i) => [i, ...Array(n).fill(0)]);
+  for (let j = 0; j <= n; j++) d[0][j] = j;
+  for (let i = 1; i <= m; i++) for (let j = 1; j <= n; j++)
+    d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+  return 1 - d[m][n] / Math.max(m, n);
+}
+// هل يظهر النص المرجعي (عنوان الخطة) داخل النص المستخرَج بتطابق مقبول؟
+function planStringFound(planStr: string, ocr: string): boolean {
+  const p = normalizeAr(planStr);
+  if (p.length < 3) return true; // نصوص قصيرة جداً لا تُقاس
+  const o = normalizeAr(ocr);
+  if (o.includes(p)) return true;
+  // نافذة منزلقة بطول العبارة المرجعية للبحث عن أفضل تطابق
+  let best = 0;
+  for (let i = 0; i + p.length <= o.length; i++) best = Math.max(best, levSim(p, o.slice(i, i + p.length)));
+  return best >= 0.82;
+}
+async function extractArabicFromImage(apiKey: string, dataUrl: string): Promise<string> {
+  const m = dataUrl.match(/^data:(image\/[\w+.-]+);base64,(.+)$/s);
+  if (!m) return "";
+  const [, mediaType, b64] = m;
+  const res = await fetch(`${process.env.ANTHROPIC_BASE_URL ?? "https://api.anthropic.com"}/v1/messages`, {
+    method: "POST",
+    headers: { "x-api-key": apiKey, "anthropic-version": "2023-06-01", "content-type": "application/json" },
+    body: JSON.stringify({
+      model: "claude-haiku-4-5-20251001",
+      max_tokens: 400,
+      messages: [{ role: "user", content: [
+        { type: "image", source: { type: "base64", media_type: mediaType, data: b64 } },
+        { type: "text", text: "استخرج كل النص العربي الظاهر في هذه الصورة حرفياً كما هو مرسوم (حتى لو بدا مشوّهاً أو خطأً). أعده نصاً واحداً بلا أي شرح أو تعليق." },
+      ] }],
+    }),
+  });
+  if (!res.ok) throw new Error(`vision ${res.status}`);
+  const payload = (await res.json()) as { content?: { type: string; text?: string }[] };
+  return payload.content?.find((c) => c.type === "text")?.text?.trim() ?? "";
+}
+// يفحص نسخة واحدة: يعيد {flagged, extracted}. الفشل لا يحجب (يُعاد غير معلَّم مع ملاحظة تعذّر الفحص).
+async function checkVariantArabic(apiKey: string, dataUrl: string, planKeyStrings: string[]): Promise<{ flagged: boolean; extracted: string; checked: boolean }> {
+  if (!planKeyStrings.length) return { flagged: false, extracted: "", checked: false };
+  try {
+    const extracted = await extractArabicFromImage(apiKey, dataUrl);
+    const allFound = planKeyStrings.every((s) => planStringFound(s, extracted));
+    return { flagged: !allFound, extracted, checked: true };
+  } catch (e) {
+    console.error("[ocr-check]", e instanceof Error ? e.message : e);
+    return { flagged: false, extracted: "", checked: false };
+  }
 }
 
 const schema = z.object({
@@ -1350,10 +1414,22 @@ export async function POST(request: Request) {
         ? editInstruction.trim()
         : style?.trim() || visualPlan?.styleDirective?.trim() || "clean flat vector editorial illustration, professional and calm";
       const prompt = buildStudioImagePrompt(visualPlan, styleDirective, effectiveDescription, dims);
-      const { images, failureNote } = await generatePremiumVariants(prompt, dims.w, dims.h, 3);
+      // تفضيل المزوّد: Gemini (نانو بنانا) للمخرجات النصية العربية — الأقوى؛ وgpt-image-1 لصور الغلاف قليلة النص
+      const prefer: "gemini" | "openai" = visualType === "image" ? "openai" : "gemini";
+      const { images, failureNote } = await generatePremiumVariants(prompt, dims.w, dims.h, 3, prefer);
       if (images.length) {
+        // فحص OCR لكل نسخة: العناوين القصيرة المرسومة داخل الصورة تُقارن بالخطة
+        const keyStrings = visualPlan
+          ? [visualPlan.title, ...(visualPlan.keySections?.map((s) => s.heading) ?? [])]
+              .map((t) => (t ?? "").trim()).filter((t) => t && t.length <= 30)
+          : [];
+        const checked = await Promise.all(images.map(async (im) => {
+          const url = im.imageBase64 ?? im.imageUrl ?? "";
+          const chk = apiKey ? await checkVariantArabic(apiKey, url, keyStrings) : { flagged: false, extracted: "", checked: false };
+          return { url, flagged: chk.flagged, extracted: chk.extracted, checked: chk.checked };
+        }));
         return NextResponse.json({
-          variants: images.map((im) => im.imageBase64 ?? im.imageUrl).filter(Boolean),
+          variants: checked.filter((v) => v.url),
           provider: images[0]?.provider,
           planTexts,
           visualPlan: visualPlan ?? undefined,

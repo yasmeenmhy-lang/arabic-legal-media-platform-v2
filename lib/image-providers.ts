@@ -123,50 +123,67 @@ function describeFailure(name: "openai" | "gemini", e: unknown): string {
 
 // توليد عدة نسخ لنفس الموجّه — بأمر مالكة المنصة: كل توليد بصري ثلاث نسخ يختار منها المستخدم.
 // OpenAI يدعم n في طلب واحد؛ Gemini يُكرَّر. عند فشل OpenAI كلياً يتولّى Gemini بديلاً.
-export async function generatePremiumVariants(prompt: string, w: number, h: number, count = 3): Promise<{ images: PremiumImageResult[]; failureNote?: string }> {
+async function openAiVariants(prompt: string, w: number, h: number, count: number): Promise<PremiumImageResult[]> {
+  const key = process.env.OPENAI_API_KEY;
+  if (!key) return [];
+  const model = process.env.OPENAI_IMAGE_MODEL || "gpt-image-1";
+  const size = w > h ? "1536x1024" : h > w ? "1024x1536" : "1024x1024";
+  const res = await fetch(`${process.env.OPENAI_BASE_URL ?? "https://api.openai.com"}/v1/images/generations`, {
+    method: "POST",
+    headers: { authorization: `Bearer ${key}`, "content-type": "application/json" },
+    body: JSON.stringify({ model, prompt, size, quality: process.env.OPENAI_IMAGE_QUALITY || "high", n: count, output_format: "png" }),
+  });
+  if (!res.ok) throw new Error(`OpenAI ${res.status}`);
+  const data = (await res.json()) as { data?: { b64_json?: string }[] };
+  return (data.data ?? []).map((d) => d.b64_json).filter((b): b is string => Boolean(b))
+    .map((b64) => ({ imageBase64: `data:image/png;base64,${b64}`, provider: "openai" as const }));
+}
+
+async function geminiVariants(prompt: string, count: number, failures: string[]): Promise<PremiumImageResult[]> {
+  if (!(process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY)) return [];
+  const images: PremiumImageResult[] = [];
+  // Gemini لا يدعم n — تُطلب النسخ بالتوازي لتقليص الزمن
+  const results = await Promise.allSettled(Array.from({ length: count }, () => geminiGenerate(prompt)));
+  for (const r of results) {
+    if (r.status === "fulfilled" && r.value) images.push(r.value);
+    else if (r.status === "rejected") failures.push(describeFailure("gemini", r.reason));
+  }
+  return images;
+}
+
+// توليد ثلاث نسخ مع تفضيل مزوّد حسب كثافة النص العربي:
+// prefer="gemini" (نانو بنانا) للمخرجات النصية — الأقوى في رسم العربية داخل الصور.
+// prefer="openai" (gpt-image-1) للمخرجات قليلة النص (صور الغلاف). البديل يتولّى عند الفشل.
+export async function generatePremiumVariants(
+  prompt: string, w: number, h: number, count = 3, prefer: "gemini" | "openai" = "gemini",
+): Promise<{ images: PremiumImageResult[]; failureNote?: string }> {
   const mode = (process.env.IMAGE_PROVIDER ?? "auto").toLowerCase();
   if (mode === "mock") return { images: Array.from({ length: count }, () => mockGenerate(w, h)) };
 
   const failures: string[] = [];
-  const key = process.env.OPENAI_API_KEY;
-  // المزود الأساسي: OpenAI بجودة high، ثلاث نسخ في طلب واحد
-  if ((mode === "openai" || mode === "auto") && key) {
-    try {
-      const model = process.env.OPENAI_IMAGE_MODEL || "gpt-image-1";
-      const size = w > h ? "1536x1024" : h > w ? "1024x1536" : "1024x1024";
-      const res = await fetch(`${process.env.OPENAI_BASE_URL ?? "https://api.openai.com"}/v1/images/generations`, {
-        method: "POST",
-        headers: { authorization: `Bearer ${key}`, "content-type": "application/json" },
-        body: JSON.stringify({ model, prompt, size, quality: process.env.OPENAI_IMAGE_QUALITY || "high", n: count, output_format: "png" }),
-      });
-      if (!res.ok) throw new Error(`OpenAI ${res.status}`);
-      const data = (await res.json()) as { data?: { b64_json?: string }[] };
-      const images = (data.data ?? [])
-        .map((d) => d.b64_json)
-        .filter((b): b is string => Boolean(b))
-        .map((b64) => ({ imageBase64: `data:image/png;base64,${b64}`, provider: "openai" as const }));
-      if (images.length) return { images };
-      failures.push("لم تصل صور من الخدمة — أعد المحاولة.");
-    } catch (e) {
-      failures.push(describeFailure("openai", e));
-      console.error("[image-variants] openai", e instanceof Error ? e.message : e);
-    }
+  const runOpenai = async () => {
+    try { const im = await openAiVariants(prompt, w, h, count); if (im.length) return im; failures.push("لم تصل صور من OpenAI."); }
+    catch (e) { failures.push(describeFailure("openai", e)); console.error("[image-variants] openai", e instanceof Error ? e.message : e); }
+    return [];
+  };
+  const runGemini = async () => {
+    const im = await geminiVariants(prompt, count, failures);
+    if (!im.length) failures.push("لم تصل صور من Gemini.");
+    return im;
+  };
+
+  // ترتيب المحاولات حسب التفضيل، مع احترام IMAGE_PROVIDER إن ثُبّت على مزوّد واحد
+  const order: Array<() => Promise<PremiumImageResult[]>> =
+    mode === "openai" ? [runOpenai]
+    : mode === "gemini" ? [runGemini]
+    : prefer === "gemini" ? [runGemini, runOpenai]
+    : [runOpenai, runGemini];
+
+  for (const run of order) {
+    const im = await run();
+    if (im.length) return { images: im };
   }
-  // البديل: Gemini — يُكرَّر count مرات (لا يدعم n)
-  if ((mode === "gemini" || mode === "auto") && (process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY)) {
-    const images: PremiumImageResult[] = [];
-    for (let i = 0; i < count; i++) {
-      try {
-        const r = await geminiGenerate(prompt);
-        if (r) images.push(r);
-      } catch (e) {
-        failures.push(describeFailure("gemini", e));
-        console.error("[image-variants] gemini", e instanceof Error ? e.message : e);
-      }
-    }
-    if (images.length) return { images };
-  }
-  if (!key && !(process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY)) {
+  if (!process.env.OPENAI_API_KEY && !(process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY)) {
     failures.push("خدمة الصور الاحترافية غير مهيأة — تواصل مع مسؤول المنصة.");
   }
   return { images: [], failureNote: [...new Set(failures)].join(" | ") || "تعذر إنشاء الصور — أعد المحاولة." };
