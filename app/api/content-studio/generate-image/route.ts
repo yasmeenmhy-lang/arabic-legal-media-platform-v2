@@ -223,7 +223,7 @@ function parseJson<T>(raw: string): T {
 // ── SVG renderers (programmatic — no AI coordinates) ─────────────────────
 
 // DGA Madkhel exact tokens (design.dga.gov.sa/guidelines)
-const FONT       = "IBM Plex Sans Arabic,Tahoma,Arial,sans-serif";
+const FONT       = "Alexandria,IBM Plex Sans Arabic,Tahoma,Arial,sans-serif";
 const PALM       = "#25935F"; // SA-500 — brand primary
 const PALM_DARK  = "#1B8354"; // SA-600
 const PALM_DEEP  = "#166A45"; // SA-700
@@ -306,8 +306,8 @@ function renderBarChartSvg(d: ChartData): string {
 
   return `<svg width="100%" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
 <rect width="${W}" height="${H}" fill="${CANVAS_BG}"/>
-<text x="${W / 2}" y="52" text-anchor="middle" font-family="${FONT}" font-size="22" font-weight="600" fill="${INK}">${trunc(d.title, 36)}</text>
-<text x="${W / 2}" y="78" text-anchor="middle" font-family="${FONT}" font-size="14" fill="${INK_TER}">${trunc(d.yLabel, 40)}</text>
+<text x="${W / 2}" y="56" text-anchor="middle" font-family="${FONT}" font-size="28" font-weight="700" fill="${INK}">${trunc(d.title, 36)}</text>
+<text x="${W / 2}" y="84" text-anchor="middle" font-family="${FONT}" font-size="16" fill="${INK_TER}">${trunc(d.yLabel, 40)}</text>
 ${gridLines}
 <line x1="${ML}" y1="${MT}" x2="${ML}" y2="${H - MB}" stroke="${LINE}" stroke-width="1.5"/>
 <line x1="${ML}" y1="${H - MB}" x2="${W - MR}" y2="${H - MB}" stroke="${LINE}" stroke-width="1.5"/>
@@ -342,8 +342,8 @@ function renderLineChartSvg(d: ChartData): string {
 
   return `<svg width="100%" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
 <rect width="${W}" height="${H}" fill="${CANVAS_BG}"/>
-<text x="${W / 2}" y="52" text-anchor="middle" font-family="${FONT}" font-size="22" font-weight="600" fill="${INK}">${trunc(d.title, 36)}</text>
-<text x="${W / 2}" y="78" text-anchor="middle" font-family="${FONT}" font-size="14" fill="${INK_TER}">${trunc(d.yLabel, 40)}</text>
+<text x="${W / 2}" y="56" text-anchor="middle" font-family="${FONT}" font-size="28" font-weight="700" fill="${INK}">${trunc(d.title, 36)}</text>
+<text x="${W / 2}" y="84" text-anchor="middle" font-family="${FONT}" font-size="16" fill="${INK_TER}">${trunc(d.yLabel, 40)}</text>
 ${gridLines}
 <line x1="${ML}" y1="${MT}" x2="${ML}" y2="${H - MB}" stroke="${LINE}" stroke-width="1.5"/>
 <line x1="${ML}" y1="${H - MB}" x2="${W - MR}" y2="${H - MB}" stroke="${LINE}" stroke-width="1.5"/>
@@ -380,8 +380,8 @@ function renderAreaChartSvg(d: ChartData): string {
 
   return `<svg width="100%" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
 <rect width="${W}" height="${H}" fill="${CANVAS_BG}"/>
-<text x="${W / 2}" y="52" text-anchor="middle" font-family="${FONT}" font-size="22" font-weight="600" fill="${INK}">${trunc(d.title, 36)}</text>
-<text x="${W / 2}" y="78" text-anchor="middle" font-family="${FONT}" font-size="14" fill="${INK_TER}">${trunc(d.yLabel, 40)}</text>
+<text x="${W / 2}" y="56" text-anchor="middle" font-family="${FONT}" font-size="28" font-weight="700" fill="${INK}">${trunc(d.title, 36)}</text>
+<text x="${W / 2}" y="84" text-anchor="middle" font-family="${FONT}" font-size="16" fill="${INK_TER}">${trunc(d.yLabel, 40)}</text>
 ${gridLines}
 <line x1="${ML}" y1="${MT}" x2="${ML}" y2="${H - MB}" stroke="${LINE}" stroke-width="1.5"/>
 <line x1="${ML}" y1="${H - MB}" x2="${W - MR}" y2="${H - MB}" stroke="${LINE}" stroke-width="1.5"/>
@@ -417,8 +417,8 @@ function renderHBarChartSvg(d: ChartData): string {
 
   return `<svg width="100%" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
 <rect width="${W}" height="${H}" fill="${CANVAS_BG}"/>
-<text x="${W / 2}" y="52" text-anchor="middle" font-family="${FONT}" font-size="22" font-weight="600" fill="${INK}">${trunc(d.title, 36)}</text>
-<text x="${W / 2}" y="78" text-anchor="middle" font-family="${FONT}" font-size="14" fill="${INK_TER}">${trunc(d.yLabel, 40)}</text>
+<text x="${W / 2}" y="56" text-anchor="middle" font-family="${FONT}" font-size="28" font-weight="700" fill="${INK}">${trunc(d.title, 36)}</text>
+<text x="${W / 2}" y="84" text-anchor="middle" font-family="${FONT}" font-size="16" fill="${INK_TER}">${trunc(d.yLabel, 40)}</text>
 ${gridLines}
 <line x1="${ML}" y1="${MT}" x2="${ML}" y2="${H - MB}" stroke="${LINE}" stroke-width="1.5"/>
 ${bars}
@@ -472,7 +472,7 @@ ${pct >= 5 ? `<text x="${lx}" y="${ly + 6}" text-anchor="middle" font-family="${
 
   return `<svg width="100%" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
 <rect width="${W}" height="${H}" fill="${CANVAS_BG}"/>
-<text x="${W / 2}" y="60" text-anchor="middle" font-family="${FONT}" font-size="26" font-weight="600" fill="${INK}">${trunc(d.title, 32)}</text>
+<text x="${W / 2}" y="64" text-anchor="middle" font-family="${FONT}" font-size="30" font-weight="700" fill="${INK}">${trunc(d.title, 32)}</text>
 ${slices.join("\n")}
 ${center}
 ${legend}
@@ -525,42 +525,38 @@ function cardsDataPrompt(desc: string, kind: "carousel" | "storyboard" | "motion
 نصوص عربية فصحى موجزة مصقولة. ممنوع: وعود بنتائج، مقارنات، شعارات، أخطاء إملائية.`;
 }
 
-// بطاقة الاقتباس — الطراز التحريري الموحّد: خلفية ورقية بنقش، إطار مزدوج بزوايا ذهبية،
-// فاصل مزخرف، نسبة الاقتباس في شارة، وعلامتا تنصيص متقابلتان — إثراء بلا حذف لأي حقل
+// بطاقة الاقتباس — تصميم تحريري حديث (تحديث المصمم الإبداعي بقرار مالكة المنصة):
+// محاذاة يمين بدل التوسيط، شريط هوية جانبي متدرج، علامة اقتباس مائية كبيرة، مساحات
+// بيضاء سخية بلا زخارف مزدحمة، وخط أكبر وأثقل هرمية — البطاقة تُقرأ كتصميم استوديو.
 function renderQuoteCardSvg(d: QuoteCardData): string {
   const X = (t?: string) => (t ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-  const GOLD_DEEP = "#B87B02", PAPER = "#FAF9F5";
+  const GOLD_DEEP = "#B87B02";
   const W = 1200;
-  const quoteLines = wrapFull(d.quote ?? "", 30);
-  const noteLines = d.note ? wrapFull(d.note, 46) : [];
-  const qLH = 66, qY = 330;
-  const attrY = qY + quoteLines.length * qLH + 30;
-  const noteY = attrY + (d.attribution ? 72 : 8);
-  const H = Math.max(700, noteY + noteLines.length * 36 + 130);
-  const attrW = d.attribution ? Math.min(Math.round((d.attribution.length + 2) * 15) + 72, W - 300) : 0;
-  const corner = (cx: number, cy: number, dx: number, dy: number) =>
-    `<path d="M${cx} ${cy + dy * 30} L${cx} ${cy} L${cx + dx * 30} ${cy}" stroke="#DBA102" stroke-width="2.5" fill="none" stroke-linecap="round"/>`;
+  const RX = W - 150;          // خط المحاذاة اليمنى للنصوص (بعد شريط الهوية)
+  const quoteLines = wrapFull(d.quote ?? "", 28);
+  const noteLines = d.note ? wrapFull(d.note, 52) : [];
+  const qLH = 80, qY = 348;
+  const attrY = qY + quoteLines.length * qLH + 18;
+  const noteY = attrY + (d.attribution ? 66 : 10);
+  const H = Math.max(660, noteY + noteLines.length * 40 + 140);
   return `<svg width="100%" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" direction="ltr" style="direction:ltr">
-<defs><pattern id="qtDots" width="26" height="26" patternUnits="userSpaceOnUse"><circle cx="2.5" cy="2.5" r="1.7" fill="${PALM_DEEP}" opacity="0.06"/></pattern>
-<filter id="qtShad" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="3" stdDeviation="7" flood-color="${INK}" flood-opacity="0.09"/></filter></defs>
-<rect width="${W}" height="${H}" fill="${PAPER}"/>
-<rect width="${W}" height="${H}" fill="url(#qtDots)"/>
-<g filter="url(#qtShad)"><rect x="40" y="40" width="${W - 80}" height="${H - 80}" rx="26" fill="#FFFFFF" stroke="${MINT_DEEP}" stroke-width="2"/></g>
-<rect x="58" y="58" width="${W - 116}" height="${H - 116}" rx="18" fill="none" stroke="${PALM}" stroke-width="1.5" stroke-dasharray="2 7" stroke-linecap="round" opacity="0.35"/>
-${corner(78, 78, 1, 1)}${corner(W - 78, 78, -1, 1)}${corner(78, H - 78, 1, -1)}${corner(W - 78, H - 78, -1, -1)}
-<text x="${W / 2}" y="112" text-anchor="middle" font-family="${FONT}" font-size="15" font-weight="700" fill="${GOLD_DEEP}">بطاقة اقتباس</text>
-<text x="${W / 2}" y="152" text-anchor="middle" font-family="${FONT}" font-size="26" font-weight="700" fill="${PALM_DEEP}">${X(d.title)}</text>
-<g stroke="${PALM}" stroke-width="2"><line x1="${W / 2 - 120}" y1="182" x2="${W / 2 - 14}" y2="182"/><line x1="${W / 2 + 14}" y1="182" x2="${W / 2 + 120}" y2="182"/></g>
-<rect x="${W / 2 - 5}" y="177" width="10" height="10" fill="${PALM}" transform="rotate(45 ${W / 2} 182)"/>
-<circle cx="${W / 2 - 138}" cy="182" r="3.5" fill="${GOLD_DEEP}"/><circle cx="${W / 2 + 138}" cy="182" r="3.5" fill="${GOLD_DEEP}"/>
-<text x="${W / 2}" y="272" text-anchor="middle" font-family="${FONT}" font-size="120" font-weight="700" fill="${MINT_DEEP}">&#x201D;</text>
-${quoteLines.map((ln, i) => `<text x="${W / 2}" y="${qY + i * qLH}" text-anchor="middle" font-family="${FONT}" font-size="40" font-weight="700" fill="${INK}">${X(ln)}</text>`).join("\n")}
-<text x="${W - 150}" y="${qY + (quoteLines.length - 1) * qLH + 58}" text-anchor="middle" font-family="${FONT}" font-size="90" font-weight="700" fill="#DBA102" opacity="0.35">&#x201C;</text>
-${d.attribution ? `<rect x="${W / 2 - attrW / 2}" y="${attrY - 26}" width="${attrW}" height="42" rx="21" fill="${MINT}" stroke="${MINT_DEEP}" stroke-width="1.5"/>
-<text x="${W / 2}" y="${attrY + 2}" text-anchor="middle" font-family="${FONT}" font-size="22" font-weight="600" fill="${PALM_DARK}">— ${X(d.attribution)}</text>` : ""}
-${noteLines.map((ln, i) => `<text x="${W / 2}" y="${noteY + i * 36}" text-anchor="middle" font-family="${FONT}" font-size="22" fill="${INK_TER}">${X(ln)}</text>`).join("\n")}
-<rect x="${W / 2 - 44}" y="${H - 70}" width="88" height="6" rx="3" fill="${PALM}"/>
-<circle cx="${W / 2 - 62}" cy="${H - 67}" r="3.5" fill="#DBA102"/><circle cx="${W / 2 + 62}" cy="${H - 67}" r="3.5" fill="#DBA102"/>
+<defs>
+<linearGradient id="qtBar" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${PALM}"/><stop offset="1" stop-color="${PALM_DEEP}"/></linearGradient>
+<filter id="qtShad" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="6" stdDeviation="14" flood-color="${INK}" flood-opacity="0.08"/></filter>
+</defs>
+<rect width="${W}" height="${H}" fill="#F6F8F7"/>
+<g filter="url(#qtShad)"><rect x="48" y="48" width="${W - 96}" height="${H - 96}" rx="28" fill="#FFFFFF"/></g>
+<rect x="${W - 76}" y="92" width="8" height="${H - 184}" rx="4" fill="url(#qtBar)"/>
+<text x="200" y="330" font-family="${FONT}" font-size="300" font-weight="800" fill="${MINT_DEEP}" opacity="0.55">&#x201D;</text>
+<text x="${RX}" y="150" text-anchor="end" font-family="${FONT}" font-size="17" font-weight="600" fill="${GOLD_DEEP}">بطاقة اقتباس</text>
+<text x="${RX}" y="208" text-anchor="end" font-family="${FONT}" font-size="34" font-weight="700" fill="${PALM_DEEP}">${X(d.title)}</text>
+<rect x="${RX - 68}" y="234" width="68" height="5" rx="2.5" fill="${GOLD_DEEP}"/>
+${quoteLines.map((ln, i) => `<text x="${RX}" y="${qY + i * qLH}" text-anchor="end" font-family="${FONT}" font-size="48" font-weight="600" fill="${INK}">${X(ln)}</text>`).join("\n")}
+${d.attribution ? `<g><circle cx="${RX - 7}" cy="${attrY - 8}" r="5" fill="${GOLD_DEEP}"/>
+<text x="${RX - 24}" y="${attrY}" text-anchor="end" font-family="${FONT}" font-size="24" font-weight="600" fill="${PALM_DARK}">${X(d.attribution)}</text></g>` : ""}
+${noteLines.map((ln, i) => `<text x="${RX}" y="${noteY + i * 40}" text-anchor="end" font-family="${FONT}" font-size="22" font-weight="400" fill="${INK_TER}">${X(ln)}</text>`).join("\n")}
+<text x="150" y="${H - 128}" font-family="${FONT}" font-size="160" font-weight="800" fill="${GOLD_DEEP}" opacity="0.10">&#x201C;</text>
+<rect x="${RX - 76}" y="${H - 122}" width="76" height="5" rx="2.5" fill="${PALM}"/>
 </svg>`;
 }
 
@@ -831,9 +827,9 @@ ${closeH ? closeBlock(y) : ""}
 </svg>`;
 }
 
-// Average Arabic glyph width ≈ 0.56 × font-size (IBM Plex Sans Arabic)
+// Average Arabic glyph width ≈ 0.62 × font-size (Alexandria)
 function mmCharW(fontSize: number): number {
-  return fontSize * 0.56;
+  return fontSize * 0.62;
 }
 
 // Centered multi-line <text> block around a vertical midpoint

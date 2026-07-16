@@ -2,7 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
-/* IBM Plex Sans Arabic — الخط الرسمي لـ DGA كود المنصات */
+/* Alexandria — خط المنصة الحديث (عربي هندسي معاصر بأوزان كاملة)؛ IBM Plex احتياط */
 
 :root {
   color-scheme: light;
@@ -22,9 +22,9 @@ body {
   overflow-x: hidden;
   background: #f4f7f6;
   color: #1f2933;
-  font-family: "IBM Plex Sans Arabic", Tahoma, Arial, sans-serif;
-  font-size: 14px;
-  line-height: 1.7;
+  font-family: "Alexandria", "IBM Plex Sans Arabic", Tahoma, Arial, sans-serif;
+  font-size: 15px;
+  line-height: 1.75;
   font-weight: 400;
   letter-spacing: 0;
   text-rendering: optimizeLegibility;
@@ -74,9 +74,9 @@ textarea {
 }
 
 .content-review-window {
-  font-family: "IBM Plex Sans Arabic", Tahoma, Arial, sans-serif;
-  font-size: 14px;
-  line-height: 1.7;
+  font-family: "Alexandria", "IBM Plex Sans Arabic", Tahoma, Arial, sans-serif;
+  font-size: 15px;
+  line-height: 1.75;
 }
 
 h1 {

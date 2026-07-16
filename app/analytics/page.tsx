@@ -64,7 +64,7 @@ export default function AnalyticsPage() {
           <meta charset="utf-8" />
           <title>التقرير التفصيلي للمحتوى والاعتمادات</title>
           <style>
-            body{font-family:"IBM Plex Sans Arabic",Tahoma,Arial,sans-serif;line-height:1.8;color:#1f2933;margin:32px;background:#fff}
+            body{font-family:"Alexandria","IBM Plex Sans Arabic",Tahoma,Arial,sans-serif;line-height:1.8;color:#1f2933;margin:32px;background:#fff}
             h1{font-size:22px;margin-bottom:4px} h2{font-size:18px;margin-top:0} h3{font-size:15px;margin:18px 0 8px}
             .meta{color:#52605a;margin-bottom:24px}.record{border:1px solid #d8e0dc;border-radius:14px;padding:18px;margin-bottom:16px}
             dl{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:12px 0}dt{font-size:12px;color:#66756f}dd{margin:0;font-weight:600}
