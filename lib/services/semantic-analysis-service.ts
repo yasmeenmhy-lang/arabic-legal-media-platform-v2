@@ -6,6 +6,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import type { ContentKind, FindingCategory, FindingDomain, ReviewContext, ReviewFinding, RiskLevel } from "@/lib/types";
 import { legalKnowledgeEntries } from "@/lib/legal-knowledge-base";
+import { AUTHORITIES_RULE } from "@/lib/governance";
 import {
   arabicSeverity,
   businessSeverityForFinding,
@@ -58,6 +59,8 @@ function buildValidReferencesList(entries: typeof legalKnowledgeEntries): string
 function buildHolisticSystem(entries: typeof legalKnowledgeEntries): string {
   const validRefs = buildValidReferencesList(entries);
   return `أنت متخصص في قواعد السلوك المهني للمحامين في المملكة العربية السعودية (46 قاعدة، 1447هـ).
+
+${AUTHORITIES_RULE}
 
 ## السياق الثابت
 هذه المنصة مخصصة للمحامين المرخصين حصراً. النص الذي سيصلك في رسالة المستخدم كتبه محامٍ ويريد نشره على وسائل التواصل الاجتماعي — سواء كان منشوراً، تغريدة، تعليقاً، رداً، أو إعلاناً.
