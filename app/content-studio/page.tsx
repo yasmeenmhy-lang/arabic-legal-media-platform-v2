@@ -45,6 +45,7 @@ import {
   YouTubeIcon,
 } from "@/components/social-icons";
 import { contentKindOptions, contentKindLabels } from "@/lib/content-types";
+import { extractTextNodes, applyEdits } from "@/components/editable-visual";
 import { QUOTE_INTEGRITY_NOTICE } from "@/lib/quote-notice";
 import type { VisualPlan } from "@/lib/visual-translator";
 import { isConditionalSource, isGlobalSubVisible, isSourceVisible } from "@/lib/source-specialty-map";
@@ -568,6 +569,9 @@ export default function ContentStudioPage() {
   const [vtStyle, setVtStyle] = useState("");
   const [vtDimensions, setVtDimensions] = useState("");
   const [vtEditText, setVtEditText] = useState("");
+  // تحرير نصوص المرئي SVG مباشرة (بأمر مالكة المنصة: كل نص قابل للتعديل)
+  const [vtSvgEditing, setVtSvgEditing] = useState(false);
+  const [vtSvgEdits, setVtSvgEdits] = useState<string[]>([]);
   const [vtConfirming, setVtConfirming] = useState(false);
   const [vtLoading, setVtLoading] = useState(false);
   const [vtSvg, setVtSvg] = useState("");
@@ -3103,6 +3107,8 @@ export default function ContentStudioPage() {
                   <div className="flex flex-wrap items-center justify-between gap-2 border-t border-line px-3 py-2">
                     <p className="text-xs text-ink/40">مرئي SVG — جودة عالية قابل للتكبير</p>
                     <div className="flex flex-wrap gap-2">
+                      <button type="button" onClick={() => { setVtSvgEdits(extractTextNodes(vtSvg).nodes.map((n) => n.value)); setVtSvgEditing((v) => !v); }}
+                        className="shrink-0 whitespace-nowrap rounded-lg border border-palm bg-white px-3 py-1 text-xs font-semibold text-palm transition hover:bg-mint">✎ تعديل النصوص</button>
                       <button type="button" onClick={() => downloadSvg(vtSvg, `${vtType}.svg`)}
                         className="shrink-0 whitespace-nowrap rounded-lg border border-line bg-paper px-3 py-1 text-xs font-medium text-ink/70 transition hover:border-palm hover:text-palm">SVG</button>
                       <button type="button" onClick={() => downloadSvgAsPng(vtSvg, `${vtType}.svg`)}
@@ -3110,9 +3116,9 @@ export default function ContentStudioPage() {
                       <button type="button" onClick={() => void downloadPptx({ svg: vtSvg, visual: vtVisual }, `${vtType}.pptx`)}
                         className="shrink-0 whitespace-nowrap rounded-lg border border-line bg-paper px-3 py-1 text-xs font-medium text-ink/70 transition hover:border-palm hover:text-palm"
                         title="تنزيل شريحة PowerPoint قابلة للتحرير">PowerPoint</button>
-                      <button type="button" onClick={() => { setVtSvg(""); setVtUrl(""); void generateVisualTranslation(); }}
+                      <button type="button" onClick={() => { setVtSvg(""); setVtUrl(""); setVtSvgEditing(false); void generateVisualTranslation(); }}
                         className="shrink-0 whitespace-nowrap rounded-lg border border-line bg-paper px-3 py-1 text-xs font-medium text-ink/70 transition hover:border-palm hover:text-palm">إعادة الإنشاء</button>
-                      <button type="button" onClick={() => { setVtSvg(""); setVtUrl(""); setVtVisual(null); setVtPremiumUrl(""); setVtProvider(""); setVtProviderNote(""); setVtPremiumError(""); setVtPlan(null); setVtPlanEditing(false); setVtError(""); }}
+                      <button type="button" onClick={() => { setVtSvg(""); setVtUrl(""); setVtVisual(null); setVtSvgEditing(false); setVtPremiumUrl(""); setVtProvider(""); setVtProviderNote(""); setVtPremiumError(""); setVtPlan(null); setVtPlanEditing(false); setVtError(""); }}
                         className="flex shrink-0 items-center gap-1 whitespace-nowrap rounded-lg border border-line bg-paper px-3 py-1 text-xs font-medium text-red-500/70 transition hover:border-red-300 hover:text-red-600"
                         title="مسح المرئي">
                         <Trash2 size={12} />
@@ -3120,13 +3126,32 @@ export default function ContentStudioPage() {
                       </button>
                     </div>
                   </div>
-                  {/* طلب تعديل على المرئي الحالي */}
+                  {/* تحرير نصوص المرئي مباشرة — كل نص ظاهر يُعدَّل والتصميم يبقى كما هو */}
+                  {vtSvgEditing && (
+                    <div className="space-y-2 border-t border-palm/30 bg-mint/40 p-3">
+                      <p className="text-xs font-semibold text-palm">حرّر أي نص في المرئي — التصميم (الألوان والأحجام) قالب احترافي ثابت، والنص فقط يتغيّر:</p>
+                      <div className="max-h-[280px] space-y-2 overflow-y-auto">
+                        {vtSvgEdits.map((value, i) => (
+                          <input key={i} value={value} dir="rtl"
+                            onChange={(e) => setVtSvgEdits((prev) => prev.map((v, j) => (j === i ? e.target.value : v)))}
+                            className="w-full rounded border border-line bg-white px-2 py-1.5 text-sm focus:border-palm focus:outline-none" />
+                        ))}
+                      </div>
+                      <div className="flex gap-2">
+                        <button type="button" onClick={() => { const next = applyEdits(vtSvg, vtSvgEdits); setVtSvg(next); setVtSvgEditing(false); persistVisualToRecord({ visualType: vtType, visualTypeLabel: VISUAL_ENGINE_LABELS[vtType] ?? "مرئي", svg: next }); }}
+                          className="rounded-md bg-palm px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-palmDark">حفظ التعديلات</button>
+                        <button type="button" onClick={() => setVtSvgEditing(false)}
+                          className="rounded-md border border-line px-3 py-1.5 text-xs text-ink/60">إلغاء</button>
+                      </div>
+                    </div>
+                  )}
+                  {/* إعادة صياغة المحتوى بالذكاء (لا تصميم — التصميم قالب ثابت) */}
                   <div className="flex flex-wrap items-center gap-2 border-t border-line bg-paper/60 px-3 py-2.5">
                     <input
                       type="text"
                       value={vtEditText}
                       onChange={(e) => setVtEditText(e.target.value)}
-                      placeholder="اطلب تعديلاً — مثال: كبّر الخط، غيّر الألوان، بسّط المحتوى..."
+                      placeholder="إعادة صياغة بالذكاء — مثال: اجعل العنوان أقصر، بدّل المثال النظامي، بسّط الصياغة..."
                       className="min-w-40 flex-1 rounded-lg border border-line bg-white px-3 py-1.5 text-xs focus:border-palm focus:outline-none"
                     />
                     <button
@@ -3135,7 +3160,7 @@ export default function ContentStudioPage() {
                       disabled={!vtEditText.trim()}
                       className="shrink-0 whitespace-nowrap rounded-lg bg-palm px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-palm/90 disabled:opacity-40"
                     >
-                      تطبيق التعديل
+                      إعادة الصياغة
                     </button>
                   </div>
                 </div>
