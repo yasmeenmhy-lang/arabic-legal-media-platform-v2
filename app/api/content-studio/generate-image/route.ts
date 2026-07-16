@@ -1366,27 +1366,50 @@ export async function POST(request: Request) {
   // خطة معتمدة من المستخدم = مصدر الحقيقة الوحيد؛ وإلا تُولَّد (وتُتخطى في التعديل)
   const visualPlan: VisualPlan | null = approvedPlan
     ? approvedPlan
-    : apiKey && !isEditFlow && visualType !== "image"
+    : apiKey && !isEditFlow
       ? await generateVisualPlan(apiKey, description, {
           channel, audience, purpose, contentType, specialty, source,
-          // النوع يصل للخطة بتسميته العربية الدقيقة (مع نوع الشارت) لا بمفتاح خام — الخطة تعكس المطلوب حرفياً
-          // (نوع «صورة» لا يمر بالخطة أصلاً بحكم الشرط أعلاه)
+          // النوع يصل للخطة بتسميته العربية الدقيقة — الخطة تعكس المطلوب حرفياً.
+          // نوع «صورة» (غلاف) يحصل على خطة أيضاً الآن: عنوان قصير ورسالة محورية لصورة الغلاف.
           visualType: visualType === "chart" ? `رسم بياني${chartType ? ` (${chartType})` : ""}`
             : visualType === "mindmap" ? "خريطة ذهنية"
             : visualType === "quote_card" ? "بطاقة اقتباس/توعوية"
             : visualType === "carousel" ? "كاروسيل بطاقات متسلسلة"
             : visualType === "storyboard" ? "ستوري بورد فيديو (مشاهد)"
             : visualType === "motion_script" ? "مخطط موشن جرافيك (لقطات)"
+            : visualType === "image" ? "صورة غلاف / بوستر بعنوان قصير جداً وعنصر بصري بارز، بأقل نص ممكن"
             : "إنفوغراف",
         })
       : null;
-  // خطوة المراجعة: إرجاع الخطة فقط دون توليد مرئي
+  // خطوة المراجعة: إرجاع الخطة فقط دون توليد مرئي.
+  // صورة الغلاف قليلة النص لا تحتاج خطة تحريرية كاملة — إن تعذّرت تُبنى خطة مصغّرة من الوصف
+  // فلا تتعطّل «صورة الغلاف» أبداً.
+  const planForReturn: VisualPlan | null = visualPlan
+    ?? (visualType === "image"
+      ? {
+          centralMessage: description.slice(0, 200),
+          objective: purpose ?? "غلاف بصري",
+          audience: audience ?? "عام",
+          recommendedOutputFormat: "image",
+          visualStyle: "رسمي",
+          layoutStrategy: "غلاف",
+          title: description.trim().split(/\s+/).slice(0, 4).join(" ").slice(0, 24) || "غلاف",
+          subtitle: "",
+          shortVisualCopy: description.slice(0, 120),
+          keySections: [],
+          importantNumbers: [],
+          iconsSuggestions: [],
+          complianceSensitivePhrases: [],
+          complianceNotes: "",
+          rtlArabicNotes: "",
+        }
+      : null);
   if (planOnly) {
-    if (!visualPlan) return NextResponse.json({ error: "تعذر توليد الخطة البصرية — حاول مجدداً" }, { status: 502 });
-    return NextResponse.json({ visualPlan });
+    if (!planForReturn) return NextResponse.json({ error: "تعذر توليد الخطة البصرية — حاول مجدداً" }, { status: 502 });
+    return NextResponse.json({ visualPlan: planForReturn });
   }
-  const engineDescription = visualPlan
-    ? `${planToEngineDescription(visualPlan)}${editInstruction?.trim() ? `\n\nطلب تعديل يجب تطبيقه: ${editInstruction.trim()}` : ""}`
+  const engineDescription = planForReturn
+    ? `${planToEngineDescription(planForReturn)}${editInstruction?.trim() ? `\n\nطلب تعديل يجب تطبيقه: ${editInstruction.trim()}` : ""}`
     : effectiveDescription;
 
   // ════════════════════════════════════════════════════════════════════════
@@ -1402,25 +1425,25 @@ export async function POST(request: Request) {
     if (hasImageProvider) {
       const dims = premiumDims(channel);
       // نصوص الخطة الحرفية — تُعرض بجانب النسخ لكشف أي تشويه في العربي قبل الاعتماد
-      const planTexts = visualPlan
+      const planTexts = planForReturn
         ? {
-            title: visualPlan.title,
-            subtitle: visualPlan.subtitle,
-            sections: visualPlan.keySections.map((s) => ({ heading: s.heading, bullets: s.bullets, stat: s.stat ?? "" })),
-            importantNumbers: visualPlan.importantNumbers ?? [],
+            title: planForReturn.title,
+            subtitle: planForReturn.subtitle,
+            sections: planForReturn.keySections.map((s) => ({ heading: s.heading, bullets: s.bullets, stat: s.stat ?? "" })),
+            importantNumbers: planForReturn.importantNumbers ?? [],
           }
         : null;
       const styleDirective = (editInstruction?.trim() && /أسلوب|ستايل|style/i.test(editInstruction))
         ? editInstruction.trim()
-        : style?.trim() || visualPlan?.styleDirective?.trim() || "clean flat vector editorial illustration, professional and calm";
-      const prompt = buildStudioImagePrompt(visualPlan, styleDirective, effectiveDescription, dims);
+        : style?.trim() || planForReturn?.styleDirective?.trim() || "clean flat vector editorial illustration, professional and calm";
+      const prompt = buildStudioImagePrompt(planForReturn, styleDirective, effectiveDescription, dims);
       // تفضيل المزوّد: Gemini (نانو بنانا) للمخرجات النصية العربية — الأقوى؛ وgpt-image-1 لصور الغلاف قليلة النص
       const prefer: "gemini" | "openai" = visualType === "image" ? "openai" : "gemini";
       const { images, failureNote } = await generatePremiumVariants(prompt, dims.w, dims.h, 3, prefer);
       if (images.length) {
         // فحص OCR لكل نسخة: العناوين القصيرة المرسومة داخل الصورة تُقارن بالخطة
-        const keyStrings = visualPlan
-          ? [visualPlan.title, ...(visualPlan.keySections?.map((s) => s.heading) ?? [])]
+        const keyStrings = planForReturn
+          ? [planForReturn.title, ...(planForReturn.keySections?.map((s) => s.heading) ?? [])]
               .map((t) => (t ?? "").trim()).filter((t) => t && t.length <= 30)
           : [];
         const checked = await Promise.all(images.map(async (im) => {
@@ -1432,7 +1455,7 @@ export async function POST(request: Request) {
           variants: checked.filter((v) => v.url),
           provider: images[0]?.provider,
           planTexts,
-          visualPlan: visualPlan ?? undefined,
+          visualPlan: planForReturn ?? undefined,
           prompt,
         });
       }
