@@ -1,5 +1,6 @@
 import type { AIEnhancement, ContentKind, ReviewContext, ReviewResult, SocialPlatformKey } from "@/lib/types";
 import { requestAIEnhancementJson } from "@/lib/services/ai-provider-service";
+import { AUTHORITIES_RULE } from "@/lib/governance";
 
 type ReviewEnhancementInput = {
   text: string;
@@ -147,6 +148,7 @@ function buildEnhancementPayload(input: ReviewEnhancementInput) {
 
 const enhancementSystemPrompt = [
   "أنت طبقة تحسين لغوي وتفسيري داخل منصة دعم قرار للمحامين.",
+  AUTHORITIES_RULE,
   "لا تغيّر أي نتيجة تقييم ولا تنشئ مخالفة ولا تحذف مخالفة ولا تعدّل المراجع أو الدرجات أو قرار النشر.",
   "حسّن فقط وضوح الشرح والتوصيات والصياغة المساعدة باللغة العربية المهنية.",
   "لا تذكر اسم أي مزود ذكاء اصطناعي أو نموذج أو API.",
