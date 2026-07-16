@@ -72,13 +72,15 @@ function configuredProvider(): ProviderName | null {
     logAIEnhancement("fallback", { reason: "unsupported AI_ENHANCEMENT_PROVIDER", requestedProvider: requested });
     return null;
   }
-  if (hasOpenAIKey) {
-    logAIEnhancement("provider-selected", { provider: "openai" });
-    return "openai";
-  }
+  // التوحيد على Sonnet: في الوضع التلقائي يُفضَّل Anthropic (Claude Sonnet) دائماً
+  // ليكون دماغ المنصة واحداً، وOpenAI فقط بديل احتياطي عند غياب مفتاح Anthropic.
   if (hasAnthropicKey) {
     logAIEnhancement("provider-selected", { provider: "anthropic" });
     return "anthropic";
+  }
+  if (hasOpenAIKey) {
+    logAIEnhancement("provider-selected", { provider: "openai" });
+    return "openai";
   }
   logAIEnhancement("fallback", { reason: "no provider API key available" });
   return null;
@@ -218,7 +220,7 @@ function resolveDiagnosticProvider() {
   if (!enabled) fallbackReason = "AI_ENHANCEMENT_ENABLED is not true";
   else if (providerSetting === "openai") selected = hasOpenAIKey ? "openai" : null;
   else if (providerSetting === "anthropic") selected = hasAnthropicKey ? "anthropic" : null;
-  else if (providerSetting === "auto") selected = hasOpenAIKey ? "openai" : hasAnthropicKey ? "anthropic" : null;
+  else if (providerSetting === "auto") selected = hasAnthropicKey ? "anthropic" : hasOpenAIKey ? "openai" : null;
   else fallbackReason = "unsupported AI_ENHANCEMENT_PROVIDER";
 
   if (enabled && !selected && !fallbackReason) {

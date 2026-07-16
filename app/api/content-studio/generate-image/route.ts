@@ -93,7 +93,7 @@ async function extractArabicFromImage(apiKey: string, dataUrl: string): Promise<
     method: "POST",
     headers: { "x-api-key": apiKey, "anthropic-version": "2023-06-01", "content-type": "application/json" },
     body: JSON.stringify({
-      model: "claude-haiku-4-5-20251001",
+      model: "claude-sonnet-5",
       max_tokens: 400,
       messages: [{ role: "user", content: [
         { type: "image", source: { type: "base64", media_type: mediaType, data: b64 } },
@@ -172,7 +172,7 @@ async function generateVisualBrief(
 ${KINGDOM_STYLE_RULE}
 النص:
 ${description.slice(0, 2500)}`;
-    const raw = await callClaude(apiKey, "claude-haiku-4-5-20251001", 900, prompt);
+    const raw = await callClaude(apiKey, "claude-sonnet-5", 900, prompt);
     const brief = parseJson<VisualBrief>(raw);
     if (!brief?.centralMessage) return null;
     return brief;
@@ -348,9 +348,15 @@ async function callOpenAIExtractor(maxTokens: number, prompt: string): Promise<s
 }
 
 async function callExtractor(apiKey: string, maxTokens: number, prompt: string): Promise<string> {
+  // التوحيد على Sonnet: Claude أولاً ليكون الدماغ واحداً، وOpenAI بديل احتياطي فقط عند فشله
+  try {
+    const viaClaude = await callClaude(apiKey, "claude-sonnet-5", maxTokens, prompt);
+    if (viaClaude) return viaClaude;
+  } catch (e) {
+    console.error("[extract-claude]", e instanceof Error ? e.message : e);
+  }
   const viaOpenAI = await callOpenAIExtractor(maxTokens, prompt);
-  if (viaOpenAI) return viaOpenAI;
-  return callClaude(apiKey, "claude-haiku-4-5-20251001", maxTokens, prompt);
+  return viaOpenAI ?? "";
 }
 
 function parseJson<T>(raw: string): T {
