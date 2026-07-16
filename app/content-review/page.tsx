@@ -94,7 +94,7 @@ const purposes = [
   "التعليق على المستجدات النظامية والقضائية",
   "مشاركة معرفية وأكاديمية",
   "التعريف بالخبرات والمشاركات المهنية",
-  "مساهمة مجتمعية وعمل تطوعي نظامي"
+  "مساهمة مجتمعية وعمل تطوعي"
 ];
 
 const CHANNEL_CHAR_LIMITS: Partial<Record<string, number>> = {
@@ -149,7 +149,7 @@ const purposeIcons: Record<string, React.ReactNode> = {
   "التعليق على المستجدات النظامية والقضائية": <Scale size={13} />,
   "مشاركة معرفية وأكاديمية": <GraduationCap size={13} />,
   "التعريف بالخبرات والمشاركات المهنية": <Briefcase size={13} />,
-  "مساهمة مجتمعية وعمل تطوعي نظامي": <HeartHandshake size={13} />
+  "مساهمة مجتمعية وعمل تطوعي": <HeartHandshake size={13} />
 };
 
 const chipBase = "inline-flex cursor-pointer items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm transition focus-ring";
