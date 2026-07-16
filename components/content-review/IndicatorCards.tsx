@@ -135,7 +135,6 @@ export function ComplianceIndicatorCard({ review }: { review: ReviewResult }) {
       id="compliance"
       title="الامتثال"
       tone={tone}
-      defaultOpen={tone === "danger"}
       badge={<StatusBadge tone={tone}>{degraded ? "تعذّر التحليل" : isCompliant ? "ملتزم" : "غير ملتزم"}</StatusBadge>}
     >
       {degraded ? (
@@ -187,7 +186,6 @@ export function RiskIndicatorCard({ review }: { review: ReviewResult }) {
       id="risk"
       title="المخاطر"
       tone={tone}
-      defaultOpen={tone === "danger"}
       badge={
         <span className="flex items-center gap-2.5">
           <StatusBadge tone={tone}>{assessmentFailed ? "تعذّر التقييم" : noRisks ? "لا توجد مخاطر" : riskDisplayLabel(review.riskLevel)}</StatusBadge>
@@ -236,7 +234,6 @@ export function ProfessionalismIndicatorCard({ review }: { review: ReviewResult 
     <IndicatorShell
       title="الجوانب المهنية"
       tone={tone}
-      defaultOpen={tone === "danger"}
       badge={<StatusBadge tone={tone}>{passed ? "ناجح" : "يحتاج تحسين"}</StatusBadge>}
     >
       <p className="rounded-lg border-r-2 border-amber-300 bg-amber-50 p-3 text-sm leading-6">{explanation}</p>
@@ -266,7 +263,6 @@ export function LanguageIndicatorCard({ review }: { review: ReviewResult }) {
     <IndicatorShell
       title="اللغة والإملاء"
       tone={tone}
-      defaultOpen={tone === "danger"}
       badge={<StatusBadge tone={tone}>{label}</StatusBadge>}
     >
       {issues.length > 0 ? (
@@ -335,7 +331,6 @@ export function ReadinessIndicatorCard({ review }: { review: ReviewResult }) {
     <IndicatorShell
       title="جاهزية النشر"
       tone={tone}
-      defaultOpen={tone === "danger"}
       badge={<StatusBadge tone={tone}>{review.readinessDecision.level}</StatusBadge>}
     >
       <div className="space-y-3">
