@@ -134,12 +134,20 @@ function parseEvaluationResponse(raw: string): ContentEvaluation {
   const rawWriting = parsed.professionalWriting as Record<string, unknown> ?? {};
   const rawLanguage = parsed.language as Record<string, unknown> ?? {};
 
-  const riskLevel = VALID_RISK_LEVELS.includes(rawRisks.level as RiskLevel)
-    ? rawRisks.level as RiskLevel
-    : "منخفض";
-
   const affectedParties = (Array.isArray(rawRisks.affectedParties) ? rawRisks.affectedParties : [])
     .filter((p): p is RiskAffectedParty => VALID_PARTIES.includes(p as RiskAffectedParty));
+
+  // اشتقاق المستوى حتمياً من عدد الجهات المتضررة — فلا يتناقض المستوى المعروض مع
+  // الجهات الحمراء أبداً (خلل رصدته مالكة المنصة: «مرتفع» بجهتين فقط). القاعدة
+  // الدستورية للمنصة: 0-1 جهة = منخفض، جهتان = متوسط، ثلاث = مرتفع، وتُصعَّد إلى
+  // «بالغ» فقط حين يقرر النموذج تهديداً شاملاً للمنظومة مع تضرر الجهات الثلاث.
+  const modelLevel = VALID_RISK_LEVELS.includes(rawRisks.level as RiskLevel)
+    ? rawRisks.level as RiskLevel
+    : "منخفض";
+  const riskLevel: RiskLevel =
+    affectedParties.length >= 3 ? (modelLevel === "بالغ" ? "بالغ" : "مرتفع")
+    : affectedParties.length === 2 ? "متوسط"
+    : "منخفض";
 
   // حارس نطاق المملكة الحتمي على النصوص الإنشائية فقط (لا يمس excerpt المنقول حرفياً)
   const risks: ContentEvaluationRisks = {
@@ -205,7 +213,9 @@ export async function evaluateContent(text: string): Promise<ContentEvaluation> 
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
     try {
       const message = await client.messages.create({
-        model: "claude-haiku-4-5-20251001",
+        // Sonnet لا haiku: محرّك المخاطر يكتب شرحاً حراً ويحدد الجهات — النموذج
+        // الأقوى أدق في الحكم وأقل زلّات إملائية (جذر خطأ «قواعس» من haiku)
+        model: "claude-sonnet-5",
         max_tokens: 4096,
         messages: [{ role: "user", content: buildEvaluationPrompt(text) }]
       });
