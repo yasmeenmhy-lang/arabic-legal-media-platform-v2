@@ -1413,12 +1413,12 @@ export async function POST(request: Request) {
     : effectiveDescription;
 
   // ════════════════════════════════════════════════════════════════════════
-  // المسار الاستوديو الموحّد (بأمر مالكة المنصة): كل توليد بصري تصويري يمر عبر نموذج
-  // الصور (gpt-image-1 جودة high، Gemini احتياطاً) بثلاث نسخ يختار منها المستخدم.
-  // الأنواع التي يفسدها نموذج الصور (رسم بياني: أرقام مزيّفة، خريطة ذهنية: بنية غير دقيقة)
-  // تبقى على المحرك المتجهي الصادق — إيقاف مسار الصورة لها مع بيان السبب (النقطة ٤).
+  // التوجيه الذكي (بقرار مالكة المنصة بعد تجربة فعلية أثبتت تشويه نموذج الصور للعربي الكثيف):
+  // - الأنواع الغنية بالنص (إنفوجرافيك، بطاقة، كاروسيل، ستوري بورد، موشن، رسم بياني، خريطة
+  //   ذهنية) → المحرك المتجهي SVG: عربي مثالي مضمون + قابل للتعديل + تصدير PowerPoint.
+  // - صورة الغلاف وحدها (نص قليل) → نموذج الصور بثلاث نسخ: الفن يتألق والنص القليل يُحتمل.
   // ════════════════════════════════════════════════════════════════════════
-  const STUDIO_TYPES = new Set(["infographic", "quote_card", "carousel", "storyboard", "motion_script", "image"]);
+  const STUDIO_TYPES = new Set(["image"]);
   if (STUDIO_TYPES.has(visualType) && outputMode !== "editable_svg") {
     const key = process.env.OPENAI_API_KEY;
     const hasImageProvider = Boolean(key || process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || (process.env.IMAGE_PROVIDER ?? "").toLowerCase() === "mock");

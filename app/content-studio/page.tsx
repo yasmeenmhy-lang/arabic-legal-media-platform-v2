@@ -1251,11 +1251,11 @@ export default function ContentStudioPage() {
           editInstruction: forceVector ? undefined : (editInstruction?.trim() || undefined),
           // البنية الحالية تُرسل مع طلب التعديل ليُطبَّق عليها لا أن يعاد التوليد من الصفر
           previousVisual: !forceVector && editInstruction?.trim() && vtVisual ? vtVisual : undefined,
-          // مسار الاستوديو الموحّد: الأنواع التصويرية تمر عبر نموذج الصور (٣ نسخ)؛
-          // الرسم البياني والخريطة الذهنية يبقيان متجهيين (SVG) صادقين؛ والسقوط يفرض SVG.
+          // التوجيه الذكي: صورة الغلاف فقط تمر عبر نموذج الصور (٣ نسخ)؛ الأنواع الغنية
+          // بالنص تبقى SVG (عربي مثالي + قابل للتعديل)؛ والسقوط يفرض SVG.
           outputMode: forceVector
             ? "editable_svg"
-            : (["infographic", "quote_card", "carousel", "storyboard", "motion_script", "image"].includes(vtType) ? "premium_image" : vtOutputMode),
+            : (vtType === "image" ? "premium_image" : vtOutputMode),
           audience: audience || undefined,
           purpose: purpose || undefined,
           contentType: kind ? contentKindLabels[kind] : undefined,
