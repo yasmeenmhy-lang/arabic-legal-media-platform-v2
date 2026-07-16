@@ -14,7 +14,6 @@ export const contentKindLabels: Record<ContentKind, string> = {
   title: "عنوان",
   hashtag: "وسم",
   social_export: "تصدير اجتماعي",
-  commentary: "رد ومحادثة",
   statement: "تصريح",
   diary: "يوميات"
 };
