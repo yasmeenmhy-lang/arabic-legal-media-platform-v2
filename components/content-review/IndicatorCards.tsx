@@ -1,4 +1,7 @@
-import { Award, Scale, User } from "lucide-react";
+"use client";
+
+import { useState, type ReactNode } from "react";
+import { Award, ChevronDown, Scale, User } from "lucide-react";
 import { CircularGauge, DgaBlockquote, Panel, ProgressBar, StatusBadge } from "@/components/ui";
 import { riskDisplayLabel, type ReviewResult, type RiskAffectedParty, type RiskLevel } from "@/lib/types";
 
@@ -29,6 +32,36 @@ function toneBorder(tone: "good" | "gold" | "danger" | "neutral") {
   if (tone === "gold") return "border-t-amber-400";
   if (tone === "danger") return "border-t-red-400";
   return "border-t-slate-300";
+}
+
+// غلاف أكورديون موحّد لكل مؤشر — الملخّص (العنوان + الحالة) ظاهر دائماً،
+// والتفاصيل تُطوى وتُفتح بالنقر. يُفتح تلقائياً عند وجود ما يستدعي الانتباه.
+function IndicatorShell({ id, title, tone, badge, defaultOpen = false, children }: {
+  id?: string; title: string; tone: "good" | "gold" | "danger" | "neutral";
+  badge: ReactNode; defaultOpen?: boolean; children?: ReactNode;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+  const hasDetails = Boolean(children);
+  return (
+    <Panel id={id} className={`scroll-mt-24 border-t-4 shadow-md ${toneBorder(tone)}`}>
+      <button
+        type="button"
+        onClick={() => hasDetails && setOpen((o) => !o)}
+        disabled={!hasDetails}
+        aria-expanded={hasDetails ? open : undefined}
+        className="flex w-full items-start justify-between gap-3 text-right focus-ring disabled:cursor-default"
+      >
+        <span className="min-w-0">
+          <span className="mb-3 block text-xs font-bold uppercase tracking-wider text-slate-400">{title}</span>
+          {badge}
+        </span>
+        {hasDetails ? (
+          <ChevronDown size={18} className={`mt-1 shrink-0 text-slate-400 transition-transform ${open ? "rotate-180" : ""}`} aria-hidden="true" />
+        ) : null}
+      </button>
+      {hasDetails && open ? <div className="mt-4">{children}</div> : null}
+    </Panel>
+  );
 }
 
 export function riskKpiTone(risk: RiskLevel) {
@@ -98,24 +131,27 @@ export function ComplianceIndicatorCard({ review }: { review: ReviewResult }) {
   const degraded = review.analysisMode === "pattern-only" && isCompliant;
   const tone = degraded ? ("neutral" as const) : isCompliant ? ("good" as const) : ("danger" as const);
   return (
-    <Panel id="compliance" className={`scroll-mt-24 border-t-4 shadow-md ${toneBorder(tone)}`}>
-      <p className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-400">الامتثال</p>
-      <StatusBadge tone={tone}>{degraded ? "تعذّر التحليل" : isCompliant ? "ملتزم" : "غير ملتزم"}</StatusBadge>
+    <IndicatorShell
+      id="compliance"
+      title="الامتثال"
+      tone={tone}
+      defaultOpen={tone === "danger"}
+      badge={<StatusBadge tone={tone}>{degraded ? "تعذّر التحليل" : isCompliant ? "ملتزم" : "غير ملتزم"}</StatusBadge>}
+    >
       {degraded ? (
-        <p className="mt-4 text-sm leading-7 text-slate-500">التحليل غير مكتمل بسبب عطل — أعد التحليل قبل الاعتماد على نتيجة الامتثال.</p>
-      ) : null}
-      {review.findings.length > 0 ? (
-        <div className="mt-4 space-y-2">
+        <p className="text-sm leading-7 text-slate-500">التحليل غير مكتمل بسبب عطل — أعد التحليل قبل الاعتماد على نتيجة الامتثال.</p>
+      ) : review.findings.length > 0 ? (
+        <div className="space-y-2">
           {review.findings.map((f) => (
             <div key={f.traceabilityId} className="flex items-start gap-2.5 rounded-lg border border-red-200 bg-red-50 p-3">
               <span className="text-sm leading-6">{f.title}</span>
             </div>
           ))}
         </div>
-      ) : degraded ? null : (
-        <p className="mt-4 text-sm leading-7 text-slate-500">{"لم ترصد مخالفات مرتبطة بالمراجع المسجلة."}</p>
+      ) : (
+        <p className="text-sm leading-7 text-slate-500">{"لم ترصد مخالفات مرتبطة بالمراجع المسجلة."}</p>
       )}
-    </Panel>
+    </IndicatorShell>
   );
 }
 
@@ -147,17 +183,23 @@ export function RiskIndicatorCard({ review }: { review: ReviewResult }) {
     return <Award size={13} aria-hidden="true" />;
   };
   return (
-    <Panel id="risk" className={`scroll-mt-24 border-t-4 shadow-md ${toneBorder(tone)}`}>
-      <p className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-400">المخاطر</p>
-      <div className="flex items-center justify-between gap-3">
-        <StatusBadge tone={tone}>{assessmentFailed ? "تعذّر التقييم" : noRisks ? "لا توجد مخاطر" : riskDisplayLabel(review.riskLevel)}</StatusBadge>
-        <div className="flex gap-1.5">
-          {riskLevels.map((_, i) => (
-            <span key={i} className={`inline-block h-2.5 w-2.5 rounded-full ${i < activeCount ? (tone === "good" ? "bg-green-400" : tone === "gold" ? "bg-amber-400" : "bg-red-500") : "bg-slate-200"}`} />
-          ))}
-        </div>
-      </div>
-      <div className="mt-4">
+    <IndicatorShell
+      id="risk"
+      title="المخاطر"
+      tone={tone}
+      defaultOpen={tone === "danger"}
+      badge={
+        <span className="flex items-center gap-2.5">
+          <StatusBadge tone={tone}>{assessmentFailed ? "تعذّر التقييم" : noRisks ? "لا توجد مخاطر" : riskDisplayLabel(review.riskLevel)}</StatusBadge>
+          <span className="flex gap-1.5">
+            {riskLevels.map((_, i) => (
+              <span key={i} className={`inline-block h-2.5 w-2.5 rounded-full ${i < activeCount ? (tone === "good" ? "bg-green-400" : tone === "gold" ? "bg-amber-400" : "bg-red-500") : "bg-slate-200"}`} />
+            ))}
+          </span>
+        </span>
+      }
+    >
+      <div>
         <p className="mb-2 text-xs text-slate-400">الجهات المتضررة</p>
         <div className="flex flex-wrap gap-2">
           {(["الموكل", "المحامي", "المهنة"] as RiskAffectedParty[]).map((p) => {
@@ -181,7 +223,7 @@ export function RiskIndicatorCard({ review }: { review: ReviewResult }) {
       {review.riskScoreExplanation.explanation ? (
         <p className="mt-4 rounded-lg bg-slate-50 p-3 text-sm leading-6 text-slate-600">{review.riskScoreExplanation.explanation}</p>
       ) : null}
-    </Panel>
+    </IndicatorShell>
   );
 }
 
@@ -191,15 +233,18 @@ export function ProfessionalismIndicatorCard({ review }: { review: ReviewResult 
   const passed = review.professionalismScore >= 80;
   const { explanation, action } = professionalismExplanation(review.professionalismScore);
   return (
-    <Panel className={`scroll-mt-24 border-t-4 shadow-md ${toneBorder(tone)}`}>
-      <p className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-400">الجوانب المهنية</p>
-      <StatusBadge tone={tone}>{passed ? "ناجح" : "يحتاج تحسين"}</StatusBadge>
-      <p className="mt-4 rounded-lg border-r-2 border-amber-300 bg-amber-50 p-3 text-sm leading-6">{explanation}</p>
+    <IndicatorShell
+      title="الجوانب المهنية"
+      tone={tone}
+      defaultOpen={tone === "danger"}
+      badge={<StatusBadge tone={tone}>{passed ? "ناجح" : "يحتاج تحسين"}</StatusBadge>}
+    >
+      <p className="rounded-lg border-r-2 border-amber-300 bg-amber-50 p-3 text-sm leading-6">{explanation}</p>
       <div className="mt-3 rounded-lg bg-slate-50 p-3 text-sm leading-6">
         <span className="mb-1 block text-xs font-bold uppercase tracking-wider text-slate-400">الإصلاح المقترح</span>
         {action}
       </div>
-    </Panel>
+    </IndicatorShell>
   );
 }
 
@@ -218,11 +263,14 @@ export function LanguageIndicatorCard({ review }: { review: ReviewResult }) {
       ? `سليم إملائياً ونحوياً — ${softIssues.length} ملاحظة أسلوبية`
       : "سليم لغوياً";
   return (
-    <Panel className={`scroll-mt-24 border-t-4 shadow-md ${toneBorder(tone)}`}>
-      <p className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-400">اللغة والإملاء</p>
-      <StatusBadge tone={tone}>{label}</StatusBadge>
+    <IndicatorShell
+      title="اللغة والإملاء"
+      tone={tone}
+      defaultOpen={tone === "danger"}
+      badge={<StatusBadge tone={tone}>{label}</StatusBadge>}
+    >
       {issues.length > 0 ? (
-        <div className="mt-4 space-y-2">
+        <div className="space-y-2">
           {issues.map((issue, i) => {
             const isHard = issue.category === "spelling" || issue.category === "grammar";
             return (
@@ -236,9 +284,9 @@ export function LanguageIndicatorCard({ review }: { review: ReviewResult }) {
           })}
         </div>
       ) : (
-        <p className="mt-4 text-sm leading-7 text-slate-500">{"لم ترصد ملاحظات لغوية أو إملائية."}</p>
+        <p className="text-sm leading-7 text-slate-500">{"لم ترصد ملاحظات لغوية أو إملائية."}</p>
       )}
-    </Panel>
+    </IndicatorShell>
   );
 }
 
@@ -284,10 +332,13 @@ export function ReadinessIndicatorCard({ review }: { review: ReviewResult }) {
   const tone = readinessKpiTone(review);
   const gates = review.publishingReadinessExplanation.gates;
   return (
-    <Panel className={`scroll-mt-24 border-t-4 shadow-md ${toneBorder(tone)}`}>
-      <p className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-400">جاهزية النشر</p>
-      <StatusBadge tone={tone}>{review.readinessDecision.level}</StatusBadge>
-      <div className="mt-4 space-y-3">
+    <IndicatorShell
+      title="جاهزية النشر"
+      tone={tone}
+      defaultOpen={tone === "danger"}
+      badge={<StatusBadge tone={tone}>{review.readinessDecision.level}</StatusBadge>}
+    >
+      <div className="space-y-3">
         {gates.map((gate) => (
           <div key={gate.key} className="flex items-start gap-3">
             <span className={`mt-0.5 shrink-0 text-sm font-bold ${gate.passed ? "text-green-600" : "text-red-500"}`}>
@@ -300,6 +351,6 @@ export function ReadinessIndicatorCard({ review }: { review: ReviewResult }) {
           </div>
         ))}
       </div>
-    </Panel>
+    </IndicatorShell>
   );
 }
