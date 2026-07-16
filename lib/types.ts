@@ -81,7 +81,8 @@ export type ContentKind =
   | "publishing_plan"
   | "social_export"
   | "commentary"
-  | "statement";
+  | "statement"
+  | "diary";
 
 export type LanguageIssueCategory = "spelling" | "grammar" | "style" | "readability" | "اتساق المصطلحات";
 
