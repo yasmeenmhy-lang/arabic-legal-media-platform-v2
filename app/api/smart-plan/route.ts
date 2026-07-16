@@ -228,6 +228,7 @@ export async function POST(request: Request) {
     const message = await client.messages.create({
       model: "claude-sonnet-5",
       max_tokens: 2048,
+      thinking: { type: "disabled" },
       messages: [{ role: "user", content: buildPrompt(parsed.data) }],
     });
     rawText = message.content
