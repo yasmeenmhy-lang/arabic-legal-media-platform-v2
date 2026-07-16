@@ -223,7 +223,7 @@ function parseJson<T>(raw: string): T {
 // ── SVG renderers (programmatic — no AI coordinates) ─────────────────────
 
 // DGA Madkhel exact tokens (design.dga.gov.sa/guidelines)
-const FONT       = "Alexandria,IBM Plex Sans Arabic,Tahoma,Arial,sans-serif";
+const FONT       = "IBM Plex Sans Arabic,Tahoma,Arial,sans-serif";
 const PALM       = "#25935F"; // SA-500 — brand primary
 const PALM_DARK  = "#1B8354"; // SA-600
 const PALM_DEEP  = "#166A45"; // SA-700
@@ -525,44 +525,49 @@ function cardsDataPrompt(desc: string, kind: "carousel" | "storyboard" | "motion
 نصوص عربية فصحى موجزة مصقولة. ممنوع: وعود بنتائج، مقارنات، شعارات، أخطاء إملائية.`;
 }
 
-// بطاقة الاقتباس — تصميم تحريري حديث (تحديث المصمم الإبداعي بقرار مالكة المنصة):
-// محاذاة يمين بدل التوسيط، شريط هوية جانبي متدرج، علامة اقتباس مائية كبيرة، مساحات
-// بيضاء سخية بلا زخارف مزدحمة، وخط أكبر وأثقل هرمية — البطاقة تُقرأ كتصميم استوديو.
+// بطاقة الاقتباس — لغة هوية بصرية بمستوى استوديو (مرجعية مالكة المنصة):
+// عالم لوني واحد ملتزم (أخضر غابي داكن متدرج + ذهبي وحيد)، موتيف حلقات متحدة
+// المركز ينزف خارج اللوحة، شرارة ذهبية، واقتباس أبيض ضخم هو بطل التصميم.
+const DK_BG1 = "#123B28", DK_BG2 = "#0B2A1C", DK_LINE = "#1E5B3D";
+const DK_TEXT = "#FFFFFF", DK_MINT = "#BFE8CF", DK_GOLD = "#E9B949", DK_GOLD_DEEP = "#DBA102";
+// شرارة رباعية منحنية — عنصر الهوية الصغير
+function spark(cx: number, cy: number, r: number, fill: string, opacity = 1): string {
+  return `<path d="M${cx} ${cy - r} C${cx + r * 0.22} ${cy - r * 0.28} ${cx + r * 0.28} ${cy - r * 0.22} ${cx + r} ${cy} C${cx + r * 0.28} ${cy + r * 0.22} ${cx + r * 0.22} ${cy + r * 0.28} ${cx} ${cy + r} C${cx - r * 0.22} ${cy + r * 0.28} ${cx - r * 0.28} ${cy + r * 0.22} ${cx - r} ${cy} C${cx - r * 0.28} ${cy - r * 0.22} ${cx - r * 0.22} ${cy - r * 0.28} ${cx} ${cy - r}Z" fill="${fill}" opacity="${opacity}"/>`;
+}
+// حلقات متحدة المركز — موتيف الهوية الكبير (ينزف خارج الحواف)
+function rings(cx: number, cy: number, base: number, n: number, stroke: string): string {
+  return Array.from({ length: n }, (_, k) =>
+    `<circle cx="${cx}" cy="${cy}" r="${base + k * 46}" fill="none" stroke="${stroke}" stroke-width="1.5" opacity="${(0.5 - k * 0.09).toFixed(2)}"/>`
+  ).join("");
+}
 function renderQuoteCardSvg(d: QuoteCardData): string {
   const X = (t?: string) => (t ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-  const GOLD_DEEP = "#B87B02";
   const W = 1200;
-  const RX = W - 150;          // خط المحاذاة اليمنى للنصوص (بعد شريط الهوية)
-  const quoteLines = wrapFull(d.quote ?? "", 28);
-  const noteLines = d.note ? wrapFull(d.note, 52) : [];
-  const qLH = 80, qY = 348;
-  const attrY = qY + quoteLines.length * qLH + 18;
-  const noteY = attrY + (d.attribution ? 66 : 10);
-  const H = Math.max(660, noteY + noteLines.length * 40 + 140);
+  const RX = W - 120;
+  const quoteLines = wrapFull(d.quote ?? "", 24);
+  const noteLines = d.note ? wrapFull(d.note, 54) : [];
+  const qLH = 92, qY = 366;
+  const attrY = qY + quoteLines.length * qLH + 14;
+  const noteY = attrY + (d.attribution ? 70 : 12);
+  const H = Math.max(700, noteY + noteLines.length * 40 + 130);
   return `<svg width="100%" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" direction="ltr" style="direction:ltr">
-<defs>
-<linearGradient id="qtBar" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${PALM}"/><stop offset="1" stop-color="${PALM_DEEP}"/></linearGradient>
-<filter id="qtShad" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="6" stdDeviation="14" flood-color="${INK}" flood-opacity="0.08"/></filter>
-</defs>
-<rect width="${W}" height="${H}" fill="#F6F8F7"/>
-<g filter="url(#qtShad)"><rect x="48" y="48" width="${W - 96}" height="${H - 96}" rx="28" fill="#FFFFFF"/></g>
-<rect x="${W - 76}" y="92" width="8" height="${H - 184}" rx="4" fill="url(#qtBar)"/>
-<text x="200" y="330" font-family="${FONT}" font-size="300" font-weight="800" fill="${MINT_DEEP}" opacity="0.55">&#x201D;</text>
-<text x="${RX}" y="150" text-anchor="end" font-family="${FONT}" font-size="17" font-weight="600" fill="${GOLD_DEEP}">بطاقة اقتباس</text>
-<text x="${RX}" y="208" text-anchor="end" font-family="${FONT}" font-size="34" font-weight="700" fill="${PALM_DEEP}">${X(d.title)}</text>
-<rect x="${RX - 68}" y="234" width="68" height="5" rx="2.5" fill="${GOLD_DEEP}"/>
-${quoteLines.map((ln, i) => `<text x="${RX}" y="${qY + i * qLH}" text-anchor="end" font-family="${FONT}" font-size="48" font-weight="600" fill="${INK}">${X(ln)}</text>`).join("\n")}
-${d.attribution ? `<g><circle cx="${RX - 7}" cy="${attrY - 8}" r="5" fill="${GOLD_DEEP}"/>
-<text x="${RX - 24}" y="${attrY}" text-anchor="end" font-family="${FONT}" font-size="24" font-weight="600" fill="${PALM_DARK}">${X(d.attribution)}</text></g>` : ""}
-${noteLines.map((ln, i) => `<text x="${RX}" y="${noteY + i * 40}" text-anchor="end" font-family="${FONT}" font-size="22" font-weight="400" fill="${INK_TER}">${X(ln)}</text>`).join("\n")}
-<text x="150" y="${H - 128}" font-family="${FONT}" font-size="160" font-weight="800" fill="${GOLD_DEEP}" opacity="0.10">&#x201C;</text>
-<rect x="${RX - 76}" y="${H - 122}" width="76" height="5" rx="2.5" fill="${PALM}"/>
+<defs><linearGradient id="qcBg" x1="0" y1="0" x2="0.6" y2="1"><stop offset="0" stop-color="${DK_BG1}"/><stop offset="1" stop-color="${DK_BG2}"/></linearGradient></defs>
+<rect width="${W}" height="${H}" fill="url(#qcBg)"/>
+${rings(96, H - 60, 90, 6, DK_LINE)}
+${rings(W - 40, 70, 70, 4, DK_LINE)}
+<text x="150" y="360" font-family="${FONT}" font-size="340" font-weight="800" fill="${DK_TEXT}" opacity="0.05">&#x201D;</text>
+${spark(RX - 190, 136, 11, DK_GOLD)}
+<text x="${RX - 214}" y="144" text-anchor="end" font-family="${FONT}" font-size="18" font-weight="600" fill="${DK_GOLD}">بطاقة اقتباس</text>
+<text x="${RX}" y="216" text-anchor="end" font-family="${FONT}" font-size="38" font-weight="800" fill="${DK_TEXT}">${X(d.title)}</text>
+<rect x="${RX - 84}" y="244" width="84" height="5" rx="2.5" fill="${DK_GOLD_DEEP}"/>
+${quoteLines.map((ln, i) => `<text x="${RX}" y="${qY + i * qLH}" text-anchor="end" font-family="${FONT}" font-size="58" font-weight="700" fill="${DK_TEXT}">${X(ln)}</text>`).join("\n")}
+${d.attribution ? `${spark(RX - 8, attrY - 9, 8, DK_GOLD)}
+<text x="${RX - 28}" y="${attrY}" text-anchor="end" font-family="${FONT}" font-size="25" font-weight="600" fill="${DK_GOLD}">${X(d.attribution)}</text>` : ""}
+${noteLines.map((ln, i) => `<text x="${RX}" y="${noteY + i * 40}" text-anchor="end" font-family="${FONT}" font-size="22" font-weight="400" fill="${DK_MINT}">${X(ln)}</text>`).join("\n")}
+<rect x="${RX - 76}" y="${H - 96}" width="76" height="4" rx="2" fill="${DK_GOLD_DEEP}" opacity="0.9"/>
 </svg>`;
 }
 
-// راسم صحيفة البطاقات — ارتقاء تحريري بمستوى المراجع الاستوديوهية المعتمدة من مالكة المنصة:
-// رأس تحريري موسّط بفواصل مزخرفة، إطار فيلمي حقيقي للمشاهد (شريط فيلم + كلابر + رسم مشهدي + مدة)،
-// عمود ترقيم جانبي بخيط متصل، مسار زمني ختامي، وخلفية ورقية بنقش نقاط — كثافة تصميمية لا هيكل فارغ.
 function renderCardsSheetSvg(d: CardsData, variant: "carousel" | "storyboard" | "motion"): string {
   const X = (t?: string) => (t ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
   const AR_D = ["٠", "١", "٢", "٣", "٤", "٥", "٦", "٧", "٨", "٩"];
@@ -827,9 +832,9 @@ ${closeH ? closeBlock(y) : ""}
 </svg>`;
 }
 
-// Average Arabic glyph width ≈ 0.62 × font-size (Alexandria)
+// Average Arabic glyph width ≈ 0.56 × font-size (IBM Plex Sans Arabic)
 function mmCharW(fontSize: number): number {
-  return fontSize * 0.62;
+  return fontSize * 0.56;
 }
 
 // Centered multi-line <text> block around a vertical midpoint
@@ -1001,7 +1006,8 @@ function renderInfographicSvg(d: InfographicData): string {
   // إنفوغراف عمودي عالي الجودة: التفاف كامل للنصوص بلا قصّ، ارتفاعات متكيفة،
   // لون مميز لكل قسم من لوحة العلامة، وظلال بطاقات — بنفس مستوى الخريطة الذهنية.
   const W = 1080, PAD = 56;
-  const ACCENTS = MM_ACCENTS;
+  // لوحة الهوية الملتزمة: تناوب ذهبي/نعناعي فقط — لا ألوان خارج العالم اللوني
+  const ACCENTS = [DK_GOLD, "#8FD4AE", DK_GOLD, "#8FD4AE"];
   const CARD_W = W - 2 * PAD;
   const BAR_W = 10;
   const TR = W - PAD - 34;              // مرساة النص يمين (RTL) داخل البطاقة
@@ -1047,29 +1053,30 @@ function renderInfographicSvg(d: InfographicData): string {
     const y0 = y;
     y += m.h + GAP;
     let ty = y0 + 26 + 20;
-    const headingText = `<text x="${TR}" y="${ty}" text-anchor="end" font-family="${FONT}" font-size="20" font-weight="700" fill="${INK}">${m.heading[0]}${m.heading.slice(1).map(() => "").join("")}${m.heading.slice(1).map((l) => `<tspan x="${TR}" dy="30">${l}</tspan>`).join("")}</text>`;
+    const headingText = `<text x="${TR}" y="${ty}" text-anchor="end" font-family="${FONT}" font-size="21" font-weight="700" fill="${DK_TEXT}">${m.heading[0]}${m.heading.slice(1).map(() => "").join("")}${m.heading.slice(1).map((l) => `<tspan x="${TR}" dy="30">${l}</tspan>`).join("")}</text>`;
     ty += (m.heading.length - 1) * 30 + 10;
     const divider = `<line x1="${TR}" y1="${ty + 6}" x2="${TR - 64}" y2="${ty + 6}" stroke="${ac}" stroke-width="2.5"/><rect x="${TR - 81}" y="${ty + 1}" width="10" height="10" fill="${ac}" transform="rotate(45 ${TR - 76} ${ty + 6})"/>`;
     ty += 18;
     const bodyText = m.lines.map((wrapped) => {
       const first = ty + 25;
-      const t = `<text x="${TR}" y="${first}" text-anchor="end" font-family="${FONT}" font-size="14.5" fill="${INK_SEC}">${wrapped[0]}${wrapped.slice(1).map((l) => `<tspan x="${TR}" dy="25">${l}</tspan>`).join("")}</text>`;
+      const t = `<text x="${TR}" y="${first}" text-anchor="end" font-family="${FONT}" font-size="15" fill="#CFE9DA">${wrapped[0]}${wrapped.slice(1).map((l) => `<tspan x="${TR}" dy="25">${l}</tspan>`).join("")}</text>`;
       ty = first + (wrapped.length - 1) * 25;
       return t;
     }).join("\n");
     const statW = m.stat ? Math.min(Math.round(m.stat.length * 9.5) + 56, CARD_W - 160) : 0;
     const statText = m.stat
-      ? `<rect x="${TR - statW}" y="${ty + 14}" width="${statW}" height="32" rx="16" fill="#FFFCE6" stroke="#FCF3BD" stroke-width="1.5"/>
-<circle cx="${TR - statW + 18}" cy="${ty + 30}" r="4" fill="${GOLD_DEEP}"/>
-<text x="${TR - 16}" y="${ty + 36}" text-anchor="end" font-family="${FONT}" font-size="15" font-weight="700" fill="${GOLD_DEEP}">${m.stat}</text>`
+      ? `<rect x="${TR - statW}" y="${ty + 14}" width="${statW}" height="32" rx="16" fill="${DK_GOLD}" opacity="0.14"/>
+<rect x="${TR - statW}" y="${ty + 14}" width="${statW}" height="32" rx="16" fill="none" stroke="${DK_GOLD_DEEP}" stroke-width="1" opacity="0.5"/>
+<circle cx="${TR - statW + 18}" cy="${ty + 30}" r="4" fill="${DK_GOLD}"/>
+<text x="${TR - 16}" y="${ty + 36}" text-anchor="end" font-family="${FONT}" font-size="15" font-weight="700" fill="${DK_GOLD}">${m.stat}</text>`
       : "";
     const connector = i < measured.length - 1
       ? `<line x1="${W - PAD - BAR_W / 2}" y1="${y0 + m.h + 3}" x2="${W - PAD - BAR_W / 2}" y2="${y0 + m.h + GAP - 3}" stroke="${ac}" stroke-width="2" stroke-dasharray="2 6" stroke-linecap="round" opacity="0.6"/>`
       : "";
-    return `<g filter="url(#infShad)"><rect x="${PAD}" y="${y0}" width="${CARD_W}" height="${m.h}" rx="16" fill="#FFFFFF" stroke="${LINE}" stroke-width="1"/></g>
+    return `<rect x="${PAD}" y="${y0}" width="${CARD_W}" height="${m.h}" rx="20" fill="#153F2C" stroke="${DK_LINE}" stroke-width="1.5"/>
 <rect x="${W - PAD - BAR_W}" y="${y0}" width="${BAR_W}" height="${m.h}" rx="5" fill="${ac}"/>
-<text x="${PAD + 64}" y="${y0 + m.h / 2 + 42}" text-anchor="middle" font-family="${FONT}" font-size="92" font-weight="700" fill="${ac}" opacity="0.09">${MM_AR[i] ?? i + 1}</text>
-<circle cx="${PAD + 60}" cy="${y0 + 54}" r="24" fill="#FFFFFF" stroke="${ac}" stroke-width="2" stroke-dasharray="2 6" stroke-linecap="round"/>
+<text x="${PAD + 64}" y="${y0 + m.h / 2 + 42}" text-anchor="middle" font-family="${FONT}" font-size="120" font-weight="800" fill="#FFFFFF" opacity="0.07">${MM_AR[i] ?? i + 1}</text>
+<circle cx="${PAD + 60}" cy="${y0 + 54}" r="24" fill="none" stroke="${ac}" stroke-width="2" stroke-dasharray="2 6" stroke-linecap="round"/>
 <circle cx="${PAD + 60}" cy="${y0 + 54}" r="17" fill="${ac}" opacity="0.13"/>
 <g stroke="${ac}" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" transform="translate(${PAD + 48},${y0 + 42})">${INF_ICONS[i % INF_ICONS.length]}</g>
 ${headingText}
@@ -1079,40 +1086,26 @@ ${statText}
 ${connector}`;
   }).join("\n");
 
-  const titleText = `<line x1="${PAD}" y1="26" x2="${W - PAD}" y2="26" stroke="${INK}" stroke-width="2.5"/>
-<line x1="${PAD}" y1="32" x2="${W - PAD}" y2="32" stroke="${INK}" stroke-width="1" opacity="0.35"/>
-<rect x="${W - PAD - 120}" y="48" width="120" height="30" rx="15" fill="${MINT}" stroke="${MINT_DEEP}" stroke-width="1.5"/>
-<text x="${W - PAD - 60}" y="69" text-anchor="middle" font-family="${FONT}" font-size="14" font-weight="700" fill="${PALM_DEEP}">${MM_AR[sections.length - 1] ?? sections.length} أقسام</text>
-<rect x="${PAD}" y="48" width="120" height="30" rx="15" fill="#FFFFFF" stroke="${LINE}" stroke-width="1.5"/>
-<text x="${PAD + 60}" y="69" text-anchor="middle" font-family="${FONT}" font-size="14" font-weight="600" fill="${INK_TER}">تنسيق عمودي</text>
-<text x="${W / 2}" y="72" text-anchor="middle" font-family="${FONT}" font-size="16" font-weight="700" fill="${GOLD_DEEP}">إنفوغراف قانوني</text>
-${titleLines.map((l, i) => `<text x="${W / 2}" y="${120 + i * 44}" text-anchor="middle" font-family="${FONT}" font-size="32" font-weight="800" fill="${INK}">${l}</text>`).join("")}
-<g stroke="${PALM}" stroke-width="2"><line x1="${W / 2 - 130}" y1="${HEADER_H - 20}" x2="${W / 2 - 14}" y2="${HEADER_H - 20}"/><line x1="${W / 2 + 14}" y1="${HEADER_H - 20}" x2="${W / 2 + 130}" y2="${HEADER_H - 20}"/></g>
-<rect x="${W / 2 - 6}" y="${HEADER_H - 26}" width="12" height="12" fill="${PALM}" transform="rotate(45 ${W / 2} ${HEADER_H - 20})"/>
-<circle cx="${W / 2 - 148}" cy="${HEADER_H - 20}" r="3.5" fill="${GOLD_DEEP}"/><circle cx="${W / 2 + 148}" cy="${HEADER_H - 20}" r="3.5" fill="${GOLD_DEEP}"/>`;
-  const subText = `<text x="${W / 2}" y="${HEADER_H + 34}" text-anchor="middle" font-family="${FONT}" font-size="16" fill="${PALM_DARK}">${subLines[0]}${subLines.slice(1).map((l) => `<tspan x="${W / 2}" dy="26">${l}</tspan>`).join("")}</text>`;
+  const titleText = `${spark(W / 2 - 92, 66, 10, DK_GOLD)}
+<text x="${W / 2 + 14}" y="74" text-anchor="middle" font-family="${FONT}" font-size="17" font-weight="600" fill="${DK_GOLD}">إنفوغراف قانوني</text>
+${titleLines.map((l, i) => `<text x="${W / 2}" y="${124 + i * 44}" text-anchor="middle" font-family="${FONT}" font-size="34" font-weight="800" fill="${DK_TEXT}">${l}</text>`).join("")}
+<rect x="${W / 2 - 45}" y="${HEADER_H - 24}" width="90" height="5" rx="2.5" fill="${DK_GOLD_DEEP}"/>`;
+  const subText = `<text x="${W / 2}" y="${HEADER_H + 34}" text-anchor="middle" font-family="${FONT}" font-size="16" fill="${DK_MINT}">${subLines[0]}${subLines.slice(1).map((l) => `<tspan x="${W / 2}" dy="26">${l}</tspan>`).join("")}</text>`;
   const footerY = H - FOOTER_H;
-  const srcText = `<text x="${W / 2}" y="${footerY + 30}" text-anchor="middle" font-family="${FONT}" font-size="12.5" fill="${INK_TER}">${srcLines[0]}${srcLines.slice(1).map((l) => `<tspan x="${W / 2}" dy="22">${l}</tspan>`).join("")}</text>`;
+  const srcText = `<text x="${W / 2}" y="${footerY + 30}" text-anchor="middle" font-family="${FONT}" font-size="12.5" fill="${DK_MINT}" opacity="0.85">${srcLines[0]}${srcLines.slice(1).map((l) => `<tspan x="${W / 2}" dy="22">${l}</tspan>`).join("")}</text>`;
 
   const tick = (tx: number, tyk: number, dx: number, dy: number) =>
     `<path d="M${tx} ${tyk + dy * 24} L${tx} ${tyk} L${tx + dx * 24} ${tyk}" stroke="${PALM}" stroke-width="2.5" fill="none" stroke-linecap="round"/>`;
 
   return `<svg width="100%" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" direction="ltr" style="direction:ltr">
-<defs>
-  <pattern id="infDots" width="26" height="26" patternUnits="userSpaceOnUse"><circle cx="2.5" cy="2.5" r="1.7" fill="${PALM_DEEP}" opacity="0.06"/></pattern>
-  <filter id="infShad" x="-20%" y="-20%" width="140%" height="140%">
-    <feDropShadow dx="0" dy="2" stdDeviation="5" flood-color="${INK}" flood-opacity="0.08"/>
-  </filter>
-</defs>
-<rect width="${W}" height="${H}" fill="#FAF9F5"/>
-<rect width="${W}" height="${H}" fill="url(#infDots)"/>
-${tick(14, 14, 1, 1)}${tick(W - 14, 14, -1, 1)}${tick(14, H - 14, 1, -1)}${tick(W - 14, H - 14, -1, -1)}
+<defs><linearGradient id="qcBg2" x1="0" y1="0" x2="0.6" y2="1"><stop offset="0" stop-color="${DK_BG1}"/><stop offset="1" stop-color="${DK_BG2}"/></linearGradient></defs>
+<rect width="${W}" height="${H}" fill="url(#qcBg2)"/>
+${rings(30, 30, 60, 5, DK_LINE)}
+${rings(W - 60, H - 40, 80, 6, DK_LINE)}
 ${titleText}
-<rect y="${HEADER_H}" width="${W}" height="${SUB_H}" fill="${MINT}"/>
 ${subText}
 ${blocks}
-<rect x="0" y="${footerY}" width="${W}" height="${FOOTER_H}" fill="${MINT}"/>
-<rect x="0" y="${footerY}" width="${W}" height="3" fill="${PALM}" opacity="0.3"/>
+<rect x="${W / 2 - 38}" y="${footerY + 4}" width="76" height="4" rx="2" fill="${DK_GOLD_DEEP}" opacity="0.9"/>
 ${srcText}
 </svg>`;
 }
