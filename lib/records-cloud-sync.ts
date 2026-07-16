@@ -50,7 +50,16 @@ export async function pushAllToCloud() {
   }
 }
 
-function broadcastStatus(state: "synced" | "offline" | "signedout") {
+type SyncState = "synced" | "offline" | "signedout";
+let lastSyncStatus: SyncState | null = null;
+
+// آخر حالة مزامنة معروفة — تُقرأ عند تركيب أي واجهة حتى لو صدر الحدث قبل اشتراكها (سباق تركيب)
+export function getLastSyncStatus(): SyncState | null {
+  return lastSyncStatus;
+}
+
+function broadcastStatus(state: SyncState) {
+  lastSyncStatus = state;
   try {
     window.dispatchEvent(new CustomEvent("lm-sync-status", { detail: state }));
   } catch {

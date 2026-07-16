@@ -65,10 +65,13 @@ function getTargetDate(id: string): string {
 
 function saveTargetDate(id: string, date: string) {
   window.localStorage.setItem(scopedKey(`lawyer-media:target-publication-date:${id}`), date);
+  try { window.dispatchEvent(new Event("lm-work-changed")); } catch { /* بيئة بلا نافذة */ }
 }
 
 function removeTargetDate(id: string) {
-  window.localStorage.removeItem(scopedKey(`lawyer-media:target-publication-date:${id}`));
+  // مسح = قيمة فارغة تُزامَن (لا حذف صامت) فيسري المسح على كل الأجهزة
+  window.localStorage.setItem(scopedKey(`lawyer-media:target-publication-date:${id}`), "");
+  try { window.dispatchEvent(new Event("lm-work-changed")); } catch { /* بيئة بلا نافذة */ }
 }
 
 function getDisplayStatus(record: StoredContentRecord, targetDate: string): DisplayStatus {
@@ -1280,23 +1283,38 @@ export default function CalendarV2Page() {
   // معزول لكل حساب — خطة كل مستخدم خاصة به
   const SMART_PLAN_KEY = scopedKey("lawyer-media:smart-plan-result");
 
-  useEffect(() => {
+  // إعادة تحميل الخطة والتواريخ من التخزين — تُستدعى عند الفتح وعند اكتمال المزامنة السحابية
+  const reloadFromStorage = () => {
     const loaded = loadContentRecords();
     setRecords(loaded);
     const dates: Record<string, string> = {};
     loaded.forEach((r) => { dates[r.id] = getTargetDate(r.id); });
     setTargetDates(dates);
-    // تحميل الخطة المحفوظة من localStorage
     try {
       const saved = window.localStorage.getItem(SMART_PLAN_KEY);
       if (saved) setSmartPlanResult(JSON.parse(saved) as SmartPlanResult);
     } catch { /* تجاهل البيانات التالفة */ }
+  };
+
+  useEffect(() => {
+    reloadFromStorage();
+    // عند نزول خطة/تواريخ من جهاز آخر عبر المزامنة تُحدَّث الشاشة فوراً
+    const onKvSynced = () => reloadFromStorage();
+    const onRecordsSynced = () => setRecords(loadContentRecords());
+    window.addEventListener("lm-kv-synced", onKvSynced);
+    window.addEventListener("lm-records-synced", onRecordsSynced);
+    return () => {
+      window.removeEventListener("lm-kv-synced", onKvSynced);
+      window.removeEventListener("lm-records-synced", onRecordsSynced);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // حفظ الخطة تلقائياً عند تغيّرها
+  // حفظ الخطة تلقائياً عند تغيّرها ورفعها للمزامنة السحابية
   useEffect(() => {
     if (smartPlanResult) {
       window.localStorage.setItem(SMART_PLAN_KEY, JSON.stringify(smartPlanResult));
+      try { window.dispatchEvent(new Event("lm-work-changed")); } catch { /* بيئة بلا نافذة */ }
     }
   }, [smartPlanResult]);
 
