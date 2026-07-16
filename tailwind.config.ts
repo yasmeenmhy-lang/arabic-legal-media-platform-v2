@@ -76,7 +76,7 @@ const config: Config = {
         successBorder: "#ABEFC6",  // Success 200
       },
       fontFamily: {
-        sans: ["Alexandria", "IBM Plex Sans Arabic", "Tahoma", "Arial", "sans-serif"]
+        sans: ["IBM Plex Sans Arabic", "Tahoma", "Arial", "sans-serif"]
       },
       // ── DGA كود المنصات — العرض الرسمي ─────────────────────────────
       maxWidth: {
