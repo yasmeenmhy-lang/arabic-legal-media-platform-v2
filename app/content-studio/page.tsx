@@ -581,8 +581,10 @@ export default function ContentStudioPage() {
   const [vtProviderNote, setVtProviderNote] = useState("");
   const [vtPremiumError, setVtPremiumError] = useState("");
   // مسار الاستوديو: ثلاث نسخ يختار منها المستخدم + نصوص الخطة للمقارنة (كشف تشويه العربي)
-  const [vtVariants, setVtVariants] = useState<string[]>([]);
+  const [vtVariants, setVtVariants] = useState<{ url: string; flagged?: boolean; extracted?: string; checked?: boolean }[]>([]);
   const [vtPlanTexts, setVtPlanTexts] = useState<{ title?: string; subtitle?: string; sections?: { heading: string; bullets: string[]; stat?: string }[]; importantNumbers?: string[] } | null>(null);
+  // بأمر مالكة المنصة: لا تنزيل/اعتماد قبل تأكيد المستخدم صراحةً أنه قارن النصوص العربية
+  const [vtTextConfirmed, setVtTextConfirmed] = useState(false);
   // المرئي مكمّل للنص: القسم يظهر مباشرة للأنواع البصرية فقط، وبقية الأنواع تفتحه اختيارياً بعد النص
   const [vtSectionOpen, setVtSectionOpen] = useState(false);
   const [vtPlanCollapsed, setVtPlanCollapsed] = useState(false);
@@ -1261,12 +1263,13 @@ export default function ContentStudioPage() {
           source: contextSourceLabel || undefined,
         }),
       });
-      const data = (await res.json()) as { svgCode?: string; imageUrl?: string; imageBase64?: string; provider?: string; providerNote?: string; premiumError?: string; visual?: VisualStructure; error?: string; variants?: string[]; planTexts?: typeof vtPlanTexts; variantsError?: string; fallbackToVector?: boolean };
+      const data = (await res.json()) as { svgCode?: string; imageUrl?: string; imageBase64?: string; provider?: string; providerNote?: string; premiumError?: string; visual?: VisualStructure; error?: string; variants?: { url: string; flagged?: boolean; extracted?: string; checked?: boolean }[]; planTexts?: typeof vtPlanTexts; variantsError?: string; fallbackToVector?: boolean };
       if (!res.ok) { setVtError(data.error ?? "تعذر إنشاء المرئي — حاول مرة أخرى."); return; }
       // مسار الاستوديو: ثلاث نسخ يختار منها المستخدم
       if (data.variants && data.variants.length) {
         setVtVariants(data.variants);
         setVtPlanTexts(data.planTexts ?? null);
+        setVtTextConfirmed(false);
         setVtEditText("");
         return;
       }
@@ -3161,17 +3164,27 @@ export default function ContentStudioPage() {
                   </div>
                   <div className="grid gap-3 sm:grid-cols-3">
                     {vtVariants.map((v, i) => (
-                      <button key={i} type="button" onClick={() => { setVtPremiumUrl(v); setVtProvider("openai"); persistVisualToRecord({ visualType: "image", visualTypeLabel: "مرئي احترافي", imageUrl: v, provider: "openai" }); }}
-                        className="group overflow-hidden rounded-lg border border-line bg-paper/40 p-1 text-right transition hover:border-palm focus-ring">
+                      <div key={i} className={`overflow-hidden rounded-lg border p-1 ${v.flagged ? "border-red-400" : "border-line"} bg-paper/40`}>
                         {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={v} alt={`نسخة ${i + 1}`} className="h-auto w-full rounded object-contain" />
-                        <span className="mt-1 block px-1 pb-1 text-xs font-medium text-palm opacity-0 transition group-hover:opacity-100">اختر هذه النسخة ←</span>
-                      </button>
+                        <img src={v.url} alt={`نسخة ${i + 1}`} className="h-auto w-full rounded object-contain" />
+                        {v.flagged ? (
+                          <p className="mt-1 flex items-center gap-1 px-1 text-[11px] font-semibold text-red-600"><XCircle size={12} /> قد يحتوي نصاً عربياً مشوّهاً — راجعه بعناية</p>
+                        ) : v.checked ? (
+                          <p className="mt-1 px-1 text-[11px] font-medium text-palm">✓ النص العربي مطابق للخطة (فحص آلي)</p>
+                        ) : (
+                          <p className="mt-1 px-1 text-[11px] text-ink/45">تعذّر الفحص الآلي — قارن يدوياً</p>
+                        )}
+                        <button type="button" disabled={!vtTextConfirmed}
+                          onClick={() => { setVtPremiumUrl(v.url); setVtProvider("openai"); persistVisualToRecord({ visualType: "image", visualTypeLabel: "مرئي احترافي", imageUrl: v.url, provider: "openai" }); }}
+                          className={`mt-1 w-full rounded px-2 py-1.5 text-xs font-medium transition focus-ring ${vtTextConfirmed ? "bg-palm text-white hover:bg-palmDark" : "cursor-not-allowed bg-warmGraySoft text-ink/40"}`}>
+                          {v.flagged && vtTextConfirmed ? "اختر رغم التحذير ←" : "اختر هذه النسخة ←"}
+                        </button>
+                      </div>
                     ))}
                   </div>
                   {vtPlanTexts && (
                     <div className="rounded-lg border border-palm/25 bg-mint/40 p-3">
-                      <p className="mb-2 text-xs font-semibold text-palmDeep">النصوص المعتمدة في الخطة — قارنها بالصورة قبل الاختيار للتأكد أن العربي سليم:</p>
+                      <p className="mb-2 text-xs font-semibold text-palmDeep">النصوص المعتمدة في الخطة — قارن كل حرف بالصورة قبل الاعتماد:</p>
                       <div className="space-y-1 text-xs leading-6 text-ink/80" dir="rtl">
                         {vtPlanTexts.title && <p><span className="font-semibold">العنوان:</span> {vtPlanTexts.title}</p>}
                         {vtPlanTexts.subtitle && <p><span className="font-semibold">الوصف:</span> {vtPlanTexts.subtitle}</p>}
@@ -3180,9 +3193,14 @@ export default function ContentStudioPage() {
                         ))}
                         {vtPlanTexts.importantNumbers?.length ? <p><span className="font-semibold">أرقام:</span> {vtPlanTexts.importantNumbers.join(" | ")}</p> : null}
                       </div>
-                      <p className="mt-2 text-[11px] leading-5 text-ink/55">إن ظهر أي حرف عربي مشوّهاً في الصورة، اختر «إعادة توليد» — نماذج الصور قد تخطئ رسم العربية، وهذه المقارنة لكشفها قبل الاعتماد.</p>
+                      <p className="mt-2 text-[11px] leading-5 text-ink/55">نماذج الصور قد تخطئ رسم العربية. إن ظهر أي حرف مشوّهاً، اختر «إعادة توليد» بدل الاعتماد.</p>
                     </div>
                   )}
+                  {/* بوابة التنزيل: لا اعتماد قبل تأكيد المطابقة صراحةً */}
+                  <label className="flex items-start gap-2 rounded-lg border border-line bg-white p-3 text-xs leading-6 text-ink/80">
+                    <input type="checkbox" checked={vtTextConfirmed} onChange={(e) => setVtTextConfirmed(e.target.checked)} className="mt-1 h-4 w-4 accent-[color:theme(colors.palm)]" />
+                    <span>تحققت من مطابقة النصوص العربية في الصورة لنصوص الخطة حرفاً بحرف، وأتحمّل مسؤولية اعتماد النسخة. (زر الاختيار لا يعمل قبل هذا التأكيد.)</span>
+                  </label>
                 </div>
               )}
 
