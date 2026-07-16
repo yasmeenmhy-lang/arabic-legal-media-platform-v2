@@ -1327,6 +1327,21 @@ export default function ContentStudioPage() {
     });
   }
 
+  // بطاقة الاقتباس شريحة أصلية قابلة للتعديل — نصوص وأشكال حقيقية بهوية البطاقة الفاتحة
+  function buildQuoteCardSlide(pptx: any, v: Extract<VisualStructure, { type: "quote_card" }>) {
+    const slide = pptx.addSlide();
+    slide.background = { color: "FCFCFD" };
+    slide.addText("بطاقة اقتباس", { x: PPT_W - 5.9, y: 0.55, w: 5, h: 0.4, align: "right", color: "B87B02", bold: true, fontSize: 14, rtlMode: true, lang: "ar-SA" });
+    slide.addText(v.data.title, { x: 0.9, y: 1.05, w: PPT_W - 1.8, h: 0.75, align: "right", color: PPT.ink, bold: true, fontSize: 24, rtlMode: true, lang: "ar-SA" });
+    slide.addShape("roundRect", { x: PPT_W - 1.9, y: 1.9, w: 1.0, h: 0.07, rectRadius: 0.035, fill: { color: "DBA102" } });
+    const qLen = (v.data.quote ?? "").length;
+    const qSize = qLen > 110 ? 26 : qLen > 70 ? 30 : 36;
+    slide.addText(v.data.quote, { x: 0.9, y: 2.2, w: PPT_W - 1.8, h: 3.0, align: "right", valign: "top", color: PPT.ink, bold: true, fontSize: qSize, rtlMode: true, lang: "ar-SA", lineSpacingMultiple: 1.3 });
+    if (v.data.attribution) slide.addText(`✦ ${v.data.attribution}`, { x: 0.9, y: 5.35, w: PPT_W - 1.8, h: 0.5, align: "right", color: "B87B02", bold: true, fontSize: 15, rtlMode: true, lang: "ar-SA" });
+    if (v.data.note) slide.addText(v.data.note, { x: 0.9, y: 5.95, w: PPT_W - 1.8, h: 0.8, align: "right", color: PPT.inkSec, fontSize: 12.5, rtlMode: true, lang: "ar-SA" });
+    slide.addShape("roundRect", { x: PPT_W - 1.8, y: 6.95, w: 0.9, h: 0.06, rectRadius: 0.03, fill: { color: "DBA102" } });
+  }
+
   function buildChartSlide(pptx: any, v: Extract<VisualStructure, { type: "chart" }>) {
     const slide = pptx.addSlide();
     pptxHeader(slide, v.data.title);
@@ -1495,13 +1510,14 @@ export default function ContentStudioPage() {
 
       // بنية معروفة → عناصر PowerPoint أصلية (نصوص وأشكال ورسوم بيانية قابلة للتعديل)
       // البناة الأصليون للأنواع الثلاثة المعروفة فقط — الأنواع الجديدة تُصدَّر شريحة صورة من SVG
-      if (source.visual && ["chart", "mindmap", "infographic", "carousel", "storyboard", "motion_script"].includes(source.visual.type)) {
+      if (source.visual && ["chart", "mindmap", "infographic", "carousel", "storyboard", "motion_script", "quote_card"].includes(source.visual.type)) {
         pptx.defineLayout({ name: "VIS_WIDE", width: PPT_W, height: PPT_H });
         pptx.layout = "VIS_WIDE";
         pptx.rtlMode = true;
         if (source.visual.type === "chart") buildChartSlide(pptx, source.visual);
         else if (source.visual.type === "mindmap") buildMindMapSlides(pptx, source.visual);
         else if (source.visual.type === "infographic") buildInfographicSlides(pptx, source.visual);
+        else if (source.visual.type === "quote_card") buildQuoteCardSlide(pptx, source.visual);
         else buildCardsSlides(pptx, source.visual as Extract<VisualStructure, { type: "carousel" | "storyboard" | "motion_script" }>);
         await pptx.writeFile({ fileName: filename });
         return;
