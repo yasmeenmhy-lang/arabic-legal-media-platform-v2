@@ -30,9 +30,10 @@ export type VisualPlan = {
   rtlArabicNotes: string;
 };
 
-import { KINGDOM_STYLE_RULE } from "@/lib/governance";
+import { KINGDOM_STYLE_RULE, AUTHORITIES_RULE } from "@/lib/governance";
 
 const PLAN_PROMPT_RULES = `${KINGDOM_STYLE_RULE}
+${AUTHORITIES_RULE}
 أنت محرر تحريري بصري محترف للمحتوى القانوني العربي. لا تنسخ الجمل الطويلة —
 أعد الكتابة: عنوان ≤ ٨ كلمات، عنوان فرعي ≤ ١٢ كلمة، عناوين أقسام ≤ ٦ كلمات،
 كل نقطة ≤ ١٢ كلمة بصياغة رسمية رصينة، أبرز الأرقام والمواد النظامية كقيم مستقلة،
