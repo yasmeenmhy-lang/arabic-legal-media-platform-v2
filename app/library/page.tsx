@@ -1,4 +1,4 @@
-import { ExternalLink, FileText, Globe } from "lucide-react";
+import { BookOpen, ExternalLink, FileText, Globe } from "lucide-react";
 import { ButtonLink, PageHeader, Panel, SectionTitle } from "@/components/ui";
 import { EntityLogo } from "@/components/entity-logo";
 
@@ -67,6 +67,19 @@ export default function LibraryPage() {
         description="روابط مباشرة إلى الجهات والمصادر الرسمية المعتمدة في التحليل والمراجعة."
         action={<ButtonLink href="/content-review">مراجعة محتوى</ButtonLink>}
       />
+
+      {/* خانة دليل الاستخدام — الخدمة قيد الإعداد وتُوسم «قريبًا» */}
+      <Panel className="border-r-4 border-r-palm/40">
+        <div className="flex items-center gap-2">
+          <BookOpen size={18} className="text-palm" aria-hidden="true" />
+          <h2 className="text-base font-bold text-ink">دليل الاستخدام</h2>
+          <span className="rounded-full bg-mint px-2.5 py-0.5 text-xs font-bold text-palm">قريبًا</span>
+        </div>
+        <p className="mt-2 leading-7 text-ink/70">
+          دليل تفصيلي يوضّح خطوات استخدام النظام قيد الإعداد، وسيُتاح قريبًا. وحتى ذلك الحين تجد أدناه المراجع
+          والمصادر الرسمية المعتمدة في التحليل والمراجعة.
+        </p>
+      </Panel>
 
       <Panel>
         <SectionTitle

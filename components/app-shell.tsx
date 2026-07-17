@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BookOpen, CalendarDays, FileCheck2, FileClock, Headphones, Menu, ShieldCheck, Sparkles, X } from "lucide-react";
+import { BookOpen, CalendarDays, ExternalLink, FileCheck2, FileClock, Headphones, Menu, ShieldCheck, Sparkles, X } from "lucide-react";
 import { navItems, platformTitle } from "@/lib/navigation";
 
 // شريط تنقّل سفلي للجوال فقط (تجربة الجوال) — يعيد استخدام المسارات الفعلية،
@@ -35,16 +35,22 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   // كلتا الخدمتين قيد الإعداد وتُوسمان «قريبًا» بلا رابط فعّال حتى تُفعَّلا لاحقًا.
   const helpCards = (
     <div className="flex flex-col gap-3">
-      <div className="rounded-xl border border-line p-3">
+      {/* «دليل الاستخدام» يفتح صفحة المراجع (محتوى الوصول السريع السابق)،
+          وبداخلها خانة «الدليل — قريبًا». */}
+      <Link
+        href="/library"
+        onClick={() => setNavOpen(false)}
+        className="block rounded-xl border border-line p-3 transition hover:border-palm focus-ring"
+      >
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 text-ink">
             <BookOpen size={15} className="text-palm" />
             <p className="text-sm font-semibold">دليل الاستخدام</p>
           </div>
-          <span className="rounded-full bg-mint px-2 py-0.5 text-[10px] font-bold text-palm">قريبًا</span>
+          <ExternalLink size={13} className="text-ink/40" />
         </div>
-        <p className="mt-1.5 text-xs leading-5 text-ink/55">دليل تفصيلي لاستخدام النظام قيد الإعداد، وسيُتاح لاحقًا.</p>
-      </div>
+        <p className="mt-1.5 text-xs leading-5 text-ink/55">المراجع والمصادر الرسمية المعتمدة، ودليل استخدام النظام (قريبًا).</p>
+      </Link>
       <div className="rounded-xl border border-line p-3">
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 text-ink">
@@ -100,7 +106,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </div>
         </div>
         <nav className="min-h-0 flex-1 overflow-y-auto p-4">
-          {visibleItems.map((item) => {
+          {visibleItems.filter((item) => item.href !== "/library").map((item) => {
             const Icon = item.icon;
             const active = pathname === item.href;
             return (
@@ -127,10 +133,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       {/* القائمة الجانبية الثابتة — الحاسب فقط (lg+). بنفس ألوان الجوال تمامًا:
           خلفية بيضاء وحدود line، والنشط mint/palm — لا لون داكن ولا جديد.
           الجوال يبقى على الدرج الأبيض والزر والشريط السفلي بلا تغيير. */}
+      {/* القائمة الثابتة للحاسب — مقفلة افتراضيًا، تُفتح بزر ☰ (لا تظهر مفتوحة تلقائيًا). */}
       <aside
         className={clsx(
           "fixed inset-y-0 right-0 z-40 hidden w-64 flex-col overflow-y-auto border-l border-line bg-white p-3",
-          pathname !== "/login" && "lg:flex"
+          pathname !== "/login" && navOpen && "lg:flex"
         )}
       >
         <div className="mb-2 flex items-center gap-3 rounded-xl bg-paper p-3">
@@ -167,14 +174,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <div className="mt-auto pt-3">{helpCards}</div>
       </aside>
 
-      <div className={clsx("w-full max-w-full overflow-x-hidden", pathname !== "/login" && "lg:pr-64")}>
+      <div className={clsx("w-full max-w-full overflow-x-hidden", pathname !== "/login" && navOpen && "lg:pr-64")}>
         <header className="sticky top-0 z-40 border-b border-line bg-white/95 backdrop-blur">
           <div className="flex min-h-16 max-w-full items-center justify-between gap-3 px-4 sm:gap-4 sm:px-8">
             <div className="flex min-w-0 items-center gap-3">
               <button
                 type="button"
                 onClick={() => setNavOpen((open) => !open)}
-                className="grid h-10 w-10 place-items-center rounded-md border border-line transition hover:border-palm hover:text-palm focus-ring lg:hidden"
+                className="grid h-10 w-10 place-items-center rounded-md border border-line transition hover:border-palm hover:text-palm focus-ring"
                 title="القائمة"
                 aria-label="فتح أو إغلاق القائمة"
                 aria-expanded={navOpen}
