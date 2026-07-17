@@ -11,9 +11,9 @@ import { navItems, platformTitle } from "@/lib/navigation";
 // الاستوديو في الوسط بزر بارز مرتفع (تجربة الجوال)
 const bottomTabs = [
   { title: "السجل", href: "/content-management", icon: FileClock, primary: false },
-  { title: "التخطيط", href: "/calendar-v2", icon: CalendarDays, primary: false },
-  { title: "الاستوديو", href: "/content-studio", icon: Sparkles, primary: true },
   { title: "المراجعة", href: "/content-review", icon: FileCheck2, primary: false },
+  { title: "الاستوديو", href: "/content-studio", icon: Sparkles, primary: true },
+  { title: "التخطيط", href: "/calendar-v2", icon: CalendarDays, primary: false },
 ];
 import { SessionChip } from "@/components/session-chip";
 import { clsx } from "clsx";

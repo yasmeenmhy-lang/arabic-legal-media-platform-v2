@@ -907,6 +907,7 @@ function DayPanel({
   onUnschedule: (id: string) => void;
 }) {
   const [pickerQuery, setPickerQuery] = useState("");
+  const [pickerOpen, setPickerOpen] = useState(false); // قائمة منسدلة لجدولة محتوى اليوم
   // عناصر اليوم تُشتق مباشرة من تواريخ الجدولة — تتحدث فور الجدولة أو الإلغاء
   const items = records.filter((r) => (targetDates[r.id] ?? "") === date);
   const candidates = records.filter((r) =>
@@ -976,31 +977,50 @@ function DayPanel({
           {/* جدولة محتوى من المستخدم — قائمة بحث سهلة من سجل المحتوى */}
           <div className="mt-5 border-t border-line pt-4">
             <p className="mb-2 text-sm font-semibold text-ink/80">جدولة محتوى لهذا اليوم</p>
-            <input
-              type="text"
-              value={pickerQuery}
-              onChange={(e) => setPickerQuery(e.target.value)}
-              placeholder="ابحث في المحتوى (العنوان أو النص أو النوع)..."
-              className="mb-2 w-full rounded-lg border border-line p-2.5 text-sm focus-ring"
-            />
-            {candidates.length === 0 ? (
-              <p className="rounded-lg bg-paper p-3 text-xs text-ink/45">
-                {records.length === 0 ? "لا يوجد محتوى في السجل بعد — أنشئ محتوى من الاستوديو أولاً." : "لا نتائج مطابقة للبحث."}
-              </p>
-            ) : (
-              <div className="space-y-1.5">
-                {candidates.map((r) => (
-                  <button
-                    key={r.id}
-                    onClick={() => onSchedule(r.id)}
-                    className="flex w-full items-center justify-between gap-2 rounded-lg border border-line bg-white p-2.5 text-right text-sm transition hover:border-palm hover:bg-mint/40 focus-ring"
-                  >
-                    <span className="min-w-0 flex-1 truncate">{r.title}</span>
-                    <span className="shrink-0 rounded-full bg-mint px-2 py-0.5 text-xs text-palm">جدولة</span>
-                  </button>
-                ))}
-              </div>
-            )}
+            {/* قائمة منسدلة (بطلب مالكة المنصة) بدل قائمة المحتوى المصفوفة دائماً */}
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setPickerOpen((o) => !o)}
+                className="flex w-full items-center justify-between gap-2 rounded-lg border border-line bg-white p-2.5 text-sm text-ink/60 focus-ring"
+              >
+                <span>اختر محتوى من السجل لجدولته…</span>
+                <ChevronDown size={16} className={`shrink-0 text-ink/40 transition-transform ${pickerOpen ? "rotate-180" : ""}`} />
+              </button>
+              {pickerOpen && (
+                <>
+                  <div className="fixed inset-0 z-10" onClick={() => setPickerOpen(false)} aria-hidden="true" />
+                  <div className="absolute inset-x-0 top-full z-20 mt-1 rounded-lg border border-line bg-white p-2 shadow-lg">
+                    <input
+                      type="text"
+                      value={pickerQuery}
+                      autoFocus
+                      onChange={(e) => setPickerQuery(e.target.value)}
+                      placeholder="ابحث في المحتوى (العنوان أو النص أو النوع)..."
+                      className="mb-2 w-full rounded-lg border border-line p-2.5 text-sm focus-ring"
+                    />
+                    {candidates.length === 0 ? (
+                      <p className="rounded-lg bg-paper p-3 text-xs text-ink/45">
+                        {records.length === 0 ? "لا يوجد محتوى في السجل بعد — أنشئ محتوى من الاستوديو أولاً." : "لا نتائج مطابقة للبحث."}
+                      </p>
+                    ) : (
+                      <div className="max-h-64 space-y-1.5 overflow-y-auto">
+                        {candidates.map((r) => (
+                          <button
+                            key={r.id}
+                            onClick={() => { onSchedule(r.id); setPickerOpen(false); setPickerQuery(""); }}
+                            className="flex w-full items-center justify-between gap-2 rounded-lg border border-line bg-white p-2.5 text-right text-sm transition hover:border-palm hover:bg-mint/40 focus-ring"
+                          >
+                            <span className="min-w-0 flex-1 truncate">{r.title}</span>
+                            <span className="shrink-0 rounded-full bg-mint px-2 py-0.5 text-xs text-palm">جدولة</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
           </div>
         </div>
       </div>
