@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BookOpen, CalendarDays, ExternalLink, FileCheck2, FileClock, Headphones, Menu, ShieldCheck, Sparkles, X } from "lucide-react";
+import { BookOpen, CalendarDays, FileCheck2, FileClock, Headphones, Menu, ShieldCheck, Sparkles, X } from "lucide-react";
 import { navItems, platformTitle } from "@/lib/navigation";
 
 // شريط تنقّل سفلي للجوال فقط (تجربة الجوال) — يعيد استخدام المسارات الفعلية،
@@ -30,6 +30,33 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     window.addEventListener("keydown", handleKeydown);
     return () => window.removeEventListener("keydown", handleKeydown);
   }, []);
+
+  // بطاقتا الدليل والدعم — تظهران في القائمة الثابتة (حاسب) ودرج الجوال معًا.
+  // كلتا الخدمتين قيد الإعداد وتُوسمان «قريبًا» بلا رابط فعّال حتى تُفعَّلا لاحقًا.
+  const helpCards = (
+    <div className="flex flex-col gap-3">
+      <div className="rounded-xl border border-line p-3">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 text-ink">
+            <BookOpen size={15} className="text-palm" />
+            <p className="text-sm font-semibold">دليل الاستخدام</p>
+          </div>
+          <span className="rounded-full bg-mint px-2 py-0.5 text-[10px] font-bold text-palm">قريبًا</span>
+        </div>
+        <p className="mt-1.5 text-xs leading-5 text-ink/55">دليل تفصيلي لاستخدام النظام قيد الإعداد، وسيُتاح لاحقًا.</p>
+      </div>
+      <div className="rounded-xl border border-line p-3">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 text-ink">
+            <Headphones size={15} className="text-palm" />
+            <p className="text-sm font-semibold">دعم المحامين</p>
+          </div>
+          <span className="rounded-full bg-mint px-2 py-0.5 text-[10px] font-bold text-palm">قريبًا</span>
+        </div>
+        <p className="mt-1.5 text-xs leading-5 text-ink/55">خدمة الدعم والاستفسارات قيد التطوير، وستتوفّر قريبًا لخدمتكم.</p>
+      </div>
+    </div>
+  );
 
   return (
     <div className="min-h-screen w-full max-w-full overflow-x-hidden bg-paper">
@@ -93,6 +120,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             );
           })}
         </nav>
+        {/* بطاقتا الدليل والدعم على الجوال أيضًا — والدرج يبقى مقفلًا افتراضيًا */}
+        <div className="border-t border-line p-4">{helpCards}</div>
       </aside>
 
       {/* القائمة الجانبية الثابتة — الحاسب فقط (lg+). بنفس ألوان الجوال تمامًا:
@@ -135,34 +164,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               );
             })}
         </nav>
-        <div className="mt-auto flex flex-col gap-3 pt-3">
-          <div className="rounded-xl border border-line p-3">
-            <div className="flex items-center gap-2 text-ink">
-              <BookOpen size={15} className="text-palm" />
-              <p className="text-sm font-semibold">دليل الاستخدام</p>
-            </div>
-            <p className="mt-1 text-xs leading-5 text-ink/55">تعرّف على كيفية استخدام النظام</p>
-            <Link
-              href="/library"
-              className="mt-2 flex items-center justify-center gap-1.5 rounded-lg border border-palm/30 px-3 py-2 text-xs font-medium text-palm transition hover:bg-mint focus-ring"
-            >
-              عرض الدليل <ExternalLink size={13} />
-            </Link>
-          </div>
-          <div className="rounded-xl border border-line p-3">
-            <div className="flex items-center gap-2 text-ink">
-              <Headphones size={15} className="text-palm" />
-              <p className="text-sm font-semibold">دعم المحامين</p>
-            </div>
-            <p className="mt-1 text-xs leading-5 text-ink/55">للاستفسارات والدعم الفني</p>
-            <Link
-              href="/library"
-              className="mt-2 flex items-center justify-center gap-1.5 rounded-lg border border-palm/30 px-3 py-2 text-xs font-medium text-palm transition hover:bg-mint focus-ring"
-            >
-              تواصل معنا
-            </Link>
-          </div>
-        </div>
+        <div className="mt-auto pt-3">{helpCards}</div>
       </aside>
 
       <div className={clsx("w-full max-w-full overflow-x-hidden", pathname !== "/login" && "lg:pr-64")}>
