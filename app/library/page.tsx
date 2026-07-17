@@ -76,8 +76,7 @@ export default function LibraryPage() {
           <span className="rounded-full bg-mint px-2.5 py-0.5 text-xs font-bold text-palm">قريبًا</span>
         </div>
         <p className="mt-2 leading-7 text-ink/70">
-          دليل تفصيلي يوضّح خطوات استخدام النظام قيد الإعداد، وسيُتاح قريبًا. وحتى ذلك الحين تجد أدناه المراجع
-          والمصادر الرسمية المعتمدة في التحليل والمراجعة.
+          دليل تفصيلي يوضّح خطوات استخدام النظام قيد الإعداد، وسيُتاح قريبًا.
         </p>
       </Panel>
 
