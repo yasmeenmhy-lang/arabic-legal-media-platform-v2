@@ -1436,7 +1436,8 @@ export default function ContentReviewPage() {
       </Panel>
 
       {review ? (
-        <>
+        <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start lg:gap-6">
+          <div className="min-w-0 space-y-6">
           {review.analysisMode === "pattern-only" ? (
             <div
               dir="rtl"
@@ -1691,7 +1692,47 @@ export default function ContentReviewPage() {
               هذا المقترح استرشادي، تم إنشاؤه بناءً على البيانات المدخلة ونتائج المراجعة والمراجع المهنية المسجلة في المنصة. يظل قرار التعديل أو الاعتماد أو النشر مسؤولية المستخدم.
             </p>
           </div>
-        </>
+          </div>
+
+          {/* الريل الأيسر — الحاسب فقط (lg+): ملخّص ثابت للقرار والمؤشرات بجانب المحتوى.
+              إضافة لا حذف؛ التفاصيل الكاملة تبقى في المنتصف، والجوال لا يظهر هذا الريل. */}
+          <aside className="hidden space-y-4 lg:sticky lg:top-20 lg:block">
+            <Panel className="border-t-4 border-t-palm/40 shadow-md">
+              <p className="text-xs font-bold uppercase tracking-wider text-slate-400">قرار النشر</p>
+              <div className="mt-2">
+                <StatusBadge tone={decisionTone(review)}>{review.publicationDecision.label}</StatusBadge>
+              </div>
+              <div className="mt-4 space-y-2.5 border-t border-line pt-3">
+                {(() => {
+                  const riskTone: "good" | "gold" | "danger" = ["بالغ", "حرج", "مرتفع"].includes(review.riskLevel)
+                    ? "danger"
+                    : review.riskLevel === "متوسط"
+                      ? "gold"
+                      : "good";
+                  const rows: { label: string; val: string; tone: "good" | "gold" | "danger" | "neutral" }[] = [
+                    { label: "الامتثال", val: review.findings.length === 0 ? "ملتزم" : "غير ملتزم", tone: review.findings.length === 0 ? "good" : "danger" },
+                    { label: "المخاطر", val: review.riskLevel, tone: riskTone },
+                    { label: "الجوانب المهنية", val: review.professionalismScore >= 80 ? "مستوفٍ للمعايير" : "يتطلب تحسيناً", tone: review.professionalismScore >= 80 ? "good" : "gold" },
+                    { label: "اللغة والإملاء", val: review.languageQuality.passed ? "سليم لغويًا" : "يحتاج تصحيحًا", tone: review.languageQuality.passed ? "good" : "danger" },
+                    { label: "جاهزية النشر", val: review.publicationDecision.outcome === "RECOMMENDED" ? "جاهز" : "غير جاهز", tone: review.publicationDecision.outcome === "RECOMMENDED" ? "good" : "danger" },
+                  ];
+                  return rows.map((r) => (
+                    <div key={r.label} className="flex items-center justify-between gap-2 text-sm">
+                      <span className="text-ink/70">{r.label}</span>
+                      <StatusBadge tone={r.tone}>{r.val}</StatusBadge>
+                    </div>
+                  ));
+                })()}
+              </div>
+              <a
+                href="#findings"
+                className="mt-4 flex items-center justify-center gap-1.5 rounded-lg border border-line px-3 py-2 text-sm text-ink/70 transition hover:border-palm hover:text-palm focus-ring"
+              >
+                معالجة الملاحظات
+              </a>
+            </Panel>
+          </aside>
+        </div>
       ) : null}
     </div>
   );
