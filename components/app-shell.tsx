@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BookOpen, CalendarDays, ExternalLink, FileCheck2, FileClock, Headphones, Menu, ShieldCheck, Sparkles, X } from "lucide-react";
+import { CalendarDays, FileCheck2, FileClock, Menu, ShieldCheck, Sparkles, X } from "lucide-react";
 import { navItems, platformTitle } from "@/lib/navigation";
 
 // شريط تنقّل سفلي للجوال فقط (تجربة الجوال) — يعيد استخدام المسارات الفعلية،
@@ -31,53 +31,19 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     return () => window.removeEventListener("keydown", handleKeydown);
   }, []);
 
-  // بطاقتا الدليل والدعم — تظهران في القائمة الثابتة (حاسب) ودرج الجوال معًا.
-  // كلتا الخدمتين قيد الإعداد وتُوسمان «قريبًا» بلا رابط فعّال حتى تُفعَّلا لاحقًا.
-  const helpCards = (
-    <div className="flex flex-col gap-3">
-      {/* «دليل الاستخدام» يفتح صفحة المراجع (محتوى الوصول السريع السابق)،
-          وبداخلها خانة «الدليل — قريبًا». */}
-      <Link
-        href="/library"
-        onClick={() => setNavOpen(false)}
-        className="block rounded-xl border border-line p-3 transition hover:border-palm focus-ring"
-      >
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2 text-ink">
-            <BookOpen size={15} className="text-palm" />
-            <p className="text-sm font-semibold">دليل الاستخدام</p>
-          </div>
-          <ExternalLink size={13} className="text-ink/40" />
-        </div>
-        <p className="mt-1.5 text-xs leading-5 text-ink/55">المراجع والمصادر الرسمية المعتمدة، ودليل استخدام النظام (قريبًا).</p>
-      </Link>
-      <div className="rounded-xl border border-line p-3">
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2 text-ink">
-            <Headphones size={15} className="text-palm" />
-            <p className="text-sm font-semibold">دعم المحامين</p>
-          </div>
-          <span className="rounded-full bg-mint px-2 py-0.5 text-[10px] font-bold text-palm">قريبًا</span>
-        </div>
-        <p className="mt-1.5 text-xs leading-5 text-ink/55">خدمة الدعم والاستفسارات قيد التطوير، وستتوفّر قريبًا لخدمتكم.</p>
-      </div>
-    </div>
-  );
-
   return (
     <div className="min-h-screen w-full max-w-full overflow-x-hidden bg-paper">
       {navOpen ? (
         <div
           aria-hidden="true"
           onClick={() => setNavOpen(false)}
-          className="fixed inset-0 z-20 bg-ink/30 lg:hidden"
+          className="fixed inset-0 z-20 bg-ink/30"
         />
       ) : null}
 
-      {/* الدرج الجانبي للجوال واللوحي فقط — الحاسب له قائمة ثابتة (lg:hidden) */}
       <aside
         className={clsx(
-          "fixed bottom-0 right-0 top-0 z-30 flex w-[min(20rem,100vw)] max-w-full flex-col border-l border-line bg-white transition-transform duration-200 ease-out md:top-16 lg:hidden",
+          "fixed bottom-0 right-0 top-0 z-30 flex w-[min(20rem,100vw)] max-w-full flex-col border-l border-line bg-white transition-transform duration-200 ease-out md:top-16",
           navOpen ? "translate-x-0" : "translate-x-full"
         )}
       >
@@ -106,7 +72,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </div>
         </div>
         <nav className="min-h-0 flex-1 overflow-y-auto p-4">
-          {visibleItems.filter((item) => item.href !== "/library").map((item) => {
+          {visibleItems.map((item) => {
             const Icon = item.icon;
             const active = pathname === item.href;
             return (
@@ -126,49 +92,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             );
           })}
         </nav>
-        {/* بطاقتا الدليل والدعم على الجوال أيضًا — والدرج يبقى مقفلًا افتراضيًا */}
-        <div className="border-t border-line p-4">{helpCards}</div>
       </aside>
 
-      {/* القائمة الجانبية الثابتة — الحاسب فقط (lg+). بنفس ألوان الجوال تمامًا:
-          خلفية بيضاء وحدود line، والنشط mint/palm — لا لون داكن ولا جديد.
-          الجوال يبقى على الدرج الأبيض والزر والشريط السفلي بلا تغيير. */}
-      {/* القائمة الثابتة للحاسب — مقفلة افتراضيًا، تُفتح بزر ☰ (لا تظهر مفتوحة تلقائيًا). */}
-      <aside
-        className={clsx(
-          "fixed inset-y-0 right-0 z-40 hidden w-64 flex-col overflow-y-auto border-l border-line bg-white p-3",
-          pathname !== "/login" && navOpen && "lg:flex"
-        )}
-      >
-        <nav className="flex flex-col pt-1">
-          {/* «الوصول السريع» يُخفى من القائمة الثابتة للحاسب لأنه مكرّر مع بطاقة
-              «دليل الاستخدام» أدناه؛ ويبقى في درج الجوال كما هو (لا بطاقة دليل هناك). */}
-          {visibleItems
-            .filter((item) => item.href !== "/library")
-            .map((item) => {
-              const Icon = item.icon;
-              const active = pathname === item.href;
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={clsx(
-                    "mb-1 flex items-center gap-3 rounded-lg border px-3 py-2.5 text-sm transition focus-ring",
-                    active
-                      ? "border-palm bg-mint font-normal text-palm"
-                      : "border-transparent text-ink/75 hover:border-line hover:bg-paper hover:text-ink"
-                  )}
-                >
-                  <Icon size={18} className="shrink-0" />
-                  <span className="min-w-0 leading-6">{item.title}</span>
-                </Link>
-              );
-            })}
-        </nav>
-        <div className="mt-auto pt-3">{helpCards}</div>
-      </aside>
-
-      <div className={clsx("w-full max-w-full overflow-x-hidden", pathname !== "/login" && navOpen && "lg:pr-64")}>
+      <div className="w-full max-w-full overflow-x-hidden">
         <header className="sticky top-0 z-40 border-b border-line bg-white/95 backdrop-blur">
           <div className="flex min-h-16 max-w-full items-center justify-between gap-3 px-4 sm:gap-4 sm:px-8">
             <div className="flex min-w-0 items-center gap-3">
