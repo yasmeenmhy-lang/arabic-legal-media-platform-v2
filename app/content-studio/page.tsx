@@ -3630,7 +3630,8 @@ export default function ContentStudioPage() {
             );
           })()}
 
-          {/* بطاقة جاهزية النشر */}
+          {/* بطاقة جاهزية النشر — الجوال في المنتصف كما هو؛ الحاسب تنتقل للعمود الجانبي تحت قرار النشر */}
+          <div className="lg:hidden">
           {(() => {
             if (review.analysisMode === "pattern-only" || review.evaluationIncomplete) return (
               <Panel className={`border-t-4 shadow-md ${toneBorder("neutral")}`}>
@@ -3664,6 +3665,7 @@ export default function ContentStudioPage() {
               </Panel>
             );
           })()}
+          </div>
 
           {/* ── نص مقترح محسّن — إعادة صياغة كاملة بالذكاء الاصطناعي ── */}
           {(() => {
@@ -3721,7 +3723,7 @@ export default function ContentStudioPage() {
             );
           })()}
 
-          <Panel>
+          <Panel className="lg:hidden">
             <p className="mb-4 text-sm font-semibold text-ink">ماذا تريد؟</p>
             <div className="flex flex-wrap gap-3">
               <ButtonLink href="/social-media">📤 نشر مباشرة</ButtonLink>
@@ -3774,6 +3776,57 @@ export default function ContentStudioPage() {
                   ));
                 })()}
               </div>
+            </Panel>
+
+            {/* جاهزية النشر — تحت قرار النشر في العمود الجانبي (حاسب) */}
+            {(() => {
+              if (review.analysisMode === "pattern-only" || review.evaluationIncomplete) return (
+                <Panel className={`border-t-4 shadow-md ${toneBorder("neutral")}`}>
+                  <p className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-400">جاهزية النشر</p>
+                  <StatusBadge tone="neutral">تعذّر التحليل</StatusBadge>
+                  <p className="mt-4 text-sm leading-7 text-slate-500">التحليل غير مكتمل بسبب عطل — أعد التحليل قبل الاعتماد على هذه النتيجة.</p>
+                </Panel>
+              );
+              const tone = review.publicationDecision.outcome === "RECOMMENDED" ? "good" as const
+                : review.publicationDecision.outcome === "NOT_RECOMMENDED" ? "danger" as const
+                : review.publishingReadinessScore < 60 ? "danger" as const
+                : "gold" as const;
+              const gates = review.publishingReadinessExplanation.gates;
+              return (
+                <Panel className={`border-t-4 shadow-md ${toneBorder(tone)}`}>
+                  <p className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-400">جاهزية النشر</p>
+                  <StatusBadge tone={tone}>{review.readinessDecision.level}</StatusBadge>
+                  <div className="mt-4 space-y-3">
+                    {gates.map((gate) => (
+                      <div key={gate.key} className="flex items-start gap-3">
+                        <span className={`mt-0.5 shrink-0 text-sm font-bold ${gate.passed ? "text-green-600" : "text-red-500"}`}>
+                          {gate.passed ? "✓" : "✗"}
+                        </span>
+                        <div>
+                          <p className="text-sm font-medium leading-6">{gate.label}</p>
+                          <p className="text-xs leading-5 text-slate-400">{gate.reason}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </Panel>
+              );
+            })()}
+
+            {/* ماذا تريد؟ — في العمود الجانبي (حاسب) */}
+            <Panel>
+              <p className="mb-4 text-sm font-semibold text-ink">ماذا تريد؟</p>
+              <div className="flex flex-wrap gap-3">
+                <ButtonLink href="/social-media">📤 نشر مباشرة</ButtonLink>
+                <ButtonLink href="/calendar" variant="secondary">📅 جدولة</ButtonLink>
+                <Button variant="secondary-gray" onClick={saveDraft} leadingIcon={<Save size={16} />}>
+                  حفظ مسودة
+                </Button>
+                <Button variant="secondary-gray" onClick={() => setReview(null)} leadingIcon={<Edit3 size={16} />}>
+                  تعديل
+                </Button>
+              </div>
+              {actionMsg && <p className="mt-3 text-sm text-palm">{actionMsg}</p>}
             </Panel>
           </aside>
         </div>
