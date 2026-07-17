@@ -1,7 +1,9 @@
+// أيقونة الموقع: قلم يكتب داخل دائرة بلون الخزامى (#80519F من هوية المنصّة)
 const favicon = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <rect width="64" height="64" rx="14" fill="#2d6a5a"/>
-  <path d="M18 42h28v5H18zM22 18h20v5H22zM22 29h20v5H22z" fill="#fff"/>
-  <path d="M18 23h5v19h-5zM41 23h5v19h-5z" fill="#d8e1de"/>
+  <circle cx="32" cy="32" r="30" fill="#80519F"/>
+  <path d="M42 17 L27 32" stroke="#fff" stroke-width="5.4" stroke-linecap="round"/>
+  <path d="M26.2 32.8 l-4 8.4 l8.4 -4 z" fill="#fff"/>
+  <path d="M19 45 q5 -4.5 10 0 t10 0" stroke="#fff" stroke-width="2.8" fill="none" stroke-linecap="round"/>
 </svg>`;
 
 export function GET() {
