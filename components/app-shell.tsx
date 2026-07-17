@@ -3,8 +3,17 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Menu, ShieldCheck, X } from "lucide-react";
+import { CalendarDays, FileCheck2, FileClock, Menu, ShieldCheck, Sparkles, X } from "lucide-react";
 import { navItems, platformTitle } from "@/lib/navigation";
+
+// شريط تنقّل سفلي للجوال فقط (تجربة الجوال) — يعيد استخدام المسارات الفعلية،
+// و«المزيد» يفتح القائمة الجانبية القائمة. الحاسوب لا يتأثر (sm:hidden).
+const bottomTabs = [
+  { title: "الاستوديو", href: "/content-studio", icon: Sparkles },
+  { title: "المراجعة", href: "/content-review", icon: FileCheck2 },
+  { title: "التخطيط", href: "/calendar-v2", icon: CalendarDays },
+  { title: "السجل", href: "/content-management", icon: FileClock },
+];
 import { SessionChip } from "@/components/session-chip";
 import { clsx } from "clsx";
 
@@ -109,8 +118,42 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <SessionChip />
           </div>
         </header>
-        <main className="min-w-0 max-w-full overflow-x-hidden px-4 py-5 sm:px-8 sm:py-6">{children}</main>
+        <main className="min-w-0 max-w-full overflow-x-hidden px-4 pb-24 pt-5 sm:px-8 sm:py-6">{children}</main>
       </div>
+
+      {/* شريط التنقّل السفلي — الجوال فقط، ويختفي على الدخول وعند فتح القائمة الجانبية */}
+      {pathname !== "/login" && !navOpen ? (
+        <nav
+          aria-label="التنقّل السريع"
+          className="fixed inset-x-0 bottom-0 z-40 flex items-stretch border-t border-line bg-white/95 backdrop-blur sm:hidden"
+        >
+          {bottomTabs.map((tab) => {
+            const Icon = tab.icon;
+            const active = pathname === tab.href;
+            return (
+              <Link
+                key={tab.href}
+                href={tab.href}
+                className={clsx(
+                  "flex flex-1 flex-col items-center gap-1 py-2 text-[11px] transition focus-ring",
+                  active ? "font-semibold text-palm" : "text-ink/55"
+                )}
+              >
+                <Icon size={20} aria-hidden="true" />
+                <span>{tab.title}</span>
+              </Link>
+            );
+          })}
+          <button
+            type="button"
+            onClick={() => setNavOpen(true)}
+            className="flex flex-1 flex-col items-center gap-1 py-2 text-[11px] text-ink/55 transition focus-ring"
+          >
+            <Menu size={20} aria-hidden="true" />
+            <span>المزيد</span>
+          </button>
+        </nav>
+      ) : null}
     </div>
   );
 }
