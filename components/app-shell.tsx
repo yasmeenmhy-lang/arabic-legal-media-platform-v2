@@ -137,13 +137,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 <Link key={tab.href} href={tab.href} className="flex flex-1 flex-col items-center focus-ring">
                   <span
                     className={clsx(
-                      "grid h-14 w-14 -translate-y-4 place-items-center rounded-full shadow-lg ring-4 ring-white transition",
-                      active ? "bg-palm text-white" : "bg-palm/90 text-white"
+                      "grid h-16 w-16 -translate-y-5 place-items-center rounded-full shadow-lg ring-4 ring-paper transition",
+                      // اللون عند التحديد فقط: أخضر ممتلئ حين تكون الصفحة الحالية،
+                      // وإلا زر أبيض مرتفع بأيقونة بلون الهوية (شكل بارز أجمل)
+                      active ? "bg-palm text-white" : "border border-palm/25 bg-white text-palm"
                     )}
                   >
                     <Icon size={26} aria-hidden="true" />
                   </span>
-                  <span className={clsx("-mt-2 text-[11px]", active ? "font-semibold text-palm" : "text-ink/60")}>{tab.title}</span>
+                  <span className={clsx("-mt-3 text-[11px]", active ? "font-semibold text-palm" : "text-ink/60")}>{tab.title}</span>
                 </Link>
               );
             }
