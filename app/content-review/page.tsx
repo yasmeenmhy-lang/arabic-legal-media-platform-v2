@@ -1740,7 +1740,7 @@ export default function ContentReviewPage() {
         {/* العمود الأيمن (الحاسب فقط lg+): مساعد قرار النشر — القرار + المؤشرات + الاعتماد + المشاركة.
             على الجوال/اللوحي يبقى هذا كله ظاهراً في العمود الرئيسي كما هو تماماً دون تغيير. */}
         {review ? (
-          <aside className="hidden space-y-4 lg:sticky lg:top-20 lg:block lg:max-h-[calc(100vh-6rem)] lg:overflow-y-auto lg:pl-1">
+          <aside className="hidden space-y-4 lg:block lg:pl-1">
             <Panel className="border-t-4 border-t-palm/40 shadow-md">
               <p className="text-xs font-bold uppercase tracking-wider text-slate-400">قرار النشر</p>
               <div className="mt-2">
