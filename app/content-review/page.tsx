@@ -1296,16 +1296,15 @@ export default function ContentReviewPage() {
         </div>
         </div>
 
-        {/* خيارات متقدمة (اختياري): القناة وحد الحروف — متوائمة مع الاستوديو */}
-        <details className={`border-t border-line pt-3 ${Boolean(review) && !isEditing ? "pointer-events-none opacity-60" : ""}`} open={Boolean(channel) || charLimit !== null || undefined}>
-          <summary className="flex cursor-pointer items-center justify-between rounded-lg px-1 py-1.5 text-sm text-ink/65 transition hover:text-palm focus-ring">
+        {/* خيارات متقدمة (اختياري): القناة وحد الحروف — تُعرض مباشرةً بلا سهم طيّ */}
+        <div className={`border-t border-line pt-3 ${Boolean(review) && !isEditing ? "pointer-events-none opacity-60" : ""}`}>
+          <div className="flex items-center justify-between rounded-lg px-1 py-1.5 text-sm text-ink/65">
             <span>
               خيارات متقدمة <span className="text-ink/40">(اختياري)</span>
               {channel ? <span className="mr-2 rounded-full bg-mint px-2 py-0.5 text-xs text-palm">{channel}</span> : null}
               {charLimit !== null ? <span className="mr-2 rounded-full bg-mint px-2 py-0.5 text-xs text-palm">حد {charLimit} حرف</span> : null}
             </span>
-            <ChevronDown size={15} className="shrink-0 opacity-50" />
-          </summary>
+          </div>
           <div className="mt-3">
         {/* القناة (اختياري) */}
         <div className="mb-4">
@@ -1364,7 +1363,7 @@ export default function ContentReviewPage() {
           )}
         </div>
           </div>
-        </details>
+        </div>
 
         {!hasReviewContext ? (
           <p className="mt-2 text-xs leading-6 text-ink/60">اختر نوع المحتوى والجمهور والهدف والتخصص حتى يكون التحليل مرتبطًا بالسياق الصحيح.</p>
