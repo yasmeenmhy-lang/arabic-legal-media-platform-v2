@@ -8,11 +8,12 @@ import { navItems, platformTitle } from "@/lib/navigation";
 
 // شريط تنقّل سفلي للجوال فقط (تجربة الجوال) — يعيد استخدام المسارات الفعلية،
 // و«المزيد» يفتح القائمة الجانبية القائمة. الحاسوب لا يتأثر (sm:hidden).
+// الاستوديو في الوسط بزر بارز مرتفع (تجربة الجوال)
 const bottomTabs = [
-  { title: "الاستوديو", href: "/content-studio", icon: Sparkles },
-  { title: "المراجعة", href: "/content-review", icon: FileCheck2 },
-  { title: "التخطيط", href: "/calendar-v2", icon: CalendarDays },
-  { title: "السجل", href: "/content-management", icon: FileClock },
+  { title: "السجل", href: "/content-management", icon: FileClock, primary: false },
+  { title: "التخطيط", href: "/calendar-v2", icon: CalendarDays, primary: false },
+  { title: "الاستوديو", href: "/content-studio", icon: Sparkles, primary: true },
+  { title: "المراجعة", href: "/content-review", icon: FileCheck2, primary: false },
 ];
 import { SessionChip } from "@/components/session-chip";
 import { clsx } from "clsx";
@@ -97,10 +98,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <header className="sticky top-0 z-40 border-b border-line bg-white/95 backdrop-blur">
           <div className="flex min-h-16 max-w-full items-center justify-between gap-3 px-4 sm:gap-4 sm:px-8">
             <div className="flex min-w-0 items-center gap-3">
+              {/* الهامبرغر للحاسوب فقط — على الجوال يحلّ محلّه الشريط السفلي و«المزيد» */}
               <button
                 type="button"
                 onClick={() => setNavOpen((open) => !open)}
-                className="grid h-10 w-10 place-items-center rounded-md border border-line transition hover:border-palm hover:text-palm focus-ring"
+                className="hidden h-10 w-10 place-items-center rounded-md border border-line transition hover:border-palm hover:text-palm focus-ring sm:grid"
                 title="القائمة"
                 aria-label="فتح أو إغلاق القائمة"
                 aria-expanded={navOpen}
@@ -125,11 +127,26 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       {pathname !== "/login" && !navOpen ? (
         <nav
           aria-label="التنقّل السريع"
-          className="fixed inset-x-0 bottom-0 z-40 flex items-stretch border-t border-line bg-white/95 backdrop-blur sm:hidden"
+          className="fixed inset-x-0 bottom-0 z-40 flex items-end justify-around border-t border-line bg-white/95 px-1 pb-1.5 pt-1 backdrop-blur sm:hidden"
         >
           {bottomTabs.map((tab) => {
             const Icon = tab.icon;
             const active = pathname === tab.href;
+            if (tab.primary) {
+              return (
+                <Link key={tab.href} href={tab.href} className="flex flex-1 flex-col items-center focus-ring">
+                  <span
+                    className={clsx(
+                      "grid h-14 w-14 -translate-y-4 place-items-center rounded-full shadow-lg ring-4 ring-white transition",
+                      active ? "bg-palm text-white" : "bg-palm/90 text-white"
+                    )}
+                  >
+                    <Icon size={26} aria-hidden="true" />
+                  </span>
+                  <span className={clsx("-mt-2 text-[11px]", active ? "font-semibold text-palm" : "text-ink/60")}>{tab.title}</span>
+                </Link>
+              );
+            }
             return (
               <Link
                 key={tab.href}

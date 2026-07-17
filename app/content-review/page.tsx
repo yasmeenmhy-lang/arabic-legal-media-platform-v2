@@ -40,6 +40,7 @@ import {
 } from "lucide-react";
 import { Button, DgaSpinner, PageHeader, Panel, SectionTitle, StatusBadge } from "@/components/ui";
 import { FieldLabel } from "@/components/field-label";
+import { MobileSelect, ChannelSelect } from "@/components/mobile-select";
 import { specialties } from "@/lib/specialties";
 import {
   LinkedInIcon,
@@ -831,7 +832,8 @@ export default function ContentReviewPage() {
         {/* نوع المحتوى */}
         <div className={`mb-4 ${Boolean(review) && !isEditing ? "pointer-events-none opacity-60" : ""}`}>
           <FieldLabel label="نوع المحتوى" required />
-          <div className="flex flex-wrap gap-2">
+          <MobileSelect value={kind} onChange={(v) => handleKindChange(v as ContentKind)} placeholder="اختر نوع المحتوى" options={contentTypes} />
+          <div className="hidden flex-wrap gap-2 sm:flex">
             {contentTypes.map((item) => (
               <button key={item.value} type="button" onClick={() => handleKindChange(item.value as ContentKind)} className={`${chipBase} ${kind === item.value ? chipSelected : chipIdle}`}>
                 {contentTypeIcons[item.value]}{item.label}
@@ -1252,7 +1254,8 @@ export default function ContentReviewPage() {
         {/* الجمهور */}
         <div className={`mb-4 ${Boolean(review) && !isEditing ? "pointer-events-none opacity-60" : ""}`}>
           <FieldLabel label="الجمهور" required />
-          <div className="flex flex-wrap gap-2">
+          <MobileSelect value={audience} onChange={setAudience} placeholder="اختر الجمهور" options={audiences.map((a) => ({ value: a, label: a }))} />
+          <div className="hidden flex-wrap gap-2 sm:flex">
             {audiences.map((item) => (
               <button key={item} type="button" onClick={() => setAudience(item)} className={`${chipBase} ${audience === item ? chipSelected : chipIdle}`}>
                 {audienceIcons[item]}{item}
@@ -1264,7 +1267,8 @@ export default function ContentReviewPage() {
         {/* الهدف */}
         <div className={`mb-4 ${Boolean(review) && !isEditing ? "pointer-events-none opacity-60" : ""}`}>
           <FieldLabel label="الهدف" required />
-          <div className="flex flex-wrap gap-2">
+          <MobileSelect value={purpose} onChange={setPurpose} placeholder="اختر الهدف" options={purposes.map((p) => ({ value: p, label: p }))} />
+          <div className="hidden flex-wrap gap-2 sm:flex">
             {purposes.map((item) => (
               <button key={item} type="button" onClick={() => setPurpose(item)} className={`${chipBase} ${purpose === item ? chipSelected : chipIdle}`}>
                 {purposeIcons[item]}{item}
@@ -1275,7 +1279,8 @@ export default function ContentReviewPage() {
         {/* التخصص — إجباري بقرارها، متوائم مع الاستوديو */}
         <div className={`mb-4 ${Boolean(review) && !isEditing ? "pointer-events-none opacity-60" : ""}`}>
           <FieldLabel label="التخصص" required />
-          <div className="flex flex-wrap gap-2">
+          <MobileSelect value={specialty} onChange={setSpecialty} placeholder="اختر التخصص" options={specialties.map((s) => ({ value: s, label: s }))} />
+          <div className="hidden flex-wrap gap-2 sm:flex">
             {specialties.map((item) => (
               <button key={item} type="button" onClick={() => setSpecialty(specialty === item ? "" : item)} className={`${chipBase} ${specialty === item ? chipSelected : chipIdle}`}>
                 {item}
@@ -1298,7 +1303,8 @@ export default function ContentReviewPage() {
         {/* القناة (اختياري) */}
         <div className="mb-4">
           <FieldLabel label="القناة" optional />
-          <div className="flex flex-wrap gap-2">
+          <ChannelSelect value={channel} onChange={setChannel} channels={channels} />
+          <div className="hidden flex-wrap gap-2 sm:flex">
             {channels.map((item) => (
               <button key={item} type="button" onClick={() => setChannel(channel === item ? "" : item)} className={`${chipBase} ${channel === item ? chipSelected : chipIdle}`}>
                 {channelIcons[item]}{item}
