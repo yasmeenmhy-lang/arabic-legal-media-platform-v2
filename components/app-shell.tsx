@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { CalendarDays, FileCheck2, FileClock, Menu, ShieldCheck, Sparkles, X } from "lucide-react";
+import { BookOpen, CalendarDays, ExternalLink, FileCheck2, FileClock, Headphones, Menu, ShieldCheck, Sparkles, X } from "lucide-react";
 import { navItems, platformTitle } from "@/lib/navigation";
 
 // شريط تنقّل سفلي للجوال فقط (تجربة الجوال) — يعيد استخدام المسارات الفعلية،
@@ -37,13 +37,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <div
           aria-hidden="true"
           onClick={() => setNavOpen(false)}
-          className="fixed inset-0 z-20 bg-ink/30"
+          className="fixed inset-0 z-20 bg-ink/30 lg:hidden"
         />
       ) : null}
 
+      {/* الدرج الجانبي للجوال واللوحي فقط — الحاسب له قائمة ثابتة (lg:hidden) */}
       <aside
         className={clsx(
-          "fixed bottom-0 right-0 top-0 z-30 flex w-[min(20rem,100vw)] max-w-full flex-col border-l border-line bg-white transition-transform duration-200 ease-out md:top-16",
+          "fixed bottom-0 right-0 top-0 z-30 flex w-[min(20rem,100vw)] max-w-full flex-col border-l border-line bg-white transition-transform duration-200 ease-out md:top-16 lg:hidden",
           navOpen ? "translate-x-0" : "translate-x-full"
         )}
       >
@@ -94,14 +95,87 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </nav>
       </aside>
 
-      <div className="w-full max-w-full overflow-x-hidden">
+      {/* القائمة الجانبية الثابتة — الحاسب فقط (lg+). بنفس ألوان الجوال تمامًا:
+          خلفية بيضاء وحدود line، والنشط mint/palm — لا لون داكن ولا جديد.
+          الجوال يبقى على الدرج الأبيض والزر والشريط السفلي بلا تغيير. */}
+      <aside
+        className={clsx(
+          "fixed inset-y-0 right-0 z-40 hidden w-64 flex-col overflow-y-auto border-l border-line bg-white p-3",
+          pathname !== "/login" && "lg:flex"
+        )}
+      >
+        <div className="mb-2 flex items-center gap-3 rounded-xl bg-paper p-3">
+          <div className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-palm text-white shadow-sm">
+            <ShieldCheck size={20} />
+          </div>
+          <p className="text-xs font-bold leading-5 text-palm">{platformTitle}</p>
+        </div>
+        <nav className="flex flex-col">
+          {["الرئيسية", "الحوكمة"].map((group) => (
+            <div key={group} className="mb-1">
+              <p className="px-3 pb-1 pt-2 text-[11px] font-medium text-ink/40">{group}</p>
+              {visibleItems
+                .filter((item) => item.group === group)
+                .map((item) => {
+                  const Icon = item.icon;
+                  const active = pathname === item.href;
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      className={clsx(
+                        "mb-1 flex items-center gap-3 rounded-lg border px-3 py-2.5 text-sm transition focus-ring",
+                        active
+                          ? "border-palm bg-mint font-normal text-palm"
+                          : "border-transparent text-ink/75 hover:border-line hover:bg-paper hover:text-ink"
+                      )}
+                    >
+                      <Icon size={18} className="shrink-0" />
+                      <span className="min-w-0 leading-6">{item.title}</span>
+                    </Link>
+                  );
+                })}
+            </div>
+          ))}
+        </nav>
+        <div className="mt-auto flex flex-col gap-3 pt-3">
+          <div className="rounded-xl border border-line p-3">
+            <div className="flex items-center gap-2 text-ink">
+              <BookOpen size={15} className="text-palm" />
+              <p className="text-sm font-semibold">دليل الاستخدام</p>
+            </div>
+            <p className="mt-1 text-xs leading-5 text-ink/55">تعرّف على كيفية استخدام النظام</p>
+            <Link
+              href="/library"
+              className="mt-2 flex items-center justify-center gap-1.5 rounded-lg border border-palm/30 px-3 py-2 text-xs font-medium text-palm transition hover:bg-mint focus-ring"
+            >
+              عرض الدليل <ExternalLink size={13} />
+            </Link>
+          </div>
+          <div className="rounded-xl border border-line p-3">
+            <div className="flex items-center gap-2 text-ink">
+              <Headphones size={15} className="text-palm" />
+              <p className="text-sm font-semibold">دعم المحامين</p>
+            </div>
+            <p className="mt-1 text-xs leading-5 text-ink/55">للاستفسارات والدعم الفني</p>
+            <Link
+              href="/library"
+              className="mt-2 flex items-center justify-center gap-1.5 rounded-lg border border-palm/30 px-3 py-2 text-xs font-medium text-palm transition hover:bg-mint focus-ring"
+            >
+              تواصل معنا
+            </Link>
+          </div>
+        </div>
+      </aside>
+
+      <div className={clsx("w-full max-w-full overflow-x-hidden", pathname !== "/login" && "lg:pr-64")}>
         <header className="sticky top-0 z-40 border-b border-line bg-white/95 backdrop-blur">
           <div className="flex min-h-16 max-w-full items-center justify-between gap-3 px-4 sm:gap-4 sm:px-8">
             <div className="flex min-w-0 items-center gap-3">
               <button
                 type="button"
                 onClick={() => setNavOpen((open) => !open)}
-                className="grid h-10 w-10 place-items-center rounded-md border border-line transition hover:border-palm hover:text-palm focus-ring"
+                className="grid h-10 w-10 place-items-center rounded-md border border-line transition hover:border-palm hover:text-palm focus-ring lg:hidden"
                 title="القائمة"
                 aria-label="فتح أو إغلاق القائمة"
                 aria-expanded={navOpen}
