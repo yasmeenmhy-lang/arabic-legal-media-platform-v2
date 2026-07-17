@@ -339,6 +339,37 @@ const chipIdle =
 const chipSelected =
   "border-palm bg-mint text-palm shadow-[0_0_0_1px_theme(colors.palm)]";
 
+// نسخة سطح المكتب من القائمة المنسدلة — نفس مكوّن الجوال (MobileSelect) تنسيقاً وسلوكاً،
+// لكنها تظهر على الحاسب فقط (hidden lg:block) بينما تبقى الشرائح على اللوحي والجوال.
+// لا خيارات ولا قيم ولا دوال جديدة — نفس value/onChange/options للحقل نفسه.
+function DesktopSelect({ value, onChange, placeholder, emptyLabel, options }: {
+  value: string;
+  onChange: (v: string) => void;
+  placeholder?: string;
+  emptyLabel?: string;
+  options: { value: string; label: string }[];
+}) {
+  return (
+    <div className="relative hidden lg:block">
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="w-full appearance-none rounded-lg border border-line bg-white py-2.5 pl-9 pr-3 text-sm text-ink focus-ring"
+      >
+        {emptyLabel !== undefined ? (
+          <option value="">{emptyLabel}</option>
+        ) : (
+          <option value="" disabled>{placeholder ?? "اختر"}</option>
+        )}
+        {options.map((o) => (
+          <option key={o.value} value={o.value}>{o.label}</option>
+        ))}
+      </select>
+      <ChevronDown size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink/40" />
+    </div>
+  );
+}
+
 // ── Icon maps ──────────────────────────────────────────────────────────────
 
 const contentTypeIcons: Record<string, React.ReactNode> = {
@@ -1780,7 +1811,8 @@ export default function ContentStudioPage() {
         <div ref={kindFieldRef} className={`mb-4 rounded-xl transition-all ${missingField === "kind" ? "bg-warningSoft/60 p-3 ring-2 ring-amber-400" : ""}`}>
           <FieldLabel label="نوع المحتوى" hint="— ماذا تريد أن تنشئ أولًا" required />
           <MobileSelect value={kind ?? ""} onChange={(v) => handleKindChange(v as ContentKind)} placeholder="اختر نوع المحتوى" options={studioContentTypes} />
-          <div className="hidden flex-wrap gap-2 sm:flex">
+          <DesktopSelect value={kind ?? ""} onChange={(v) => handleKindChange(v as ContentKind)} placeholder="اختر نوع المحتوى" options={studioContentTypes} />
+          <div className="hidden flex-wrap gap-2 sm:flex lg:hidden">
             {studioContentTypes.map((item) => (
               <button
                 key={item.value}
@@ -2128,10 +2160,11 @@ export default function ContentStudioPage() {
               <Megaphone size={14} className="text-palm" />
               <p className="text-sm font-semibold text-palm">إعداد الإعلان المهني</p>
             </div>
-            <div className="space-y-4 p-4">
+            <div className="space-y-4 p-4 lg:grid lg:grid-cols-2 lg:gap-4 lg:space-y-0">
               <div>
                 <p className="mb-2 text-xs font-medium text-ink/65">نداء الإجراء (CTA)</p>
-                <div className="flex flex-wrap gap-2">
+                <DesktopSelect value={adCta} onChange={setAdCta} emptyLabel="بلا تحديد" options={["تواصل معنا", "احجز استشارة مجانية", "اقرأ المقال كاملاً", "زر الموقع الإلكتروني", "شاهد الفيديو"].map((c) => ({ value: c, label: c }))} />
+                <div className="flex flex-wrap gap-2 lg:hidden">
                   {["تواصل معنا", "احجز استشارة مجانية", "اقرأ المقال كاملاً", "زر الموقع الإلكتروني", "شاهد الفيديو"].map((cta) => (
                     <button
                       key={cta}
@@ -2146,7 +2179,8 @@ export default function ContentStudioPage() {
               </div>
               <div>
                 <p className="mb-2 text-xs font-medium text-ink/65">أسلوب الإعلان</p>
-                <div className="flex flex-wrap gap-2">
+                <DesktopSelect value={adStyle} onChange={setAdStyle} emptyLabel="بلا تحديد" options={["مهني رسمي", "احترافي محايد", "توعوي تثقيفي", "ترويجي جذاب"].map((s) => ({ value: s, label: s }))} />
+                <div className="flex flex-wrap gap-2 lg:hidden">
                   {["مهني رسمي", "احترافي محايد", "توعوي تثقيفي", "ترويجي جذاب"].map((s) => (
                     <button
                       key={s}
@@ -2398,11 +2432,14 @@ export default function ContentStudioPage() {
           </div>
         )}
 
+        {/* الجمهور والهدف والتخصص — شبكة كثيفة على الحاسب فقط */}
+        <div className="lg:grid lg:grid-cols-3 lg:gap-4">
         {/* Audience */}
-        <div ref={audienceFieldRef} className={`mb-4 rounded-xl transition-all ${missingField === "audience" ? "bg-warningSoft/60 p-3 ring-2 ring-amber-400" : ""}`}>
+        <div ref={audienceFieldRef} className={`mb-4 lg:mb-0 rounded-xl transition-all ${missingField === "audience" ? "bg-warningSoft/60 p-3 ring-2 ring-amber-400" : ""}`}>
           <FieldLabel label="الجمهور" required />
           <MobileSelect value={audience} onChange={setAudience} placeholder="اختر الجمهور" options={audiences.map((a) => ({ value: a, label: a }))} />
-          <div className="hidden flex-wrap gap-2 sm:flex">
+          <DesktopSelect value={audience} onChange={setAudience} placeholder="اختر الجمهور" options={audiences.map((a) => ({ value: a, label: a }))} />
+          <div className="hidden flex-wrap gap-2 sm:flex lg:hidden">
             {audiences.map((item) => (
               <button
                 key={item}
@@ -2418,10 +2455,11 @@ export default function ContentStudioPage() {
         </div>
 
         {/* Purpose */}
-        <div ref={purposeFieldRef} className={`mb-4 rounded-xl transition-all ${missingField === "purpose" ? "bg-warningSoft/60 p-3 ring-2 ring-amber-400" : ""}`}>
+        <div ref={purposeFieldRef} className={`mb-4 lg:mb-0 rounded-xl transition-all ${missingField === "purpose" ? "bg-warningSoft/60 p-3 ring-2 ring-amber-400" : ""}`}>
           <FieldLabel label="الهدف" required />
           <MobileSelect value={purpose} onChange={setPurpose} placeholder="اختر الهدف" options={purposes.map((p) => ({ value: p, label: p }))} />
-          <div className="hidden flex-wrap gap-2 sm:flex">
+          <DesktopSelect value={purpose} onChange={setPurpose} placeholder="اختر الهدف" options={purposes.map((p) => ({ value: p, label: p }))} />
+          <div className="hidden flex-wrap gap-2 sm:flex lg:hidden">
             {purposes.map((item) => (
               <button
                 key={item}
@@ -2437,10 +2475,11 @@ export default function ContentStudioPage() {
         </div>
 
         {/* Specialty — إجباري بقرارها: حقل خامس ظاهر دائماً ضمن السياق */}
-        <div ref={specialtyFieldRef} className={`mb-4 rounded-xl transition-all ${missingField === "specialty" ? "bg-warningSoft/60 p-3 ring-2 ring-amber-400" : ""}`}>
+        <div ref={specialtyFieldRef} className={`mb-4 lg:mb-0 rounded-xl transition-all ${missingField === "specialty" ? "bg-warningSoft/60 p-3 ring-2 ring-amber-400" : ""}`}>
           <FieldLabel label="التخصص" required />
           <MobileSelect value={specialty} onChange={setSpecialty} placeholder="اختر التخصص" options={specialties.map((s) => ({ value: s, label: s }))} />
-          <div className="hidden flex-wrap gap-2 sm:flex">
+          <DesktopSelect value={specialty} onChange={setSpecialty} placeholder="اختر التخصص" options={specialties.map((s) => ({ value: s, label: s }))} />
+          <div className="hidden flex-wrap gap-2 sm:flex lg:hidden">
             {specialties.map((item) => (
               <button
                 key={item}
@@ -2452,6 +2491,7 @@ export default function ContentStudioPage() {
               </button>
             ))}
           </div>
+        </div>
         </div>
 
         {/* خيارات متقدمة (اختياري): حد الحروف — قسم قابل للطي، مطوي افتراضياً */}
@@ -2783,6 +2823,9 @@ export default function ContentStudioPage() {
             </button>
           </div>
 
+          {/* توزيع أفقي على الحاسب: المحرّر (رئيسي كبير) + ترجمة المحتوى بصرياً (عمود جانبي) */}
+          <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_26rem] lg:items-start lg:gap-6">
+          <div className="min-w-0">
           {/* Text — always shown first */}
           <textarea
             value={generatedText}
@@ -2807,7 +2850,9 @@ export default function ContentStudioPage() {
               )}
             </div>
           )}
-
+          </div>
+          {/* عمود جانبي: ترجمة المحتوى بصرياً — بالمكوّنات الحالية نفسها */}
+          <div className="min-w-0">
           {/* ── قسم بصري رئيسي واحد فقط حسب نوع المحتوى — «محتوى بصري» مساره قسم المتطلبات وحده ── */}
           {!isVisualDirect && !vtSectionOpen && (
             <div className="mt-5 rounded-xl border border-dashed border-palm/30 bg-mint/10 p-4">
@@ -3326,6 +3371,8 @@ export default function ContentStudioPage() {
             </div>
           </div>
           )}
+          </div>
+          </div>
 
           <div className="mt-3 flex gap-3 rounded-lg border border-amber-200 bg-amber-50 p-4">
             <AlertTriangle size={18} className="mt-0.5 shrink-0 text-amber-500" aria-hidden="true" />

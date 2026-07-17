@@ -156,6 +156,37 @@ const chipBase = "inline-flex cursor-pointer items-center gap-1.5 rounded-lg bor
 const chipIdle = "border-line bg-white text-ink/65 hover:border-palm hover:bg-mint hover:text-palm";
 const chipSelected = "border-palm bg-mint text-palm shadow-[0_0_0_1px_theme(colors.palm)]";
 
+// نسخة سطح المكتب من القائمة المنسدلة — نفس مكوّن الجوال (MobileSelect) تنسيقاً وسلوكاً،
+// لكنها تظهر على الحاسب فقط (hidden lg:block) بينما تبقى الشرائح على اللوحي والجوال.
+// لا خيارات ولا قيم ولا دوال جديدة — نفس value/onChange/options للحقل نفسه.
+function DesktopSelect({ value, onChange, placeholder, emptyLabel, options }: {
+  value: string;
+  onChange: (v: string) => void;
+  placeholder?: string;
+  emptyLabel?: string;
+  options: { value: string; label: string }[];
+}) {
+  return (
+    <div className="relative hidden lg:block">
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="w-full appearance-none rounded-lg border border-line bg-white py-2.5 pl-9 pr-3 text-sm text-ink focus-ring"
+      >
+        {emptyLabel !== undefined ? (
+          <option value="">{emptyLabel}</option>
+        ) : (
+          <option value="" disabled>{placeholder ?? "اختر"}</option>
+        )}
+        {options.map((o) => (
+          <option key={o.value} value={o.value}>{o.label}</option>
+        ))}
+      </select>
+      <ChevronDown size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink/40" />
+    </div>
+  );
+}
+
 const severityOrder = { critical: 0, high: 1, medium: 2, low: 3 } as const;
 const reviewTabs = [
   { key: "findings", label: "الملاحظات" },
@@ -732,6 +763,10 @@ export default function ContentReviewPage() {
         action={<Button variant="secondary-gray" onClick={() => router.back()} leadingIcon={<ArrowRight size={16} />}>رجوع</Button>}
       />
 
+      {/* الحاسب: الإدخال + النتائج في العمود الأيسر، والرَّيل عمود يمين بمحاذاته (كالمخطّط).
+          قبل التحليل عمود واحد بعرض كامل؛ بعده عمودان. الجوال/اللوحي عمود واحد كما هو. */}
+      <div className={`lg:grid lg:items-start lg:gap-6 ${review ? "lg:grid-cols-[minmax(0,1fr)_24rem]" : ""}`}>
+        <div className="min-w-0 space-y-6">
       <Panel id="input">
         <SectionTitle title="1. إدخال المحتوى والسياق" subtitle="كلما اكتمل السياق ارتفعت موثوقية التوصية." />
 
@@ -796,7 +831,8 @@ export default function ContentReviewPage() {
         <div className={`mb-4 ${Boolean(review) && !isEditing ? "pointer-events-none opacity-60" : ""}`}>
           <FieldLabel label="نوع المحتوى" required />
           <MobileSelect value={kind} onChange={(v) => handleKindChange(v as ContentKind)} placeholder="اختر نوع المحتوى" options={contentTypes} />
-          <div className="hidden flex-wrap gap-2 sm:flex">
+          <DesktopSelect value={kind} onChange={(v) => handleKindChange(v as ContentKind)} placeholder="اختر نوع المحتوى" options={contentTypes} />
+          <div className="hidden flex-wrap gap-2 sm:flex lg:hidden">
             {contentTypes.map((item) => (
               <button key={item.value} type="button" onClick={() => handleKindChange(item.value as ContentKind)} className={`${chipBase} ${kind === item.value ? chipSelected : chipIdle}`}>
                 {contentTypeIcons[item.value]}{item.label}
@@ -997,10 +1033,11 @@ export default function ContentReviewPage() {
               <Megaphone size={14} className="text-palm" />
               <p className="text-sm font-semibold text-palm">إعداد الإعلان المهني</p>
             </div>
-            <div className="space-y-4 p-4">
+            <div className="space-y-4 p-4 lg:grid lg:grid-cols-2 lg:gap-4 lg:space-y-0">
               <div>
                 <p className="mb-2 text-xs font-medium text-ink/65">نداء الإجراء (CTA)</p>
-                <div className="flex flex-wrap gap-2">
+                <DesktopSelect value={adCta} onChange={setAdCta} emptyLabel="بلا تحديد" options={["تواصل معنا", "احجز استشارة مجانية", "اقرأ المقال كاملاً", "زر الموقع الإلكتروني", "شاهد الفيديو"].map((c) => ({ value: c, label: c }))} />
+                <div className="flex flex-wrap gap-2 lg:hidden">
                   {["تواصل معنا", "احجز استشارة مجانية", "اقرأ المقال كاملاً", "زر الموقع الإلكتروني", "شاهد الفيديو"].map((cta) => (
                     <button key={cta} type="button" onClick={() => setAdCta(adCta === cta ? "" : cta)} className={`${chipBase} text-xs ${adCta === cta ? chipSelected : chipIdle}`}>
                       {cta}
@@ -1010,7 +1047,8 @@ export default function ContentReviewPage() {
               </div>
               <div>
                 <p className="mb-2 text-xs font-medium text-ink/65">أسلوب الإعلان</p>
-                <div className="flex flex-wrap gap-2">
+                <DesktopSelect value={adStyle} onChange={setAdStyle} emptyLabel="بلا تحديد" options={["مهني رسمي", "احترافي محايد", "توعوي تثقيفي", "ترويجي جذاب"].map((s) => ({ value: s, label: s }))} />
+                <div className="flex flex-wrap gap-2 lg:hidden">
                   {["مهني رسمي", "احترافي محايد", "توعوي تثقيفي", "ترويجي جذاب"].map((s) => (
                     <button key={s} type="button" onClick={() => setAdStyle(adStyle === s ? "" : s)} className={`${chipBase} text-xs ${adStyle === s ? chipSelected : chipIdle}`}>
                       {s}
@@ -1214,11 +1252,14 @@ export default function ContentReviewPage() {
         </div>
 
 
+        {/* الجمهور والهدف والتخصص — شبكة كثيفة على الحاسب فقط */}
+        <div className="lg:grid lg:grid-cols-3 lg:gap-4">
         {/* الجمهور */}
-        <div className={`mb-4 ${Boolean(review) && !isEditing ? "pointer-events-none opacity-60" : ""}`}>
+        <div className={`mb-4 lg:mb-0 ${Boolean(review) && !isEditing ? "pointer-events-none opacity-60" : ""}`}>
           <FieldLabel label="الجمهور" required />
           <MobileSelect value={audience} onChange={setAudience} placeholder="اختر الجمهور" options={audiences.map((a) => ({ value: a, label: a }))} />
-          <div className="hidden flex-wrap gap-2 sm:flex">
+          <DesktopSelect value={audience} onChange={setAudience} placeholder="اختر الجمهور" options={audiences.map((a) => ({ value: a, label: a }))} />
+          <div className="hidden flex-wrap gap-2 sm:flex lg:hidden">
             {audiences.map((item) => (
               <button key={item} type="button" onClick={() => setAudience(item)} className={`${chipBase} ${audience === item ? chipSelected : chipIdle}`}>
                 {audienceIcons[item]}{item}
@@ -1228,10 +1269,11 @@ export default function ContentReviewPage() {
         </div>
 
         {/* الهدف */}
-        <div className={`mb-4 ${Boolean(review) && !isEditing ? "pointer-events-none opacity-60" : ""}`}>
+        <div className={`mb-4 lg:mb-0 ${Boolean(review) && !isEditing ? "pointer-events-none opacity-60" : ""}`}>
           <FieldLabel label="الهدف" required />
           <MobileSelect value={purpose} onChange={setPurpose} placeholder="اختر الهدف" options={purposes.map((p) => ({ value: p, label: p }))} />
-          <div className="hidden flex-wrap gap-2 sm:flex">
+          <DesktopSelect value={purpose} onChange={setPurpose} placeholder="اختر الهدف" options={purposes.map((p) => ({ value: p, label: p }))} />
+          <div className="hidden flex-wrap gap-2 sm:flex lg:hidden">
             {purposes.map((item) => (
               <button key={item} type="button" onClick={() => setPurpose(item)} className={`${chipBase} ${purpose === item ? chipSelected : chipIdle}`}>
                 {purposeIcons[item]}{item}
@@ -1240,16 +1282,18 @@ export default function ContentReviewPage() {
           </div>
         </div>
         {/* التخصص — إجباري بقرارها، متوائم مع الاستوديو */}
-        <div className={`mb-4 ${Boolean(review) && !isEditing ? "pointer-events-none opacity-60" : ""}`}>
+        <div className={`mb-4 lg:mb-0 ${Boolean(review) && !isEditing ? "pointer-events-none opacity-60" : ""}`}>
           <FieldLabel label="التخصص" required />
           <MobileSelect value={specialty} onChange={setSpecialty} placeholder="اختر التخصص" options={specialties.map((s) => ({ value: s, label: s }))} />
-          <div className="hidden flex-wrap gap-2 sm:flex">
+          <DesktopSelect value={specialty} onChange={setSpecialty} placeholder="اختر التخصص" options={specialties.map((s) => ({ value: s, label: s }))} />
+          <div className="hidden flex-wrap gap-2 sm:flex lg:hidden">
             {specialties.map((item) => (
               <button key={item} type="button" onClick={() => setSpecialty(specialty === item ? "" : item)} className={`${chipBase} ${specialty === item ? chipSelected : chipIdle}`}>
                 {item}
               </button>
             ))}
           </div>
+        </div>
         </div>
 
         {/* خيارات متقدمة (اختياري): القناة وحد الحروف — متوائمة مع الاستوديو */}
@@ -1436,8 +1480,7 @@ export default function ContentReviewPage() {
       </Panel>
 
       {review ? (
-        <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start lg:gap-6">
-          <div className="min-w-0 space-y-6">
+        <>
           {review.analysisMode === "pattern-only" ? (
             <div
               dir="rtl"
@@ -1451,7 +1494,7 @@ export default function ContentReviewPage() {
 
           <Panel
             id="decision"
-            className={`border-t-4 shadow-md ${
+            className={`border-t-4 shadow-md lg:hidden ${
               review.analysisMode === "pattern-only" || review.evaluationIncomplete
                 ? "border-t-slate-300 bg-white"
                 : review.publicationDecision.outcome === "RECOMMENDED"
@@ -1500,7 +1543,7 @@ export default function ContentReviewPage() {
             )}
           </Panel>
 
-          <section id="analysis-summary" aria-labelledby="supporting-indicators-title" className="space-y-4 scroll-mt-24">
+          <section id="analysis-summary" aria-labelledby="supporting-indicators-title" className="space-y-4 scroll-mt-24 lg:hidden">
             <SectionTitle
               title="المؤشرات المساندة للقرار"
               subtitle="توضح الرسوم مستوى كل جانب، بينما تبقى الملاحظات والأدلة والأثر والإجراء الموصى به هي أساس القرار."
@@ -1652,7 +1695,7 @@ export default function ContentReviewPage() {
             </div>
           </Panel>
 
-          <Panel id="approval" className="scroll-mt-24">
+          <Panel id="approval" className="scroll-mt-24 lg:hidden">
             <SectionTitle title="7. اعتماد النسخة" subtitle="لا تتاح المشاركة أو التصدير إلا للنسخة النهائية التي تمت مراجعتها واعتمادها." />
             <button type="button" onClick={approveCurrentVersion} disabled={approved || approving || review.findings.some((finding) => !finding.resolved) || !review.languageQuality.passed || ["بالغ", "حرج", "مرتفع"].includes(review.riskLevel)} className="inline-flex items-center gap-2 rounded-md bg-palm px-5 py-2.5 text-white disabled:cursor-not-allowed disabled:opacity-50"><Save size={16} />{approved ? "تم اعتماد النسخة" : approving ? "جار الاعتماد..." : "اعتماد النسخة الحالية"}</button>
             {approveMsg ? <p className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-sm leading-6 text-red-700">{approveMsg}</p> : null}
@@ -1675,7 +1718,7 @@ export default function ContentReviewPage() {
             })() : null}
           </Panel>
 
-          <Panel id="sharing" className="scroll-mt-24">
+          <Panel id="sharing" className="scroll-mt-24 lg:hidden">
             <SectionTitle title="8. المشاركة والتصدير" subtitle="احفظ النسخ ونزّلها وشاركها من مكان واحد." />
             <div className="flex flex-wrap gap-3">
               <button type="button" onClick={downloadWord} disabled={!approved} className="inline-flex items-center gap-2 rounded-md border border-line px-4 py-2.5 disabled:opacity-40"><FileDown size={16} />تقرير Word</button>
@@ -1692,11 +1735,13 @@ export default function ContentReviewPage() {
               هذا المقترح استرشادي، تم إنشاؤه بناءً على البيانات المدخلة ونتائج المراجعة والمراجع المهنية المسجلة في المنصة. يظل قرار التعديل أو الاعتماد أو النشر مسؤولية المستخدم.
             </p>
           </div>
-          </div>
-
-          {/* الريل الأيسر — الحاسب فقط (lg+): ملخّص ثابت للقرار والمؤشرات بجانب المحتوى.
-              إضافة لا حذف؛ التفاصيل الكاملة تبقى في المنتصف، والجوال لا يظهر هذا الريل. */}
-          <aside className="hidden space-y-4 lg:sticky lg:top-20 lg:block">
+        </>
+      ) : null}
+        </div>
+        {/* العمود الأيمن (الحاسب فقط lg+): مساعد قرار النشر — القرار + المؤشرات + الاعتماد + المشاركة.
+            على الجوال/اللوحي يبقى هذا كله ظاهراً في العمود الرئيسي كما هو تماماً دون تغيير. */}
+        {review ? (
+          <aside className="hidden space-y-4 lg:sticky lg:top-20 lg:block lg:max-h-[calc(100vh-6rem)] lg:overflow-y-auto lg:pl-1">
             <Panel className="border-t-4 border-t-palm/40 shadow-md">
               <p className="text-xs font-bold uppercase tracking-wider text-slate-400">قرار النشر</p>
               <div className="mt-2">
@@ -1731,9 +1776,55 @@ export default function ContentReviewPage() {
                 معالجة الملاحظات
               </a>
             </Panel>
+
+            {/* المؤشرات المساندة — نفس بطاقات المكوّنات، معروضة في الرَّيل على الحاسب */}
+            <Panel>
+              <SectionTitle title="المؤشرات المساندة للقرار" subtitle="مؤشرات مساندة، ويبقى القرار على الملاحظات والأدلة والأثر." />
+              <div className="grid gap-3">
+                <ComplianceIndicatorCard review={review} />
+                <RiskIndicatorCard review={review} />
+                <ProfessionalismIndicatorCard review={review} />
+                <LanguageIndicatorCard review={review} />
+                <ReadinessIndicatorCard review={review} />
+              </div>
+            </Panel>
+
+            {/* اعتماد النسخة — في الرَّيل على الحاسب (نفس الزر والمنطق والأسباب) */}
+            <Panel>
+              <SectionTitle title="7. اعتماد النسخة" subtitle="لا تتاح المشاركة أو التصدير إلا للنسخة النهائية التي تمت مراجعتها واعتمادها." />
+              <button type="button" onClick={approveCurrentVersion} disabled={approved || approving || review.findings.some((finding) => !finding.resolved) || !review.languageQuality.passed || ["بالغ", "حرج", "مرتفع"].includes(review.riskLevel)} className="inline-flex items-center gap-2 rounded-md bg-palm px-5 py-2.5 text-white disabled:cursor-not-allowed disabled:opacity-50"><Save size={16} />{approved ? "تم اعتماد النسخة" : approving ? "جار الاعتماد..." : "اعتماد النسخة الحالية"}</button>
+              {approveMsg ? <p className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-sm leading-6 text-red-700">{approveMsg}</p> : null}
+              {!approved ? (() => {
+                const unresolvedCount = review.findings.filter((finding) => !finding.resolved).length;
+                const reasons: string[] = [];
+                if (unresolvedCount) reasons.push(`${unresolvedCount} مخالفة غير معالجة — عالجها بالصياغة المقترحة أو عدّل النص ثم أعد التحليل`);
+                if (!review.languageQuality.passed) reasons.push("جودة اللغة دون الحد المطلوب");
+                if (["بالغ", "حرج", "مرتفع"].includes(review.riskLevel)) reasons.push(`مستوى المخاطر «${review.riskLevel}» يمنع الاعتماد`);
+                return reasons.length ? (
+                  <div className="mt-3 rounded-lg bg-red-50 p-3 text-sm leading-6 text-red-800">
+                    <p className="font-semibold">يتعذّر اعتماد النسخة الحالية للأسباب التالية:</p>
+                    <ul className="mt-1 list-disc space-y-1 pr-5">{reasons.map((reason) => <li key={reason}>{reason}</li>)}</ul>
+                    <p className="mt-2 text-xs text-red-700/80">لن يؤدي الاعتماد إلى إخفاء ملاحظة حرجة أو تجاوزها.</p>
+                  </div>
+                ) : (
+                  <p className="mt-3 text-sm text-ink/65">النسخة جاهزة للاعتماد — لا حواجز متبقية.</p>
+                );
+              })() : null}
+            </Panel>
+
+            {/* المشاركة والتصدير — في الرَّيل على الحاسب (نفس الأزرار والوظائف) */}
+            <Panel>
+              <SectionTitle title="8. المشاركة والتصدير" subtitle="احفظ النسخ ونزّلها وشاركها من مكان واحد." />
+              <div className="flex flex-wrap gap-3">
+                <button type="button" onClick={downloadWord} disabled={!approved} className="inline-flex items-center gap-2 rounded-md border border-line px-4 py-2.5 disabled:opacity-40"><FileDown size={16} />تقرير Word</button>
+                <button type="button" onClick={prepareSharing} disabled={!approved} className="inline-flex items-center gap-2 rounded-md bg-palm px-4 py-2.5 text-white disabled:opacity-40"><Share2 size={16} />المشاركة</button>
+              </div>
+              {!approved ? <div className="mt-4 flex items-center gap-2 rounded-lg bg-gold/10 p-4 text-sm"><AlertTriangle size={17} className="text-gold" />يجب اعتماد المخرج قبل إتاحة المشاركة والتصدير.</div> : null}
+              {shareMessage ? <div className="mt-4 flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 p-4 text-sm leading-7 text-red-700"><AlertTriangle size={17} className="mt-0.5 shrink-0" />{shareMessage}</div> : null}
+            </Panel>
           </aside>
-        </div>
-      ) : null}
+        ) : null}
+      </div>
     </div>
   );
 }
