@@ -1542,17 +1542,17 @@ export default function ContentReviewPage() {
             )}
           </Panel>
 
-          <section id="analysis-summary" aria-labelledby="supporting-indicators-title" className="space-y-4 scroll-mt-24 lg:hidden">
+          <section id="analysis-summary" aria-labelledby="supporting-indicators-title" className="space-y-4 scroll-mt-24">
             <SectionTitle
               title="المؤشرات المساندة للقرار"
               subtitle="توضح الرسوم مستوى كل جانب، بينما تبقى الملاحظات والأدلة والأثر والإجراء الموصى به هي أساس القرار."
             />
             <div className="grid gap-4 xl:grid-cols-2">
-              <ComplianceIndicatorCard review={review} />
-              <RiskIndicatorCard review={review} />
-              <ProfessionalismIndicatorCard review={review} />
-              <LanguageIndicatorCard review={review} />
-              <ReadinessIndicatorCard review={review} />
+              <ComplianceIndicatorCard review={review} staticSummary />
+              <RiskIndicatorCard review={review} staticSummary />
+              <ProfessionalismIndicatorCard review={review} staticSummary />
+              <LanguageIndicatorCard review={review} staticSummary />
+              <ReadinessIndicatorCard review={review} staticSummary />
             </div>
           </section>
 
@@ -1775,15 +1775,6 @@ export default function ContentReviewPage() {
                 معالجة الملاحظات
               </a>
             </Panel>
-
-            {/* المؤشرات المساندة — واضحة بلا سهم طيّ، مكدّسة بمسافة */}
-            <div className="space-y-3">
-              <ComplianceIndicatorCard review={review} staticSummary />
-              <RiskIndicatorCard review={review} staticSummary />
-              <ProfessionalismIndicatorCard review={review} staticSummary />
-              <LanguageIndicatorCard review={review} staticSummary />
-              <ReadinessIndicatorCard review={review} staticSummary />
-            </div>
 
             {/* اعتماد النسخة — في الرَّيل على الحاسب (نفس الزر والمنطق والأسباب) */}
             <Panel>
