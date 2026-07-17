@@ -1777,6 +1777,15 @@ export default function ContentReviewPage() {
               </a>
             </Panel>
 
+            {/* المؤشرات المساندة — واضحة بلا سهم طيّ، مكدّسة بمسافة */}
+            <div className="space-y-3">
+              <ComplianceIndicatorCard review={review} staticSummary />
+              <RiskIndicatorCard review={review} staticSummary />
+              <ProfessionalismIndicatorCard review={review} staticSummary />
+              <LanguageIndicatorCard review={review} staticSummary />
+              <ReadinessIndicatorCard review={review} staticSummary />
+            </div>
+
             {/* اعتماد النسخة — في الرَّيل على الحاسب (نفس الزر والمنطق والأسباب) */}
             <Panel>
               <SectionTitle title="7. اعتماد النسخة" subtitle="لا تتاح المشاركة أو التصدير إلا للنسخة النهائية التي تمت مراجعتها واعتمادها." />

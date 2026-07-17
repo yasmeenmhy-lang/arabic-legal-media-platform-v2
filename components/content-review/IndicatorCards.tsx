@@ -46,8 +46,11 @@ function IndicatorShell({ id, title, tone, badge, defaultOpen = false, staticSum
   if (staticSummary) {
     return (
       <Panel id={id} className={`scroll-mt-24 border-t-4 shadow-md ${toneBorder(tone)}`}>
-        <span className="mb-3 block text-xs font-bold uppercase tracking-wider text-slate-400">{title}</span>
-        {badge}
+        <div className="flex items-center justify-between gap-3">
+          <span className="text-xs font-bold uppercase tracking-wider text-slate-400">{title}</span>
+          {badge}
+        </div>
+        {children ? <div className="mt-3 border-t border-line pt-3">{children}</div> : null}
       </Panel>
     );
   }
