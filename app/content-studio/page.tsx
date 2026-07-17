@@ -2396,8 +2396,7 @@ export default function ContentStudioPage() {
           </div>
         )}
 
-        {/* Audience — كشف تدريجي: يظهر بعد اختيار النوع */}
-        {kind ? (
+        {/* Audience */}
         <div ref={audienceFieldRef} className={`mb-4 rounded-xl transition-all ${missingField === "audience" ? "bg-warningSoft/60 p-3 ring-2 ring-amber-400" : ""}`}>
           <FieldLabel label="الجمهور" required />
           <div className="flex flex-wrap gap-2">
@@ -2414,10 +2413,8 @@ export default function ContentStudioPage() {
             ))}
           </div>
         </div>
-        ) : null}
 
-        {/* Purpose — كشف تدريجي: يظهر بعد اختيار الجمهور */}
-        {kind && audience ? (
+        {/* Purpose */}
         <div ref={purposeFieldRef} className={`mb-4 rounded-xl transition-all ${missingField === "purpose" ? "bg-warningSoft/60 p-3 ring-2 ring-amber-400" : ""}`}>
           <FieldLabel label="الهدف" required />
           <div className="flex flex-wrap gap-2">
@@ -2434,10 +2431,8 @@ export default function ContentStudioPage() {
             ))}
           </div>
         </div>
-        ) : null}
 
-        {/* Specialty — كشف تدريجي: يظهر بعد اختيار الهدف */}
-        {kind && audience && purpose ? (
+        {/* Specialty — إجباري بقرارها: حقل خامس ظاهر دائماً ضمن السياق */}
         <div ref={specialtyFieldRef} className={`mb-4 rounded-xl transition-all ${missingField === "specialty" ? "bg-warningSoft/60 p-3 ring-2 ring-amber-400" : ""}`}>
           <FieldLabel label="التخصص" required />
           <div className="flex flex-wrap gap-2">
@@ -2453,10 +2448,8 @@ export default function ContentStudioPage() {
             ))}
           </div>
         </div>
-        ) : null}
 
-        {/* خيارات متقدمة — كشف تدريجي: تظهر بعد اختيار التخصص */}
-        {kind && audience && purpose && specialty ? (
+        {/* خيارات متقدمة (اختياري): حد الحروف — قسم قابل للطي، مطوي افتراضياً */}
         <div className="border-t border-line pt-3">
           <button
             type="button"
@@ -2550,11 +2543,10 @@ export default function ContentStudioPage() {
         </div>
           </div>
         </div>
-        ) : null}
       </Panel>
 
-      {/* ── 2. Path selection ── لا تظهر إلا بعد اكتمال السياق (كشف تدريجي: ثم انتقل إلى المصدر) */}
-      {!path && kind && audience && purpose && specialty && (
+      {/* ── 2. Path selection ── */}
+      {!path && (
         <div>
           <p className="mb-3 text-sm font-semibold text-ink">2. كيف تريد البدء؟</p>
           <div className="grid gap-4 md:grid-cols-2">
