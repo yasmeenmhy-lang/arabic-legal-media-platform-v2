@@ -1777,18 +1777,6 @@ export default function ContentReviewPage() {
               </a>
             </Panel>
 
-            {/* المؤشرات المساندة — نفس بطاقات المكوّنات، معروضة في الرَّيل على الحاسب */}
-            <Panel>
-              <SectionTitle title="المؤشرات المساندة للقرار" subtitle="مؤشرات مساندة، ويبقى القرار على الملاحظات والأدلة والأثر." />
-              <div className="grid gap-3">
-                <ComplianceIndicatorCard review={review} staticSummary />
-                <RiskIndicatorCard review={review} staticSummary />
-                <ProfessionalismIndicatorCard review={review} staticSummary />
-                <LanguageIndicatorCard review={review} staticSummary />
-                <ReadinessIndicatorCard review={review} staticSummary />
-              </div>
-            </Panel>
-
             {/* اعتماد النسخة — في الرَّيل على الحاسب (نفس الزر والمنطق والأسباب) */}
             <Panel>
               <SectionTitle title="7. اعتماد النسخة" subtitle="لا تتاح المشاركة أو التصدير إلا للنسخة النهائية التي تمت مراجعتها واعتمادها." />
