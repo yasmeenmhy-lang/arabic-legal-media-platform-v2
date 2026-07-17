@@ -111,32 +111,25 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <p className="text-xs font-bold leading-5 text-palm">{platformTitle}</p>
         </div>
         <nav className="flex flex-col">
-          {["الرئيسية", "الحوكمة"].map((group) => (
-            <div key={group} className="mb-1">
-              <p className="px-3 pb-1 pt-2 text-[11px] font-medium text-ink/40">{group}</p>
-              {visibleItems
-                .filter((item) => item.group === group)
-                .map((item) => {
-                  const Icon = item.icon;
-                  const active = pathname === item.href;
-                  return (
-                    <Link
-                      key={item.href}
-                      href={item.href}
-                      className={clsx(
-                        "mb-1 flex items-center gap-3 rounded-lg border px-3 py-2.5 text-sm transition focus-ring",
-                        active
-                          ? "border-palm bg-mint font-normal text-palm"
-                          : "border-transparent text-ink/75 hover:border-line hover:bg-paper hover:text-ink"
-                      )}
-                    >
-                      <Icon size={18} className="shrink-0" />
-                      <span className="min-w-0 leading-6">{item.title}</span>
-                    </Link>
-                  );
-                })}
-            </div>
-          ))}
+          {visibleItems.map((item) => {
+            const Icon = item.icon;
+            const active = pathname === item.href;
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={clsx(
+                  "mb-1 flex items-center gap-3 rounded-lg border px-3 py-2.5 text-sm transition focus-ring",
+                  active
+                    ? "border-palm bg-mint font-normal text-palm"
+                    : "border-transparent text-ink/75 hover:border-line hover:bg-paper hover:text-ink"
+                )}
+              >
+                <Icon size={18} className="shrink-0" />
+                <span className="min-w-0 leading-6">{item.title}</span>
+              </Link>
+            );
+          })}
         </nav>
         <div className="mt-auto flex flex-col gap-3 pt-3">
           <div className="rounded-xl border border-line p-3">
