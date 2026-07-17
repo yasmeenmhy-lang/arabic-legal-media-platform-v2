@@ -31,7 +31,6 @@ export type VisualPlan = {
 };
 
 import { KINGDOM_STYLE_RULE, AUTHORITIES_RULE } from "@/lib/governance";
-import { sanitizeKingdom } from "@/lib/kingdom-guard";
 
 const PLAN_PROMPT_RULES = `${KINGDOM_STYLE_RULE}
 ${AUTHORITIES_RULE}
@@ -83,16 +82,6 @@ ${text.slice(0, 3500)}
     if (first > 0 || (last !== -1 && last < cleaned.length - 1)) cleaned = cleaned.slice(first, last + 1);
     const plan = JSON.parse(cleaned) as VisualPlan;
     if (!plan?.centralMessage || !plan?.title || !Array.isArray(plan.keySections)) return null;
-    // حارس نطاق المملكة الحتمي على النصوص الظاهرة في المرئي (تُنشر كصورة)
-    plan.title = sanitizeKingdom(plan.title);
-    plan.subtitle = sanitizeKingdom(plan.subtitle);
-    plan.shortVisualCopy = sanitizeKingdom(plan.shortVisualCopy);
-    plan.centralMessage = sanitizeKingdom(plan.centralMessage);
-    plan.keySections = plan.keySections.map((s) => ({
-      ...s,
-      heading: sanitizeKingdom(s.heading),
-      bullets: Array.isArray(s.bullets) ? s.bullets.map((b) => sanitizeKingdom(b)) : s.bullets,
-    }));
     return plan;
   } catch (e) {
     console.error("[visual-plan]", e);

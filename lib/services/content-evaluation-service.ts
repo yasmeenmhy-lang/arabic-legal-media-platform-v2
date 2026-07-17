@@ -5,7 +5,6 @@
 
 import Anthropic from "@anthropic-ai/sdk";
 import { AUTHORITIES_RULE, KINGDOM_STYLE_RULE } from "@/lib/governance";
-import { sanitizeKingdom } from "@/lib/kingdom-guard";
 import type {
   ContentEvaluation,
   ContentEvaluationLanguage,
@@ -153,16 +152,16 @@ function parseEvaluationResponse(raw: string): ContentEvaluation {
   const risks: ContentEvaluationRisks = {
     level: riskLevel,
     affectedParties,
-    explanation: sanitizeKingdom(String(rawRisks.explanation ?? "")),
-    fix: sanitizeKingdom(String(rawRisks.fix ?? ""))
+    explanation: String(rawRisks.explanation ?? ""),
+    fix: String(rawRisks.fix ?? "")
   };
 
   const profScore = Math.max(0, Math.min(100, Number(rawWriting.score) || 0));
   const professionalWriting: ContentEvaluationProfessionalWriting = {
     score: profScore,
     passed: Boolean(rawWriting.passed ?? profScore >= PROFESSIONALISM_THRESHOLD),
-    explanation: sanitizeKingdom(String(rawWriting.explanation ?? "")),
-    fix: sanitizeKingdom(String(rawWriting.fix ?? ""))
+    explanation: String(rawWriting.explanation ?? ""),
+    fix: String(rawWriting.fix ?? "")
   };
 
   const langScore = Math.max(0, Math.min(100, Number(rawLanguage.score) || 0));
@@ -177,8 +176,8 @@ function parseEvaluationResponse(raw: string): ContentEvaluation {
         ? issue.severity as LanguageIssueSeverity
         : "medium",
       excerpt: String(issue.excerpt ?? ""), // منقول حرفياً من نص المستخدم — لا يُمس
-      message: sanitizeKingdom(String(issue.message ?? issue.description ?? "")),
-      suggestion: sanitizeKingdom(String(issue.suggestion ?? issue.fix ?? ""))
+      message: String(issue.message ?? issue.description ?? ""),
+      suggestion: String(issue.suggestion ?? issue.fix ?? "")
     }));
 
   const language: ContentEvaluationLanguage = {

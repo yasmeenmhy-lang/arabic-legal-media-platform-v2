@@ -1,7 +1,6 @@
 import type { AIEnhancement, ContentKind, ReviewContext, ReviewResult, SocialPlatformKey } from "@/lib/types";
 import { requestAIEnhancementJson } from "@/lib/services/ai-provider-service";
 import { AUTHORITIES_RULE } from "@/lib/governance";
-import { sanitizeKingdom } from "@/lib/kingdom-guard";
 
 type ReviewEnhancementInput = {
   text: string;
@@ -17,7 +16,7 @@ function logAIEnhancement(message: string, details: Record<string, unknown> = {}
 function cleanText(value: unknown, maxLength = 900) {
   if (typeof value !== "string") return undefined;
   // حارس نطاق المملكة الحتمي على كل نص إنشائي تخرجه هذه الطبقة
-  const cleaned = sanitizeKingdom(value)
+  const cleaned = value
     .replace(/\b(OpenAI|Claude|Anthropic)\b/gi, "المنصة")
     .replace(/\s+/g, " ")
     .trim();

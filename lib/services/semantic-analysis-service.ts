@@ -7,7 +7,6 @@ import Anthropic from "@anthropic-ai/sdk";
 import type { ContentKind, FindingCategory, FindingDomain, ReviewContext, ReviewFinding, RiskLevel } from "@/lib/types";
 import { legalKnowledgeEntries } from "@/lib/legal-knowledge-base";
 import { AUTHORITIES_RULE } from "@/lib/governance";
-import { sanitizeKingdom } from "@/lib/kingdom-guard";
 import {
   arabicSeverity,
   businessSeverityForFinding,
@@ -221,8 +220,8 @@ function parseHolisticResponse(raw: string): HolisticViolation[] {
         violationType: v.violationType ?? "سياقي",
         severity: v.severity ?? "متوسط",
         // حارس نطاق المملكة الحتمي على النصوص الإنشائية للنموذج
-        explanation: sanitizeKingdom(v.explanation ?? ""),
-        advice: sanitizeKingdom(v.advice ?? "")
+        explanation: v.explanation ?? "",
+        advice: v.advice ?? ""
       }));
   } catch {
     return [];
