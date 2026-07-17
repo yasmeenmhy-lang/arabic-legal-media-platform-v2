@@ -30,6 +30,7 @@ import { adoptLegacyKey, scopedKey } from "@/lib/user-scope";
 import {
   loadContentRecords,
   saveContentRecords,
+  setActiveContentSelection,
   type StoredContentRecord,
 } from "@/lib/content-record-store";
 
@@ -147,8 +148,11 @@ const STAGE_LABELS = [
   "التحسين",
 ];
 
+// كل الروابط تفتح المحتوى نفسه (لا صفحة إنشاء فاضية) — تُضبط الجهة النشطة قبل الانتقال
+// فتفتح المراجعة على المحتوى المحدَّد. مراحل الفكرة/التحسين تُوجَّه للمراجعة أيضاً
+// (المحتوى قائم فعلاً) بدل استوديو الإنشاء الفارغ.
 const STAGE_HREFS = [
-  "/content-studio",            // فكرة المحتوى
+  "/content-review",            // فكرة المحتوى
   "/content-review#findings",   // المراجعة والامتثال
   "/content-review#rewrite",    // الصياغة المقترحة
   "/content-review#approval",   // اعتماد النسخة
@@ -156,7 +160,7 @@ const STAGE_HREFS = [
   "/calendar-v2",               // موعد النشر
   "/content-management",        // تجهيز النشر
   "/content-management",        // المتابعة
-  "/content-studio",            // التحسين
+  "/content-review",            // التحسين
 ];
 
 function computeStages(record: StoredContentRecord, targetDate: string) {
@@ -699,6 +703,7 @@ function ContentPanel({
                 <Link
                   key={stage.label}
                   href={stage.href}
+                  onClick={() => setActiveContentSelection(record.id, record.currentVersion)}
                   className={`rounded px-1.5 py-1 text-center text-[10px] leading-4 transition hover:opacity-75 focus-ring ${
                     stage.complete
                       ? "bg-mint text-palm"
