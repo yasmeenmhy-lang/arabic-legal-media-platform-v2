@@ -111,25 +111,29 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <p className="text-xs font-bold leading-5 text-palm">{platformTitle}</p>
         </div>
         <nav className="flex flex-col">
-          {visibleItems.map((item) => {
-            const Icon = item.icon;
-            const active = pathname === item.href;
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={clsx(
-                  "mb-1 flex items-center gap-3 rounded-lg border px-3 py-2.5 text-sm transition focus-ring",
-                  active
-                    ? "border-palm bg-mint font-normal text-palm"
-                    : "border-transparent text-ink/75 hover:border-line hover:bg-paper hover:text-ink"
-                )}
-              >
-                <Icon size={18} className="shrink-0" />
-                <span className="min-w-0 leading-6">{item.title}</span>
-              </Link>
-            );
-          })}
+          {/* «الوصول السريع» يُخفى من القائمة الثابتة للحاسب لأنه مكرّر مع بطاقة
+              «دليل الاستخدام» أدناه؛ ويبقى في درج الجوال كما هو (لا بطاقة دليل هناك). */}
+          {visibleItems
+            .filter((item) => item.href !== "/library")
+            .map((item) => {
+              const Icon = item.icon;
+              const active = pathname === item.href;
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={clsx(
+                    "mb-1 flex items-center gap-3 rounded-lg border px-3 py-2.5 text-sm transition focus-ring",
+                    active
+                      ? "border-palm bg-mint font-normal text-palm"
+                      : "border-transparent text-ink/75 hover:border-line hover:bg-paper hover:text-ink"
+                  )}
+                >
+                  <Icon size={18} className="shrink-0" />
+                  <span className="min-w-0 leading-6">{item.title}</span>
+                </Link>
+              );
+            })}
         </nav>
         <div className="mt-auto flex flex-col gap-3 pt-3">
           <div className="rounded-xl border border-line p-3">
