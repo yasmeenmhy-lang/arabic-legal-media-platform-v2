@@ -1042,6 +1042,9 @@ function SmartPlanPanel({
     return records.find((r) => r.id === id);
   }
 
+  // مرشّح القائمة عبر بطاقات النظرة العامة (بطلب مالكة المنصة: الضغط يحدّد المطلوب فقط)
+  const [planFilter, setPlanFilter] = useState<"all" | "ready" | "review">("all");
+
   function handleApply() {
     if (!result) return;
     const dates: Record<string, string> = {};
@@ -1119,20 +1122,23 @@ function SmartPlanPanel({
             <div className="rounded-xl border border-line bg-paper p-4 space-y-3">
               <p className="text-xs font-bold text-ink/60 tracking-wide">نظرة عامة على الخطة</p>
 
-              {/* الأرقام الكبيرة */}
+              {/* الأرقام الكبيرة — قابلة للنقر لتصفية القائمة أدناه */}
               <div className="grid grid-cols-3 gap-2">
-                <div className="rounded-lg bg-white border border-line p-2.5 text-center">
+                <button type="button" onClick={() => setPlanFilter("all")}
+                  className={`rounded-lg border p-2.5 text-center transition focus-ring ${planFilter === "all" ? "border-ink/40 bg-white ring-2 ring-ink/15" : "border-line bg-white hover:border-ink/30"}`}>
                   <p className="text-xl font-bold text-ink">{stats.total}</p>
                   <p className="text-[10px] text-ink/50">منشور مجدول</p>
-                </div>
-                <div className="rounded-lg bg-mint border border-palm/20 p-2.5 text-center">
+                </button>
+                <button type="button" onClick={() => setPlanFilter(planFilter === "ready" ? "all" : "ready")}
+                  className={`rounded-lg border p-2.5 text-center transition focus-ring ${planFilter === "ready" ? "border-palm bg-mint ring-2 ring-palm/30" : "border-palm/20 bg-mint hover:border-palm/40"}`}>
                   <p className="text-xl font-bold text-palm">{stats.ready}</p>
                   <p className="text-[10px] text-palm/70">جاهز للنشر</p>
-                </div>
-                <div className="rounded-lg bg-goldSoft border border-goldBorder p-2.5 text-center">
+                </button>
+                <button type="button" onClick={() => setPlanFilter(planFilter === "review" ? "all" : "review")}
+                  className={`rounded-lg border p-2.5 text-center transition focus-ring ${planFilter === "review" ? "border-gold bg-goldSoft ring-2 ring-gold/30" : "border-goldBorder bg-goldSoft hover:border-gold/40"}`}>
                   <p className="text-xl font-bold text-gold">{stats.total - stats.ready}</p>
                   <p className="text-[10px] text-gold/70">يحتاج مراجعة</p>
-                </div>
+                </button>
               </div>
 
               {/* شريط الأولويات */}
@@ -1191,9 +1197,16 @@ function SmartPlanPanel({
 
           {result.plan.length > 0 && (
             <div>
-              <p className="mb-2 text-xs font-semibold text-ink/60">مواعيد النشر المقترحة</p>
+              <p className="mb-2 text-xs font-semibold text-ink/60">
+                مواعيد النشر المقترحة
+                {planFilter !== "all" && <span className="mr-1 text-palm">— {planFilter === "ready" ? "الجاهزة للنشر" : "التي تحتاج مراجعة"}</span>}
+              </p>
               <div className="space-y-2">
-                {result.plan.map((item, i) => {
+                {result.plan.filter((item) => {
+                  if (planFilter === "all") return true;
+                  const ready = Boolean(getRecord(item.contentId)?.approvedVersion);
+                  return planFilter === "ready" ? ready : !ready;
+                }).map((item, i) => {
                   const rec = getRecord(item.contentId);
                   const isReady = Boolean(rec?.approvedVersion);
                   return (
@@ -1246,16 +1259,18 @@ function SmartPlanPanel({
             </div>
           )}
 
-          <button
-            onClick={handleApply}
-            className="flex w-full items-center justify-center gap-2 rounded-lg bg-palm px-4 py-3 text-sm font-medium text-white transition hover:bg-palm/90"
-          >
-            <Save size={14} /> تطبيق الخطة وحفظ المواعيد
-          </button>
-
-          <p className="text-center text-xs text-ink/40">
-            المقترحات استرشادية — يمكنك تعديل المواعيد بعد التطبيق
-          </p>
+          {/* زر التطبيق ثابت أسفل النافذة دائماً (أوضح وأسهل وصولاً) */}
+          <div className="sticky bottom-0 z-10 -mx-4 -mb-4 border-t border-line bg-white/95 px-4 py-3 backdrop-blur">
+            <button
+              onClick={handleApply}
+              className="flex w-full items-center justify-center gap-2 rounded-lg bg-palm px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-palm/90"
+            >
+              <Save size={14} /> تطبيق الخطة وحفظ المواعيد
+            </button>
+            <p className="mt-2 text-center text-[11px] text-ink/40">
+              المقترحات استرشادية — يمكنك تعديل المواعيد بعد التطبيق
+            </p>
+          </div>
         </div>
         )}
       </div>
