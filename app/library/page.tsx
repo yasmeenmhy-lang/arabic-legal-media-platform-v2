@@ -68,14 +68,16 @@ export default function LibraryPage() {
         action={<ButtonLink href="/content-review">مراجعة محتوى</ButtonLink>}
       />
 
-      {/* خانة دليل الاستخدام — الخدمة قيد الإعداد وتُوسم «قريبًا» */}
-      <Panel className="border-r-4 border-r-palm/40">
-        <div className="flex items-center gap-2">
-          <BookOpen size={18} className="text-palm" aria-hidden="true" />
-          <h2 className="text-base font-bold text-ink">دليل الاستخدام</h2>
-          <span className="rounded-full bg-mint px-2.5 py-0.5 text-xs font-bold text-palm">قريبًا</span>
+      {/* خانة دليل الاستخدام أعلى الصفحة — الخدمة قيد الإعداد وتُوسم «قريبًا» */}
+      <Panel className="border-r-4 border-r-palm bg-mint/25">
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-palm text-white">
+            <BookOpen size={20} aria-hidden="true" />
+          </div>
+          <h2 className="text-lg font-bold text-ink">دليل الاستخدام</h2>
+          <span className="rounded-full bg-palm px-3 py-1 text-xs font-bold text-white">قريبًا</span>
         </div>
-        <p className="mt-2 leading-7 text-ink/70">
+        <p className="mt-3 leading-7 text-ink/70">
           دليل تفصيلي يوضّح خطوات استخدام النظام قيد الإعداد، وسيُتاح قريبًا.
         </p>
       </Panel>
