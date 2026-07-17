@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { CalendarDays, FileCheck2, FileClock, Menu, ShieldCheck, Sparkles, X } from "lucide-react";
+import { BookOpen, CalendarDays, ExternalLink, FileCheck2, FileClock, Headphones, Menu, ShieldCheck, Sparkles, X } from "lucide-react";
 import { navItems, platformTitle } from "@/lib/navigation";
 
 // شريط تنقّل سفلي للجوال فقط (تجربة الجوال) — يعيد استخدام المسارات الفعلية،
@@ -30,6 +30,37 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     window.addEventListener("keydown", handleKeydown);
     return () => window.removeEventListener("keydown", handleKeydown);
   }, []);
+
+  // بوكسا «دليل الاستخدام» و«دعم المحامين» أسفل القائمة (الحاسب والجوال — درج واحد).
+  // «دليل الاستخدام» مدموج مع «الوصول السريع»: يفتح صفحة المراجع، والدليل نفسه «قريبًا».
+  const helpCards = (
+    <div className="flex flex-col gap-3">
+      <Link
+        href="/library"
+        onClick={() => setNavOpen(false)}
+        className="block rounded-xl border border-line p-3 transition hover:border-palm focus-ring"
+      >
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 text-ink">
+            <BookOpen size={15} className="text-palm" />
+            <p className="text-sm font-semibold">دليل الاستخدام</p>
+          </div>
+          <ExternalLink size={13} className="text-ink/40" />
+        </div>
+        <p className="mt-1.5 text-xs leading-5 text-ink/55">المراجع والمصادر الرسمية المعتمدة، ودليل استخدام النظام (قريبًا).</p>
+      </Link>
+      <div className="rounded-xl border border-line p-3">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 text-ink">
+            <Headphones size={15} className="text-palm" />
+            <p className="text-sm font-semibold">دعم المحامين</p>
+          </div>
+          <span className="rounded-full bg-mint px-2 py-0.5 text-[10px] font-bold text-palm">قريبًا</span>
+        </div>
+        <p className="mt-1.5 text-xs leading-5 text-ink/55">خدمة الدعم والاستفسارات قيد التطوير، وستتوفّر قريبًا لخدمتكم.</p>
+      </div>
+    </div>
+  );
 
   return (
     <div className="min-h-screen w-full max-w-full overflow-x-hidden bg-paper">
@@ -72,7 +103,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </div>
         </div>
         <nav className="min-h-0 flex-1 overflow-y-auto p-4">
-          {visibleItems.map((item) => {
+          {/* «الوصول السريع» مدموجة في بطاقة «دليل الاستخدام» أدناه، فتُخفى كبند مكرّر */}
+          {visibleItems.filter((item) => item.href !== "/library").map((item) => {
             const Icon = item.icon;
             const active = pathname === item.href;
             return (
@@ -92,6 +124,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             );
           })}
         </nav>
+        {/* بوكسا الدليل والدعم أسفل القائمة — الحاسب والجوال (درج واحد) */}
+        <div className="border-t border-line p-4">{helpCards}</div>
       </aside>
 
       <div className="w-full max-w-full overflow-x-hidden">
