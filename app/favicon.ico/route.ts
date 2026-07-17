@@ -10,7 +10,8 @@ export function GET() {
   return new Response(favicon, {
     headers: {
       "Content-Type": "image/svg+xml; charset=utf-8",
-      "Cache-Control": "public, max-age=31536000, immutable"
+      // كاش قصير مع إعادة تحقق: يمنع بقاء الأيقونة القديمة عالقة عند أي تحديث
+      "Cache-Control": "public, max-age=3600, must-revalidate"
     }
   });
 }
