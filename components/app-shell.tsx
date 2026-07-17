@@ -140,13 +140,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           pathname !== "/login" && navOpen && "lg:flex"
         )}
       >
-        <div className="mb-2 flex items-center gap-3 rounded-xl bg-paper p-3">
-          <div className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-palm text-white shadow-sm">
-            <ShieldCheck size={20} />
-          </div>
-          <p className="text-xs font-bold leading-5 text-palm">{platformTitle}</p>
-        </div>
-        <nav className="flex flex-col">
+        <nav className="flex flex-col pt-1">
           {/* «الوصول السريع» يُخفى من القائمة الثابتة للحاسب لأنه مكرّر مع بطاقة
               «دليل الاستخدام» أدناه؛ ويبقى في درج الجوال كما هو (لا بطاقة دليل هناك). */}
           {visibleItems
