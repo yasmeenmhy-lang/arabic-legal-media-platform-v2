@@ -1542,7 +1542,9 @@ export default function ContentReviewPage() {
             )}
           </Panel>
 
-          <section id="analysis-summary" aria-labelledby="supporting-indicators-title" className="space-y-4 scroll-mt-24">
+          {/* المؤشرات المساندة — تبقى في العمود الرئيسي على الجوال/اللوحي كما هي.
+              على الحاسب (lg+) تُنقل إلى العمود الجانبي تحت «قرار النشر» وفوق «اعتماد النسخة». */}
+          <section id="analysis-summary" aria-labelledby="supporting-indicators-title" className="space-y-4 scroll-mt-24 lg:hidden">
             <SectionTitle
               title="المؤشرات المساندة للقرار"
               subtitle="توضح الرسوم مستوى كل جانب، بينما تبقى الملاحظات والأدلة والأثر والإجراء الموصى به هي أساس القرار."
@@ -1775,6 +1777,20 @@ export default function ContentReviewPage() {
                 معالجة الملاحظات
               </a>
             </Panel>
+
+            {/* المؤشرات المساندة — منقولة إلى الرَّيل على الحاسب: تحت «قرار النشر» وفوق «اعتماد النسخة».
+                نفس البطاقات والقيم والتفاصيل المدخلة، بصيغة الملخّص الثابت بلا سهم طيّ. */}
+            <div className="space-y-4">
+              <SectionTitle
+                title="المؤشرات المساندة للقرار"
+                subtitle="توضح الرسوم مستوى كل جانب، بينما تبقى الملاحظات والأدلة والأثر والإجراء الموصى به هي أساس القرار."
+              />
+              <ComplianceIndicatorCard review={review} staticSummary />
+              <RiskIndicatorCard review={review} staticSummary />
+              <ProfessionalismIndicatorCard review={review} staticSummary />
+              <LanguageIndicatorCard review={review} staticSummary />
+              <ReadinessIndicatorCard review={review} staticSummary />
+            </div>
 
             {/* اعتماد النسخة — في الرَّيل على الحاسب (نفس الزر والمنطق والأسباب) */}
             <Panel>
