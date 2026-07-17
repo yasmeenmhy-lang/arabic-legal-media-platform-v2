@@ -22,7 +22,7 @@ import {
   X,
 } from "lucide-react";
 import { DgaSpinner, PageHeader, Panel } from "@/components/ui";
-import { socialBrandIcons } from "@/components/social-icons";
+import { socialBrandIcons, socialBrandStyles } from "@/components/social-icons";
 import { CircularStepper } from "@/components/circular-stepper";
 import { SavedVisualsGallery } from "@/components/saved-visuals";
 import { smartMatch } from "@/lib/arabic-search";
@@ -793,7 +793,7 @@ function ContentPanel({
                         onClick={() => toggleChannel(rec.key)}
                         className="flex w-full items-center gap-2.5 px-3 py-2.5 text-right"
                       >
-                        {Icon && <Icon size={17} className={isSelected ? "text-palm" : "text-ink/55"} />}
+                        {Icon && <Icon size={17} className={socialBrandStyles[rec.key]?.icon ?? "text-ink/55"} />}
                         <span className={`flex-1 text-sm font-medium ${isSelected ? "text-palm" : "text-ink"}`}>{rec.channel}</span>
                         {isSelected && <CheckCircle2 size={13} className="shrink-0 text-palm" />}
                       </button>
