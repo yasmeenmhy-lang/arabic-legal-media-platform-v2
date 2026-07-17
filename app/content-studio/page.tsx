@@ -338,6 +338,36 @@ const chipIdle =
 const chipSelected =
   "border-palm bg-mint text-palm shadow-[0_0_0_1px_theme(colors.palm)]";
 
+// قائمة منسدلة للجوال فقط (sm:hidden) — تجربة الجوال: بدل شبكة الأزرار الطويلة.
+// الحاسوب يبقى على الأزرار. emptyLabel لخيار فارغ اختياري (كالقناة)؛ وإلا placeholder معطّل.
+function MobileSelect({ value, onChange, placeholder, emptyLabel, options }: {
+  value: string;
+  onChange: (v: string) => void;
+  placeholder?: string;
+  emptyLabel?: string;
+  options: { value: string; label: string }[];
+}) {
+  return (
+    <div className="relative sm:hidden">
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="w-full appearance-none rounded-lg border border-line bg-white py-2.5 pl-9 pr-3 text-sm text-ink focus-ring"
+      >
+        {emptyLabel !== undefined ? (
+          <option value="">{emptyLabel}</option>
+        ) : (
+          <option value="" disabled>{placeholder ?? "اختر"}</option>
+        )}
+        {options.map((o) => (
+          <option key={o.value} value={o.value}>{o.label}</option>
+        ))}
+      </select>
+      <ChevronDown size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink/40" />
+    </div>
+  );
+}
+
 // ── Icon maps ──────────────────────────────────────────────────────────────
 
 const contentTypeIcons: Record<string, React.ReactNode> = {
@@ -1778,7 +1808,8 @@ export default function ContentStudioPage() {
         {/* Content type */}
         <div ref={kindFieldRef} className={`mb-4 rounded-xl transition-all ${missingField === "kind" ? "bg-warningSoft/60 p-3 ring-2 ring-amber-400" : ""}`}>
           <FieldLabel label="نوع المحتوى" hint="— ماذا تريد أن تنشئ أولًا" required />
-          <div className="flex flex-wrap gap-2">
+          <MobileSelect value={kind ?? ""} onChange={(v) => handleKindChange(v as ContentKind)} placeholder="اختر نوع المحتوى" options={studioContentTypes} />
+          <div className="hidden flex-wrap gap-2 sm:flex">
             {studioContentTypes.map((item) => (
               <button
                 key={item.value}
@@ -2399,7 +2430,8 @@ export default function ContentStudioPage() {
         {/* Audience */}
         <div ref={audienceFieldRef} className={`mb-4 rounded-xl transition-all ${missingField === "audience" ? "bg-warningSoft/60 p-3 ring-2 ring-amber-400" : ""}`}>
           <FieldLabel label="الجمهور" required />
-          <div className="flex flex-wrap gap-2">
+          <MobileSelect value={audience} onChange={setAudience} placeholder="اختر الجمهور" options={audiences.map((a) => ({ value: a, label: a }))} />
+          <div className="hidden flex-wrap gap-2 sm:flex">
             {audiences.map((item) => (
               <button
                 key={item}
@@ -2417,7 +2449,8 @@ export default function ContentStudioPage() {
         {/* Purpose */}
         <div ref={purposeFieldRef} className={`mb-4 rounded-xl transition-all ${missingField === "purpose" ? "bg-warningSoft/60 p-3 ring-2 ring-amber-400" : ""}`}>
           <FieldLabel label="الهدف" required />
-          <div className="flex flex-wrap gap-2">
+          <MobileSelect value={purpose} onChange={setPurpose} placeholder="اختر الهدف" options={purposes.map((p) => ({ value: p, label: p }))} />
+          <div className="hidden flex-wrap gap-2 sm:flex">
             {purposes.map((item) => (
               <button
                 key={item}
@@ -2435,7 +2468,8 @@ export default function ContentStudioPage() {
         {/* Specialty — إجباري بقرارها: حقل خامس ظاهر دائماً ضمن السياق */}
         <div ref={specialtyFieldRef} className={`mb-4 rounded-xl transition-all ${missingField === "specialty" ? "bg-warningSoft/60 p-3 ring-2 ring-amber-400" : ""}`}>
           <FieldLabel label="التخصص" required />
-          <div className="flex flex-wrap gap-2">
+          <MobileSelect value={specialty} onChange={setSpecialty} placeholder="اختر التخصص" options={specialties.map((s) => ({ value: s, label: s }))} />
+          <div className="hidden flex-wrap gap-2 sm:flex">
             {specialties.map((item) => (
               <button
                 key={item}
@@ -2469,7 +2503,8 @@ export default function ContentStudioPage() {
         {/* Channel — اختيارية بقرارها: بلا قناة يُكتب النص بصيغة عامة صالحة لأي منصة */}
         <div className="mb-1">
           <FieldLabel label="القناة" optional />
-          <div className="flex flex-wrap gap-2">
+          <MobileSelect value={channel} onChange={setChannel} emptyLabel="بلا قناة (نص عام)" options={channels.map((c) => ({ value: c, label: c }))} />
+          <div className="hidden flex-wrap gap-2 sm:flex">
             {channels.map((item) => (
               <button
                 key={item}
