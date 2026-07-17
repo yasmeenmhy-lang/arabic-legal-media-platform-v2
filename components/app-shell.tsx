@@ -98,11 +98,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <header className="sticky top-0 z-40 border-b border-line bg-white/95 backdrop-blur">
           <div className="flex min-h-16 max-w-full items-center justify-between gap-3 px-4 sm:gap-4 sm:px-8">
             <div className="flex min-w-0 items-center gap-3">
-              {/* الهامبرغر للحاسوب فقط — على الجوال يحلّ محلّه الشريط السفلي و«المزيد» */}
               <button
                 type="button"
                 onClick={() => setNavOpen((open) => !open)}
-                className="hidden h-10 w-10 place-items-center rounded-md border border-line transition hover:border-palm hover:text-palm focus-ring sm:grid"
+                className="grid h-10 w-10 place-items-center rounded-md border border-line transition hover:border-palm hover:text-palm focus-ring"
                 title="القائمة"
                 aria-label="فتح أو إغلاق القائمة"
                 aria-expanded={navOpen}
