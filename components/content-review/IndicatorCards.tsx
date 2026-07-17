@@ -36,12 +36,21 @@ function toneBorder(tone: "good" | "gold" | "danger" | "neutral") {
 
 // غلاف أكورديون موحّد لكل مؤشر — الملخّص (العنوان + الحالة) ظاهر دائماً،
 // والتفاصيل تُطوى وتُفتح بالنقر. يُفتح تلقائياً عند وجود ما يستدعي الانتباه.
-function IndicatorShell({ id, title, tone, badge, defaultOpen = false, children }: {
+function IndicatorShell({ id, title, tone, badge, defaultOpen = false, staticSummary = false, children }: {
   id?: string; title: string; tone: "good" | "gold" | "danger" | "neutral";
-  badge: ReactNode; defaultOpen?: boolean; children?: ReactNode;
+  badge: ReactNode; defaultOpen?: boolean; staticSummary?: boolean; children?: ReactNode;
 }) {
   const [open, setOpen] = useState(defaultOpen);
   const hasDetails = Boolean(children);
+  // وضع الملخّص الثابت (يُستخدم في رَيل الحاسب): العنوان والحالة واضحان دائماً بلا سهم طيّ.
+  if (staticSummary) {
+    return (
+      <Panel id={id} className={`scroll-mt-24 border-t-4 shadow-md ${toneBorder(tone)}`}>
+        <span className="mb-3 block text-xs font-bold uppercase tracking-wider text-slate-400">{title}</span>
+        {badge}
+      </Panel>
+    );
+  }
   return (
     <Panel id={id} className={`scroll-mt-24 border-t-4 shadow-md ${toneBorder(tone)}`}>
       <button
@@ -125,13 +134,14 @@ export function MetricExplanation({
   );
 }
 
-export function ComplianceIndicatorCard({ review }: { review: ReviewResult }) {
+export function ComplianceIndicatorCard({ review, staticSummary }: { review: ReviewResult; staticSummary?: boolean }) {
   const isCompliant = review.findings.length === 0;
   // عطل التحليل + لا مخالفات مرصودة ⇒ لا يجوز ادعاء "ملتزم" — تظهر محايدة
   const degraded = review.analysisMode === "pattern-only" && isCompliant;
   const tone = degraded ? ("neutral" as const) : isCompliant ? ("good" as const) : ("danger" as const);
   return (
     <IndicatorShell
+      staticSummary={staticSummary}
       id="compliance"
       title="الامتثال"
       tone={tone}
@@ -165,7 +175,7 @@ function DegradedNotice({ id, title }: { id?: string; title: string }) {
   );
 }
 
-export function RiskIndicatorCard({ review }: { review: ReviewResult }) {
+export function RiskIndicatorCard({ review, staticSummary }: { review: ReviewResult; staticSummary?: boolean }) {
   if (review.analysisMode === "pattern-only") return <DegradedNotice id="risk" title="المخاطر" />;
   // تقييم متعذر ≠ منخفض: يُعرض محايداً رمادياً لا أخضر
   const assessmentFailed = (review.riskScoreExplanation.explanation ?? "").includes("تعذّر");
@@ -183,6 +193,7 @@ export function RiskIndicatorCard({ review }: { review: ReviewResult }) {
   };
   return (
     <IndicatorShell
+      staticSummary={staticSummary}
       id="risk"
       title="المخاطر"
       tone={tone}
@@ -225,13 +236,14 @@ export function RiskIndicatorCard({ review }: { review: ReviewResult }) {
   );
 }
 
-export function ProfessionalismIndicatorCard({ review }: { review: ReviewResult }) {
+export function ProfessionalismIndicatorCard({ review, staticSummary }: { review: ReviewResult; staticSummary?: boolean }) {
   if (review.analysisMode === "pattern-only") return <DegradedNotice title="الجوانب المهنية" />;
   const tone = professionalismKpiTone(review.professionalismScore);
   const passed = review.professionalismScore >= 80;
   const { explanation, action } = professionalismExplanation(review.professionalismScore);
   return (
     <IndicatorShell
+      staticSummary={staticSummary}
       title="الجوانب المهنية"
       tone={tone}
       badge={<StatusBadge tone={tone}>{passed ? "مستوفٍ للمعايير" : "يتطلب تحسيناً"}</StatusBadge>}
@@ -245,7 +257,7 @@ export function ProfessionalismIndicatorCard({ review }: { review: ReviewResult 
   );
 }
 
-export function LanguageIndicatorCard({ review }: { review: ReviewResult }) {
+export function LanguageIndicatorCard({ review, staticSummary }: { review: ReviewResult; staticSummary?: boolean }) {
   if (review.analysisMode === "pattern-only") return <DegradedNotice title="اللغة والإملاء" />;
   const issues = review.languageQuality.issues;
   // تمييز صادق: الإملاء والنحو أخطاء تُصحّح (أحمر)؛ الأسلوب والوضوح والمصطلحات
@@ -261,6 +273,7 @@ export function LanguageIndicatorCard({ review }: { review: ReviewResult }) {
       : "سليم لغوياً";
   return (
     <IndicatorShell
+      staticSummary={staticSummary}
       title="اللغة والإملاء"
       tone={tone}
       badge={<StatusBadge tone={tone}>{label}</StatusBadge>}
@@ -286,7 +299,7 @@ export function LanguageIndicatorCard({ review }: { review: ReviewResult }) {
   );
 }
 
-export function ContentQualityIndicatorCard({ review }: { review: ReviewResult }) {
+export function ContentQualityIndicatorCard({ review, staticSummary }: { review: ReviewResult; staticSummary?: boolean }) {
   // تعذّر تقييم أي مؤشر ينعكس هنا: لا تُعرض جودة محسوبة من قيم افتراضية
   if (review.analysisMode === "pattern-only" || review.evaluationIncomplete) return <DegradedNotice title="جودة المحتوى" />;
   const exp = review.contentQualityScoreExplanation ?? { redLine: false, factors: [] };
@@ -322,13 +335,14 @@ export function ContentQualityIndicatorCard({ review }: { review: ReviewResult }
   );
 }
 
-export function ReadinessIndicatorCard({ review }: { review: ReviewResult }) {
+export function ReadinessIndicatorCard({ review, staticSummary }: { review: ReviewResult; staticSummary?: boolean }) {
   // تعذّر تقييم أي مؤشر ينعكس هنا: لا تُعرض جاهزية محسوبة من قيم افتراضية
   if (review.analysisMode === "pattern-only" || review.evaluationIncomplete) return <DegradedNotice title="جاهزية النشر" />;
   const tone = readinessKpiTone(review);
   const gates = review.publishingReadinessExplanation.gates;
   return (
     <IndicatorShell
+      staticSummary={staticSummary}
       title="جاهزية النشر"
       tone={tone}
       badge={<StatusBadge tone={tone}>{review.readinessDecision.level}</StatusBadge>}

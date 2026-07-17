@@ -1781,11 +1781,11 @@ export default function ContentReviewPage() {
             <Panel>
               <SectionTitle title="المؤشرات المساندة للقرار" subtitle="مؤشرات مساندة، ويبقى القرار على الملاحظات والأدلة والأثر." />
               <div className="grid gap-3">
-                <ComplianceIndicatorCard review={review} />
-                <RiskIndicatorCard review={review} />
-                <ProfessionalismIndicatorCard review={review} />
-                <LanguageIndicatorCard review={review} />
-                <ReadinessIndicatorCard review={review} />
+                <ComplianceIndicatorCard review={review} staticSummary />
+                <RiskIndicatorCard review={review} staticSummary />
+                <ProfessionalismIndicatorCard review={review} staticSummary />
+                <LanguageIndicatorCard review={review} staticSummary />
+                <ReadinessIndicatorCard review={review} staticSummary />
               </div>
             </Panel>
 
