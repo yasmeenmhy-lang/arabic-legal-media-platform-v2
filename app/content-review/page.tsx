@@ -432,7 +432,9 @@ export default function ContentReviewPage() {
   // التخصص إجباري للتحليل الأول فقط. لإعادة تحليل محتوى مُحلَّل/مفتوح من السجل لا يُشترط —
   // فهو لا يُرسَل للخدمة أصلاً، وكان اشتراطه يعطّل زر «إعادة التحليل» بلا سبب.
   const isReanalysis = Boolean(review || contentId);
-  const canAnalyze = Boolean(kind && audience && purpose) && (isReanalysis || Boolean(specialty)) && text.trim().length >= 5;
+  // إعادة التحليل تُتاح فقط بعد «تعديل» أو «مسح + كتابة» (كلاهما يفعّل isEditing) — لا على محتوى مُحلَّل لم يُلمس.
+  // التحليل الأول يتطلب اكتمال السياق مع التخصص. النص لا يقل عن ٥ أحرف في الحالتين.
+  const canAnalyze = text.trim().length >= 5 && Boolean(kind && audience && purpose) && (isReanalysis ? isEditing : Boolean(specialty));
   const contextScore = [kind, audience, purpose, specialty].filter(Boolean).length;
   const contentTypeLabel = kind ? contentTypes.find((item) => item.value === kind)?.label ?? "محتوى مهني" : "";
   const sortedFindings = useMemo(
