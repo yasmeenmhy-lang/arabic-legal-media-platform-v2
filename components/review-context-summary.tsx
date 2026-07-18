@@ -17,7 +17,7 @@ export type StoredReviewContext = {
   purpose?: string;
   riskLevel?: string;
   isCompliant?: boolean;
-  publishingReadinessScore?: number;
+  readinessLevel?: string;
   reviewedAt?: string;
 };
 
@@ -61,7 +61,7 @@ export type StoredReviewSnapshot = {
   risk: {
     level: string;
     reason: string;
-    publishingReadinessScore: number;
+    readinessLevel: string;
   };
   references: ReviewResult["referencesPanel"];
 };
@@ -76,9 +76,9 @@ export function saveLatestReviewSnapshot(review: ReviewResult) {
   const context: StoredReviewContext = {
     ...review.reviewContext,
     riskLevel: review.riskLevel,
-    // الامتثال حكم نظامي مباشر (وجود مخالفة أو عدمه) لا نسبة مئوية — بقرار مالكة المنصة
+    // الامتثال وجاهزية النشر أحكام مباشرة لا نسب مئوية — بقرار مالكة المنصة
     isCompliant: review.findings.length === 0,
-    publishingReadinessScore: review.publishingReadinessScore
+    readinessLevel: review.readinessDecision.level
   };
   const snapshot: StoredReviewSnapshot = {
     context,
@@ -113,7 +113,7 @@ export function saveLatestReviewSnapshot(review: ReviewResult) {
     risk: {
       level: review.riskLevel,
       reason: review.legalRiskAssessment.reason,
-      publishingReadinessScore: review.publishingReadinessScore
+      readinessLevel: review.readinessDecision.level
     },
     references: review.referencesPanel
   };
@@ -203,7 +203,7 @@ export function ReviewContextSummary({ focus }: { focus: "findings" | "opportuni
           <div className="rounded-md bg-paper p-3"><span className="block text-ink/50">القناة</span><strong className="mt-1 block font-normal text-ink">{context.channel ?? "غير محدد"}</strong></div>
           <div className="rounded-md bg-paper p-3"><span className="block text-ink/50">مستوى المخاطر</span><strong className="mt-1 block font-normal text-ink">{context.riskLevel ? riskDisplayLabel(context.riskLevel as RiskLevel) : "غير متاح"}</strong></div>
           <div className="rounded-md bg-paper p-3"><span className="block text-ink/50">الامتثال</span><strong className="mt-1 block font-normal text-ink">{typeof context.isCompliant === "boolean" ? (context.isCompliant ? "ملتزم" : "غير ملتزم") : "غير متاح"}</strong></div>
-          <div className="rounded-md bg-paper p-3"><span className="block text-ink/50">جاهزية النشر</span><strong className="mt-1 block font-normal text-ink">{typeof context.publishingReadinessScore === "number" ? `${context.publishingReadinessScore}%` : "غير متاح"}</strong></div>
+          <div className="rounded-md bg-paper p-3"><span className="block text-ink/50">جاهزية النشر</span><strong className="mt-1 block font-normal text-ink">{context.readinessLevel ?? "غير متاح"}</strong></div>
         </div>
       </div>
       <div className="mt-4 flex flex-wrap gap-2 text-xs">
@@ -314,7 +314,7 @@ export function ReviewRiskSection() {
       </div>
       <div className="grid gap-4 lg:grid-cols-3">
         <FieldBlock label="مستوى المخاطر">{riskDisplayLabel(snapshot.risk.level as RiskLevel)}</FieldBlock>
-        <FieldBlock label="جاهزية النشر">{snapshot.risk.publishingReadinessScore}%</FieldBlock>
+        <FieldBlock label="جاهزية النشر">{snapshot.risk.readinessLevel}</FieldBlock>
         <FieldBlock label="عدد الملاحظات">{snapshot.findings.length}</FieldBlock>
       </div>
       <div className="mt-4">

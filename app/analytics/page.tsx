@@ -43,8 +43,8 @@ export default function AnalyticsPage() {
           </dl>
           <div class="metrics">
             <p><strong>الامتثال:</strong> ${analysis ? (analysis.findings.length === 0 ? "ملتزم" : "غير ملتزم") : "غير متاح"}</p>
-            <p><strong>المخاطر:</strong> ${analysis ? `${riskDisplayLabel(analysis.riskLevel as RiskLevel)} (${analysis.riskScore}%)` : "غير متاح"}</p>
-            <p><strong>جودة اللغة:</strong> ${analysis ? `${analysis.languageQuality.score}%` : "غير متاح"}</p>
+            <p><strong>المخاطر:</strong> ${analysis ? riskDisplayLabel(analysis.riskLevel as RiskLevel) : "غير متاح"}</p>
+            <p><strong>جودة اللغة:</strong> ${analysis ? (analysis.languageQuality.passed ? "سليمة" : "تحتاج تصحيح") : "غير متاح"}</p>
           </div>
           <h3>أبرز الملاحظات والإجراءات</h3>
           ${
