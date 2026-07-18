@@ -6,6 +6,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import type { ContentKind, FindingCategory, FindingDomain, ReviewContext, ReviewFinding, RiskLevel } from "@/lib/types";
 import { legalKnowledgeEntries } from "@/lib/legal-knowledge-base";
+import { OFFICIAL_CORPUS, type OfficialCorpusItem } from "@/lib/legal-official-corpus";
 import { AUTHORITIES_RULE } from "@/lib/governance";
 import {
   arabicSeverity,
@@ -39,42 +40,62 @@ function buildContextSummary(context?: ReviewContext): string {
   return parts.length > 0 ? parts.join(" | ") : "غير محدد";
 }
 
-function buildValidReferencesList(entries: typeof legalKnowledgeEntries): string {
-  const seen = new Set<string>();
-  const lines: string[] = [];
-  for (const entry of entries) {
-    if (!entry.legalReference) continue;
-    const baseRef = entry.legalReference.split("،")[0].trim();
-    if (seen.has(baseRef)) continue;
-    seen.add(baseRef);
-    const cats = entry.riskCategories?.length ? ` | يشمل: ${entry.riskCategories.join("، ")}` : "";
-    lines.push(`- ${baseRef} (${entry.articleTitle ?? entry.section})${cats}`);
-  }
-  return lines.join("\n");
+function buildValidReferencesList(): string {
+  // الفهرس من المتن الرسمي نفسه: كل قاعدة سلوك وكل مادة لائحة قابلة للاستشهاد باسمها
+  return OFFICIAL_CORPUS
+    .map((item) => `- ${item.ref} (${item.sourceDocument})`)
+    .join("\n");
 }
 
-// المتن الكامل للقواعد — النص الرسمي الحرفي لكل مادة + مناطق الرصد بالمعنى، ليحكم الذكاء
-// من المادة نفسها ومقصدها لا من عنوان مختصر. هذا هو ما يجعله «العقل الشامل» الذي يغطّي كل
-// النواحي بالمعنى، فلا يحتاج قوائم عبارات حرفية جامدة.
+// المتن الرسمي الكامل — بأمر مالكة المنصة: «شاملة كاملة لا نقص ولا زيادة».
+// النص الحرفي المنقول من منصة تشريعات وزارة العدل لكل قاعدة سلوك (47) وكل مادة من
+// اللائحة التنفيذية (90)، ليحكم الذكاء من المادة نفسها ومقصدها لا من ملخص أو عنوان.
+// مناطق الرصد بالمعنى تُلحق من قاعدة المعرفة حيث توجد إشارات مطابقة.
 function buildRuleCorpus(entries: typeof legalKnowledgeEntries): string {
-  const blocks: string[] = [];
+  const hintsByRef = new Map<string, string>();
   for (const entry of entries) {
-    if (!entry.legalReference || !entry.fullText) continue;
-    const areas = entry.riskCategories?.length
-      ? `\nمناطق الرصد بالمعنى (بأي صياغة، لا تحصر نفسك بألفاظ بعينها): ${entry.riskCategories.join("، ")}`
+    if (!entry.legalReference || !entry.riskCategories?.length) continue;
+    const baseRef = entry.legalReference.split("،")[0].trim();
+    const existing = hintsByRef.get(baseRef);
+    const hint = entry.riskCategories.join("، ");
+    hintsByRef.set(baseRef, existing ? `${existing}، ${hint}` : hint);
+  }
+  const blocks: string[] = [];
+  let lastSource = "";
+  let lastChapter = "";
+  for (const item of OFFICIAL_CORPUS) {
+    if (item.sourceDocument !== lastSource) {
+      blocks.push(`\n# ${item.sourceDocument}`);
+      lastSource = item.sourceDocument;
+      lastChapter = "";
+    }
+    if (item.chapter && item.chapter !== lastChapter) {
+      blocks.push(`## ${item.chapter}`);
+      lastChapter = item.chapter;
+    }
+    const hints = hintsByRef.get(item.ref);
+    const areas = hints
+      ? `\nمناطق الرصد بالمعنى (بأي صياغة، لا تحصر نفسك بألفاظ بعينها): ${hints}`
       : "";
-    blocks.push(`### ${entry.legalReference} — ${entry.articleTitle ?? entry.section}\nالنص الرسمي: ${entry.fullText}${areas}`);
+    blocks.push(`### ${item.ref}${item.section ? ` — ${item.section}` : ""}\n${item.text}${areas}`);
   }
   return blocks.join("\n\n");
+}
+
+// إسناد الاستشهاد لمصدره الصحيح: قاعدة سلوك أم مادة لائحة — حتى لا تُنسب مادة لائحة
+// استشهد بها الذكاء إلى قواعد السلوك خطأً عند غياب مدخلة مطابقة في قاعدة المعرفة.
+function findOfficialCorpusItem(ruleReference: string): OfficialCorpusItem | null {
+  const ref = ruleReference.split("،")[0].trim();
+  return OFFICIAL_CORPUS.find((item) => item.ref === ref || ref.startsWith(item.ref) || item.ref.startsWith(ref)) ?? null;
 }
 
 // الجزء الثابت من مطالبة الحكم (الشخصية + التعليمات + القواعد الـ46) — يُرسل كتلة system
 // مخزّنة مؤقتاً لدى المزود: قراءة واحدة تخدم كل طلبات المستخدمين المتزامنة، أسرع وأوفر،
 // ونص المستخدم يُرسل في رسالة المستخدم المتغيرة ولا يدخل التخزين إطلاقاً.
 function buildHolisticSystem(entries: typeof legalKnowledgeEntries): string {
-  const validRefs = buildValidReferencesList(entries);
+  const validRefs = buildValidReferencesList();
   const ruleCorpus = buildRuleCorpus(entries);
-  return `أنت العقل الشامل والوحيد للحكم في هذه المنصة: خبير أول في نظام المحاماة ولائحته التنفيذية وقواعد السلوك المهني للمحامين في المملكة العربية السعودية (46 قاعدة، 1447هـ)، بخبرة عملية تعادل مدير الإدارة العامة للمحاماة، ومدقق جودة وامتثال محترف. تحكم بعقل قانوني مهني منطقي كخبير بشري — لا بمطابقة كلمات أو أنماط — وتزن المعنى والغرض والأثر على كرامة المهنة كما يفعل خبير حقيقي.
+  return `أنت العقل الشامل والوحيد للحكم في هذه المنصة: خبير أول في نظام المحاماة، واللائحة التنفيذية لنظام المحاماة ١٤٤٦هـ (90 مادة — متنها الرسمي الكامل مرفق أدناه)، وقواعد السلوك المهني للمحامين (متنها الرسمي الكامل مرفق أدناه)، بخبرة عملية تعادل مدير الإدارة العامة للمحاماة، ومدقق جودة وامتثال محترف. تحكم بعقل قانوني مهني منطقي كخبير بشري — لا بمطابقة كلمات أو أنماط — وتزن المعنى والغرض والأثر على كرامة المهنة كما يفعل خبير حقيقي.
 لا توجد طبقة أخرى تسندك أو تكمّل نقصك: أنت وحدك تغطّي كل النواحي بالمعنى. أي مخالفة تفوتك تُنشر فعلاً، فكن شاملاً ودقيقاً كخبير مسؤول.
 
 ${AUTHORITIES_RULE}
@@ -170,12 +191,12 @@ evidenceExcerpt يجب أن يكون نصاً حرفياً مقتبساً من �
 - ذكر مبالغ أو أرقام أو إحصاءات دون توضيح العملة أو المصدر أو المرجع — قصور في الدقة والمصداقية المهنية يجب الإشارة إليه صراحةً في الـ explanation.
 - الحكم النهائي يجب أن يعكس جوهر النص: إن كان النص عابثاً أو مبتذلاً أو مضللاً، لا يصح أن يخرج مؤشر الامتثال «ملتزماً» أخضر بلا ملاحظة.
 
-## متن القواعد المرجعية المعتمدة (النص الرسمي الكامل)
-احكم من نص كل مادة ومقصدها. استشهد في ruleReference فقط بقاعدة وردت في هذا المتن — لا تستشهد بقاعدة خارجه:
+## المتن الرسمي المعتمد (النص الحرفي الكامل — قواعد السلوك المهني للمحامين واللائحة التنفيذية لنظام المحاماة)
+احكم من نص كل قاعدة ومادة ومقصدها. استشهد في ruleReference فقط بمرجع ورد في هذا المتن — باسمه كما ورد («القاعدة …» لقواعد السلوك، «المادة …» لمواد اللائحة) — ولا تستشهد بمرجع خارجه:
 
 ${ruleCorpus}
 
-### فهرس القواعد القابلة للاستشهاد (الأسماء فقط)
+### فهرس المراجع القابلة للاستشهاد (الأسماء ومصادرها)
 ${validRefs}
 
 أجب بـ JSON array فقط — لا تضف أي نص خارجه:
@@ -281,12 +302,15 @@ function buildSemanticFinding(
   const evidence = violation.evidenceExcerpt.trim();
   if (!evidence) return null;
 
+  // عند غياب مدخلة قاعدة المعرفة: يُسند الاستشهاد إلى مصدره الصحيح من المتن الرسمي
+  // (قاعدة سلوك أو مادة لائحة) بدل افتراض قواعد السلوك دائماً.
+  const corpusItem = entry ? null : findOfficialCorpusItem(violation.ruleReference);
   const legalKnowledgeEntryId = entry?.id ?? violation.ruleReference.replace(/\s+/g, "-").replace(/،/g, "");
   const legalReference = entry?.legalReference ?? violation.ruleReference;
-  const sourceDocumentId = entry?.sourceDocumentId ?? DEFAULT_SOURCE_DOCUMENT_ID;
-  const sourceDocument = entry?.sourceDocument ?? DEFAULT_SOURCE_DOCUMENT;
-  const articleTitle = entry?.articleTitle ?? violation.ruleReference;
-  const sourceUrl = entry?.sourceUrl ?? DEFAULT_SOURCE_URL;
+  const sourceDocumentId = entry?.sourceDocumentId ?? corpusItem?.sourceDocumentId ?? DEFAULT_SOURCE_DOCUMENT_ID;
+  const sourceDocument = entry?.sourceDocument ?? corpusItem?.sourceDocument ?? DEFAULT_SOURCE_DOCUMENT;
+  const articleTitle = entry?.articleTitle ?? (corpusItem ? `${corpusItem.ref}${corpusItem.section ? ` — ${corpusItem.section}` : ""}` : violation.ruleReference);
+  const sourceUrl = entry?.sourceUrl ?? corpusItem?.sourceUrl ?? DEFAULT_SOURCE_URL;
 
   const classification = entry
     ? classifyLegalKnowledgeEntry(entry)
@@ -313,7 +337,7 @@ function buildSemanticFinding(
     sourceDocument,
     legalReference,
     articleTitle,
-    articleTextExcerpt: entry?.fullText ?? "",
+    articleTextExcerpt: entry?.fullText ?? corpusItem?.text ?? "",
     explanation: violation.explanation,
     // تأنيث نوع المخالفة ليطابق «مخالفة» المؤنثة (كان: «مخالفة ضمني» ← الصواب «مخالفة ضمنية»)
     legalExplanation: `العبارة «${evidence}» تُعد مخالفة ${({ "صريح": "صريحة", "ضمني": "ضمنية", "سياقي": "سياقية" } as const)[violation.violationType] ?? violation.violationType} لـ${legalReference} من ${sourceDocument}: ${violation.explanation}`,
