@@ -88,11 +88,11 @@ export function StudioResultsDashboard({ review, text, visual, onEdit }: Props) 
         ) : null}
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-6">
         {indicators.map((indicator) => {
           const colors = toneCardStyles[indicator.tone];
           return (
-            <Panel key={indicator.label} className={`relative min-w-0 border ${colors.border} pt-6`}>
+            <Panel key={indicator.label} className={`relative min-h-28 min-w-0 border ${colors.border} px-3 pt-6 sm:px-5`}>
               <span className={`absolute inset-x-0 top-0 h-1 ${colors.bar}`} aria-hidden="true" />
               <p className="mb-3 text-xs font-semibold text-ink/50">{indicator.label}</p>
               <StatusBadge tone={indicator.tone}>{indicator.value}</StatusBadge>

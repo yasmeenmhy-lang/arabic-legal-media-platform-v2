@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   AlertTriangle,
+  ArrowRight,
   Award,
   BarChart2,
   BookOpen,
@@ -1128,16 +1129,13 @@ export default function ContentStudioPage() {
 
   // ── Reset ──
 
-  function resetPath() {
+  // رجوع مرحلي يحافظ على المدخلات والنتيجة السابقة؛ لا يعيد ضبط عمل المستخدم.
+  function goBackOneStage() {
+    if (review) {
+      setReview(null);
+      return;
+    }
     setPath(null);
-    setReview(null);
-    setReviewText("");
-    setGeneratedText("");
-    setTopic("");
-    setSource("");
-    setGlobalSub("");
-    setGenerateError("");
-    setReviewError("");
   }
 
   function clearTypeSpecificFields() {
@@ -1823,6 +1821,7 @@ export default function ContentStudioPage() {
         eyebrow="الاستوديو"
         title="إعداد المحتوى المهني"
         description="راجع محتوى جاهزاً أو أنشئ محتوى جديداً — كلاهما يمر عبر محرك التحليل النظامي."
+        action={path ? <Button variant="secondary-gray" onClick={goBackOneStage} leadingIcon={<ArrowRight size={16} />}>رجوع</Button> : undefined}
       />
 
       {/* ── 1. Context selectors ── */}
@@ -2672,10 +2671,10 @@ export default function ContentStudioPage() {
             <SectionTitle title="2. النص محل المراجعة" />
             <button
               type="button"
-              onClick={resetPath}
+              onClick={goBackOneStage}
               className="text-xs text-ink/50 transition hover:text-ink"
             >
-              تغيير المسار
+              رجوع
             </button>
           </div>
 
@@ -2719,10 +2718,10 @@ export default function ContentStudioPage() {
             <SectionTitle title="2. مصدر المحتوى" />
             <button
               type="button"
-              onClick={resetPath}
+              onClick={goBackOneStage}
               className="text-xs text-ink/50 transition hover:text-ink"
             >
-              تغيير المسار
+              رجوع
             </button>
           </div>
 
@@ -2829,7 +2828,7 @@ export default function ContentStudioPage() {
       )}
 
       {/* Generating spinner */}
-      {generating && (
+      {path === "create" && generating && (
         <Panel>
           <div className="flex flex-col items-center gap-4 py-8">
             <Bot size={32} className="animate-pulse text-violet" />
@@ -3431,7 +3430,7 @@ export default function ContentStudioPage() {
       )}
 
       {/* Reviewing spinner */}
-      {reviewing && (
+      {path && reviewing && (
         <Panel>
           <div className="flex flex-col items-center gap-3 py-8">
             <FileCheck2 size={28} className="animate-pulse text-palm" />
@@ -3441,7 +3440,7 @@ export default function ContentStudioPage() {
       )}
 
       {/* ── 5. Results ── */}
-      {review && !reviewing && (
+      {path && review && !reviewing && (
         <StudioResultsDashboard
           review={review}
           text={activeText}
