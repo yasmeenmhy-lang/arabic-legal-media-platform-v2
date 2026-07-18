@@ -389,13 +389,13 @@ const contentTypeIcons: Record<string, React.ReactNode> = {
 };
 
 const channelIcons: Record<string, React.ReactNode> = {
-  LinkedIn: <LinkedInIcon size={13} />,
-  X: <XIcon size={13} />,
-  Instagram: <InstagramIcon size={13} />,
-  TikTok: <TikTokIcon size={13} />,
-  Snapchat: <SnapchatIcon size={13} />,
-  YouTube: <YouTubeIcon size={13} />,
-  "الموقع الإلكتروني": <Globe size={13} />,
+  LinkedIn: <LinkedInIcon size={13} className="text-[#0A66C2]" />,
+  X: <XIcon size={13} className="text-black" />,
+  Instagram: <InstagramIcon size={13} className="text-[#E4405F]" />,
+  TikTok: <TikTokIcon size={13} className="text-black" />,
+  Snapchat: <SnapchatIcon size={13} className="text-[#E5CF00]" />,
+  YouTube: <YouTubeIcon size={13} className="text-[#FF0000]" />,
+  "الموقع الإلكتروني": <Globe size={13} className="text-palm" />,
 };
 
 const audienceIcons: Record<string, React.ReactNode> = {
