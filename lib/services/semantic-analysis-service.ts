@@ -222,6 +222,27 @@ function buildHolisticUserMessage(text: string, contextSummary: string): string 
 «${text}»`;
 }
 
+// قراءة ثانية للحاكم نفسه على نتيجته الأولى — تحقق اكتمال لا مصدر حكم جديد ولا طبقة
+// تسند نقصه: القراءة الواحدة على متن من 137 مادة وقاعدة قد تُغفل مخالفة مقابلة
+// (كمخالفة لائحة تستوجب أيضاً مخالفة نشر إلكتروني) رغم اجتيازها ضوابط الدقة كاملة.
+// هذه قراءة ثانية لنفس العقل تسد فجوة التذكّر (recall) دون المساس بضوابط منع
+// التلفيق (evidence/confidence) التي تُطبَّق على مخرجها كما تُطبَّق على القراءة الأولى.
+function buildVerificationUserMessage(text: string, contextSummary: string, firstPassJson: string): string {
+  return `${contextSummary !== "غير محدد" ? `السياق الإضافي: ${contextSummary}\n\n` : ""}## النص المراد تحليله
+«${text}»
+
+## نتيجتك في القراءة الأولى
+${firstPassJson}
+
+## مهمة القراءة الثانية — تحقق الاكتمال
+راجع نتيجتك أعلاه مقابل النص والمتن الرسمي الكامل في تعليمات النظام، وتحقق تحديداً من الآتي قبل إقفال حكمك:
+1. لكل مخالفة رصدتها: هل نفس الواقعة أو الدليل يخالف أيضاً مادة أو قاعدة أخرى من الوثيقة المقابلة (لائحة ↔ قواعد سلوك) لم تستشهد بها؟ راجع تحديداً «الربط الإلزامي بين مخالفة اللائحة والنشر الإلكتروني» أعلاه.
+2. راجع النص كاملاً مرة أخيرة من الزوايا الثماني عشرة (الامتثال، المخاطر، الجوانب المهنية، اللغة) — هل فاتتك مخالفة لم تظهر في نتيجتك الأولى؟
+3. لا تُكرر نفس المخالفة (نفس ruleReference ونفس evidenceExcerpt) مرتين، ولا تحذف مخالفة صحيحة رصدتها أول مرة إلا إن ثبت خطؤها.
+
+أجب بمصفوفة JSON نهائية كاملة (نتيجتك الأولى مصححةً ومكتملة) بنفس التنسيق المحدد سابقاً — لا تضف أي نص خارجها.`;
+}
+
 interface HolisticViolation {
   ruleReference: string;
   confidenceLevel: "مرتفع" | "متوسط" | "منخفض";
@@ -403,27 +424,17 @@ export type SemanticAnalysisResult =
   | { mode: "full"; findings: ReviewFinding[] }
   | { mode: "pattern-only"; findings: ReviewFinding[]; degradedReason: "missing-key" | "api-error" | "timeout" };
 
-export async function runSemanticAnalysis(
-  text: string,
-  context: ReviewContext | undefined,
-  contentKind?: ContentKind
-): Promise<SemanticAnalysisResult> {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) {
-    console.warn("[semantic] ANTHROPIC_API_KEY missing — falling back to pattern-only");
-    return { mode: "pattern-only", findings: [], degradedReason: "missing-key" };
-  }
+type HolisticCallOutcome =
+  | { ok: true; violations: HolisticViolation[]; truncatedEmpty: boolean }
+  | { ok: false; reason: "timeout" | "api-error" };
 
-  const profile = resolveScoringProfile(contentKind ?? ("post" as ContentKind), context?.channel);
-  const contextSummary = buildContextSummary(context);
-
-  const eligibleEntries = legalKnowledgeEntries.filter((e) => e.legalReference);
-  console.log("[semantic] starting holistic analysis: anchored to", eligibleEntries.length, "KB entries");
-
-  const client = new Anthropic({ apiKey });
-  const system = buildHolisticSystem(eligibleEntries);
-  const userMessage = buildHolisticUserMessage(text, contextSummary);
-
+// نداء واحد للحاكم الدلالي — يُستخدم للقراءة الأولى وللقراءة الثانية (تحقق الاكتمال) معاً.
+async function callHolisticJudge(
+  client: Anthropic,
+  system: string,
+  userMessage: string,
+  label: string
+): Promise<HolisticCallOutcome> {
   let message: Awaited<ReturnType<typeof client.messages.create>>;
   try {
     const controller = new AbortController();
@@ -449,9 +460,9 @@ export async function runSemanticAnalysis(
     }
   } catch (err) {
     const isTimeout = err instanceof Error && (err.name === "AbortError" || err.message.includes("abort"));
-    const degradedReason = isTimeout ? "timeout" : "api-error";
-    console.warn("[semantic] API call failed — falling back to pattern-only, reason:", degradedReason, err instanceof Error ? err.message : "");
-    return { mode: "pattern-only", findings: [], degradedReason };
+    const reason = isTimeout ? "timeout" : "api-error";
+    console.warn(`[semantic] ${label} call failed — reason:`, reason, err instanceof Error ? err.message : "");
+    return { ok: false, reason };
   }
 
   const rawText = message.content
@@ -463,15 +474,49 @@ export async function runSemanticAnalysis(
   // فشل مغلق: تعذّر قراءة جواب المحرك (JSON مكسور/مقطوع بلا كائن مكتمل) ليس «لا مخالفات» —
   // يُعامل عطلاً فيظهر التحذير بدل نتيجة «ملتزم» زائفة.
   if (violations === null) {
-    console.warn("[semantic] unparseable engine response — failing closed. raw head:", rawText.slice(0, 200));
-    return { mode: "pattern-only", findings: [], degradedReason: "api-error" };
+    console.warn(`[semantic] ${label}: unparseable engine response. raw head:`, rawText.slice(0, 200));
+    return { ok: false, reason: "api-error" };
   }
+  const truncatedEmpty = message.stop_reason === "max_tokens" && violations.length === 0;
   if (message.stop_reason === "max_tokens") {
-    console.warn("[semantic] response truncated at max_tokens — salvaged complete findings:", violations.length);
-    // انقطع الجواب بلا أي مخالفة مكتملة: لا يُدّعى الامتثال — فشل مغلق
-    if (violations.length === 0) return { mode: "pattern-only", findings: [], degradedReason: "api-error" };
+    console.warn(`[semantic] ${label}: response truncated at max_tokens — salvaged complete findings:`, violations.length);
   }
-  console.log("[semantic] violations identified by Claude:", violations.length);
+  console.log(`[semantic] ${label}: violations =`, violations.length);
+  return { ok: true, violations, truncatedEmpty };
+}
+
+export async function runSemanticAnalysis(
+  text: string,
+  context: ReviewContext | undefined,
+  contentKind?: ContentKind
+): Promise<SemanticAnalysisResult> {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) {
+    console.warn("[semantic] ANTHROPIC_API_KEY missing — falling back to pattern-only");
+    return { mode: "pattern-only", findings: [], degradedReason: "missing-key" };
+  }
+
+  const profile = resolveScoringProfile(contentKind ?? ("post" as ContentKind), context?.channel);
+  const contextSummary = buildContextSummary(context);
+
+  const eligibleEntries = legalKnowledgeEntries.filter((e) => e.legalReference);
+  console.log("[semantic] starting holistic analysis: anchored to", eligibleEntries.length, "KB entries");
+
+  const client = new Anthropic({ apiKey });
+  const system = buildHolisticSystem(eligibleEntries);
+  const userMessage = buildHolisticUserMessage(text, contextSummary);
+
+  const first = await callHolisticJudge(client, system, userMessage, "القراءة الأولى");
+  if (!first.ok) return { mode: "pattern-only", findings: [], degradedReason: first.reason };
+  // انقطع الجواب بلا أي مخالفة مكتملة في القراءة الأولى: لا يُدّعى الامتثال — فشل مغلق
+  if (first.truncatedEmpty) return { mode: "pattern-only", findings: [], degradedReason: "api-error" };
+
+  // قراءة ثانية لنفس الحاكم على نتيجته: تحقق اكتمال (recall) لا مصدر حكم جديد — تسد
+  // فجوة المخالفة المقابلة التي تفوت القراءة الواحدة رغم اجتيازها ضوابط الدقة كاملة.
+  // إن تعذّرت القراءة الثانية أو انقطعت: يُكتفى بنتيجة القراءة الأولى الصالحة أصلاً.
+  const verificationMessage = buildVerificationUserMessage(text, contextSummary, JSON.stringify(first.violations));
+  const second = await callHolisticJudge(client, system, verificationMessage, "قراءة التحقق");
+  const violations = second.ok && !second.truncatedEmpty ? second.violations : first.violations;
 
   const findings = violations
     .filter((violation) => {
