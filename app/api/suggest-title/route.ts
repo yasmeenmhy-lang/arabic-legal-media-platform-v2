@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { NextResponse } from "next/server";
 import { badRequest } from "@/lib/api";
-import { scanProhibited } from "@/lib/services/governor-gate";
+import { governText } from "@/lib/services/governor-gate";
 
 const schema = z.object({ text: z.string().min(20) });
 
@@ -46,15 +46,16 @@ export async function POST(request: Request) {
   if (!apiKey) return NextResponse.json({ title: heuristicTitle(text) });
 
   try {
-    // حصن الحاكم الحتمي على العنوان المقترح: إن حمل عبارة محظورة صريحة يُعاد طلبه
-    // خالياً منها؛ وإن تعذّر خرج العنوان الاحتياطي الحتمي المشتقّ من نص المستخدم نفسه.
+    // حاكم المنصة على العنوان المقترح — حكم دلالي بالمعنى (بلا أنماط حرفية، بقرار
+    // مالكة المنصة): إن حمل العنوان مخالفة يُعاد طلبه بتصحيحاتها؛ وإن تعذّر أو
+    // تعطّل الحكم خرج العنوان الاحتياطي الحتمي المشتقّ من نص المستخدم نفسه.
     let correction = "";
     for (let attempt = 0; attempt < 2; attempt++) {
       const title = await requestTitle(apiKey, text, correction);
       if (!title) break;
-      const hits = scanProhibited(title);
-      if (hits.length === 0) return NextResponse.json({ title });
-      correction = ` تجنّب تماماً هذه العبارات المحظورة نظاماً: ${hits.map((h) => `«${h.pattern}»`).join("، ")}.`;
+      const gate = await governText(title, undefined, "title", { checkLanguage: false });
+      if (gate.compliant) return NextResponse.json({ title });
+      correction = ` تجنّب تماماً هذه المخالفات النظامية في العنوان:\n${gate.corrections.join("\n")}`;
     }
     return NextResponse.json({ title: heuristicTitle(text) });
   } catch {

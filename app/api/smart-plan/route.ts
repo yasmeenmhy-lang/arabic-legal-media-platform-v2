@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
-import { scanProhibited } from "@/lib/services/governor-gate";
+import { governText } from "@/lib/services/governor-gate";
 
 const recordSchema = z.object({
   id: z.string(),
@@ -248,11 +248,13 @@ export async function POST(request: Request) {
 
   try {
     const result = JSON.parse(jsonStr) as PlanResult;
-    // حصن الحاكم الحتمي على ملاحظات التخطيط المعروضة (الملخص والفجوات والأسباب):
-    // إن حملت أيّها عبارة محظورة صريحة، يُرجَع المخطِّط المحلي الحتمي الآمن كاملاً،
-    // فلا يظهر للمستخدم أي نص يخالف القواعد ولو كان ملاحظة تخطيط داخلية.
+    // حاكم المنصة على ملاحظات التخطيط المعروضة (الملخص والفجوات والأسباب) —
+    // حكم دلالي بالمعنى (بلا أنماط حرفية، بقرار مالكة المنصة): إن حملت أيّها مخالفة
+    // أو تعذّر الحكم، يُرجَع المخطِّط المحلي الحتمي الآمن كاملاً، فلا يظهر للمستخدم
+    // أي نص يخالف القواعد ولو كان ملاحظة تخطيط داخلية.
     const commentary = [result.summary, ...(result.gaps ?? []), ...result.plan.map((p) => p.reason)].join("\n");
-    if (scanProhibited(commentary).length > 0) {
+    const gate = await governText(commentary, undefined, undefined, { checkLanguage: false });
+    if (!gate.compliant) {
       return NextResponse.json(buildLocalPlan(parsed.data));
     }
     return NextResponse.json(result);

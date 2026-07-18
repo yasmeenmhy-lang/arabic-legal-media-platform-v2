@@ -1,71 +1,20 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // حاكم المنصة — بوابة واحدة يستدعيها كل مسار يقترح أو ينشئ نصاً، بلا استثناء.
-// المرجع الحاكم: قواعد السلوك المهني للمحامين واللائحة التنفيذية لنظام المحاماة،
-// المقنَّنة في legal-knowledge-base (أرقام المواد، نصوصها، مصادرها الرسمية).
+// المرجع الحاكم: المتن الرسمي الكامل لقواعد السلوك المهني للمحامين واللائحة
+// التنفيذية لنظام المحاماة (legal-official-corpus — النصوص الحرفية بأرقام موادها).
 //
-// طبقتان تقيسان على نفس المواد الثابتة:
-//   ١) حصن حتمي (scanProhibited): مطابقة حرفية عالية الدقة للعبارات المحظورة الصريحة
-//      — فوري وبلا استدعاء ذكاء، يُطبَّق على كل نص في المنصة بلا استثناء.
-//   ٢) عمق دلالي (governText): نفس محرك المراجعة (runSemanticAnalysis) يقرأ المعنى
-//      فيمسك المخالفة ولو أُعيدت صياغتها — للمسارات التي تُنشئ نصاً قانونياً منشوراً.
+// بقرار مالكة المنصة: أُلغيت طبقة الأنماط الحرفية نهائياً — الحكم كله للعقل الذكي
+// (نفس محرك المراجعة) الذي يقرأ المعنى فيمسك المخالفة ولو أُعيدت صياغتها.
+// فشل مغلق: إذا تعذّر حكم الذكاء لا يُعد النص ممتثلاً — يُرفض التسليم بدل
+// تمرير نص لم يُفحص (نفس مبدأ المراجعة: تحذير بلا نتائج عند التعطل).
 // ─────────────────────────────────────────────────────────────────────────────
-import { legalKnowledgeEntries } from "@/lib/legal-knowledge-base";
 import { runSemanticAnalysis } from "@/lib/services/semantic-analysis-service";
 import { evaluateContent } from "@/lib/services/content-evaluation-service";
 import type { ContentKind, ReviewContext } from "@/lib/types";
 
-export type ProhibitedHit = { pattern: string; legalReference: string; articleTitle: string };
-
-// تطبيع عربي بسيط: إزالة التشكيل وتوحيد الهمزات والألف المقصورة والتاء المربوطة،
-// حتى لا تفلت العبارة المحظورة باختلاف شكلي طفيف.
-function normalizeArabic(s: string): string {
-  return s
-    .replace(/[ً-ْ]/g, "")
-    .replace(/[إأآا]/g, "ا")
-    .replace(/ى/g, "ي")
-    .replace(/ة/g, "ه")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
-// العبارات المحظورة الصريحة — متعددة الكلمات فقط لضمان دقة عالية وتفادي الإيجابيات
-// الكاذبة على ألفاظ مفردة مشتركة (مثل «يضمن» في «يضمن النظام هذا الحق»). الألفاظ
-// المفردة الملتبسة يتركها الحصن الحتمي للعمق الدلالي الذي يحكم بالمعنى لا بالكلمة.
-const PRECISE_PROHIBITIONS: ProhibitedHit[] = legalKnowledgeEntries.flatMap((entry) =>
-  (entry.prohibitedPatterns ?? [])
-    .filter((p) => p.trim().includes(" "))
-    .map((pattern) => ({
-      pattern,
-      legalReference: entry.legalReference || "قواعد السلوك المهني للمحامين",
-      articleTitle: entry.articleTitle || entry.section || "",
-    }))
-);
-
-// الحصن الحتمي: يرجع كل عبارة محظورة صريحة وُجدت في النص، منسوبة لمادتها.
-export function scanProhibited(text: string): ProhibitedHit[] {
-  const norm = normalizeArabic(text);
-  const seen = new Set<string>();
-  const hits: ProhibitedHit[] = [];
-  for (const item of PRECISE_PROHIBITIONS) {
-    if (seen.has(item.pattern)) continue;
-    if (norm.includes(normalizeArabic(item.pattern))) {
-      hits.push(item);
-      seen.add(item.pattern);
-    }
-  }
-  return hits;
-}
-
-export function prohibitionsToCorrections(hits: ProhibitedHit[]): string[] {
-  return hits.map(
-    (h) =>
-      `- عبارة محظورة صريحة تخالف ${h.legalReference}${h.articleTitle ? ` (${h.articleTitle})` : ""}: «${h.pattern}» — احذفها تماماً وأعد الصياغة بما يوافق القاعدة.`
-  );
-}
-
 // الحاكم الكامل: النص المقترح يجب أن يخرج نظيفاً من كل النواحي دفعة واحدة —
-// (١) الحصن الحتمي (عبارات محظورة صريحة)، (٢) العمق الدلالي (نفس محرك المراجعة)،
-// (٣) جودة اللغة بكل جوانبها: الإملاء والنحو والأسلوب والوضوح والمصطلحات —
+// (١) الامتثال بالعمق الدلالي (نفس محرك المراجعة على المتن الرسمي الكامل)،
+// (٢) جودة اللغة بكل جوانبها: الإملاء والنحو والأسلوب والوضوح والمصطلحات —
 // بنفس معايير المدقق التي تُعرض للمستخدم، فلا تنتقد المنصة نصها بنفسها.
 // أي ملاحظة في أيّها = النص غير نظيف فيُعاد بتصحيحاته.
 // `compliant` يميز الامتثال النظامي: المخالفة النظامية تحجب التسليم نهائياً،
@@ -78,11 +27,21 @@ export async function governText(
   opts?: { checkLanguage?: boolean }
 ): Promise<{ clean: boolean; compliant: boolean; corrections: string[] }> {
   const checkLanguage = opts?.checkLanguage !== false;
-  const prohibitions = scanProhibited(text);
   const [gov, evaluation] = await Promise.all([
     runSemanticAnalysis(text, context, contentKind),
     checkLanguage ? evaluateContent(text) : Promise.resolve(null),
   ]);
+
+  // فشل مغلق: تعذّر حكم الذكاء (عطل مفتاح/خدمة) ⇒ لا يُعد النص ممتثلاً ولا يُسلَّم —
+  // لا توجد طبقة أخرى تفحصه، وتمريره بلا فحص يناقض ضمانة «لا يخرج نص مخالف».
+  if (gov.mode !== "full") {
+    return {
+      clean: false,
+      compliant: false,
+      corrections: ["- تعذّر التحقق من الامتثال بالذكاء الاصطناعي حالياً — لا يُسلَّم نص لم يُفحص. أعد المحاولة بعد قليل."],
+    };
+  }
+
   const semantic = gov.findings.map((v) => {
     const ref = v.legalReference || "قواعد السلوك المهني للمحامين";
     const title = v.articleTitle ? ` (${v.articleTitle})` : "";
@@ -94,11 +53,10 @@ export async function governText(
     const kind = hard ? "خطأ لغوي" : "ملاحظة أسلوب أو وضوح";
     return `- ${kind}: «${i.excerpt ?? ""}» — ${i.message}${i.suggestion ? ` — التصحيح: ${i.suggestion}` : ""}`;
   });
-  const complianceCorrections = [...prohibitionsToCorrections(prohibitions), ...semantic];
-  const corrections = [...complianceCorrections, ...language];
+  const corrections = [...semantic, ...language];
   return {
     clean: corrections.length === 0,
-    compliant: complianceCorrections.length === 0,
+    compliant: semantic.length === 0,
     corrections,
   };
 }
