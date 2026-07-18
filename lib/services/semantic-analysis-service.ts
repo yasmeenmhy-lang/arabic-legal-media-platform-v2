@@ -84,9 +84,12 @@ function buildRuleCorpus(entries: typeof legalKnowledgeEntries): string {
 
 // إسناد الاستشهاد لمصدره الصحيح: قاعدة سلوك أم مادة لائحة — حتى لا تُنسب مادة لائحة
 // استشهد بها الذكاء إلى قواعد السلوك خطأً عند غياب مدخلة مطابقة في قاعدة المعرفة.
+// مطابقة تامة فقط: مطابقة الاحتواء الجزئي (startsWith) بين مرجعين مختلفين من المتن
+// تُخطئ حين يكون أحدهما بادئة حرفية للآخر (مثل «المادة السابعة» بادئة لـ«المادة
+// السابعة عشرة») فتُنسب مخالفة المادة السابعة عشرة خطأً إلى المادة السابعة.
 function findOfficialCorpusItem(ruleReference: string): OfficialCorpusItem | null {
-  const ref = ruleReference.split("،")[0].trim();
-  return OFFICIAL_CORPUS.find((item) => item.ref === ref || ref.startsWith(item.ref) || item.ref.startsWith(ref)) ?? null;
+  const ref = ruleReference.split(/[،\-–—]|الفقرة/)[0].trim();
+  return OFFICIAL_CORPUS.find((item) => item.ref === ref) ?? null;
 }
 
 // الجزء الثابت من مطالبة الحكم (الشخصية + التعليمات + القواعد الـ46) — يُرسل كتلة system
@@ -342,10 +345,16 @@ function parseHolisticResponse(raw: string): HolisticViolation[] | null {
   }
 }
 
+// بعض القواعد (كالسابعة والثلاثين والثامنة والثلاثين) لها أكثر من مدخلة في قاعدة
+// المعرفة القديمة — كل مدخلة مربوطة بفقرة أو زاوية واحدة بعينها من نفس القاعدة.
+// مرجع الذكاء لا يحدد الفقرة، فأخذ أول مدخلة تطابق رقم القاعدة تخمين قد يُسند
+// مخالفة زاويتها مختلفة كلياً (كالتضليل) إلى مدخلة زاوية أخرى (كالسرية) خطأً —
+// وهذا يُفسد التصنيف والتصعيد التلقائي المبني على هوية المدخلة. عند التباس أكثر
+// من مدخلة: لا تُخمَّن — تُعامل معاملة «بلا مدخلة» ويُبنى الحكم من المتن الرسمي
+// وتفسير الذكاء نفسه مباشرة بدل مدخلة قد لا تطابق زاوية المخالفة الفعلية.
 function findKbEntry(ruleReference: string): typeof legalKnowledgeEntries[number] | null {
-  return legalKnowledgeEntries.find(
-    (e) => e.legalReference && e.legalReference.startsWith(ruleReference)
-  ) ?? null;
+  const matches = legalKnowledgeEntries.filter((e) => e.legalReference && e.legalReference.startsWith(ruleReference));
+  return matches.length === 1 ? matches[0] : null;
 }
 
 function buildSemanticFinding(
