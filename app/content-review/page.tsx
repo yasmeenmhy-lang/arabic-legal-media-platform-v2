@@ -1743,7 +1743,13 @@ export default function ContentReviewPage() {
             على الجوال/اللوحي يبقى هذا كله ظاهراً في العمود الرئيسي كما هو تماماً دون تغيير. */}
         {review ? (
           <aside className="hidden space-y-4 lg:block lg:pl-1">
-            <Panel className="border-t-4 border-t-palm/40 shadow-md">
+            <Panel className={`border-t-4 shadow-md ${
+              decisionTone(review) === "good"
+                ? "border-t-green-400"
+                : decisionTone(review) === "danger"
+                  ? "border-t-red-400"
+                  : "border-t-slate-300"
+            }`}>
               <p className="text-xs font-bold uppercase tracking-wider text-slate-400">قرار النشر</p>
               <div className="mt-2">
                 <StatusBadge tone={decisionTone(review)}>{review.publicationDecision.label}</StatusBadge>
