@@ -132,11 +132,11 @@ export function StudioResultsDashboard({ review, text, visuals = [], onEdit, onS
 
       <Panel>
         <p className="mb-4 text-sm font-semibold text-ink">ماذا تريد؟</p>
-        <div className="flex flex-wrap gap-3">
-          <ButtonLink href="/social-media">📤 نشر مباشرة</ButtonLink>
-          <ButtonLink href="/calendar" variant="secondary">📅 جدولة</ButtonLink>
-          <Button variant="secondary-gray" onClick={onSaveDraft}>حفظ مسودة</Button>
-          <Button variant="secondary-gray" onClick={onEdit}>تعديل</Button>
+        <div className="grid grid-cols-2 gap-3 sm:flex sm:flex-wrap">
+          <ButtonLink href="/social-media" className="w-full sm:w-auto">📤 نشر مباشرة</ButtonLink>
+          <ButtonLink href="/calendar" variant="secondary" className="w-full sm:w-auto">📅 جدولة</ButtonLink>
+          <Button variant="secondary-gray" onClick={onSaveDraft} className="w-full sm:w-auto">حفظ مسودة</Button>
+          <Button variant="secondary-gray" onClick={onEdit} className="w-full sm:w-auto">تعديل</Button>
         </div>
         {actionMessage ? <p className="mt-3 text-sm text-palm">{actionMessage}</p> : null}
       </Panel>
