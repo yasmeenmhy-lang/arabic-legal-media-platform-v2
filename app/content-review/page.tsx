@@ -57,7 +57,6 @@ import { contentKindOptions } from "@/lib/content-types";
 import { QUOTE_INTEGRITY_NOTICE } from "@/lib/quote-notice";
 import {
   approveContentVersion,
-  clearActiveContentSelection,
   getActiveContentSelection,
   loadContentRecords,
   markContentShared,
@@ -430,6 +429,10 @@ export default function ContentReviewPage() {
   }, [contentId, versionNumber]);
 
   const hasReviewContext = Boolean(kind && audience && purpose && specialty);
+  // التخصص إجباري للتحليل الأول فقط. لإعادة تحليل محتوى مُحلَّل/مفتوح من السجل لا يُشترط —
+  // فهو لا يُرسَل للخدمة أصلاً، وكان اشتراطه يعطّل زر «إعادة التحليل» بلا سبب.
+  const isReanalysis = Boolean(review || contentId);
+  const canAnalyze = Boolean(kind && audience && purpose) && (isReanalysis || Boolean(specialty)) && text.trim().length >= 5;
   const contextScore = [kind, audience, purpose, specialty].filter(Boolean).length;
   const contentTypeLabel = kind ? contentTypes.find((item) => item.value === kind)?.label ?? "محتوى مهني" : "";
   const sortedFindings = useMemo(
@@ -438,7 +441,7 @@ export default function ContentReviewPage() {
   );
 
   async function requestReview(reviewStatus?: "READY_FOR_PUBLISHING") {
-    if (!kind || !audience || !purpose || !specialty) {
+    if (!kind || !audience || !purpose || (!isReanalysis && !specialty)) {
       throw new Error("اختر نوع المحتوى والجمهور والهدف والتخصص قبل التحليل حتى ترتبط النتائج بالسياق الصحيح.");
     }
     const response = await fetch("/api/reviews", {
@@ -454,7 +457,7 @@ export default function ContentReviewPage() {
   }
 
   async function runReview() {
-    if (!kind || !audience || !purpose || !specialty) {
+    if (!kind || !audience || !purpose || (!isReanalysis && !specialty)) {
       setMessage("اختر نوع المحتوى والجمهور والهدف والتخصص قبل التحليل حتى ترتبط النتائج بالسياق الصحيح.");
       return;
     }
@@ -570,8 +573,8 @@ export default function ContentReviewPage() {
   }
 
   function saveEdits() {
-    if (!contentId || text.trim().length < 5 || !kind || !audience || !purpose || !specialty) {
-      setMessage("تعذر الحفظ: أدخل نصًا من خمسة أحرف على الأقل واختر نوع المحتوى والجمهور والهدف والتخصص.");
+    if (!contentId || text.trim().length < 5 || !kind || !audience || !purpose) {
+      setMessage("تعذر الحفظ: أدخل نصًا من خمسة أحرف على الأقل واختر نوع المحتوى والجمهور والهدف.");
       return;
     }
     const saved = saveContentDraft({
@@ -692,17 +695,11 @@ export default function ContentReviewPage() {
   }
 
   function clearContentInput() {
-    clearActiveContentSelection();
+    // بأمر المستخدمة: «مسح المحتوى» يمسح صندوق النص فقط — النتيجة والحقول والسجل تبقى كما هي.
+    // يفتح وضع التعديل (مع لقطة تراجع) حتى تكتبي نصاً جديداً وتعيدي التحليل مباشرة.
+    enterEditingIfNeeded();
     setText("");
-    setReview(null);
-    setApproved(false);
-    setVersionNumber(undefined);
-    setContentId(undefined);
-    setIsEditing(false);
-    setEditSnapshot(null);
-    setAiSuggestion(null);
-    setSuggestionError(null);
-    setMessage("تم مسح محتوى مربع النص فقط. لم تتغير بقية الحقول أو السجلات المحفوظة.");
+    setMessage("تم مسح صندوق النص فقط. النتيجة الحالية تبقى ظاهرة حتى تعيدي التحليل بعد كتابة النص الجديد.");
   }
 
   async function requestAISuggestion() {
@@ -1518,9 +1515,9 @@ export default function ContentReviewPage() {
         ) : null}
         <div className="mt-4 flex flex-wrap gap-3">
           {/* زر التحليل ظاهر دائماً — بعد ظهور النتائج يصبح «إعادة التحليل» بلا حاجة لدخول وضع التعديل */}
-          <Button size="lg" onClick={runReview} disabled={loading || text.trim().length < 5 || !hasReviewContext} leadingIcon={loading ? <DgaSpinner size="sm" tone="violet" /> : <FileText size={17} />}>{loading ? "جار التحليل..." : review || contentId ? "إعادة التحليل" : "تحليل المحتوى"}</Button>
+          <Button size="lg" onClick={runReview} disabled={loading || !canAnalyze} leadingIcon={loading ? <DgaSpinner size="sm" tone="violet" /> : <FileText size={17} />}>{loading ? "جار التحليل..." : review || contentId ? "إعادة التحليل" : "تحليل المحتوى"}</Button>
           {review && !isEditing ? <Button variant="secondary" onClick={beginEditing} leadingIcon={<Edit3 size={16} />}>تعديل</Button> : null}
-          {isEditing && contentId ? <Button variant="secondary" onClick={saveEdits} disabled={loading || text.trim().length < 5 || !hasReviewContext} leadingIcon={<Save size={16} />}>حفظ التعديلات</Button> : null}
+          {isEditing && contentId ? <Button variant="secondary" onClick={saveEdits} disabled={loading || text.trim().length < 5 || !(kind && audience && purpose)} leadingIcon={<Save size={16} />}>حفظ التعديلات</Button> : null}
           {isEditing ? <Button variant="secondary-gray" onClick={cancelEditing} disabled={loading} leadingIcon={<AlertTriangle size={16} />}>إلغاء</Button> : null}
         </div>
         {message ? <p className="mt-3 text-sm text-palm">{message}</p> : null}
