@@ -3749,7 +3749,13 @@ export default function ContentStudioPage() {
           {/* الريل الأيسر — الحاسب فقط (lg+): ملخّص ثابت للقرار والمؤشرات بجانب المحتوى.
               إضافة لا حذف؛ التفاصيل الكاملة تبقى في المنتصف، والجوال لا يظهر هذا الريل. */}
           <aside className="hidden space-y-4 lg:sticky lg:top-20 lg:block">
-            <Panel className="border-t-4 border-t-palm/40 shadow-md">
+            <Panel className={`border-t-4 shadow-md ${
+              review.publicationDecision.outcome === "RECOMMENDED"
+                ? "border-t-green-400"
+                : review.publicationDecision.outcome === "NOT_RECOMMENDED" || review.publicationDecision.outcome === "LEGAL_REVIEW_REQUIRED"
+                  ? "border-t-red-400"
+                  : "border-t-amber-400"
+            }`}>
               <p className="text-xs font-bold uppercase tracking-wider text-slate-400">قرار النشر</p>
               <div className="mt-2">
                 {(() => {
