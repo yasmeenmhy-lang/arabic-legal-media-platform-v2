@@ -32,6 +32,16 @@ export async function POST(request: Request) {
 
   try {
     const baseReview = await reviewContent(parsed.data.text, parsed.data.kind, context);
+
+    // مبدأ «فشل مغلق»: إن تعذّر تحليل الذكاء (تعطّل/عطل مفتاح) لا تُعرض أي نتائج إطلاقاً —
+    // تظهر رسالة تحذيرية فقط. لا نتائج نمطية بديلة تُوهم المستخدم بحكم غير مكتمل.
+    if (baseReview.analysisMode === "pattern-only" || baseReview.evaluationIncomplete) {
+      return NextResponse.json(
+        { error: "تعذّر إكمال التحليل بالذكاء الاصطناعي حالياً، ولم تُعرض أي نتائج حفاظاً على دقة الحكم. أعد المحاولة بعد قليل.", unavailable: true },
+        { status: 503 }
+      );
+    }
+
     const review = await enhanceReviewOutput({
       text: parsed.data.text,
       kind: parsed.data.kind,
