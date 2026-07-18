@@ -62,14 +62,6 @@ export function StudioResultsDashboard({ review, text, visuals = [], onEdit, onS
 
   return (
     <section aria-labelledby="studio-results-title" className="space-y-5">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <p className="text-xs font-semibold text-ink/50">مساعد قرار النشر للمحامي</p>
-          <h2 id="studio-results-title" className="mt-1 text-xl font-semibold text-ink">المؤشرات المساندة للقرار</h2>
-        </div>
-        <Button variant="secondary-gray" onClick={onEdit}>تعديل النص</Button>
-      </div>
-
       <div className={`grid items-stretch gap-4 ${visuals.length ? "lg:grid-cols-2" : ""}`}>
         <Panel>
           <p className="mb-3 flex items-center gap-2 text-sm font-semibold text-ink"><FileText size={16} aria-hidden="true" />النص محل المراجعة</p>
@@ -97,6 +89,14 @@ export function StudioResultsDashboard({ review, text, visuals = [], onEdit, onS
             </div>
           </Panel>
         ) : null}
+      </div>
+
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <p className="text-xs font-semibold text-ink/50">مساعد قرار النشر للمحامي</p>
+          <h2 id="studio-results-title" className="mt-1 text-xl font-semibold text-ink">المؤشرات المساندة للقرار</h2>
+        </div>
+        <Button variant="secondary-gray" onClick={onEdit}>تعديل النص</Button>
       </div>
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-6">
