@@ -25,6 +25,9 @@ export default function LoginPage() {
         {configured ? (
           <>
             <LoginForm />
+            <p className="mt-3 text-xs leading-6 text-ink/55">
+              نسيتِ رمز الدخول؟ تواصلي مع مسؤول المنصة لإعادة تعيينه — لا يوجد بريد إلكتروني مسجَّل لاسترجاعه ذاتياً.
+            </p>
             <div className="mt-4">
               <RegisterRequestForm />
             </div>

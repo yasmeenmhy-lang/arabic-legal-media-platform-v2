@@ -66,6 +66,9 @@ export default function ContentManagementPage() {
   // تصدير/استيراد السجل — بقرار مالكة المنصة: النقل الآمن بين المتصفحات والعناوين
   const importInputRef = useRef<HTMLInputElement>(null);
   const [transferMsg, setTransferMsg] = useState("");
+  // اسم الحساب الفعلي من الجلسة الموقّعة في الخادم (لا من تخزين المتصفح) — يُعرض صراحة
+  // فوق السجل حتى يتأكد المستخدم دوماً أي حساب يرى سجله، خصوصاً عند تعدد التبويبات
+  const [sessionAccount, setSessionAccount] = useState<string>("");
 
   function exportRecordsToFile() {
     const payload = exportContentRecords();
@@ -99,6 +102,14 @@ export default function ContentManagementPage() {
     const onStatus = (e: Event) => setSyncState((e as CustomEvent).detail);
     window.addEventListener("lm-records-synced", onSynced);
     window.addEventListener("lm-sync-status", onStatus);
+    // اسم الحساب من الجلسة الحقيقية في الخادم — لا يُعتمد على تخزين المتصفح الذي قد
+    // يتأخر عن جلسة دخول جديدة في تبويب آخر من نفس المتصفح
+    fetch("/api/auth/me")
+      .then((r) => r.json())
+      .then((d: { authenticated?: boolean; username?: string }) => {
+        if (d?.authenticated && d.username) setSessionAccount(d.username);
+      })
+      .catch(() => undefined);
     return () => {
       window.removeEventListener("lm-records-synced", onSynced);
       window.removeEventListener("lm-sync-status", onStatus);
@@ -338,6 +349,12 @@ export default function ContentManagementPage() {
         description="السجل الدائم لكل محتوى وإصداراته وتحليلاته ومراجعه واعتماداته وتحركاته."
         action={<ButtonLink href="/content-review">إعداد محتوى جديد</ButtonLink>}
       />
+
+      {sessionAccount ? (
+        <p className="text-xs leading-6 text-ink/55">
+          هذا سجل حساب: <strong className="font-semibold text-ink/80">{sessionAccount}</strong> — إذا كان هذا ليس حسابك، سجّلي الخروج وادخلي بحسابك الصحيح.
+        </p>
+      ) : null}
 
       {/* رسالة طمأنة: السجل وسيلة وقائية داخلية — لا استخدام تأديبياً وسرية تامة */}
       <div className="rounded-xl border border-infoBorder bg-infoSoft p-4">
