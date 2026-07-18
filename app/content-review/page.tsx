@@ -199,7 +199,7 @@ type ReviewTab = (typeof reviewTabs)[number]["key"];
 function decisionTone(review: ReviewResult) {
   if (review.analysisMode === "pattern-only" || review.evaluationIncomplete) return "neutral" as const;
   if (review.publicationDecision.outcome === "RECOMMENDED") return "good" as const;
-  if (review.publicationDecision.outcome === "RECOMMENDED_AFTER_FINDINGS") return "neutral" as const;
+  if (review.publicationDecision.outcome === "RECOMMENDED_AFTER_FINDINGS") return "gold" as const;
   // غير موصى بالنشر / يتطلب مراجعة — كلاهما حالة "لا نشر قبل المعالجة" بالأحمر
   return "danger" as const;
 }
@@ -819,12 +819,21 @@ export default function ContentReviewPage() {
         action={<ButtonLink href="/content-studio?results=1" variant="secondary-gray"><ArrowRight size={16} />العودة إلى نتائج الاستديو</ButtonLink>}
       />
 
-      {/* الحاسب: الإدخال + النتائج في العمود الأيسر، والرَّيل عمود يمين بمحاذاته (كالمخطّط).
-          قبل التحليل عمود واحد بعرض كامل؛ بعده عمودان. الجوال/اللوحي عمود واحد كما هو. */}
-      <div className={`lg:grid lg:items-start lg:gap-6 ${review ? "lg:grid-cols-[minmax(0,1fr)_24rem]" : ""}`}>
+      {/* النتائج بعرض الصفحة للحاسب والآيباد؛ الجوال يحتفظ بتسلسله العمودي. */}
+      <div>
         <div className="min-w-0 space-y-6">
       <Panel id="input">
         <SectionTitle title="1. إدخال المحتوى والسياق" subtitle="كلما اكتمل السياق ارتفعت موثوقية التوصية." />
+
+        <details open={!review} className="group">
+          <summary className="flex cursor-pointer list-none items-center justify-between gap-3 rounded-lg border border-line bg-paper px-4 py-3 text-sm font-semibold text-ink focus-ring">
+            <span>{review ? "عرض السياق والمحتوى أو تعديله" : "إدخال السياق والمحتوى"}</span>
+            <span className="flex items-center gap-2 text-xs font-normal text-ink/50">
+              {review ? "معبأ وجاهز من الاستديو" : "أكمل الحقول المطلوبة"}
+              <ChevronDown size={16} className="transition-transform group-open:rotate-180" aria-hidden="true" />
+            </span>
+          </summary>
+          <div className="pt-5">
 
         {/* شريط اكتمال السياق */}
         <div className="mb-5">
@@ -1532,6 +1541,8 @@ export default function ContentReviewPage() {
           {isEditing ? <Button variant="secondary-gray" onClick={cancelEditing} disabled={loading} leadingIcon={<AlertTriangle size={16} />}>إلغاء</Button> : null}
         </div>
         {message ? <p className="mt-3 text-sm text-palm">{message}</p> : null}
+          </div>
+        </details>
       </Panel>
 
       {review ? (
@@ -1549,14 +1560,14 @@ export default function ContentReviewPage() {
 
           <Panel
             id="decision"
-            className={`border-t-4 shadow-md lg:hidden ${
+            className={`border border-t-4 bg-white shadow-md ${
               review.analysisMode === "pattern-only" || review.evaluationIncomplete
-                ? "border-t-slate-300 bg-white"
+                ? "border-warmGrayBorder border-t-warmGray"
                 : review.publicationDecision.outcome === "RECOMMENDED"
-                  ? "border-t-green-400 bg-green-50/40"
+                  ? "border-palm/25 border-t-palm"
                   : review.publicationDecision.outcome === "NOT_RECOMMENDED" || review.publicationDecision.outcome === "LEGAL_REVIEW_REQUIRED"
-                    ? "border-t-red-400 bg-red-50/40"
-                    : "border-t-amber-400 bg-amber-50/40"
+                    ? "border-red-200 border-t-red-600"
+                    : "border-goldBorder border-t-gold"
             }`}
           >
             {review.analysisMode === "pattern-only" || review.evaluationIncomplete ? (
@@ -1598,19 +1609,18 @@ export default function ContentReviewPage() {
             )}
           </Panel>
 
-          {/* المؤشرات المساندة — تبقى في العمود الرئيسي على الجوال/اللوحي كما هي.
-              على الحاسب (lg+) تُنقل إلى العمود الجانبي تحت «قرار النشر» وفوق «اعتماد النسخة». */}
-          <section id="analysis-summary" aria-labelledby="supporting-indicators-title" className="space-y-4 scroll-mt-24 lg:hidden">
+          {/* مؤشرات واسعة: عمود على الجوال، عمودان على الآيباد، وثلاثة ثم اثنان على الحاسب. */}
+          <section id="analysis-summary" aria-labelledby="supporting-indicators-title" className="space-y-4 scroll-mt-24">
             <SectionTitle
               title="المؤشرات المساندة للقرار"
               subtitle="توضح الرسوم مستوى كل جانب، بينما تبقى الملاحظات والأدلة والأثر والإجراء الموصى به هي أساس القرار."
             />
-            <div className="grid gap-4 xl:grid-cols-2">
-              <ComplianceIndicatorCard review={review} staticSummary />
-              <RiskIndicatorCard review={review} staticSummary />
-              <ProfessionalismIndicatorCard review={review} staticSummary />
-              <LanguageIndicatorCard review={review} staticSummary />
-              <ReadinessIndicatorCard review={review} staticSummary />
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-6">
+              <div className="min-w-0 xl:col-span-2"><ComplianceIndicatorCard review={review} staticSummary /></div>
+              <div className="min-w-0 xl:col-span-2"><RiskIndicatorCard review={review} staticSummary /></div>
+              <div className="min-w-0 xl:col-span-2"><ProfessionalismIndicatorCard review={review} staticSummary /></div>
+              <div className="min-w-0 xl:col-span-3"><LanguageIndicatorCard review={review} staticSummary /></div>
+              <div className="min-w-0 md:col-span-2 xl:col-span-3"><ReadinessIndicatorCard review={review} staticSummary /></div>
             </div>
           </section>
 
@@ -1738,7 +1748,8 @@ export default function ContentReviewPage() {
           </section>
 
 <>
-          <Panel id="channels" className="scroll-mt-24">
+          <div className="grid items-stretch gap-6 lg:grid-cols-[1.1fr_1fr_1fr]">
+          <Panel id="channels" className="h-full scroll-mt-24">
             <SectionTitle title="5. القنوات المقترحة" subtitle="كل توصية مبنية على نوع المحتوى والجمهور والهدف ونتائج المراجعة." />
             <div className="flex flex-wrap gap-3">
               {review.channelRecommendations.map((item) => {
@@ -1752,7 +1763,7 @@ export default function ContentReviewPage() {
             </div>
           </Panel>
 
-          <Panel id="approval" className="scroll-mt-24 lg:hidden">
+          <Panel id="approval" className="h-full scroll-mt-24">
             <SectionTitle title="7. اعتماد النسخة" subtitle="لا تتاح المشاركة أو التصدير إلا للنسخة النهائية التي تمت مراجعتها واعتمادها." />
             <button type="button" onClick={approveCurrentVersion} disabled={approved || approving || review.findings.some((finding) => !finding.resolved) || !review.languageQuality.passed || ["بالغ", "حرج", "مرتفع"].includes(review.riskLevel)} className="inline-flex items-center gap-2 rounded-md bg-palm px-5 py-2.5 text-white disabled:cursor-not-allowed disabled:opacity-50"><Save size={16} />{approved ? "تم اعتماد النسخة" : approving ? "جار الاعتماد..." : "اعتماد النسخة الحالية"}</button>
             {approveMsg ? <p className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-sm leading-6 text-red-700">{approveMsg}</p> : null}
@@ -1775,7 +1786,7 @@ export default function ContentReviewPage() {
             })() : null}
           </Panel>
 
-          <Panel id="sharing" className="scroll-mt-24 lg:hidden">
+          <Panel id="sharing" className="h-full scroll-mt-24">
             <SectionTitle title="8. المشاركة والتصدير" subtitle="احفظ النسخ ونزّلها وشاركها من مكان واحد." />
             <div className="flex flex-wrap gap-3">
               <button type="button" onClick={downloadWord} disabled={!approved} className="inline-flex items-center gap-2 rounded-md border border-line px-4 py-2.5 disabled:opacity-40"><FileDown size={16} />تقرير Word</button>
@@ -1784,6 +1795,7 @@ export default function ContentReviewPage() {
             {!approved ? <div className="mt-4 flex items-center gap-2 rounded-lg bg-gold/10 p-4 text-sm"><AlertTriangle size={17} className="text-gold" />يجب اعتماد المخرج قبل إتاحة المشاركة والتصدير.</div> : null}
             {shareMessage ? <div className="mt-4 flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 p-4 text-sm leading-7 text-red-700"><AlertTriangle size={17} className="mt-0.5 shrink-0" />{shareMessage}</div> : null}
           </Panel>
+          </div>
           </>
 
           <div className="flex gap-3 rounded-lg border border-amber-200 bg-amber-50 p-4">
@@ -1798,7 +1810,7 @@ export default function ContentReviewPage() {
         {/* العمود الأيمن (الحاسب فقط lg+): مساعد قرار النشر — القرار + المؤشرات + الاعتماد + المشاركة.
             على الجوال/اللوحي يبقى هذا كله ظاهراً في العمود الرئيسي كما هو تماماً دون تغيير. */}
         {review ? (
-          <aside className="hidden space-y-4 lg:block lg:pl-1">
+          <aside className="hidden">
             <Panel className={`border-t-4 shadow-md ${
               decisionTone(review) === "good"
                 ? "border-t-green-400"

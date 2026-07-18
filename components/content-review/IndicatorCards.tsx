@@ -28,10 +28,10 @@ const categoryLabel: Record<string, string> = {
 };
 
 function toneBorder(tone: "good" | "gold" | "danger" | "neutral") {
-  if (tone === "good") return "border-t-green-400";
-  if (tone === "gold") return "border-t-amber-400";
-  if (tone === "danger") return "border-t-red-400";
-  return "border-t-slate-300";
+  if (tone === "good") return "border-palm/25 border-t-palm";
+  if (tone === "gold") return "border-goldBorder border-t-gold";
+  if (tone === "danger") return "border-red-200 border-t-red-600";
+  return "border-warmGrayBorder border-t-warmGray";
 }
 
 // غلاف أكورديون موحّد لكل مؤشر — الملخّص (العنوان + الحالة) ظاهر دائماً،
