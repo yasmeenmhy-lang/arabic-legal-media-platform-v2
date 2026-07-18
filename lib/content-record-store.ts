@@ -40,6 +40,14 @@ export type StoredContentVersion = {
   channel: string;
   audience: string;
   purpose: string;
+  // بقية معلومات السياق المدخلة — تُحفظ وتُسترجع عند فتح المحتوى (اختيارية لتوافق السجلات القديمة)
+  specialty?: string;
+  charLimit?: number | null;
+  adCta?: string;
+  adStyle?: string;
+  scriptDuration?: string;
+  scriptStyle?: string;
+  articleLength?: string;
   status: "مسودة" | "قيد التحليل" | "يحتاج إلى تعديل" | "جاهز للاعتماد" | "معتمد";
   createdAt: string;
   updatedAt: string;
@@ -246,6 +254,27 @@ export function referencesFromReview(review: ReviewResult): ProfessionalOfficial
   }));
 }
 
+type StoredContextExtras = {
+  specialty?: string;
+  charLimit?: number | null;
+  adCta?: string;
+  adStyle?: string;
+  scriptDuration?: string;
+  scriptStyle?: string;
+  articleLength?: string;
+};
+
+// يطبّق حقول السياق الإضافية على إصدار مخزَّن — مصدر واحد للحفظ يمنع نسيان أي حقل
+function applyContextExtras(version: StoredContentVersion, extras: StoredContextExtras) {
+  version.specialty = extras.specialty;
+  version.charLimit = extras.charLimit ?? null;
+  version.adCta = extras.adCta;
+  version.adStyle = extras.adStyle;
+  version.scriptDuration = extras.scriptDuration;
+  version.scriptStyle = extras.scriptStyle;
+  version.articleLength = extras.articleLength;
+}
+
 export function saveContentDraft(input: {
   contentId: string;
   title?: string;
@@ -255,7 +284,7 @@ export function saveContentDraft(input: {
   channel: string;
   audience: string;
   purpose: string;
-}) {
+} & StoredContextExtras) {
   const records = loadContentRecords();
   const record = records.find((item) => item.id === input.contentId);
   const current = record?.versions.find((item) => item.version === record.currentVersion);
@@ -298,6 +327,7 @@ export function saveContentDraft(input: {
     version.updatedAt = timestamp;
   }
 
+  applyContextExtras(version, input);
   record.title = input.title?.trim() || input.body.trim().slice(0, 72) || record.title;
   record.status = "مسودة";
   if (!record.approvedVersion) record.sharingStatus = "غير متاح";
@@ -327,7 +357,7 @@ export function upsertAnalyzedVersion(input: {
   audience: string;
   purpose: string;
   review: ReviewResult;
-}) {
+} & StoredContextExtras) {
   const records = loadContentRecords();
   const contentId = input.contentId ?? makeId("content");
   let record = records.find((item) => item.id === contentId);
@@ -399,6 +429,7 @@ export function upsertAnalyzedVersion(input: {
   version.channel = input.channel;
   version.audience = input.audience;
   version.purpose = input.purpose;
+  applyContextExtras(version, input);
   version.analysis = input.review;
   version.references = referencesFromReview(input.review);
   const onlyApprovalRemains =

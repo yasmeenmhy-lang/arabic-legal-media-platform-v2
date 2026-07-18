@@ -970,6 +970,13 @@ export default function ContentStudioPage() {
         channel,
         audience,
         purpose,
+        specialty,
+        charLimit,
+        adCta,
+        adStyle,
+        scriptDuration,
+        scriptStyle,
+        articleLength,
         review: result,
       });
       setContentId(saved.record.id);

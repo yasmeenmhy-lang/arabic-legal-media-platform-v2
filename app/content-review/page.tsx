@@ -397,6 +397,14 @@ export default function ContentReviewPage() {
     setChannel(version.channel);
     setAudience(version.audience);
     setPurpose(version.purpose);
+    // استرجاع بقية المعلومات المدخلة كما حُفظت — فلا يُطلب من المستخدم إعادة إدخالها
+    setSpecialty(version.specialty ?? "");
+    setCharLimit(version.charLimit ?? null);
+    setAdCta(version.adCta ?? "");
+    setAdStyle(version.adStyle ?? "");
+    setScriptDuration(version.scriptDuration ?? "");
+    setScriptStyle(version.scriptStyle ?? "");
+    setArticleLength(version.articleLength ?? "");
     setReview(version.analysis ? normalizeReviewResult(version.analysis) : null);
     setApproved(Boolean(version.approvedAt));
     setIsEditing(false);
@@ -465,6 +473,13 @@ export default function ContentReviewPage() {
         channel,
         audience,
         purpose,
+        specialty,
+        charLimit,
+        adCta,
+        adStyle,
+        scriptDuration,
+        scriptStyle,
+        articleLength,
         review: result
       });
       setContentId(saved.record.id);
@@ -508,6 +523,13 @@ export default function ContentReviewPage() {
         channel,
         audience,
         purpose,
+        specialty,
+        charLimit,
+        adCta,
+        adStyle,
+        scriptDuration,
+        scriptStyle,
+        articleLength,
         review: result
       });
       setVersionNumber(saved.version.version);
@@ -551,7 +573,14 @@ export default function ContentReviewPage() {
       contentTypeLabel,
       channel,
       audience,
-      purpose
+      purpose,
+      specialty,
+      charLimit,
+      adCta,
+      adStyle,
+      scriptDuration,
+      scriptStyle,
+      articleLength
     });
     if (!saved) {
       setMessage("تعذر حفظ التعديلات لأن سجل المحتوى غير متاح.");
@@ -737,6 +766,13 @@ export default function ContentReviewPage() {
         channel,
         audience,
         purpose,
+        specialty,
+        charLimit,
+        adCta,
+        adStyle,
+        scriptDuration,
+        scriptStyle,
+        articleLength,
         review: result
       });
       setContentId(saved.record.id);
