@@ -119,14 +119,44 @@ export default function ContentManagementPage() {
       return smartMatch(search, [record.title, version?.body, version?.contentTypeLabel, version?.channel, version?.audience, version?.purpose]);
     }
     return true;
-  }), [filter, records, search]);
+  })
+    // ترتيب ثابت بالأحدث تحديثاً — نفس الترتيب على كل الأجهزة بعد المزامنة (لا يتبع ترتيب المصفوفة المحلي)
+    .sort((a, b) => {
+      const byUpdated = String(b.updatedAt ?? "").localeCompare(String(a.updatedAt ?? ""));
+      return byUpdated !== 0 ? byUpdated : String(a.id).localeCompare(String(b.id));
+    }), [filter, records, search]);
 
   // نتائج القائمة المنسدلة — كل السجل بالتركيز، ويُصفّى بالكتابة
   const searchMatches = useMemo(() => records.filter((record) => {
     if (!search.trim()) return true;
     const version = record.versions.find((v) => v.version === record.currentVersion) ?? record.versions.at(-1);
     return smartMatch(search, [record.title, version?.body, version?.contentTypeLabel, version?.channel, version?.audience, version?.purpose]);
+  }).sort((a, b) => {
+    const byUpdated = String(b.updatedAt ?? "").localeCompare(String(a.updatedAt ?? ""));
+    return byUpdated !== 0 ? byUpdated : String(a.id).localeCompare(String(b.id));
   }), [records, search]);
+
+  // رقم ثابت لكل محتوى بترتيب الإنشاء — لا يتغيّر بالفلترة أو الترتيب أو الجهاز (createdAt مُزامَن)
+  const serialById = useMemo(() => {
+    const ordered = [...records].sort((a, b) => {
+      const byCreated = String(a.createdAt ?? "").localeCompare(String(b.createdAt ?? ""));
+      return byCreated !== 0 ? byCreated : String(a.id).localeCompare(String(b.id));
+    });
+    const map = new Map<string, number>();
+    ordered.forEach((r, i) => map.set(r.id, i + 1));
+    return map;
+  }, [records]);
+
+  // رقم مرجعي دائم لكل محتوى — يُحسب من تاريخ الإنشاء + لاحقة معرّفه الفريد وقت العرض.
+  // بلا أي تخزين أو تهجير أو حِمل على المنصة: ثابت، فريد، نفسه على كل الأجهزة، ولا يتغيّر بالحذف.
+  const contentReference = (record: { id: string; createdAt?: string }) => {
+    const t = record.createdAt ? new Date(record.createdAt) : null;
+    const datePart = t && !Number.isNaN(t.getTime())
+      ? `${String(t.getFullYear()).slice(2)}${String(t.getMonth() + 1).padStart(2, "0")}${String(t.getDate()).padStart(2, "0")}`
+      : "000000";
+    const suffix = (record.id.replace(/[^A-Za-z0-9]/g, "").slice(-4) || "0000").toUpperCase();
+    return `${datePart}-${suffix}`;
+  };
 
   function deleteRecord(id: string) {
     const next = records.filter((item) => item.id !== id);
@@ -437,9 +467,10 @@ export default function ContentManagementPage() {
                     className={`w-full flex items-center justify-between gap-3 px-4 py-4 text-right transition focus-ring ${isOpen ? "bg-paper" : "hover:bg-paper/60"}`}
                   >
                     <div className="flex items-center gap-3 min-w-0 flex-1">
-                      <span className="shrink-0 flex h-6 w-6 items-center justify-center rounded-full bg-mint text-xs font-bold text-palm">{index + 1}</span>
+                      <span className="shrink-0 flex h-6 w-6 items-center justify-center rounded-full bg-mint text-xs font-bold text-palm">{serialById.get(record.id) ?? index + 1}</span>
                       <div className="min-w-0">
                         <p className="text-sm font-medium text-ink leading-6">{record.title}</p>
+                        <p className="mt-0.5 text-[11px] font-mono text-ink/45" dir="ltr">مرجع: {contentReference(record)}</p>
                         {current && <p className="mt-0.5 text-xs text-ink/50">{current.contentTypeLabel} · {current.channel}</p>}
                       </div>
                     </div>
@@ -536,9 +567,10 @@ export default function ContentManagementPage() {
                   return (
                     <>
                       <tr key={record.id} className="border-b border-line/60 transition hover:bg-paper last:border-none">
-                        <td className="whitespace-nowrap px-4 py-4 text-xs font-bold tabular-nums text-ink/40">{index + 1}</td>
+                        <td className="whitespace-nowrap px-4 py-4 text-xs font-bold tabular-nums text-ink/40">{serialById.get(record.id) ?? index + 1}</td>
                         <td className="px-4 py-4">
                           <p className="font-medium text-ink">{record.title}</p>
+                          <p className="mt-0.5 text-[11px] font-mono text-ink/45" dir="ltr">مرجع: {contentReference(record)}</p>
                           {current && <p className="mt-0.5 text-xs text-ink/50">{current.contentTypeLabel} · {current.channel}</p>}
                         </td>
                         <td className="px-4 py-4">
