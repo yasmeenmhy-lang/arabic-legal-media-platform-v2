@@ -681,6 +681,9 @@ export default function ContentStudioPage() {
 
   // Review result
   const [review, setReview] = useState<ReviewResult | null>(null);
+  // حارس تسلسل الطلبات: يمنع استجابة متأخرة من طلب تحليل قديم من الكتابة فوق نتيجة
+  // أحدث — تُهمل استجابة أي طلب سبقه طلب أحدث بدل أن تظهر كأن «التحليل رجع نصاً قديماً».
+  const reviewRequestIdRef = useRef(0);
   const [editingReviewedContent, setEditingReviewedContent] = useState(false);
   const [reviewing, setReviewing] = useState(false);
   const [reviewError, setReviewError] = useState("");
@@ -745,6 +748,8 @@ export default function ContentStudioPage() {
     const version = record?.versions.find((item) => item.version === selection.version);
     if (!record || !version?.analysis) return;
 
+    // إبطال أي طلب تحليل ما زال معلّقاً: العودة لنتيجة محفوظة لا يجوز أن تكتب استجابته المتأخرة فوقها
+    reviewRequestIdRef.current++;
     setPath("review");
     setReviewText(version.body);
     setKind(version.contentType);
@@ -989,6 +994,7 @@ export default function ContentStudioPage() {
       setReviewError("اختر نوع المحتوى والجمهور والهدف والتخصص قبل التحليل حتى ترتبط النتائج بالسياق الصحيح.");
       return;
     }
+    const requestId = ++reviewRequestIdRef.current;
     setReviewing(true);
     setEditingReviewedContent(false);
     setReviewError("");
@@ -1002,12 +1008,15 @@ export default function ContentStudioPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ text: text.trim(), kind, contentType: contentTypeLabel, channel, audience, purpose }),
       });
+      // استجابة متأخرة لطلب سبقه طلب أحدث: تُهمل ولا تُطبَّق — لا تكتب فوق نتيجة أحدث
+      if (requestId !== reviewRequestIdRef.current) return;
       if (!res.ok) {
         const payload = await res.json().catch(() => ({})) as { error?: string };
         setReviewError(payload.error ?? "تعذر إكمال المراجعة.");
         return;
       }
       const result = ((await res.json()).data) as ReviewResult;
+      if (requestId !== reviewRequestIdRef.current) return;
       setReview(result);
       saveLatestReviewSnapshot(result);
       const saved = upsertAnalyzedVersion({
@@ -1030,9 +1039,10 @@ export default function ContentStudioPage() {
       setContentId(saved.record.id);
       setReviewError("");
     } catch (error) {
+      if (requestId !== reviewRequestIdRef.current) return;
       setReviewError(error instanceof Error ? error.message : "تعذر إكمال المراجعة.");
     } finally {
-      setReviewing(false);
+      if (requestId === reviewRequestIdRef.current) setReviewing(false);
     }
   }
 

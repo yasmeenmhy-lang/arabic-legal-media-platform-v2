@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   AlertTriangle,
@@ -389,6 +389,8 @@ export default function ContentReviewPage() {
   function loadRecordVersion(record: StoredContentRecord, versionNo: number) {
     const version = record.versions.find((item) => item.version === versionNo);
     if (!version) return;
+    // إبطال أي طلب تحليل ما زال معلّقاً: فتح إصدار آخر لا يجوز أن تكتب استجابته المتأخرة فوقه
+    reviewRequestIdRef.current++;
     setContentId(record.id);
     setVersionNumber(version.version);
     setContentTitle(record.title === "محتوى دون عنوان" ? "" : record.title);
@@ -428,6 +430,11 @@ export default function ContentReviewPage() {
     const version = record?.versions.find((item) => item.version === versionNumber);
     setSavedVisuals(version?.visuals ?? []);
   }, [contentId, versionNumber]);
+
+  // حارس تسلسل الطلبات: يمنع استجابة متأخرة من طلب تحليل قديم من الكتابة فوق نتيجة
+  // أحدث — لو انطلق تحليلان (تحليل ثم إعادة تحليل سريعة، أو تحليل مع تطبيق صياغة)
+  // وعاد الأقدم بعد الأحدث، تُهمل استجابته بدل أن تظهر كأن «التحليل رجع نصاً قديماً».
+  const reviewRequestIdRef = useRef(0);
 
   const hasReviewContext = Boolean(kind && audience && purpose && specialty);
   // التخصص إجباري للتحليل الأول فقط. لإعادة تحليل محتوى مُحلَّل/مفتوح من السجل لا يُشترط —
@@ -473,10 +480,13 @@ export default function ContentReviewPage() {
       setMessage("اختر نوع المحتوى والجمهور والهدف والتخصص قبل التحليل حتى ترتبط النتائج بالسياق الصحيح.");
       return;
     }
+    const requestId = ++reviewRequestIdRef.current;
     setLoading(true);
     setMessage("");
     try {
       const result = await requestReview();
+      // استجابة متأخرة لطلب سبقه طلب أحدث: تُهمل ولا تُطبَّق — لا تكتب فوق نتيجة أحدث
+      if (requestId !== reviewRequestIdRef.current) return;
       setReview(result);
       saveLatestReviewSnapshot(result);
       const saved = upsertAnalyzedVersion({
@@ -506,9 +516,10 @@ export default function ContentReviewPage() {
       setSuggestionError(null);
       setMessage("اكتمل التحليل. ابدأ بقرار النشر ثم عالج الملاحظات حسب الأولوية.");
     } catch (error) {
+      if (requestId !== reviewRequestIdRef.current) return;
       setMessage(error instanceof Error ? error.message : "تعذر إكمال المراجعة.");
     } finally {
-      setLoading(false);
+      if (requestId === reviewRequestIdRef.current) setLoading(false);
     }
   }
 
@@ -520,6 +531,7 @@ export default function ContentReviewPage() {
     const rewriteText = enhancedRewrite?.suggestedText ?? rewrite.suggestedText;
     setText(rewriteText);
     setMessage("تم تطبيق الصياغة المقترحة. جار إعادة التقييم للتحقق من النتيجة الفعلية.");
+    const requestId = ++reviewRequestIdRef.current;
     setLoading(true);
     try {
       const result = await fetch("/api/reviews", {
@@ -527,6 +539,8 @@ export default function ContentReviewPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ text: rewriteText, kind, contentType: contentTypeLabel, channel, audience, purpose })
       }).then((response) => response.json()).then((payload) => payload.data as ReviewResult);
+      // استجابة متأخرة لطلب سبقه طلب أحدث: تُهمل ولا تُطبَّق
+      if (requestId !== reviewRequestIdRef.current) return;
       setReview(result);
       saveLatestReviewSnapshot(result);
       const saved = upsertAnalyzedVersion({
@@ -551,7 +565,7 @@ export default function ContentReviewPage() {
       setApproved(false);
       setMessage("تم تطبيق الصياغة وإعادة تقييمها. راجع قرار النشر الجديد قبل الاعتماد.");
     } finally {
-      setLoading(false);
+      if (requestId === reviewRequestIdRef.current) setLoading(false);
     }
   }
 
@@ -795,6 +809,7 @@ export default function ContentReviewPage() {
     setText(suggestionText);
     setAiSuggestion(null);
     setSuggestionError(null);
+    const requestId = ++reviewRequestIdRef.current;
     setLoading(true);
     setMessage("تم استبدال المحتوى بالصياغة المقترحة. جار إعادة التقييم...");
     try {
@@ -803,6 +818,8 @@ export default function ContentReviewPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ text: suggestionText, kind, contentType: contentTypeLabel, channel, audience, purpose })
       }).then((r) => r.json()).then((p) => p.data as ReviewResult);
+      // استجابة متأخرة لطلب سبقه طلب أحدث: تُهمل ولا تُطبَّق
+      if (requestId !== reviewRequestIdRef.current) return;
       setReview(result);
       saveLatestReviewSnapshot(result);
       const saved = upsertAnalyzedVersion({
@@ -827,9 +844,10 @@ export default function ContentReviewPage() {
       setApproved(false);
       setMessage("تم تطبيق الصياغة المقترحة وإعادة تقييمها. راجع النتائج واعتمد عند اكتمال الشروط.");
     } catch (error) {
+      if (requestId !== reviewRequestIdRef.current) return;
       setMessage(error instanceof Error ? error.message : "تعذر إعادة التقييم بعد تطبيق الصياغة.");
     } finally {
-      setLoading(false);
+      if (requestId === reviewRequestIdRef.current) setLoading(false);
     }
   }
 
