@@ -27,9 +27,10 @@ const categoryLabel: Record<string, string> = {
   "اتساق المصطلحات": "مصطلحات"
 };
 
-function toneBorder(tone: "good" | "gold" | "danger" | "neutral") {
+function toneBorder(tone: "good" | "gold" | "warning" | "danger" | "neutral") {
   if (tone === "good") return "border-palm/25 border-t-palm";
   if (tone === "gold") return "border-goldBorder border-t-gold";
+  if (tone === "warning") return "border-[#FEDF89] border-t-[#F79009] bg-[#FFFCF5]";
   if (tone === "danger") return "border-red-200 border-t-red-600";
   return "border-warmGrayBorder border-t-warmGray";
 }
@@ -37,7 +38,7 @@ function toneBorder(tone: "good" | "gold" | "danger" | "neutral") {
 // غلاف أكورديون موحّد لكل مؤشر — الملخّص (العنوان + الحالة) ظاهر دائماً،
 // والتفاصيل تُطوى وتُفتح بالنقر. يُفتح تلقائياً عند وجود ما يستدعي الانتباه.
 function IndicatorShell({ id, title, tone, badge, defaultOpen = false, staticSummary = false, children }: {
-  id?: string; title: string; tone: "good" | "gold" | "danger" | "neutral";
+  id?: string; title: string; tone: "good" | "gold" | "warning" | "danger" | "neutral";
   badge: ReactNode; defaultOpen?: boolean; staticSummary?: boolean; children?: ReactNode;
 }) {
   const [open, setOpen] = useState(defaultOpen);
@@ -347,13 +348,16 @@ export function ReadinessIndicatorCard({ review, staticSummary, title = "جاه�
   // تعذّر تقييم أي مؤشر ينعكس هنا: لا تُعرض جاهزية محسوبة من قيم افتراضية
   if (review.analysisMode === "pattern-only" || review.evaluationIncomplete) return <DegradedNotice title={title} />;
   const tone = readinessKpiTone(review);
+  const shellTone = tone === "gold" ? "warning" as const : tone;
   const gates = review.publishingReadinessExplanation.gates;
   return (
     <IndicatorShell
       staticSummary={staticSummary}
       title={title}
-      tone={tone}
-      badge={<StatusBadge tone={tone}>{review.readinessDecision.level}</StatusBadge>}
+      tone={shellTone}
+      badge={tone === "gold"
+        ? <span className="inline-flex min-h-7 items-center rounded-full border border-[#FEDF89] bg-[#FFFAEB] px-3 py-1 text-xs font-semibold text-[#93370D]">{review.readinessDecision.level}</span>
+        : <StatusBadge tone={tone}>{review.readinessDecision.level}</StatusBadge>}
     >
       <div className="space-y-3">
         {gates.map((gate) => (
