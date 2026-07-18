@@ -685,6 +685,7 @@ export default function ContentStudioPage() {
   const [reviewing, setReviewing] = useState(false);
   const [reviewError, setReviewError] = useState("");
   const [contentId, setContentId] = useState<string | undefined>();
+  const [savedStudioVisuals, setSavedStudioVisuals] = useState<StoredVisual[]>([]);
 
   // AI full-rewrite suggestion (نص مقترح محسّن)
   const [improvedLoading, setImprovedLoading] = useState(false);
@@ -762,6 +763,19 @@ export default function ContentStudioPage() {
       setVtType(visual.visualType as typeof vtType);
     }
   }, []);
+
+  // لوحة النتائج تقرأ المرئيات من الإصدار المحفوظ نفسه الذي تستخدمه صفحتا التحليل والسجل.
+  useEffect(() => {
+    const refreshSavedVisuals = () => {
+      if (!contentId) { setSavedStudioVisuals([]); return; }
+      const record = loadContentRecords().find((item) => item.id === contentId);
+      const version = record?.versions.find((item) => item.version === record.currentVersion);
+      setSavedStudioVisuals(version?.visuals ?? []);
+    };
+    refreshSavedVisuals();
+    window.addEventListener("lawyer-media:records-updated", refreshSavedVisuals);
+    return () => window.removeEventListener("lawyer-media:records-updated", refreshSavedVisuals);
+  }, [contentId, review]);
 
   useEffect(() => {
     fetch("/api/content-studio/generate-image")
@@ -3450,21 +3464,21 @@ export default function ContentStudioPage() {
         <StudioResultsDashboard
           review={review}
           text={activeText}
-          visual={
-            vtSvg
-              ? { svg: vtSvg, label: VISUAL_ENGINE_LABELS[vtType] ?? "مرئي" }
-              : vtPremiumUrl
-                ? { imageUrl: vtPremiumUrl, label: "مرئي احترافي" }
-                : imageGenSvg
-                  ? { svg: imageGenSvg, label: "مرئي من وصف" }
-                  : imageGenUrl
-                    ? { imageUrl: imageGenUrl, label: "صورة من وصف" }
-                    : undefined
-          }
+          visuals={(() => {
+            const stored = savedStudioVisuals;
+            if (stored.length) return stored.map((visual) => ({ svg: visual.svg, imageUrl: visual.imageUrl, label: visual.visualTypeLabel }));
+            if (vtSvg) return [{ svg: vtSvg, label: VISUAL_ENGINE_LABELS[vtType] ?? "مرئي" }];
+            if (vtPremiumUrl) return [{ imageUrl: vtPremiumUrl, label: "مرئي احترافي" }];
+            if (imageGenSvg) return [{ svg: imageGenSvg, label: "مرئي من وصف" }];
+            if (imageGenUrl) return [{ imageUrl: imageGenUrl, label: "صورة من وصف" }];
+            return [];
+          })()}
           onEdit={() => {
             setEditingReviewedContent(true);
             window.requestAnimationFrame(() => document.getElementById("studio-text-editor")?.scrollIntoView({ behavior: "smooth", block: "start" }));
           }}
+          onSaveDraft={saveDraft}
+          actionMessage={actionMsg}
         />
       )}
 

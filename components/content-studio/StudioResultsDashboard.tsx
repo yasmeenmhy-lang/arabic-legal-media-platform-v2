@@ -6,7 +6,14 @@ import { QUOTE_INTEGRITY_NOTICE } from "@/lib/quote-notice";
 import { riskDisplayLabel, type ReviewResult } from "@/lib/types";
 
 type VisualPreview = { imageUrl?: string; svg?: string; label: string };
-type Props = { review: ReviewResult; text: string; visual?: VisualPreview; onEdit: () => void };
+type Props = {
+  review: ReviewResult;
+  text: string;
+  visuals?: VisualPreview[];
+  onEdit: () => void;
+  onSaveDraft: () => void;
+  actionMessage?: string;
+};
 type Tone = "good" | "gold" | "danger" | "neutral";
 
 const toneCardStyles: Record<Tone, { border: string; bar: string; value: string }> = {
@@ -28,7 +35,7 @@ function riskTone(review: ReviewResult): Tone {
   return "good";
 }
 
-export function StudioResultsDashboard({ review, text, visual, onEdit }: Props) {
+export function StudioResultsDashboard({ review, text, visuals = [], onEdit, onSaveDraft, actionMessage }: Props) {
   const unavailable = review.analysisMode === "pattern-only" || review.evaluationIncomplete;
   const conductFindings = review.professionalConductCompliance.findings;
   const regulationFindings = review.executiveRegulationCompliance.findings;
@@ -63,7 +70,7 @@ export function StudioResultsDashboard({ review, text, visual, onEdit }: Props) 
         <Button variant="secondary-gray" onClick={onEdit}>تعديل النص</Button>
       </div>
 
-      <div className={`grid gap-4 ${visual ? "lg:grid-cols-[minmax(0,2fr)_minmax(15rem,1fr)]" : ""}`}>
+      <div className={`grid items-stretch gap-4 ${visuals.length ? "lg:grid-cols-2" : ""}`}>
         <Panel>
           <p className="mb-3 flex items-center gap-2 text-sm font-semibold text-ink"><FileText size={16} aria-hidden="true" />النص محل المراجعة</p>
           <div className="max-h-40 overflow-y-auto rounded-xl border border-line bg-paper p-4 text-sm leading-8 text-ink/80">
@@ -77,13 +84,17 @@ export function StudioResultsDashboard({ review, text, visual, onEdit }: Props) 
           </details>
         </Panel>
 
-        {visual ? (
-          <Panel>
+        {visuals.length ? (
+          <Panel className="h-full">
             <p className="mb-3 flex items-center gap-2 text-sm font-semibold text-ink"><ImageIcon size={16} aria-hidden="true" />المرئيات المحفوظة مع هذا الإصدار</p>
-            <div className="overflow-hidden rounded-xl border border-line bg-paper p-2">
-              {visual.svg ? <div className="mx-auto max-h-64 w-full overflow-hidden [&_svg]:h-auto [&_svg]:max-h-64 [&_svg]:w-full" dangerouslySetInnerHTML={{ __html: visual.svg }} /> : visual.imageUrl ? <img src={visual.imageUrl} alt={visual.label} className="mx-auto max-h-64 w-full object-contain" /> : null}
+            <div className="grid gap-3 sm:grid-cols-2">
+              {visuals.map((visual, index) => (
+                <figure key={`${visual.label}-${index}`} className="overflow-hidden rounded-xl border border-line bg-paper p-2">
+                  {visual.svg ? <div className="mx-auto max-h-64 w-full overflow-hidden [&_svg]:h-auto [&_svg]:max-h-64 [&_svg]:w-full" dangerouslySetInnerHTML={{ __html: visual.svg }} /> : visual.imageUrl ? <img src={visual.imageUrl} alt={visual.label} className="mx-auto max-h-64 w-full object-contain" /> : null}
+                  <figcaption className="mt-2 text-xs text-ink/50">{visual.label}</figcaption>
+                </figure>
+              ))}
             </div>
-            <p className="mt-2 text-xs text-ink/50">{visual.label}</p>
           </Panel>
         ) : null}
       </div>
@@ -118,6 +129,17 @@ export function StudioResultsDashboard({ review, text, visual, onEdit }: Props) 
         <div><p className="text-sm font-semibold text-ink">لمزيد من التفاصيل</p><p className="mt-1 text-xs text-ink/50">الملاحظات، الأدلة، الأثر، والإجراء الموصى به.</p></div>
         <ButtonLink href="/content-review">التحليل التفصيلي للمحتوى المهني</ButtonLink>
       </div>
+
+      <Panel>
+        <p className="mb-4 text-sm font-semibold text-ink">ماذا تريد؟</p>
+        <div className="flex flex-wrap gap-3">
+          <ButtonLink href="/social-media">📤 نشر مباشرة</ButtonLink>
+          <ButtonLink href="/calendar" variant="secondary">📅 جدولة</ButtonLink>
+          <Button variant="secondary-gray" onClick={onSaveDraft}>حفظ مسودة</Button>
+          <Button variant="secondary-gray" onClick={onEdit}>تعديل</Button>
+        </div>
+        {actionMessage ? <p className="mt-3 text-sm text-palm">{actionMessage}</p> : null}
+      </Panel>
     </section>
   );
 }

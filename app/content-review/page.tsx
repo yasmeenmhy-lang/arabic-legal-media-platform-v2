@@ -233,6 +233,7 @@ export default function ContentReviewPage() {
   const [savedVisuals, setSavedVisuals] = useState<StoredVisual[]>([]);
   const [approved, setApproved] = useState(false);
   const [approving, setApproving] = useState(false);
+  const [saveLaterMsg, setSaveLaterMsg] = useState("");
   // رسالة فورية تحت زر الاعتماد — لا صمت عند أي عائق
   const [approveMsg, setApproveMsg] = useState("");
   const [activeTab, setActiveTab] = useState<ReviewTab>("findings");
@@ -615,6 +616,35 @@ export default function ContentReviewPage() {
     setEditSnapshot(null);
     setIsEditing(false);
     setMessage("تم حفظ التعديلات كمسودة. أعد التحليل لعرض قرار النشر المحدث.");
+  }
+
+  function saveForLater() {
+    if (!review || text.trim().length < 5 || !kind || !audience || !purpose) {
+      setSaveLaterMsg("تعذر الحفظ: بيانات المحتوى أو السياق غير مكتملة.");
+      return;
+    }
+    const saved = upsertAnalyzedVersion({
+      contentId,
+      title: contentTitle,
+      body: text,
+      contentType: kind,
+      contentTypeLabel,
+      channel,
+      audience,
+      purpose,
+      specialty,
+      charLimit,
+      adCta,
+      adStyle,
+      scriptDuration,
+      scriptStyle,
+      articleLength,
+      review
+    });
+    setContentId(saved.record.id);
+    setVersionNumber(saved.version.version);
+    setSavedRecords(loadContentRecords());
+    setSaveLaterMsg("تم حفظ النسخة ونتائجها في سجل المحتوى، ويمكنك العودة إليها لاحقًا.");
   }
 
   async function approveCurrentVersion() {
@@ -1615,12 +1645,12 @@ export default function ContentReviewPage() {
               title="المؤشرات المساندة للقرار"
               subtitle="توضح الرسوم مستوى كل جانب، بينما تبقى الملاحظات والأدلة والأثر والإجراء الموصى به هي أساس القرار."
             />
-            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-6">
-              <div className="min-w-0 xl:col-span-2"><ComplianceIndicatorCard review={review} staticSummary /></div>
-              <div className="min-w-0 xl:col-span-2"><RiskIndicatorCard review={review} staticSummary /></div>
-              <div className="min-w-0 xl:col-span-2"><ProfessionalismIndicatorCard review={review} staticSummary /></div>
-              <div className="min-w-0 xl:col-span-3"><LanguageIndicatorCard review={review} staticSummary /></div>
-              <div className="min-w-0 md:col-span-2 xl:col-span-3"><ReadinessIndicatorCard review={review} staticSummary /></div>
+            <div className="grid auto-rows-fr gap-4 md:grid-cols-2 xl:grid-cols-3">
+              <div className="min-w-0 [&>*]:h-full"><ComplianceIndicatorCard review={review} staticSummary /></div>
+              <div className="min-w-0 [&>*]:h-full"><RiskIndicatorCard review={review} staticSummary /></div>
+              <div className="min-w-0 [&>*]:h-full"><ProfessionalismIndicatorCard review={review} staticSummary /></div>
+              <div className="min-w-0 [&>*]:h-full"><LanguageIndicatorCard review={review} staticSummary /></div>
+              <div className="min-w-0 [&>*]:h-full"><ReadinessIndicatorCard review={review} staticSummary /></div>
             </div>
           </section>
 
@@ -1765,7 +1795,11 @@ export default function ContentReviewPage() {
 
           <Panel id="approval" className="h-full scroll-mt-24">
             <SectionTitle title="7. اعتماد النسخة" subtitle="لا تتاح المشاركة أو التصدير إلا للنسخة النهائية التي تمت مراجعتها واعتمادها." />
-            <button type="button" onClick={approveCurrentVersion} disabled={approved || approving || review.findings.some((finding) => !finding.resolved) || !review.languageQuality.passed || ["بالغ", "حرج", "مرتفع"].includes(review.riskLevel)} className="inline-flex items-center gap-2 rounded-md bg-palm px-5 py-2.5 text-white disabled:cursor-not-allowed disabled:opacity-50"><Save size={16} />{approved ? "تم اعتماد النسخة" : approving ? "جار الاعتماد..." : "اعتماد النسخة الحالية"}</button>
+            <div className="flex flex-wrap gap-3">
+              <button type="button" onClick={approveCurrentVersion} disabled={approved || approving || review.findings.some((finding) => !finding.resolved) || !review.languageQuality.passed || ["بالغ", "حرج", "مرتفع"].includes(review.riskLevel)} className="inline-flex items-center gap-2 rounded-md bg-palm px-5 py-2.5 text-white disabled:cursor-not-allowed disabled:opacity-50"><Save size={16} />{approved ? "تم اعتماد النسخة" : approving ? "جار الاعتماد..." : "اعتماد النسخة الحالية"}</button>
+              <button type="button" onClick={saveForLater} className="inline-flex items-center gap-2 rounded-md border border-palm px-5 py-2.5 font-medium text-palm transition hover:bg-mint focus-ring"><Save size={16} />حفظ ومتابعة لاحقًا</button>
+            </div>
+            {saveLaterMsg ? <p className="mt-3 rounded-lg bg-mint/50 px-3 py-2 text-sm leading-6 text-palm">{saveLaterMsg}</p> : null}
             {approveMsg ? <p className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-sm leading-6 text-red-700">{approveMsg}</p> : null}
             {!approved ? (() => {
               // شفافية القفل: يُعرض سبب تعطل الاعتماد بدقة لا برسالة عامة
