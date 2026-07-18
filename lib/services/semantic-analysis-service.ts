@@ -264,12 +264,43 @@ function evidenceAppearsInText(evidence: string, text: string): boolean {
   return segments.every((seg) => haystack.includes(seg));
 }
 
-function parseHolisticResponse(raw: string): HolisticViolation[] {
+// إنقاذ جواب مقطوع: يلتقط الكائنات المكتملة فقط من مصفوفة JSON انقطعت في منتصفها —
+// حتى لا تضيع مخالفات مكتملة بسبب انقطاع الجواب عند سقف الإخراج.
+function salvageTruncatedArray(raw: string): string | null {
+  const start = raw.indexOf("[");
+  if (start < 0) return null;
+  let depth = 0;
+  let inStr = false;
+  let esc = false;
+  let lastComplete = -1;
+  for (let i = start; i < raw.length; i++) {
+    const c = raw[i];
+    if (esc) { esc = false; continue; }
+    if (c === "\\") { esc = true; continue; }
+    if (c === '"') { inStr = !inStr; continue; }
+    if (inStr) continue;
+    if (c === "{") depth++;
+    else if (c === "}") { depth--; if (depth === 0) lastComplete = i; }
+  }
+  if (lastComplete < 0) return null;
+  return raw.slice(start, lastComplete + 1) + "]";
+}
+
+// null = فشل قراءة جواب المحرك (يُعامل فشلاً مغلقاً) — أما [] فتعني «لا مخالفات» فعلاً.
+// التمييز جوهري: جواب مقطوع أو غير مقروء يجب ألا يتنكر في صورة «ملتزم».
+function parseHolisticResponse(raw: string): HolisticViolation[] | null {
   try {
-    const jsonMatch = extractJsonArray(raw);
-    if (!jsonMatch) return [];
-    const parsed = JSON.parse(jsonMatch) as Partial<HolisticViolation>[];
-    if (!Array.isArray(parsed)) return [];
+    const jsonMatch = extractJsonArray(raw) ?? salvageTruncatedArray(raw);
+    if (!jsonMatch) return null;
+    let parsed: Partial<HolisticViolation>[];
+    try {
+      parsed = JSON.parse(jsonMatch) as Partial<HolisticViolation>[];
+    } catch {
+      const salvaged = salvageTruncatedArray(raw);
+      if (!salvaged) return null;
+      parsed = JSON.parse(salvaged) as Partial<HolisticViolation>[];
+    }
+    if (!Array.isArray(parsed)) return null;
     return parsed
       .filter((v) => typeof v.ruleReference === "string" && v.ruleReference && typeof v.evidenceExcerpt === "string" && v.evidenceExcerpt)
       .map((v) => ({
@@ -283,7 +314,7 @@ function parseHolisticResponse(raw: string): HolisticViolation[] {
         advice: v.advice ?? ""
       }));
   } catch {
-    return [];
+    return null;
   }
 }
 
@@ -398,7 +429,9 @@ export async function runSemanticAnalysis(
       message = await client.messages.create(
         {
           model: "claude-sonnet-5",
-          max_tokens: 1536,
+          // سقف إخراج واسع: المتن الكامل جعل الخبير يرصد مخالفات أكثر بشروح أوفى —
+          // السقف الضيق كان يقطع الـJSON فتضيع المخالفات وتظهر «ملتزم» زائفة
+          max_tokens: 6000,
           // القواعد الثابتة كتلة system مخزّنة مؤقتاً لدى المزود — نص المستخدم لا يدخل التخزين
           system: [{ type: "text", text: system, cache_control: { type: "ephemeral" } }],
           messages: [{ role: "user", content: userMessage }],
@@ -421,6 +454,17 @@ export async function runSemanticAnalysis(
     .join("");
 
   const violations = parseHolisticResponse(rawText);
+  // فشل مغلق: تعذّر قراءة جواب المحرك (JSON مكسور/مقطوع بلا كائن مكتمل) ليس «لا مخالفات» —
+  // يُعامل عطلاً فيظهر التحذير بدل نتيجة «ملتزم» زائفة.
+  if (violations === null) {
+    console.warn("[semantic] unparseable engine response — failing closed. raw head:", rawText.slice(0, 200));
+    return { mode: "pattern-only", findings: [], degradedReason: "api-error" };
+  }
+  if (message.stop_reason === "max_tokens") {
+    console.warn("[semantic] response truncated at max_tokens — salvaged complete findings:", violations.length);
+    // انقطع الجواب بلا أي مخالفة مكتملة: لا يُدّعى الامتثال — فشل مغلق
+    if (violations.length === 0) return { mode: "pattern-only", findings: [], degradedReason: "api-error" };
+  }
   console.log("[semantic] violations identified by Claude:", violations.length);
 
   const findings = violations
