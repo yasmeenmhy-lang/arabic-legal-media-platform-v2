@@ -18,7 +18,7 @@ export const legalSourceDocuments: LegalSourceDocument[] = [
   },
   {
     id: "advocacy-law-executive-regulations",
-    title: "اللائحة التنفيذية لنظام المحاماة في المملكة العربية السعودية",
+    title: "اللائحة التنفيذية لنظام المحاماة",
     documentType: "MOJ_URL",
     sourceUrl: "https://laws.moj.gov.sa/ar/legislation/5huwCrAuvCK62BbuXv7fjg",
     version: "1446H",
@@ -117,7 +117,7 @@ export const legalKnowledgeEntries: LegalKnowledgeEntry[] = [
   {
     id: "regulations-license-and-capacity",
     sourceDocumentId: "advocacy-law-executive-regulations",
-    sourceDocument: "اللائحة التنفيذية لنظام المحاماة في المملكة العربية السعودية",
+    sourceDocument: "اللائحة التنفيذية لنظام المحاماة",
     legalReference: "المادة الثانية والثلاثون، الفقرة (4)",
     articleTitle: "المزاولة والصفة المهنية",
     chapter: "التعريفات والأحكام العامة",
@@ -138,7 +138,7 @@ export const legalKnowledgeEntries: LegalKnowledgeEntry[] = [
   {
     id: "regulations-training-claims",
     sourceDocumentId: "advocacy-law-executive-regulations",
-    sourceDocument: "اللائحة التنفيذية لنظام المحاماة في المملكة العربية السعودية",
+    sourceDocument: "اللائحة التنفيذية لنظام المحاماة",
     legalReference: null,
     articleTitle: "التدريب والخبرة والادعاءات المهنية",
     chapter: "مزاولة مهنة المحاماة",
@@ -212,7 +212,7 @@ export const legalKnowledgeEntries: LegalKnowledgeEntry[] = [
   {
     id: "regulations-advertising-controls",
     sourceDocumentId: "advocacy-law-executive-regulations",
-    sourceDocument: "اللائحة التنفيذية لنظام المحاماة في المملكة العربية السعودية",
+    sourceDocument: "اللائحة التنفيذية لنظام المحاماة",
     legalReference: null,
     articleTitle: "ضوابط الإعلان عن خدمات المحاماة",
     chapter: "مزاولة مهنة المحاماة",
@@ -245,7 +245,7 @@ export const legalKnowledgeEntries: LegalKnowledgeEntry[] = [
   {
     id: "regulations-permitted-communication",
     sourceDocumentId: "advocacy-law-executive-regulations",
-    sourceDocument: "اللائحة التنفيذية لنظام المحاماة في المملكة العربية السعودية",
+    sourceDocument: "اللائحة التنفيذية لنظام المحاماة",
     legalReference: null,
     articleTitle: "التواصل المهني المسموح مع الجمهور",
     chapter: "مزاولة مهنة المحاماة",
@@ -266,7 +266,7 @@ export const legalKnowledgeEntries: LegalKnowledgeEntry[] = [
   {
     id: "regulations-prohibited-wording",
     sourceDocumentId: "advocacy-law-executive-regulations",
-    sourceDocument: "اللائحة التنفيذية لنظام المحاماة في المملكة العربية السعودية",
+    sourceDocument: "اللائحة التنفيذية لنظام المحاماة",
     legalReference: null,
     articleTitle: "الصياغات المحظورة أو عالية الحساسية",
     chapter: "مزاولة مهنة المحاماة",
@@ -287,7 +287,7 @@ export const legalKnowledgeEntries: LegalKnowledgeEntry[] = [
   {
     id: "regulations-public-communication",
     sourceDocumentId: "advocacy-law-executive-regulations",
-    sourceDocument: "اللائحة التنفيذية لنظام المحاماة في المملكة العربية السعودية",
+    sourceDocument: "اللائحة التنفيذية لنظام المحاماة",
     legalReference: null,
     articleTitle: "متطلبات النشر والتواصل مع الجمهور",
     chapter: "مزاولة مهنة المحاماة",

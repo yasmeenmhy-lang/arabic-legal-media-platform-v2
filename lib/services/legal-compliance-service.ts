@@ -254,14 +254,10 @@ function isAuditableFinding(finding: ReviewFinding) {
 
 function buildSection(title: string, sourceDocumentId: string, findings: ReviewFinding[]): LegalReviewSection {
   const sourceEntry = legalKnowledgeEntries.find((entry) => entry.sourceDocumentId === sourceDocumentId);
-  const sectionFindings = findings.filter((finding) =>
-    legalKnowledgeEntries.some(
-      (entry) =>
-        entry.sourceDocumentId === sourceDocumentId &&
-        entry.sourceDocument === finding.sourceDocument &&
-        entry.legalReference === finding.legalReference
-    )
-  );
+  // الفرز بهوية المصدر المحمولة في المخالفة نفسها — لا بمطابقة حرفية مع مدخلات قاعدة
+  // المعرفة القديمة: كانت المطابقة الحرفية تُسقط مخالفات اللائحة (المستشهد بها من المتن
+  // الرسمي مباشرة) فتظهر «اللوائح المخالفة: 0» رغم التقاط المحرك لها.
+  const sectionFindings = findings.filter((finding) => finding.sourceDocumentId === sourceDocumentId);
 
   return {
     title,
@@ -337,8 +333,8 @@ export function rebuildComplianceFromFindings(mergedFindings: ReviewFinding[], p
     riskScore: riskScoreExplanation.score,
     riskScoreExplanation,
     findings: sorted,
-    professionalConductCompliance: buildSection("امتثال قواعد السلوك المهني", PROFESSIONAL_CONDUCT_SOURCE_ID, sorted),
-    executiveRegulationCompliance: buildSection("امتثال اللائحة التنفيذية لنظام المحاماة في المملكة العربية السعودية", EXECUTIVE_REGULATION_SOURCE_ID, sorted),
+    professionalConductCompliance: buildSection("امتثال قواعد السلوك المهني للمحامين", PROFESSIONAL_CONDUCT_SOURCE_ID, sorted),
+    executiveRegulationCompliance: buildSection("امتثال اللائحة التنفيذية لنظام المحاماة", EXECUTIVE_REGULATION_SOURCE_ID, sorted),
     legalRiskAssessment: buildRiskAssessment(sorted, riskScoreExplanation),
     referencesPanel: buildReferencesPanel(sorted)
   };

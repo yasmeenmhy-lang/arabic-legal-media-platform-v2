@@ -451,7 +451,7 @@ export const OFFICIAL_CONDUCT_RULES: OfficialCorpusItem[] = [
 export const OFFICIAL_EXECUTIVE_REGULATION: OfficialCorpusItem[] = [
   {
     "ref": "المادة الأولى",
-    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة ١٤٤٦هـ",
+    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة",
     "sourceDocumentId": "advocacy-law-executive-regulations",
     "sourceUrl": "https://laws.moj.gov.sa/ar/legislation/5huwCrAuvCK62BbuXv7fjg",
     "chapter": "الباب الأول: التعريفات",
@@ -460,7 +460,7 @@ export const OFFICIAL_EXECUTIVE_REGULATION: OfficialCorpusItem[] = [
   },
   {
     "ref": "المادة الثانية",
-    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة ١٤٤٦هـ",
+    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة",
     "sourceDocumentId": "advocacy-law-executive-regulations",
     "sourceUrl": "https://laws.moj.gov.sa/ar/legislation/5huwCrAuvCK62BbuXv7fjg",
     "chapter": "الباب الثاني: الترخيص بمزاولة مهنة المحاماة",
@@ -469,7 +469,7 @@ export const OFFICIAL_EXECUTIVE_REGULATION: OfficialCorpusItem[] = [
   },
   {
     "ref": "المادة الثالثة",
-    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة ١٤٤٦هـ",
+    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة",
     "sourceDocumentId": "advocacy-law-executive-regulations",
     "sourceUrl": "https://laws.moj.gov.sa/ar/legislation/5huwCrAuvCK62BbuXv7fjg",
     "chapter": "الباب الثاني: الترخيص بمزاولة مهنة المحاماة",
@@ -478,7 +478,7 @@ export const OFFICIAL_EXECUTIVE_REGULATION: OfficialCorpusItem[] = [
   },
   {
     "ref": "المادة الرابعة",
-    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة ١٤٤٦هـ",
+    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة",
     "sourceDocumentId": "advocacy-law-executive-regulations",
     "sourceUrl": "https://laws.moj.gov.sa/ar/legislation/5huwCrAuvCK62BbuXv7fjg",
     "chapter": "الباب الثاني: الترخيص بمزاولة مهنة المحاماة",
@@ -487,7 +487,7 @@ export const OFFICIAL_EXECUTIVE_REGULATION: OfficialCorpusItem[] = [
   },
   {
     "ref": "المادة الخامسة",
-    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة ١٤٤٦هـ",
+    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة",
     "sourceDocumentId": "advocacy-law-executive-regulations",
     "sourceUrl": "https://laws.moj.gov.sa/ar/legislation/5huwCrAuvCK62BbuXv7fjg",
     "chapter": "الباب الثاني: الترخيص بمزاولة مهنة المحاماة",
@@ -496,7 +496,7 @@ export const OFFICIAL_EXECUTIVE_REGULATION: OfficialCorpusItem[] = [
   },
   {
     "ref": "المادة السادسة",
-    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة ١٤٤٦هـ",
+    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة",
     "sourceDocumentId": "advocacy-law-executive-regulations",
     "sourceUrl": "https://laws.moj.gov.sa/ar/legislation/5huwCrAuvCK62BbuXv7fjg",
     "chapter": "الباب الثاني: الترخيص بمزاولة مهنة المحاماة",
@@ -505,7 +505,7 @@ export const OFFICIAL_EXECUTIVE_REGULATION: OfficialCorpusItem[] = [
   },
   {
     "ref": "المادة السابعة",
-    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة ١٤٤٦هـ",
+    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة",
     "sourceDocumentId": "advocacy-law-executive-regulations",
     "sourceUrl": "https://laws.moj.gov.sa/ar/legislation/5huwCrAuvCK62BbuXv7fjg",
     "chapter": "الباب الثاني: الترخيص بمزاولة مهنة المحاماة",
@@ -514,7 +514,7 @@ export const OFFICIAL_EXECUTIVE_REGULATION: OfficialCorpusItem[] = [
   },
   {
     "ref": "المادة الثامنة",
-    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة ١٤٤٦هـ",
+    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة",
     "sourceDocumentId": "advocacy-law-executive-regulations",
     "sourceUrl": "https://laws.moj.gov.sa/ar/legislation/5huwCrAuvCK62BbuXv7fjg",
     "chapter": "الباب الثاني: الترخيص بمزاولة مهنة المحاماة",
@@ -523,7 +523,7 @@ export const OFFICIAL_EXECUTIVE_REGULATION: OfficialCorpusItem[] = [
   },
   {
     "ref": "المادة التاسعة",
-    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة ١٤٤٦هـ",
+    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة",
     "sourceDocumentId": "advocacy-law-executive-regulations",
     "sourceUrl": "https://laws.moj.gov.sa/ar/legislation/5huwCrAuvCK62BbuXv7fjg",
     "chapter": "الباب الثاني: الترخيص بمزاولة مهنة المحاماة",
@@ -532,7 +532,7 @@ export const OFFICIAL_EXECUTIVE_REGULATION: OfficialCorpusItem[] = [
   },
   {
     "ref": "المادة العاشرة",
-    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة ١٤٤٦هـ",
+    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة",
     "sourceDocumentId": "advocacy-law-executive-regulations",
     "sourceUrl": "https://laws.moj.gov.sa/ar/legislation/5huwCrAuvCK62BbuXv7fjg",
     "chapter": "الباب الثاني: الترخيص بمزاولة مهنة المحاماة",
@@ -541,7 +541,7 @@ export const OFFICIAL_EXECUTIVE_REGULATION: OfficialCorpusItem[] = [
   },
   {
     "ref": "المادة الحادية عشرة",
-    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة ١٤٤٦هـ",
+    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة",
     "sourceDocumentId": "advocacy-law-executive-regulations",
     "sourceUrl": "https://laws.moj.gov.sa/ar/legislation/5huwCrAuvCK62BbuXv7fjg",
     "chapter": "الباب الثاني: الترخيص بمزاولة مهنة المحاماة",
@@ -550,7 +550,7 @@ export const OFFICIAL_EXECUTIVE_REGULATION: OfficialCorpusItem[] = [
   },
   {
     "ref": "المادة الثانية عشرة",
-    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة ١٤٤٦هـ",
+    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة",
     "sourceDocumentId": "advocacy-law-executive-regulations",
     "sourceUrl": "https://laws.moj.gov.sa/ar/legislation/5huwCrAuvCK62BbuXv7fjg",
     "chapter": "الباب الثاني: الترخيص بمزاولة مهنة المحاماة",
@@ -559,7 +559,7 @@ export const OFFICIAL_EXECUTIVE_REGULATION: OfficialCorpusItem[] = [
   },
   {
     "ref": "المادة الثاثة عشرة",
-    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة ١٤٤٦هـ",
+    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة",
     "sourceDocumentId": "advocacy-law-executive-regulations",
     "sourceUrl": "https://laws.moj.gov.sa/ar/legislation/5huwCrAuvCK62BbuXv7fjg",
     "chapter": "الباب الثالث: الواجبات والالتزامات المهنية للمحامي",
@@ -568,7 +568,7 @@ export const OFFICIAL_EXECUTIVE_REGULATION: OfficialCorpusItem[] = [
   },
   {
     "ref": "المادة الرابعة عشرة",
-    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة ١٤٤٦هـ",
+    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة",
     "sourceDocumentId": "advocacy-law-executive-regulations",
     "sourceUrl": "https://laws.moj.gov.sa/ar/legislation/5huwCrAuvCK62BbuXv7fjg",
     "chapter": "الباب الثالث: الواجبات والالتزامات المهنية للمحامي",
@@ -577,7 +577,7 @@ export const OFFICIAL_EXECUTIVE_REGULATION: OfficialCorpusItem[] = [
   },
   {
     "ref": "المادة الخامسة عشرة",
-    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة ١٤٤٦هـ",
+    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة",
     "sourceDocumentId": "advocacy-law-executive-regulations",
     "sourceUrl": "https://laws.moj.gov.sa/ar/legislation/5huwCrAuvCK62BbuXv7fjg",
     "chapter": "الباب الثالث: الواجبات والالتزامات المهنية للمحامي",
@@ -586,7 +586,7 @@ export const OFFICIAL_EXECUTIVE_REGULATION: OfficialCorpusItem[] = [
   },
   {
     "ref": "المادة السادسة عشرة",
-    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة ١٤٤٦هـ",
+    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة",
     "sourceDocumentId": "advocacy-law-executive-regulations",
     "sourceUrl": "https://laws.moj.gov.sa/ar/legislation/5huwCrAuvCK62BbuXv7fjg",
     "chapter": "الباب الثالث: الواجبات والالتزامات المهنية للمحامي",
@@ -595,7 +595,7 @@ export const OFFICIAL_EXECUTIVE_REGULATION: OfficialCorpusItem[] = [
   },
   {
     "ref": "المادة السابعة عشرة",
-    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة ١٤٤٦هـ",
+    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة",
     "sourceDocumentId": "advocacy-law-executive-regulations",
     "sourceUrl": "https://laws.moj.gov.sa/ar/legislation/5huwCrAuvCK62BbuXv7fjg",
     "chapter": "الباب الثالث: الواجبات والالتزامات المهنية للمحامي",
@@ -604,7 +604,7 @@ export const OFFICIAL_EXECUTIVE_REGULATION: OfficialCorpusItem[] = [
   },
   {
     "ref": "المادة الثامنة عشرة",
-    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة ١٤٤٦هـ",
+    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة",
     "sourceDocumentId": "advocacy-law-executive-regulations",
     "sourceUrl": "https://laws.moj.gov.sa/ar/legislation/5huwCrAuvCK62BbuXv7fjg",
     "chapter": "الباب الثالث: الواجبات والالتزامات المهنية للمحامي",
@@ -613,7 +613,7 @@ export const OFFICIAL_EXECUTIVE_REGULATION: OfficialCorpusItem[] = [
   },
   {
     "ref": "المادة التاسعة عشرة",
-    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة ١٤٤٦هـ",
+    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة",
     "sourceDocumentId": "advocacy-law-executive-regulations",
     "sourceUrl": "https://laws.moj.gov.sa/ar/legislation/5huwCrAuvCK62BbuXv7fjg",
     "chapter": "الباب الثالث: الواجبات والالتزامات المهنية للمحامي",
@@ -622,7 +622,7 @@ export const OFFICIAL_EXECUTIVE_REGULATION: OfficialCorpusItem[] = [
   },
   {
     "ref": "المادة العشرون",
-    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة ١٤٤٦هـ",
+    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة",
     "sourceDocumentId": "advocacy-law-executive-regulations",
     "sourceUrl": "https://laws.moj.gov.sa/ar/legislation/5huwCrAuvCK62BbuXv7fjg",
     "chapter": "الباب الثالث: الواجبات والالتزامات المهنية للمحامي",
@@ -631,7 +631,7 @@ export const OFFICIAL_EXECUTIVE_REGULATION: OfficialCorpusItem[] = [
   },
   {
     "ref": "المادة الحادية والعشرون",
-    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة ١٤٤٦هـ",
+    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة",
     "sourceDocumentId": "advocacy-law-executive-regulations",
     "sourceUrl": "https://laws.moj.gov.sa/ar/legislation/5huwCrAuvCK62BbuXv7fjg",
     "chapter": "الباب الثالث: الواجبات والالتزامات المهنية للمحامي",
@@ -640,7 +640,7 @@ export const OFFICIAL_EXECUTIVE_REGULATION: OfficialCorpusItem[] = [
   },
   {
     "ref": "المادة الثانية والعشرون",
-    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة ١٤٤٦هـ",
+    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة",
     "sourceDocumentId": "advocacy-law-executive-regulations",
     "sourceUrl": "https://laws.moj.gov.sa/ar/legislation/5huwCrAuvCK62BbuXv7fjg",
     "chapter": "الباب الثالث: الواجبات والالتزامات المهنية للمحامي",
@@ -649,7 +649,7 @@ export const OFFICIAL_EXECUTIVE_REGULATION: OfficialCorpusItem[] = [
   },
   {
     "ref": "المادة الثالثة والعشرون",
-    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة ١٤٤٦هـ",
+    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة",
     "sourceDocumentId": "advocacy-law-executive-regulations",
     "sourceUrl": "https://laws.moj.gov.sa/ar/legislation/5huwCrAuvCK62BbuXv7fjg",
     "chapter": "الباب الثالث: الواجبات والالتزامات المهنية للمحامي",
@@ -658,7 +658,7 @@ export const OFFICIAL_EXECUTIVE_REGULATION: OfficialCorpusItem[] = [
   },
   {
     "ref": "المادة الرابعة والعشرون",
-    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة ١٤٤٦هـ",
+    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة",
     "sourceDocumentId": "advocacy-law-executive-regulations",
     "sourceUrl": "https://laws.moj.gov.sa/ar/legislation/5huwCrAuvCK62BbuXv7fjg",
     "chapter": "الباب الثالث: الواجبات والالتزامات المهنية للمحامي",
@@ -667,7 +667,7 @@ export const OFFICIAL_EXECUTIVE_REGULATION: OfficialCorpusItem[] = [
   },
   {
     "ref": "المادة الخامسة والعشرون",
-    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة ١٤٤٦هـ",
+    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة",
     "sourceDocumentId": "advocacy-law-executive-regulations",
     "sourceUrl": "https://laws.moj.gov.sa/ar/legislation/5huwCrAuvCK62BbuXv7fjg",
     "chapter": "الباب الثالث: الواجبات والالتزامات المهنية للمحامي",
@@ -676,7 +676,7 @@ export const OFFICIAL_EXECUTIVE_REGULATION: OfficialCorpusItem[] = [
   },
   {
     "ref": "المادة السادسة والعشرون",
-    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة ١٤٤٦هـ",
+    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة",
     "sourceDocumentId": "advocacy-law-executive-regulations",
     "sourceUrl": "https://laws.moj.gov.sa/ar/legislation/5huwCrAuvCK62BbuXv7fjg",
     "chapter": "الباب الثالث: الواجبات والالتزامات المهنية للمحامي",
@@ -685,7 +685,7 @@ export const OFFICIAL_EXECUTIVE_REGULATION: OfficialCorpusItem[] = [
   },
   {
     "ref": "المادة السابعة والعشرون",
-    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة ١٤٤٦هـ",
+    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة",
     "sourceDocumentId": "advocacy-law-executive-regulations",
     "sourceUrl": "https://laws.moj.gov.sa/ar/legislation/5huwCrAuvCK62BbuXv7fjg",
     "chapter": "الباب الثالث: الواجبات والالتزامات المهنية للمحامي",
@@ -694,7 +694,7 @@ export const OFFICIAL_EXECUTIVE_REGULATION: OfficialCorpusItem[] = [
   },
   {
     "ref": "المادة الثامنة والعشرون",
-    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة ١٤٤٦هـ",
+    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة",
     "sourceDocumentId": "advocacy-law-executive-regulations",
     "sourceUrl": "https://laws.moj.gov.sa/ar/legislation/5huwCrAuvCK62BbuXv7fjg",
     "chapter": "الباب الرابع: المتدرب",
@@ -703,7 +703,7 @@ export const OFFICIAL_EXECUTIVE_REGULATION: OfficialCorpusItem[] = [
   },
   {
     "ref": "المادة التاسعة والعشرون",
-    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة ١٤٤٦هـ",
+    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة",
     "sourceDocumentId": "advocacy-law-executive-regulations",
     "sourceUrl": "https://laws.moj.gov.sa/ar/legislation/5huwCrAuvCK62BbuXv7fjg",
     "chapter": "الباب الرابع: المتدرب",
@@ -712,7 +712,7 @@ export const OFFICIAL_EXECUTIVE_REGULATION: OfficialCorpusItem[] = [
   },
   {
     "ref": "المادة الثلاثون",
-    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة ١٤٤٦هـ",
+    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة",
     "sourceDocumentId": "advocacy-law-executive-regulations",
     "sourceUrl": "https://laws.moj.gov.sa/ar/legislation/5huwCrAuvCK62BbuXv7fjg",
     "chapter": "الباب الرابع: المتدرب",
@@ -721,7 +721,7 @@ export const OFFICIAL_EXECUTIVE_REGULATION: OfficialCorpusItem[] = [
   },
   {
     "ref": "المادة الحادية والثلاثون",
-    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة ١٤٤٦هـ",
+    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة",
     "sourceDocumentId": "advocacy-law-executive-regulations",
     "sourceUrl": "https://laws.moj.gov.sa/ar/legislation/5huwCrAuvCK62BbuXv7fjg",
     "chapter": "الباب الرابع: المتدرب",
@@ -730,7 +730,7 @@ export const OFFICIAL_EXECUTIVE_REGULATION: OfficialCorpusItem[] = [
   },
   {
     "ref": "المادة الثانية والثلاثون",
-    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة ١٤٤٦هـ",
+    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة",
     "sourceDocumentId": "advocacy-law-executive-regulations",
     "sourceUrl": "https://laws.moj.gov.sa/ar/legislation/5huwCrAuvCK62BbuXv7fjg",
     "chapter": "الباب الرابع: المتدرب",
@@ -739,7 +739,7 @@ export const OFFICIAL_EXECUTIVE_REGULATION: OfficialCorpusItem[] = [
   },
   {
     "ref": "المادة الثالثة والثلاثون",
-    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة ١٤٤٦هـ",
+    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة",
     "sourceDocumentId": "advocacy-law-executive-regulations",
     "sourceUrl": "https://laws.moj.gov.sa/ar/legislation/5huwCrAuvCK62BbuXv7fjg",
     "chapter": "الباب الرابع: المتدرب",
@@ -748,7 +748,7 @@ export const OFFICIAL_EXECUTIVE_REGULATION: OfficialCorpusItem[] = [
   },
   {
     "ref": "المادة الرابعة والثلاثون",
-    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة ١٤٤٦هـ",
+    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة",
     "sourceDocumentId": "advocacy-law-executive-regulations",
     "sourceUrl": "https://laws.moj.gov.sa/ar/legislation/5huwCrAuvCK62BbuXv7fjg",
     "chapter": "الباب الرابع: المتدرب",
@@ -757,7 +757,7 @@ export const OFFICIAL_EXECUTIVE_REGULATION: OfficialCorpusItem[] = [
   },
   {
     "ref": "المادة الخامسة والثلاثون",
-    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة ١٤٤٦هـ",
+    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة",
     "sourceDocumentId": "advocacy-law-executive-regulations",
     "sourceUrl": "https://laws.moj.gov.sa/ar/legislation/5huwCrAuvCK62BbuXv7fjg",
     "chapter": "الباب الخامس: المستشار غير السعودي",
@@ -766,7 +766,7 @@ export const OFFICIAL_EXECUTIVE_REGULATION: OfficialCorpusItem[] = [
   },
   {
     "ref": "المادة السادسة والثلاثون",
-    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة ١٤٤٦هـ",
+    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة",
     "sourceDocumentId": "advocacy-law-executive-regulations",
     "sourceUrl": "https://laws.moj.gov.sa/ar/legislation/5huwCrAuvCK62BbuXv7fjg",
     "chapter": "الباب الخامس: المستشار غير السعودي",
@@ -775,7 +775,7 @@ export const OFFICIAL_EXECUTIVE_REGULATION: OfficialCorpusItem[] = [
   },
   {
     "ref": "المادة السابعة والثلاثون",
-    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة ١٤٤٦هـ",
+    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة",
     "sourceDocumentId": "advocacy-law-executive-regulations",
     "sourceUrl": "https://laws.moj.gov.sa/ar/legislation/5huwCrAuvCK62BbuXv7fjg",
     "chapter": "الباب الخامس: المستشار غير السعودي",
@@ -784,7 +784,7 @@ export const OFFICIAL_EXECUTIVE_REGULATION: OfficialCorpusItem[] = [
   },
   {
     "ref": "المادة الثامنة والثلاثون",
-    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة ١٤٤٦هـ",
+    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة",
     "sourceDocumentId": "advocacy-law-executive-regulations",
     "sourceUrl": "https://laws.moj.gov.sa/ar/legislation/5huwCrAuvCK62BbuXv7fjg",
     "chapter": "الباب الخامس: المستشار غير السعودي",
@@ -793,7 +793,7 @@ export const OFFICIAL_EXECUTIVE_REGULATION: OfficialCorpusItem[] = [
   },
   {
     "ref": "المادة التاسعة والثلاثون",
-    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة ١٤٤٦هـ",
+    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة",
     "sourceDocumentId": "advocacy-law-executive-regulations",
     "sourceUrl": "https://laws.moj.gov.sa/ar/legislation/5huwCrAuvCK62BbuXv7fjg",
     "chapter": "الباب الخامس: المستشار غير السعودي",
@@ -802,7 +802,7 @@ export const OFFICIAL_EXECUTIVE_REGULATION: OfficialCorpusItem[] = [
   },
   {
     "ref": "المادة الأربعون",
-    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة ١٤٤٦هـ",
+    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة",
     "sourceDocumentId": "advocacy-law-executive-regulations",
     "sourceUrl": "https://laws.moj.gov.sa/ar/legislation/5huwCrAuvCK62BbuXv7fjg",
     "chapter": "الباب الخامس: المستشار غير السعودي",
@@ -811,7 +811,7 @@ export const OFFICIAL_EXECUTIVE_REGULATION: OfficialCorpusItem[] = [
   },
   {
     "ref": "المادة الحادية والأربعون",
-    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة ١٤٤٦هـ",
+    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة",
     "sourceDocumentId": "advocacy-law-executive-regulations",
     "sourceUrl": "https://laws.moj.gov.sa/ar/legislation/5huwCrAuvCK62BbuXv7fjg",
     "chapter": "الباب السادس: المأذون لهم بالترافع من غير المحامين",
@@ -820,7 +820,7 @@ export const OFFICIAL_EXECUTIVE_REGULATION: OfficialCorpusItem[] = [
   },
   {
     "ref": "المادة الثانية والأربعون",
-    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة ١٤٤٦هـ",
+    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة",
     "sourceDocumentId": "advocacy-law-executive-regulations",
     "sourceUrl": "https://laws.moj.gov.sa/ar/legislation/5huwCrAuvCK62BbuXv7fjg",
     "chapter": "الباب السادس: المأذون لهم بالترافع من غير المحامين",
@@ -829,7 +829,7 @@ export const OFFICIAL_EXECUTIVE_REGULATION: OfficialCorpusItem[] = [
   },
   {
     "ref": "المادة الثالثة والأربعون",
-    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة ١٤٤٦هـ",
+    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة",
     "sourceDocumentId": "advocacy-law-executive-regulations",
     "sourceUrl": "https://laws.moj.gov.sa/ar/legislation/5huwCrAuvCK62BbuXv7fjg",
     "chapter": "الباب السادس: المأذون لهم بالترافع من غير المحامين",
@@ -838,7 +838,7 @@ export const OFFICIAL_EXECUTIVE_REGULATION: OfficialCorpusItem[] = [
   },
   {
     "ref": "المادة الرابعة والأربعون",
-    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة ١٤٤٦هـ",
+    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة",
     "sourceDocumentId": "advocacy-law-executive-regulations",
     "sourceUrl": "https://laws.moj.gov.sa/ar/legislation/5huwCrAuvCK62BbuXv7fjg",
     "chapter": "الباب السادس: المأذون لهم بالترافع من غير المحامين",
@@ -847,7 +847,7 @@ export const OFFICIAL_EXECUTIVE_REGULATION: OfficialCorpusItem[] = [
   },
   {
     "ref": "المادة الخامسة والأربعون",
-    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة ١٤٤٦هـ",
+    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة",
     "sourceDocumentId": "advocacy-law-executive-regulations",
     "sourceUrl": "https://laws.moj.gov.sa/ar/legislation/5huwCrAuvCK62BbuXv7fjg",
     "chapter": "الباب السادس: المأذون لهم بالترافع من غير المحامين",
@@ -856,7 +856,7 @@ export const OFFICIAL_EXECUTIVE_REGULATION: OfficialCorpusItem[] = [
   },
   {
     "ref": "المادة السادسة والأربعون",
-    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة ١٤٤٦هـ",
+    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة",
     "sourceDocumentId": "advocacy-law-executive-regulations",
     "sourceUrl": "https://laws.moj.gov.sa/ar/legislation/5huwCrAuvCK62BbuXv7fjg",
     "chapter": "الباب السادس: المأذون لهم بالترافع من غير المحامين",
@@ -865,7 +865,7 @@ export const OFFICIAL_EXECUTIVE_REGULATION: OfficialCorpusItem[] = [
   },
   {
     "ref": "المادة السابعة والأربعون",
-    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة ١٤٤٦هـ",
+    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة",
     "sourceDocumentId": "advocacy-law-executive-regulations",
     "sourceUrl": "https://laws.moj.gov.sa/ar/legislation/5huwCrAuvCK62BbuXv7fjg",
     "chapter": "الباب السادس: المأذون لهم بالترافع من غير المحامين",
@@ -874,7 +874,7 @@ export const OFFICIAL_EXECUTIVE_REGULATION: OfficialCorpusItem[] = [
   },
   {
     "ref": "المادة الثامنة والأربعون",
-    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة ١٤٤٦هـ",
+    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة",
     "sourceDocumentId": "advocacy-law-executive-regulations",
     "sourceUrl": "https://laws.moj.gov.sa/ar/legislation/5huwCrAuvCK62BbuXv7fjg",
     "chapter": "الباب السابع: مكتب المحاماة الأجنبي",
@@ -883,7 +883,7 @@ export const OFFICIAL_EXECUTIVE_REGULATION: OfficialCorpusItem[] = [
   },
   {
     "ref": "المادة التاسعة والأربعون",
-    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة ١٤٤٦هـ",
+    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة",
     "sourceDocumentId": "advocacy-law-executive-regulations",
     "sourceUrl": "https://laws.moj.gov.sa/ar/legislation/5huwCrAuvCK62BbuXv7fjg",
     "chapter": "الباب السابع: مكتب المحاماة الأجنبي",
@@ -892,7 +892,7 @@ export const OFFICIAL_EXECUTIVE_REGULATION: OfficialCorpusItem[] = [
   },
   {
     "ref": "المادة الخمسون",
-    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة ١٤٤٦هـ",
+    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة",
     "sourceDocumentId": "advocacy-law-executive-regulations",
     "sourceUrl": "https://laws.moj.gov.sa/ar/legislation/5huwCrAuvCK62BbuXv7fjg",
     "chapter": "الباب السابع: مكتب المحاماة الأجنبي",
@@ -901,7 +901,7 @@ export const OFFICIAL_EXECUTIVE_REGULATION: OfficialCorpusItem[] = [
   },
   {
     "ref": "المادة الحادية والخمسون",
-    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة ١٤٤٦هـ",
+    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة",
     "sourceDocumentId": "advocacy-law-executive-regulations",
     "sourceUrl": "https://laws.moj.gov.sa/ar/legislation/5huwCrAuvCK62BbuXv7fjg",
     "chapter": "الباب السابع: مكتب المحاماة الأجنبي",
@@ -910,7 +910,7 @@ export const OFFICIAL_EXECUTIVE_REGULATION: OfficialCorpusItem[] = [
   },
   {
     "ref": "المادة الثانية والخمسون",
-    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة ١٤٤٦هـ",
+    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة",
     "sourceDocumentId": "advocacy-law-executive-regulations",
     "sourceUrl": "https://laws.moj.gov.sa/ar/legislation/5huwCrAuvCK62BbuXv7fjg",
     "chapter": "الباب السابع: مكتب المحاماة الأجنبي",
@@ -919,7 +919,7 @@ export const OFFICIAL_EXECUTIVE_REGULATION: OfficialCorpusItem[] = [
   },
   {
     "ref": "المادة الثالثة والخمسون",
-    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة ١٤٤٦هـ",
+    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة",
     "sourceDocumentId": "advocacy-law-executive-regulations",
     "sourceUrl": "https://laws.moj.gov.sa/ar/legislation/5huwCrAuvCK62BbuXv7fjg",
     "chapter": "الباب السابع: مكتب المحاماة الأجنبي",
@@ -928,7 +928,7 @@ export const OFFICIAL_EXECUTIVE_REGULATION: OfficialCorpusItem[] = [
   },
   {
     "ref": "المادة الرابعة والخمسون",
-    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة ١٤٤٦هـ",
+    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة",
     "sourceDocumentId": "advocacy-law-executive-regulations",
     "sourceUrl": "https://laws.moj.gov.sa/ar/legislation/5huwCrAuvCK62BbuXv7fjg",
     "chapter": "الباب السابع: مكتب المحاماة الأجنبي",
@@ -937,7 +937,7 @@ export const OFFICIAL_EXECUTIVE_REGULATION: OfficialCorpusItem[] = [
   },
   {
     "ref": "المادة الخامسة والخمسون",
-    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة ١٤٤٦هـ",
+    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة",
     "sourceDocumentId": "advocacy-law-executive-regulations",
     "sourceUrl": "https://laws.moj.gov.sa/ar/legislation/5huwCrAuvCK62BbuXv7fjg",
     "chapter": "الباب السابع: مكتب المحاماة الأجنبي",
@@ -946,7 +946,7 @@ export const OFFICIAL_EXECUTIVE_REGULATION: OfficialCorpusItem[] = [
   },
   {
     "ref": "المادة السادسة والخمسون",
-    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة ١٤٤٦هـ",
+    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة",
     "sourceDocumentId": "advocacy-law-executive-regulations",
     "sourceUrl": "https://laws.moj.gov.sa/ar/legislation/5huwCrAuvCK62BbuXv7fjg",
     "chapter": "الباب السابع: مكتب المحاماة الأجنبي",
@@ -955,7 +955,7 @@ export const OFFICIAL_EXECUTIVE_REGULATION: OfficialCorpusItem[] = [
   },
   {
     "ref": "المادة السابعة والخمسون",
-    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة ١٤٤٦هـ",
+    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة",
     "sourceDocumentId": "advocacy-law-executive-regulations",
     "sourceUrl": "https://laws.moj.gov.sa/ar/legislation/5huwCrAuvCK62BbuXv7fjg",
     "chapter": "الباب السابع: مكتب المحاماة الأجنبي",
@@ -964,7 +964,7 @@ export const OFFICIAL_EXECUTIVE_REGULATION: OfficialCorpusItem[] = [
   },
   {
     "ref": "المادة الثامنة والخمسون",
-    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة ١٤٤٦هـ",
+    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة",
     "sourceDocumentId": "advocacy-law-executive-regulations",
     "sourceUrl": "https://laws.moj.gov.sa/ar/legislation/5huwCrAuvCK62BbuXv7fjg",
     "chapter": "الباب السابع: مكتب المحاماة الأجنبي",
@@ -973,7 +973,7 @@ export const OFFICIAL_EXECUTIVE_REGULATION: OfficialCorpusItem[] = [
   },
   {
     "ref": "المادة التاسعة والخمسون",
-    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة ١٤٤٦هـ",
+    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة",
     "sourceDocumentId": "advocacy-law-executive-regulations",
     "sourceUrl": "https://laws.moj.gov.sa/ar/legislation/5huwCrAuvCK62BbuXv7fjg",
     "chapter": "الباب السابع: مكتب المحاماة الأجنبي",
@@ -982,7 +982,7 @@ export const OFFICIAL_EXECUTIVE_REGULATION: OfficialCorpusItem[] = [
   },
   {
     "ref": "المادة الستون",
-    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة ١٤٤٦هـ",
+    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة",
     "sourceDocumentId": "advocacy-law-executive-regulations",
     "sourceUrl": "https://laws.moj.gov.sa/ar/legislation/5huwCrAuvCK62BbuXv7fjg",
     "chapter": "الباب السابع: مكتب المحاماة الأجنبي",
@@ -991,7 +991,7 @@ export const OFFICIAL_EXECUTIVE_REGULATION: OfficialCorpusItem[] = [
   },
   {
     "ref": "المادة الحادية والستون",
-    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة ١٤٤٦هـ",
+    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة",
     "sourceDocumentId": "advocacy-law-executive-regulations",
     "sourceUrl": "https://laws.moj.gov.sa/ar/legislation/5huwCrAuvCK62BbuXv7fjg",
     "chapter": "الباب السابع: مكتب المحاماة الأجنبي",
@@ -1000,7 +1000,7 @@ export const OFFICIAL_EXECUTIVE_REGULATION: OfficialCorpusItem[] = [
   },
   {
     "ref": "المادة الثانية والستون",
-    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة ١٤٤٦هـ",
+    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة",
     "sourceDocumentId": "advocacy-law-executive-regulations",
     "sourceUrl": "https://laws.moj.gov.sa/ar/legislation/5huwCrAuvCK62BbuXv7fjg",
     "chapter": "الباب السابع: مكتب المحاماة الأجنبي",
@@ -1009,7 +1009,7 @@ export const OFFICIAL_EXECUTIVE_REGULATION: OfficialCorpusItem[] = [
   },
   {
     "ref": "المادة الثالثة والستون",
-    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة ١٤٤٦هـ",
+    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة",
     "sourceDocumentId": "advocacy-law-executive-regulations",
     "sourceUrl": "https://laws.moj.gov.sa/ar/legislation/5huwCrAuvCK62BbuXv7fjg",
     "chapter": "الباب السابع: مكتب المحاماة الأجنبي",
@@ -1018,7 +1018,7 @@ export const OFFICIAL_EXECUTIVE_REGULATION: OfficialCorpusItem[] = [
   },
   {
     "ref": "المادة الرابعة والستون",
-    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة ١٤٤٦هـ",
+    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة",
     "sourceDocumentId": "advocacy-law-executive-regulations",
     "sourceUrl": "https://laws.moj.gov.sa/ar/legislation/5huwCrAuvCK62BbuXv7fjg",
     "chapter": "الباب الثامن: التأديب",
@@ -1027,7 +1027,7 @@ export const OFFICIAL_EXECUTIVE_REGULATION: OfficialCorpusItem[] = [
   },
   {
     "ref": "المادة الخامسة والستون",
-    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة ١٤٤٦هـ",
+    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة",
     "sourceDocumentId": "advocacy-law-executive-regulations",
     "sourceUrl": "https://laws.moj.gov.sa/ar/legislation/5huwCrAuvCK62BbuXv7fjg",
     "chapter": "الباب الثامن: التأديب",
@@ -1036,7 +1036,7 @@ export const OFFICIAL_EXECUTIVE_REGULATION: OfficialCorpusItem[] = [
   },
   {
     "ref": "المادة السادسة والستون",
-    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة ١٤٤٦هـ",
+    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة",
     "sourceDocumentId": "advocacy-law-executive-regulations",
     "sourceUrl": "https://laws.moj.gov.sa/ar/legislation/5huwCrAuvCK62BbuXv7fjg",
     "chapter": "الباب الثامن: التأديب",
@@ -1045,7 +1045,7 @@ export const OFFICIAL_EXECUTIVE_REGULATION: OfficialCorpusItem[] = [
   },
   {
     "ref": "المادة السابعة والستون",
-    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة ١٤٤٦هـ",
+    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة",
     "sourceDocumentId": "advocacy-law-executive-regulations",
     "sourceUrl": "https://laws.moj.gov.sa/ar/legislation/5huwCrAuvCK62BbuXv7fjg",
     "chapter": "الباب الثامن: التأديب",
@@ -1054,7 +1054,7 @@ export const OFFICIAL_EXECUTIVE_REGULATION: OfficialCorpusItem[] = [
   },
   {
     "ref": "المادة الثامنة والستون",
-    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة ١٤٤٦هـ",
+    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة",
     "sourceDocumentId": "advocacy-law-executive-regulations",
     "sourceUrl": "https://laws.moj.gov.sa/ar/legislation/5huwCrAuvCK62BbuXv7fjg",
     "chapter": "الباب الثامن: التأديب",
@@ -1063,7 +1063,7 @@ export const OFFICIAL_EXECUTIVE_REGULATION: OfficialCorpusItem[] = [
   },
   {
     "ref": "المادة التاسعة والستون",
-    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة ١٤٤٦هـ",
+    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة",
     "sourceDocumentId": "advocacy-law-executive-regulations",
     "sourceUrl": "https://laws.moj.gov.sa/ar/legislation/5huwCrAuvCK62BbuXv7fjg",
     "chapter": "الباب الثامن: التأديب",
@@ -1072,7 +1072,7 @@ export const OFFICIAL_EXECUTIVE_REGULATION: OfficialCorpusItem[] = [
   },
   {
     "ref": "المادة السبعون",
-    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة ١٤٤٦هـ",
+    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة",
     "sourceDocumentId": "advocacy-law-executive-regulations",
     "sourceUrl": "https://laws.moj.gov.sa/ar/legislation/5huwCrAuvCK62BbuXv7fjg",
     "chapter": "الباب الثامن: التأديب",
@@ -1081,7 +1081,7 @@ export const OFFICIAL_EXECUTIVE_REGULATION: OfficialCorpusItem[] = [
   },
   {
     "ref": "المادة الحادية والسبعون",
-    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة ١٤٤٦هـ",
+    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة",
     "sourceDocumentId": "advocacy-law-executive-regulations",
     "sourceUrl": "https://laws.moj.gov.sa/ar/legislation/5huwCrAuvCK62BbuXv7fjg",
     "chapter": "الباب الثامن: التأديب",
@@ -1090,7 +1090,7 @@ export const OFFICIAL_EXECUTIVE_REGULATION: OfficialCorpusItem[] = [
   },
   {
     "ref": "المادة الثانية والسبعون",
-    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة ١٤٤٦هـ",
+    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة",
     "sourceDocumentId": "advocacy-law-executive-regulations",
     "sourceUrl": "https://laws.moj.gov.sa/ar/legislation/5huwCrAuvCK62BbuXv7fjg",
     "chapter": "الباب الثامن: التأديب",
@@ -1099,7 +1099,7 @@ export const OFFICIAL_EXECUTIVE_REGULATION: OfficialCorpusItem[] = [
   },
   {
     "ref": "المادة الثالثة والسبعون",
-    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة ١٤٤٦هـ",
+    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة",
     "sourceDocumentId": "advocacy-law-executive-regulations",
     "sourceUrl": "https://laws.moj.gov.sa/ar/legislation/5huwCrAuvCK62BbuXv7fjg",
     "chapter": "الباب الثامن: التأديب",
@@ -1108,7 +1108,7 @@ export const OFFICIAL_EXECUTIVE_REGULATION: OfficialCorpusItem[] = [
   },
   {
     "ref": "المادة الرابعة والسبعون",
-    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة ١٤٤٦هـ",
+    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة",
     "sourceDocumentId": "advocacy-law-executive-regulations",
     "sourceUrl": "https://laws.moj.gov.sa/ar/legislation/5huwCrAuvCK62BbuXv7fjg",
     "chapter": "الباب الثامن: التأديب",
@@ -1117,7 +1117,7 @@ export const OFFICIAL_EXECUTIVE_REGULATION: OfficialCorpusItem[] = [
   },
   {
     "ref": "المادة الخامسة والسبعون",
-    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة ١٤٤٦هـ",
+    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة",
     "sourceDocumentId": "advocacy-law-executive-regulations",
     "sourceUrl": "https://laws.moj.gov.sa/ar/legislation/5huwCrAuvCK62BbuXv7fjg",
     "chapter": "الباب الثامن: التأديب",
@@ -1126,7 +1126,7 @@ export const OFFICIAL_EXECUTIVE_REGULATION: OfficialCorpusItem[] = [
   },
   {
     "ref": "المادة السادسة والسبعون",
-    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة ١٤٤٦هـ",
+    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة",
     "sourceDocumentId": "advocacy-law-executive-regulations",
     "sourceUrl": "https://laws.moj.gov.sa/ar/legislation/5huwCrAuvCK62BbuXv7fjg",
     "chapter": "الباب الثامن: التأديب",
@@ -1135,7 +1135,7 @@ export const OFFICIAL_EXECUTIVE_REGULATION: OfficialCorpusItem[] = [
   },
   {
     "ref": "المادة السابعة والسبعون",
-    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة ١٤٤٦هـ",
+    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة",
     "sourceDocumentId": "advocacy-law-executive-regulations",
     "sourceUrl": "https://laws.moj.gov.sa/ar/legislation/5huwCrAuvCK62BbuXv7fjg",
     "chapter": "الباب الثامن: التأديب",
@@ -1144,7 +1144,7 @@ export const OFFICIAL_EXECUTIVE_REGULATION: OfficialCorpusItem[] = [
   },
   {
     "ref": "المادة الثامنة والسبعون",
-    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة ١٤٤٦هـ",
+    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة",
     "sourceDocumentId": "advocacy-law-executive-regulations",
     "sourceUrl": "https://laws.moj.gov.sa/ar/legislation/5huwCrAuvCK62BbuXv7fjg",
     "chapter": "الباب الثامن: التأديب",
@@ -1153,7 +1153,7 @@ export const OFFICIAL_EXECUTIVE_REGULATION: OfficialCorpusItem[] = [
   },
   {
     "ref": "المادة التاسعة والسبعون",
-    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة ١٤٤٦هـ",
+    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة",
     "sourceDocumentId": "advocacy-law-executive-regulations",
     "sourceUrl": "https://laws.moj.gov.sa/ar/legislation/5huwCrAuvCK62BbuXv7fjg",
     "chapter": "الباب الثامن: التأديب",
@@ -1162,7 +1162,7 @@ export const OFFICIAL_EXECUTIVE_REGULATION: OfficialCorpusItem[] = [
   },
   {
     "ref": "المادة الثمانون",
-    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة ١٤٤٦هـ",
+    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة",
     "sourceDocumentId": "advocacy-law-executive-regulations",
     "sourceUrl": "https://laws.moj.gov.sa/ar/legislation/5huwCrAuvCK62BbuXv7fjg",
     "chapter": "الباب الثامن: التأديب",
@@ -1171,7 +1171,7 @@ export const OFFICIAL_EXECUTIVE_REGULATION: OfficialCorpusItem[] = [
   },
   {
     "ref": "المادة الحادية والثمانون",
-    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة ١٤٤٦هـ",
+    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة",
     "sourceDocumentId": "advocacy-law-executive-regulations",
     "sourceUrl": "https://laws.moj.gov.sa/ar/legislation/5huwCrAuvCK62BbuXv7fjg",
     "chapter": "الباب الثامن: التأديب",
@@ -1180,7 +1180,7 @@ export const OFFICIAL_EXECUTIVE_REGULATION: OfficialCorpusItem[] = [
   },
   {
     "ref": "المادة الثانية والثمانون",
-    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة ١٤٤٦هـ",
+    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة",
     "sourceDocumentId": "advocacy-law-executive-regulations",
     "sourceUrl": "https://laws.moj.gov.sa/ar/legislation/5huwCrAuvCK62BbuXv7fjg",
     "chapter": "الباب الثامن: التأديب",
@@ -1189,7 +1189,7 @@ export const OFFICIAL_EXECUTIVE_REGULATION: OfficialCorpusItem[] = [
   },
   {
     "ref": "المادة الثالثة والثمانون",
-    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة ١٤٤٦هـ",
+    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة",
     "sourceDocumentId": "advocacy-law-executive-regulations",
     "sourceUrl": "https://laws.moj.gov.sa/ar/legislation/5huwCrAuvCK62BbuXv7fjg",
     "chapter": "الباب الثامن: التأديب",
@@ -1198,7 +1198,7 @@ export const OFFICIAL_EXECUTIVE_REGULATION: OfficialCorpusItem[] = [
   },
   {
     "ref": "المادة الرابعة والثمانون",
-    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة ١٤٤٦هـ",
+    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة",
     "sourceDocumentId": "advocacy-law-executive-regulations",
     "sourceUrl": "https://laws.moj.gov.sa/ar/legislation/5huwCrAuvCK62BbuXv7fjg",
     "chapter": "الباب الثامن: التأديب",
@@ -1207,7 +1207,7 @@ export const OFFICIAL_EXECUTIVE_REGULATION: OfficialCorpusItem[] = [
   },
   {
     "ref": "المادة الخامسة والثمانون",
-    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة ١٤٤٦هـ",
+    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة",
     "sourceDocumentId": "advocacy-law-executive-regulations",
     "sourceUrl": "https://laws.moj.gov.sa/ar/legislation/5huwCrAuvCK62BbuXv7fjg",
     "chapter": "الباب الثامن: التأديب",
@@ -1216,7 +1216,7 @@ export const OFFICIAL_EXECUTIVE_REGULATION: OfficialCorpusItem[] = [
   },
   {
     "ref": "المادة السادسة والثمانون",
-    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة ١٤٤٦هـ",
+    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة",
     "sourceDocumentId": "advocacy-law-executive-regulations",
     "sourceUrl": "https://laws.moj.gov.sa/ar/legislation/5huwCrAuvCK62BbuXv7fjg",
     "chapter": "الباب الثامن: التأديب",
@@ -1225,7 +1225,7 @@ export const OFFICIAL_EXECUTIVE_REGULATION: OfficialCorpusItem[] = [
   },
   {
     "ref": "المادة السابعة والثمانون",
-    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة ١٤٤٦هـ",
+    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة",
     "sourceDocumentId": "advocacy-law-executive-regulations",
     "sourceUrl": "https://laws.moj.gov.sa/ar/legislation/5huwCrAuvCK62BbuXv7fjg",
     "chapter": "الباب الثامن: التأديب",
@@ -1234,7 +1234,7 @@ export const OFFICIAL_EXECUTIVE_REGULATION: OfficialCorpusItem[] = [
   },
   {
     "ref": "المادة الثامنة والثمانون",
-    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة ١٤٤٦هـ",
+    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة",
     "sourceDocumentId": "advocacy-law-executive-regulations",
     "sourceUrl": "https://laws.moj.gov.sa/ar/legislation/5huwCrAuvCK62BbuXv7fjg",
     "chapter": "الباب الثامن: التأديب",
@@ -1243,7 +1243,7 @@ export const OFFICIAL_EXECUTIVE_REGULATION: OfficialCorpusItem[] = [
   },
   {
     "ref": "المادة التاسعة والثمانون",
-    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة ١٤٤٦هـ",
+    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة",
     "sourceDocumentId": "advocacy-law-executive-regulations",
     "sourceUrl": "https://laws.moj.gov.sa/ar/legislation/5huwCrAuvCK62BbuXv7fjg",
     "chapter": "الباب التاسع: أحكام ختامية",
@@ -1252,7 +1252,7 @@ export const OFFICIAL_EXECUTIVE_REGULATION: OfficialCorpusItem[] = [
   },
   {
     "ref": "المادة التسعون",
-    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة ١٤٤٦هـ",
+    "sourceDocument": "اللائحة التنفيذية لنظام المحاماة",
     "sourceDocumentId": "advocacy-law-executive-regulations",
     "sourceUrl": "https://laws.moj.gov.sa/ar/legislation/5huwCrAuvCK62BbuXv7fjg",
     "chapter": "الباب التاسع: أحكام ختامية",
