@@ -437,10 +437,19 @@ export default function ContentReviewPage() {
   const canAnalyze = text.trim().length >= 5 && Boolean(kind && audience && purpose) && (isReanalysis ? isEditing : Boolean(specialty));
   const contextScore = [kind, audience, purpose, specialty].filter(Boolean).length;
   const contentTypeLabel = kind ? contentTypes.find((item) => item.value === kind)?.label ?? "محتوى مهني" : "";
-  const sortedFindings = useMemo(
-    () => [...(review?.findings ?? [])].sort((a, b) => severityOrder[a.businessSeverity ?? "low"] - severityOrder[b.businessSeverity ?? "low"]),
-    [review]
-  );
+  const sortedFindings = useMemo(() => {
+    if (!review) return [];
+    // القسم 3 يعرض المصدرين معاً صراحةً، مع الإبقاء على أي ملاحظة عامة ومنع التكرار.
+    const combined = [
+      ...review.findings,
+      ...review.professionalConductCompliance.findings,
+      ...review.executiveRegulationCompliance.findings,
+    ];
+    const unique = new Map(combined.map((finding) => [finding.traceabilityId, finding]));
+    return [...unique.values()].sort(
+      (a, b) => severityOrder[a.businessSeverity ?? "low"] - severityOrder[b.businessSeverity ?? "low"]
+    );
+  }, [review]);
 
   async function requestReview(reviewStatus?: "READY_FOR_PUBLISHING") {
     if (!kind || !audience || !purpose || (!isReanalysis && !specialty)) {
