@@ -547,6 +547,15 @@ export default function ContentReviewPage() {
     document.getElementById("input")?.scrollIntoView({ behavior: "smooth" });
   }
 
+  // تبسيط التدفق: الكتابة في صندوق النص تفتح وضع التعديل تلقائياً بلا زر منفصل،
+  // فتبقى النتائج مرتبطة بالنص (تظل إعادة التحليل مطلوبة لتحديثها) دون احتكاك.
+  function enterEditingIfNeeded() {
+    if (review && !isEditing) {
+      setEditSnapshot({ text, kind, channel, audience, purpose });
+      setIsEditing(true);
+    }
+  }
+
   function cancelEditing() {
     if (editSnapshot) {
       setText(editSnapshot.text);
@@ -1451,9 +1460,9 @@ export default function ContentReviewPage() {
           </span>
           <textarea
             value={text}
-            disabled={Boolean(review) && !isEditing}
-            onChange={(event) => setText(event.target.value)}
-            className={`mt-2 min-h-44 w-full rounded-lg border p-4 leading-8 transition disabled:bg-paper disabled:text-ink/65 ${
+            onFocus={enterEditingIfNeeded}
+            onChange={(event) => { enterEditingIfNeeded(); setText(event.target.value); }}
+            className={`mt-2 min-h-44 w-full rounded-lg border p-4 leading-8 transition ${
               charLimit !== null && text.length > charLimit ? "border-red-400 focus:border-red-400" : "border-line"
             }`}
           />
