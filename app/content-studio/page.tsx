@@ -64,6 +64,7 @@ import {
   type StoredVisual,
 } from "@/lib/content-record-store";
 import { saveLatestReviewSnapshot } from "@/components/review-context-summary";
+import { StudioResultsDashboard } from "@/components/content-studio/StudioResultsDashboard";
 import { scopedKey } from "@/lib/user-scope";
 import { riskDisplayLabel, type ContentKind, type ReviewResult, type RiskAffectedParty, type RiskLevel } from "@/lib/types";
 
@@ -3411,6 +3412,26 @@ export default function ContentStudioPage() {
 
       {/* ── 5. Results ── */}
       {review && !reviewing && (
+        <StudioResultsDashboard
+          review={review}
+          text={activeText}
+          visual={
+            vtSvg
+              ? { svg: vtSvg, label: VISUAL_ENGINE_LABELS[vtType] ?? "مرئي" }
+              : vtPremiumUrl
+                ? { imageUrl: vtPremiumUrl, label: "مرئي احترافي" }
+                : imageGenSvg
+                  ? { svg: imageGenSvg, label: "مرئي من وصف" }
+                  : imageGenUrl
+                    ? { imageUrl: imageGenUrl, label: "صورة من وصف" }
+                    : undefined
+          }
+          onEdit={() => setReview(null)}
+        />
+      )}
+
+      {false && ((review: ReviewResult) => {
+        return (
         <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start lg:gap-6">
           <div className="min-w-0 space-y-6">
           {/* النص المُحلَّل */}
@@ -3843,7 +3864,8 @@ export default function ContentStudioPage() {
             </Panel>
           </aside>
         </div>
-      )}
+        );
+      })(review!)}
 
       {reviewError && !reviewing && (
         <p className="text-sm text-red-600">{reviewError}</p>
