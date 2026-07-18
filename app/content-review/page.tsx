@@ -484,7 +484,8 @@ export default function ContentReviewPage() {
 
   async function applyRewrite() {
     const rewrite = review?.governedRewrites[0];
-    if (!rewrite || !kind || !audience || !purpose || !specialty) return;
+    // كسابقتها: التطبيق بعد المراجعة ولا يُرسل «التخصص»، فلا يُشترط هنا كي لا يتوقف الزر بصمت.
+    if (!rewrite || !kind || !audience || !purpose) return;
     const enhancedRewrite = review.aiEnhancement?.rewriteSuggestions.find((item) => item.rewriteId === rewrite.id);
     const rewriteText = enhancedRewrite?.suggestedText ?? rewrite.suggestedText;
     setText(rewriteText);
@@ -711,7 +712,9 @@ export default function ContentReviewPage() {
   }
 
   async function applyAISuggestion() {
-    if (!aiSuggestion || !kind || !audience || !purpose || !specialty) return;
+    // التطبيق يجري بعد اكتمال المراجعة ولا يُرسل «التخصص» إلى الخدمة، فلا يُشترط هنا —
+    // اشتراطه كان يُوقف الزر بصمت دون أي إشعار للمستخدم.
+    if (!aiSuggestion || !kind || !audience || !purpose) return;
     const suggestionText = aiSuggestion;
     setText(suggestionText);
     setAiSuggestion(null);
