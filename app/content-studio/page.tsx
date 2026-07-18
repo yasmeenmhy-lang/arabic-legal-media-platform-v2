@@ -681,6 +681,7 @@ export default function ContentStudioPage() {
 
   // Review result
   const [review, setReview] = useState<ReviewResult | null>(null);
+  const [editingReviewedContent, setEditingReviewedContent] = useState(false);
   const [reviewing, setReviewing] = useState(false);
   const [reviewError, setReviewError] = useState("");
   const [contentId, setContentId] = useState<string | undefined>();
@@ -975,6 +976,7 @@ export default function ContentStudioPage() {
       return;
     }
     setReviewing(true);
+    setEditingReviewedContent(false);
     setReviewError("");
     setReview(null);
     setImprovedTextAI("");
@@ -1131,8 +1133,12 @@ export default function ContentStudioPage() {
 
   // رجوع مرحلي يحافظ على المدخلات والنتيجة السابقة؛ لا يعيد ضبط عمل المستخدم.
   function goBackOneStage() {
+    if (editingReviewedContent) {
+      setEditingReviewedContent(false);
+      return;
+    }
     if (review) {
-      setReview(null);
+      setPath(null);
       return;
     }
     setPath(null);
@@ -2665,8 +2671,8 @@ export default function ContentStudioPage() {
       )}
 
       {/* ── 3a. Review path — text input ── */}
-      {path === "review" && !review && !reviewing && (
-        <Panel>
+      {path === "review" && (!review || editingReviewedContent) && !reviewing && (
+        <Panel id="studio-text-editor">
           <div className="mb-4 flex items-center justify-between">
             <SectionTitle title="2. النص محل المراجعة" />
             <button
@@ -2842,8 +2848,8 @@ export default function ContentStudioPage() {
       )}
 
       {/* ── 4. Generated content preview ── */}
-      {path === "create" && generatedText && !review && !reviewing && (
-        <Panel className="bg-violetSoft">
+      {path === "create" && generatedText && (!review || editingReviewedContent) && !reviewing && (
+        <Panel id="studio-text-editor" className="bg-violetSoft">
           {finalizing && (
             <p className="mb-3 rounded-lg bg-goldSoft px-3 py-2 text-xs font-medium leading-5 text-gold">
               تحقق نهائي يجري الآن — قد يُحدَّث النص تلقائياً خلال لحظات.
@@ -3455,7 +3461,10 @@ export default function ContentStudioPage() {
                     ? { imageUrl: imageGenUrl, label: "صورة من وصف" }
                     : undefined
           }
-          onEdit={() => setReview(null)}
+          onEdit={() => {
+            setEditingReviewedContent(true);
+            window.requestAnimationFrame(() => document.getElementById("studio-text-editor")?.scrollIntoView({ behavior: "smooth", block: "start" }));
+          }}
         />
       )}
 
