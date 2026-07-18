@@ -1645,12 +1645,11 @@ export default function ContentReviewPage() {
               title="المؤشرات المساندة للقرار"
               subtitle="توضح الرسوم مستوى كل جانب، بينما تبقى الملاحظات والأدلة والأثر والإجراء الموصى به هي أساس القرار."
             />
-            <div className="grid auto-rows-fr gap-4 md:grid-cols-2 xl:grid-cols-3">
+            <div className="grid auto-rows-fr gap-4 md:grid-cols-2">
               <div className="min-w-0 [&>*]:h-full"><ComplianceIndicatorCard review={review} staticSummary /></div>
               <div className="min-w-0 [&>*]:h-full"><RiskIndicatorCard review={review} staticSummary /></div>
               <div className="min-w-0 [&>*]:h-full"><ProfessionalismIndicatorCard review={review} staticSummary /></div>
               <div className="min-w-0 [&>*]:h-full"><LanguageIndicatorCard review={review} staticSummary /></div>
-              <div className="min-w-0 [&>*]:h-full"><ReadinessIndicatorCard review={review} staticSummary /></div>
             </div>
           </section>
 
@@ -1777,10 +1776,15 @@ export default function ContentReviewPage() {
           </Panel>
           </section>
 
+          <section id="readiness" className="space-y-4 scroll-mt-24">
+            <SectionTitle title="5. جاهزية النشر" subtitle="توضح الحالة الحالية وما يلزم استكماله قبل اعتماد النسخة أو نشرها." />
+            <ReadinessIndicatorCard review={review} staticSummary title="حالة الجاهزية ومتطلبات ما قبل النشر" />
+          </section>
+
 <>
           <div className="grid items-stretch gap-6 lg:grid-cols-[1.1fr_1fr_1fr]">
           <Panel id="channels" className="h-full scroll-mt-24">
-            <SectionTitle title="5. القنوات المقترحة" subtitle="كل توصية مبنية على نوع المحتوى والجمهور والهدف ونتائج المراجعة." />
+            <SectionTitle title="6. القنوات المقترحة" subtitle="كل توصية مبنية على نوع المحتوى والجمهور والهدف ونتائج المراجعة." />
             <div className="flex flex-wrap gap-3">
               {review.channelRecommendations.map((item) => {
                 const Icon = socialBrandIcons[item.key];

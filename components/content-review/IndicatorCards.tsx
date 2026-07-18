@@ -90,6 +90,11 @@ export function languageKpiTone(value: number) {
 
 export function readinessKpiTone(review: ReviewResult) {
   if (review.analysisMode === "pattern-only") return "neutral" as const;
+  const level = review.readinessDecision.level.trim();
+  if (level.includes("تعذّر")) return "neutral" as const;
+  if (level.includes("غير جاهز")) return "danger" as const;
+  if (level.includes("بعد") || level.includes("تعديل")) return "gold" as const;
+  if (level.includes("جاهز")) return "good" as const;
   if (review.publicationDecision.outcome === "RECOMMENDED") return "good" as const;
   if (review.publicationDecision.outcome === "NOT_RECOMMENDED") return "danger" as const;
   if (review.publishingReadinessScore < 60) return "danger" as const;
@@ -338,15 +343,15 @@ export function ContentQualityIndicatorCard({ review, staticSummary }: { review:
   );
 }
 
-export function ReadinessIndicatorCard({ review, staticSummary }: { review: ReviewResult; staticSummary?: boolean }) {
+export function ReadinessIndicatorCard({ review, staticSummary, title = "جاهزية النشر" }: { review: ReviewResult; staticSummary?: boolean; title?: string }) {
   // تعذّر تقييم أي مؤشر ينعكس هنا: لا تُعرض جاهزية محسوبة من قيم افتراضية
-  if (review.analysisMode === "pattern-only" || review.evaluationIncomplete) return <DegradedNotice title="جاهزية النشر" />;
+  if (review.analysisMode === "pattern-only" || review.evaluationIncomplete) return <DegradedNotice title={title} />;
   const tone = readinessKpiTone(review);
   const gates = review.publishingReadinessExplanation.gates;
   return (
     <IndicatorShell
       staticSummary={staticSummary}
-      title="جاهزية النشر"
+      title={title}
       tone={tone}
       badge={<StatusBadge tone={tone}>{review.readinessDecision.level}</StatusBadge>}
     >
