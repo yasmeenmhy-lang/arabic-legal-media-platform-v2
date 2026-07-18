@@ -234,6 +234,24 @@ function buildHolisticUserMessage(text: string, contextSummary: string): string 
 «${text}»`;
 }
 
+// قراءة ثانية سريعة: تطلب «الإضافات فقط» لا إعادة كتابة القائمة كاملة — الفرق الحاسم
+// في السرعة أن مخرَج النموذج (لا مدخَله) هو ما يحدد زمن التوليد؛ مصفوفة فارغة أو صغيرة
+// تُكتب خلال ثوانٍ، بخلاف إعادة إخراج كل المخالفات بحقولها وشروحها الكاملة من جديد.
+function buildAdditionsOnlyMessage(text: string, contextSummary: string, firstPassCompact: string): string {
+  return `${contextSummary !== "غير محدد" ? `السياق الإضافي: ${contextSummary}\n\n` : ""}## النص المراد تحليله
+«${text}»
+
+## ما رصدتَه بالفعل في القراءة الأولى (مراجع فقط — لا تُعد ذكرها)
+${firstPassCompact}
+
+## مهمتك الآن: تحقق اكتمال سريع — الإضافات فقط
+راجع النص مرة أخيرة بحثاً حصراً عن مخالفات **إضافية** لم تظهر أعلاه:
+1. لكل مخالفة مذكورة أعلاه: هل لنفس الواقعة أو الدليل مخالفة مقابلة في الوثيقة الأخرى (لائحة ↔ قواعد سلوك) لم تُذكر؟
+2. راجع الزوايا الثماني عشرة مرة أخيرة — هل فاتتك مخالفة كاملة لم تظهر إطلاقاً؟
+لا تُعد كتابة أي مخالفة مذكورة أعلاه. إن لم توجد أي إضافة فعلية، أرجع مصفوفة فارغة [] فوراً دون شرح.
+أجب بمصفوفة JSON فقط تحتوي على المخالفات **الجديدة فقط** بنفس تنسيق المخالفة المعتاد — لا تضف أي نص خارجها.`;
+}
+
 interface HolisticViolation {
   ruleReference: string;
   confidenceLevel: "مرتفع" | "متوسط" | "منخفض";
@@ -431,7 +449,8 @@ async function callHolisticJudge(
   client: Anthropic,
   system: string,
   userMessage: string,
-  label: string
+  label: string,
+  maxTokens = 6000
 ): Promise<HolisticCallOutcome> {
   let message: Awaited<ReturnType<typeof client.messages.create>>;
   try {
@@ -444,9 +463,10 @@ async function callHolisticJudge(
           // تنبيه من SDK المثبت: النماذج بعد Opus 4.6 (ومنها Sonnet 5) ترفض أي حرارة
           // غير 1.0 بخطأ 400 — لا يوجد خيار «حرارة صفر» على هذا النموذج، فلا تُضبط.
           thinking: { type: "disabled" },
-          // سقف إخراج واسع: المتن الكامل جعل الخبير يرصد مخالفات أكثر بشروح أوفى —
-          // السقف الضيق كان يقطع الـJSON فتضيع المخالفات وتظهر «ملتزم» زائفة
-          max_tokens: 6000,
+          // سقف إخراج واسع للقراءة الأولى: المتن الكامل جعل الخبير يرصد مخالفات أكثر
+          // بشروح أوفى — السقف الضيق كان يقطع الـJSON فتضيع المخالفات. القراءة الثانية
+          // (الإضافات فقط) تُستدعى بسقف أصغر بكثير لأنها لا تُعيد كتابة القائمة كاملة.
+          max_tokens: maxTokens,
           // القواعد الثابتة كتلة system مخزّنة مؤقتاً لدى المزود — نص المستخدم لا يدخل التخزين
           system: [{ type: "text", text: system, cache_control: { type: "ephemeral" } }],
           messages: [{ role: "user", content: userMessage }],
@@ -504,11 +524,21 @@ export async function runSemanticAnalysis(
   const system = buildHolisticSystem(eligibleEntries);
   const userMessage = buildHolisticUserMessage(text, contextSummary);
 
-  const result = await callHolisticJudge(client, system, userMessage, "التحليل الدلالي");
+  const result = await callHolisticJudge(client, system, userMessage, "القراءة الأولى");
   if (!result.ok) return { mode: "pattern-only", findings: [], degradedReason: result.reason };
   // انقطع الجواب بلا أي مخالفة مكتملة: لا يُدّعى الامتثال — فشل مغلق
   if (result.truncatedEmpty) return { mode: "pattern-only", findings: [], degradedReason: "api-error" };
-  const violations = result.violations;
+
+  // قراءة ثانية سريعة (إضافات فقط): تسد فجوة التذكّر التي قد تفوت القراءة الواحدة —
+  // مخرَجها صغير عادة (فارغ أو مخالفة أو اثنتان) فتنتهي خلال ثوانٍ، بخلاف إعادة كتابة
+  // القائمة كاملة. فشلها أو انقطاعها لا يُسقط نتيجة القراءة الأولى الصالحة أصلاً.
+  const firstPassCompact = JSON.stringify(
+    result.violations.map((v) => ({ ruleReference: v.ruleReference, evidenceExcerpt: v.evidenceExcerpt }))
+  );
+  const additionsMessage = buildAdditionsOnlyMessage(text, contextSummary, firstPassCompact);
+  const additionsResult = await callHolisticJudge(client, system, additionsMessage, "القراءة الثانية (إضافات)", 2000);
+  const additions = additionsResult.ok && !additionsResult.truncatedEmpty ? additionsResult.violations : [];
+  const violations = [...result.violations, ...additions];
 
   const findings = violations
     .filter((violation) => {
