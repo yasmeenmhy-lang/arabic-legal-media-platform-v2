@@ -215,6 +215,8 @@ export async function evaluateContent(text: string): Promise<ContentEvaluation> 
         // Sonnet لا haiku: محرّك المخاطر يكتب شرحاً حراً ويحدد الجهات — النموذج
         // الأقوى أدق في الحكم وأقل زلّات إملائية (جذر خطأ «قواعس» من haiku)
         model: "claude-sonnet-5",
+        // حكم ثابت: حرارة صفر — نفس النص يعطي نفس التقييم في كل تشغيل
+        temperature: 0,
         max_tokens: 4096,
         messages: [{ role: "user", content: buildEvaluationPrompt(text) }]
       });
