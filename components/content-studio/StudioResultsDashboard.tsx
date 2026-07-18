@@ -14,11 +14,14 @@ type Props = {
   onSaveDraft: () => void;
   actionMessage?: string;
 };
-type Tone = "good" | "gold" | "danger" | "neutral";
+type Tone = "good" | "gold" | "warning" | "danger" | "neutral";
 
 const toneCardStyles: Record<Tone, { border: string; bar: string; value: string }> = {
   good: { border: "border-palm/25", bar: "bg-palm", value: "text-palm" },
   gold: { border: "border-goldBorder", bar: "bg-gold", value: "text-gold" },
+  // تحذيري برتقالي وفق كود المنصات — لحالات «غير جاهز للنشر» ونحوها؛ ليست مخالفة صريحة
+  // فلا تستحق الأحمر المحجوز لذلك، وليست سليمة فتبقى تحذيرية لا خضراء.
+  warning: { border: "border-[#FEDF89]", bar: "bg-[#F79009]", value: "text-[#93370D]" },
   danger: { border: "border-red-200", bar: "bg-red-600", value: "text-red-700" },
   neutral: { border: "border-warmGrayBorder", bar: "bg-warmGray", value: "text-warmGrayText" },
 };
@@ -49,7 +52,14 @@ export function StudioResultsDashboard({ review, text, visuals = [], onEdit, onS
   const complianceTone: Tone = unavailable ? "neutral" : review.findings.length === 0 ? "good" : "danger";
   const professionalTone: Tone = unavailable ? "neutral" : review.professionalismScore >= 80 ? "good" : "gold";
   const languageTone: Tone = unavailable ? "neutral" : hardLanguageIssues.length > 0 || !review.languageQuality.passed ? "danger" : softLanguageIssues.length > 0 ? "gold" : "good";
-  const readinessTone: Tone = unavailable ? "neutral" : review.publicationDecision.outcome === "RECOMMENDED" ? "good" : review.publicationDecision.outcome === "NOT_RECOMMENDED" ? "danger" : "gold";
+  // مصدر لون «جاهزية النشر» هو نص الجاهزية نفسه — لا قرار النشر المنفصل — فلا يتناقض
+  // اللون مع النص المعروض في نفس البطاقة (كانا مصدرين مختلفين فيتناقضان أحياناً).
+  const readinessLevel = review.readinessDecision.level.trim();
+  const readinessTone: Tone = unavailable
+    ? "neutral"
+    : readinessLevel.includes("جاهز") && !readinessLevel.includes("غير") && !readinessLevel.includes("بعد")
+      ? "good"
+      : "warning";
 
   const indicators: Array<{ label: string; value: string; tone: Tone }> = [
     { label: "قرار النشر", value: unavailable ? "تعذّر التحليل" : review.publicationDecision.label, tone: decisionTone },

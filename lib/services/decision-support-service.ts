@@ -36,24 +36,32 @@ export function buildConfidence(findings: ReviewFinding[]): AssessmentConfidence
 
 export function buildReadinessDecision({
   complianceScore,
+  riskScore,
+  professionalismScore,
   riskLevel,
   languagePassed,
   approved,
   findings
 }: {
   complianceScore: number;
+  riskScore: number;
+  professionalismScore: number;
   riskLevel: RiskLevel;
   languagePassed: boolean;
   approved: boolean;
   findings: ReviewFinding[];
 }): ReadinessDecision {
+  // البوابات الأربع نفسها المعروضة في «جاهزية النشر» التفصيلية (calculatePublishingReadiness) —
+  // مصدر حقيقة واحد. كانت هذه الدالة تستخدم عتبات أخف (تتجاهل مخاطر «متوسط»، وتتجاهل مخالفة
+  // غير حرجة إن كانت درجة الامتثال ≥ 70) فتُظهر «جاهز للنشر» رغم فشل البوابات التفصيلية —
+  // تناقض بين الشارة الرئيسية والقائمة التفصيلية رصدته مالكة المنصة.
   const blockers: string[] = [];
   if (!languagePassed) blockers.push("معالجة ملاحظات اللغة والصياغة");
-  if (riskLevel === "بالغ" || riskLevel === "حرج" || riskLevel === "مرتفع") blockers.push("معالجة المخاطر المرتفعة قبل النشر");
-  if (findings.some((finding) => finding.businessSeverity === "critical" && !finding.resolved)) {
-    blockers.push("إغلاق الملاحظات الحرجة وإعادة التقييم");
-  }
-  if (complianceScore < 70) blockers.push("رفع مستوى الامتثال بعد تصحيح المخالفات");
+  // الامتثال حكم نظامي بوجود المخالفة أو عدمه — لا رقم أو نسبة له؛ أي مخالفة غير معالجة
+  // (مهما كانت شدتها) تمنع «جاهز للنشر» مباشرة، لا عبر عتبة درجة مئوية.
+  if (findings.some((finding) => !finding.resolved)) blockers.push("معالجة كل المخالفات القانونية والتنظيمية القائمة قبل اعتبار المحتوى جاهزاً للنشر");
+  if (riskScore >= 20) blockers.push("خفض مستوى المخاطر قبل النشر");
+  if (professionalismScore < 80) blockers.push("تحسين الالتزام بمعايير الجوانب المهنية");
 
   const actions = [...new Set([
     ...findings.filter((finding) => !finding.resolved).map((finding) => finding.suggestedSaferWording),
@@ -74,7 +82,7 @@ export function buildReadinessDecision({
   }
   return {
     level: "جاهز للنشر",
-    reasons: ["لا توجد ملاحظات مانعة، واجتاز المحتوى المراجعة اللغوية ومراجعة الامتثال."],
+    reasons: ["اجتاز المحتوى كل بوابات الجاهزية: الامتثال الكامل، المخاطر المنخفضة، الالتزام المهني، وجودة اللغة."],
     blockers: [],
     actions: ["يمكن تجهيز حزمة النشر للقناة المناسبة مع مراجعة النسخة النهائية قبل الإرسال."]
   };

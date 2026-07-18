@@ -90,8 +90,14 @@ function mapToLanguageQualityResult(
     categoryScores[issue.category] = Math.max(0, categoryScores[issue.category] - weights[issue.severity]);
   }
 
+  // لا يُؤخذ حكم الذكاء الذاتي «passed» على عِلّاته — يُراجَع مقابل قائمة الأخطاء
+  // التي أرجعها هو نفسه: خطأ إملائي أو نحوي واحد يكفي لإسقاط «سليم لغوياً» ولو
+  // زعم النموذج تجاوز العتبة، فلا يتناقض الحكم الظاهر مع الأخطاء المعروضة تحته.
+  const hasHardIssues = issues.some((issue) => issue.category === "spelling" || issue.category === "grammar");
+  const passed = aiLang.passed && !hasHardIssues && aiLang.score >= 75;
+
   return {
-    passed: aiLang.passed,
+    passed,
     score: aiLang.score,
     threshold: 75,
     normalizedText: "",
@@ -202,6 +208,8 @@ export async function reviewContent(text: string, kind: ContentKind = "post", co
   const confidence = buildConfidence(compliance.findings);
   const readinessDecision = buildReadinessDecision({
     complianceScore: compliance.complianceScore,
+    riskScore,
+    professionalismScore,
     riskLevel,
     languagePassed: languageQuality.passed,
     approved,

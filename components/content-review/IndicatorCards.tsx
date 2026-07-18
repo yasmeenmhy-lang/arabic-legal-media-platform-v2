@@ -93,12 +93,14 @@ export function readinessKpiTone(review: ReviewResult) {
   if (review.analysisMode === "pattern-only") return "neutral" as const;
   const level = review.readinessDecision.level.trim();
   if (level.includes("تعذّر")) return "neutral" as const;
-  if (level.includes("غير جاهز")) return "danger" as const;
+  // «غير جاهز للنشر» تحذيري برتقالي وفق كود المنصات — ليس أحمر (الأحمر محجوز لحالات
+  // أخرى كمخالفة مفتوحة صراحةً)؛ يُعرض بنفس تنسيق «gold» المؤدي لتلوين warning أدناه.
+  if (level.includes("غير جاهز")) return "gold" as const;
   if (level.includes("بعد") || level.includes("تعديل")) return "gold" as const;
   if (level.includes("جاهز")) return "good" as const;
   if (review.publicationDecision.outcome === "RECOMMENDED") return "good" as const;
-  if (review.publicationDecision.outcome === "NOT_RECOMMENDED") return "danger" as const;
-  if (review.publishingReadinessScore < 60) return "danger" as const;
+  if (review.publicationDecision.outcome === "NOT_RECOMMENDED") return "gold" as const;
+  if (review.publishingReadinessScore < 60) return "gold" as const;
   return "gold" as const;
 }
 

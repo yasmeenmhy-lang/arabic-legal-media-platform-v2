@@ -134,6 +134,8 @@ export function normalizeReviewResult(review: ReviewResult): ReviewResult {
     const approved = ["READY_FOR_PUBLISHING", "EXPORTED", "SHARED"].includes(review.reviewStatus);
     const readinessDecision = buildReadinessDecision({
       complianceScore: review.complianceScore,
+      riskScore,
+      professionalismScore: review.professionalismScore ?? 0,
       riskLevel,
       languagePassed: review.languageQuality?.passed ?? true,
       approved,
