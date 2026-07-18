@@ -55,6 +55,7 @@ import { specialties } from "@/lib/specialties";
 import {
   attachVisualsToVersion,
   DEMO_USER_NAME,
+  getActiveContentSelection,
   loadContentRecords,
   saveContentRecords,
   setActiveContentSelection,
@@ -66,6 +67,7 @@ import {
 import { saveLatestReviewSnapshot } from "@/components/review-context-summary";
 import { StudioResultsDashboard } from "@/components/content-studio/StudioResultsDashboard";
 import { scopedKey } from "@/lib/user-scope";
+import { normalizeReviewResult } from "@/lib/review-normalizer";
 import { riskDisplayLabel, type ContentKind, type ReviewResult, type RiskAffectedParty, type RiskLevel } from "@/lib/types";
 
 // ── Constants ──────────────────────────────────────────────────────────────
@@ -730,6 +732,34 @@ export default function ContentStudioPage() {
     providerInfo?.premiumAvailable &&
     ((providerInfo.openai && providerInfo.openaiVerified) || (!providerInfo.openai && providerInfo.gemini))
   );
+
+  // العودة من التحليل التفصيلي تفتح نتيجة الاستديو النشطة نفسها، لا نموذجاً فارغاً.
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get("results") !== "1") return;
+    const selection = getActiveContentSelection();
+    if (!selection) return;
+    const record = loadContentRecords().find((item) => item.id === selection.contentId);
+    const version = record?.versions.find((item) => item.version === selection.version);
+    if (!record || !version?.analysis) return;
+
+    setPath("review");
+    setReviewText(version.body);
+    setKind(version.contentType);
+    setChannel(version.channel);
+    setAudience(version.audience);
+    setPurpose(version.purpose);
+    setSpecialty(version.specialty ?? "");
+    setCharLimit(version.charLimit ?? null);
+    setContentId(record.id);
+    setReview(normalizeReviewResult(version.analysis));
+
+    const visual = version.visuals?.[0];
+    if (visual?.svg) setVtSvg(visual.svg);
+    if (visual?.imageUrl) setVtPremiumUrl(visual.imageUrl);
+    if (visual && ["infographic", "chart", "mindmap", "image", "quote_card", "carousel", "storyboard", "motion_script"].includes(visual.visualType)) {
+      setVtType(visual.visualType as typeof vtType);
+    }
+  }, []);
 
   useEffect(() => {
     fetch("/api/content-studio/generate-image")

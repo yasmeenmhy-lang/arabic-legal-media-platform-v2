@@ -38,7 +38,7 @@ import {
   ChevronDown,
   X
 } from "lucide-react";
-import { Button, DgaSpinner, PageHeader, Panel, SectionTitle, StatusBadge } from "@/components/ui";
+import { Button, ButtonLink, DgaSpinner, PageHeader, Panel, SectionTitle, StatusBadge } from "@/components/ui";
 import { FieldLabel } from "@/components/field-label";
 import { MobileSelect, ChannelSelect } from "@/components/mobile-select";
 import { specialties } from "@/lib/specialties";
@@ -807,7 +807,7 @@ export default function ContentReviewPage() {
         eyebrow="مساعد قرار النشر للمحامي"
         title="إدارة المحتوى الإعلامي والإعلاني للمحامين"
         description="ابدأ بما يحتاج إلى قرار: الملاحظات، الأدلة، الأثر، والإجراء الموصى به. الدرجات مؤشرات مساندة وليست النتيجة الأساسية."
-        action={<Button variant="secondary-gray" onClick={() => router.back()} leadingIcon={<ArrowRight size={16} />}>رجوع</Button>}
+        action={<ButtonLink href="/content-studio?results=1" variant="secondary-gray"><ArrowRight size={16} />العودة إلى نتائج الاستديو</ButtonLink>}
       />
 
       {/* الحاسب: الإدخال + النتائج في العمود الأيسر، والرَّيل عمود يمين بمحاذاته (كالمخطّط).
