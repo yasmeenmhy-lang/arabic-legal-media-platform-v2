@@ -9,6 +9,13 @@ type VisualPreview = { imageUrl?: string; svg?: string; label: string };
 type Props = { review: ReviewResult; text: string; visual?: VisualPreview; onEdit: () => void };
 type Tone = "good" | "gold" | "danger" | "neutral";
 
+const toneCardStyles: Record<Tone, { border: string; bar: string; value: string }> = {
+  good: { border: "border-palm/25", bar: "bg-palm", value: "text-palm" },
+  gold: { border: "border-goldBorder", bar: "bg-gold", value: "text-gold" },
+  danger: { border: "border-red-200", bar: "bg-red-600", value: "text-red-700" },
+  neutral: { border: "border-warmGrayBorder", bar: "bg-warmGray", value: "text-warmGrayText" },
+};
+
 function uniqueReferences(findings: ReviewResult["findings"]) {
   return Array.from(new Set(findings.map((finding) => finding.legalReference.trim()).filter(Boolean)));
 }
@@ -82,16 +89,27 @@ export function StudioResultsDashboard({ review, text, visual, onEdit }: Props) 
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-        {indicators.map((indicator) => <Panel key={indicator.label} className="min-w-0"><p className="mb-3 text-xs font-semibold text-ink/50">{indicator.label}</p><StatusBadge tone={indicator.tone}>{indicator.value}</StatusBadge></Panel>)}
+        {indicators.map((indicator) => {
+          const colors = toneCardStyles[indicator.tone];
+          return (
+            <Panel key={indicator.label} className={`relative min-w-0 border ${colors.border} pt-6`}>
+              <span className={`absolute inset-x-0 top-0 h-1 ${colors.bar}`} aria-hidden="true" />
+              <p className="mb-3 text-xs font-semibold text-ink/50">{indicator.label}</p>
+              <StatusBadge tone={indicator.tone}>{indicator.value}</StatusBadge>
+            </Panel>
+          );
+        })}
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
-        <Panel>
-          <div className="flex items-start justify-between gap-4"><div><h3 className="text-sm font-semibold text-ink">ملاحظات القواعد</h3><p className="mt-1 text-xs text-ink/50">عدد القواعد المخالفة</p></div><span className="text-3xl font-semibold text-ink">{unavailable ? "—" : conductFindings.length}</span></div>
+        <Panel className={`relative border pt-6 ${unavailable ? toneCardStyles.neutral.border : conductFindings.length > 0 ? toneCardStyles.danger.border : toneCardStyles.good.border}`}>
+          <span className={`absolute inset-x-0 top-0 h-1 ${unavailable ? toneCardStyles.neutral.bar : conductFindings.length > 0 ? toneCardStyles.danger.bar : toneCardStyles.good.bar}`} aria-hidden="true" />
+          <div className="flex items-start justify-between gap-4"><div><h3 className="text-sm font-semibold text-ink">ملاحظات القواعد</h3><p className="mt-1 text-xs text-ink/50">عدد القواعد المخالفة</p></div><span className={`text-3xl font-semibold ${unavailable ? toneCardStyles.neutral.value : conductFindings.length > 0 ? toneCardStyles.danger.value : toneCardStyles.good.value}`}>{unavailable ? "—" : conductFindings.length}</span></div>
           <div className="mt-4 border-t border-line pt-3"><p className="text-xs text-ink/50">أرقام القواعد المخالفة</p><p className="mt-1 text-sm font-semibold text-ink">{unavailable ? "التحليل غير مكتمل" : conductReferences.length > 0 ? conductReferences.join("، ") : "لا توجد"}</p></div>
         </Panel>
-        <Panel>
-          <div className="flex items-start justify-between gap-4"><div><h3 className="text-sm font-semibold text-ink">اللوائح المخالفة</h3><p className="mt-1 text-xs text-ink/50">عدد اللوائح المخالفة</p></div><span className="text-3xl font-semibold text-ink">{unavailable ? "—" : regulationFindings.length}</span></div>
+        <Panel className={`relative border pt-6 ${unavailable ? toneCardStyles.neutral.border : regulationFindings.length > 0 ? toneCardStyles.danger.border : toneCardStyles.good.border}`}>
+          <span className={`absolute inset-x-0 top-0 h-1 ${unavailable ? toneCardStyles.neutral.bar : regulationFindings.length > 0 ? toneCardStyles.danger.bar : toneCardStyles.good.bar}`} aria-hidden="true" />
+          <div className="flex items-start justify-between gap-4"><div><h3 className="text-sm font-semibold text-ink">اللوائح المخالفة</h3><p className="mt-1 text-xs text-ink/50">عدد اللوائح المخالفة</p></div><span className={`text-3xl font-semibold ${unavailable ? toneCardStyles.neutral.value : regulationFindings.length > 0 ? toneCardStyles.danger.value : toneCardStyles.good.value}`}>{unavailable ? "—" : regulationFindings.length}</span></div>
           <div className="mt-4 border-t border-line pt-3"><p className="text-xs text-ink/50">أرقام اللوائح المخالفة</p><p className="mt-1 text-sm font-semibold text-ink">{unavailable ? "التحليل غير مكتمل" : regulationReferences.length > 0 ? regulationReferences.join("، ") : "لا توجد"}</p></div>
         </Panel>
       </div>
