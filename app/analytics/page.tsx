@@ -14,7 +14,10 @@ export default function AnalyticsPage() {
   const versions = useMemo(() => records.flatMap((record) => record.versions.map((version) => ({ record, version }))), [records]);
   const analyzed = versions.filter((item) => item.version.analysis);
   const approved = versions.filter((item) => item.version.approvedAt);
-  const avgCompliance = analyzed.length ? Math.round(analyzed.reduce((sum, item) => sum + (item.version.analysis?.complianceScore ?? 0), 0) / analyzed.length) : 0;
+  // الامتثال حكم نظامي مباشر (وجود مخالفة أو عدمه) لا نسبة مئوية — النسبة هنا نسبة
+  // عدد الإصدارات الملتزمة بالكامل (بلا أي مخالفة) من إجمالي الإصدارات المحللة
+  const compliantCount = analyzed.filter((item) => (item.version.analysis?.findings.length ?? 0) === 0).length;
+  const complianceRate = analyzed.length ? Math.round((compliantCount / analyzed.length) * 100) : 0;
   const highRisk = analyzed.filter((item) => item.version.analysis?.riskLevel === "مرتفع").length;
   const actionCount = records.reduce((sum, item) => sum + item.actions.length, 0);
 
@@ -39,7 +42,7 @@ export default function AnalyticsPage() {
             <div><dt>جاهزية النشر</dt><dd>${analysis?.readinessDecision.level ?? "غير متاحة"}</dd></div>
           </dl>
           <div class="metrics">
-            <p><strong>الامتثال:</strong> ${analysis ? `${analysis.complianceScore}%` : "غير متاح"}</p>
+            <p><strong>الامتثال:</strong> ${analysis ? (analysis.findings.length === 0 ? "ملتزم" : "غير ملتزم") : "غير متاح"}</p>
             <p><strong>المخاطر:</strong> ${analysis ? `${riskDisplayLabel(analysis.riskLevel as RiskLevel)} (${analysis.riskScore}%)` : "غير متاح"}</p>
             <p><strong>جودة اللغة:</strong> ${analysis ? `${analysis.languageQuality.score}%` : "غير متاح"}</p>
           </div>
@@ -111,7 +114,7 @@ export default function AnalyticsPage() {
             <Panel>
               <SectionTitle title="ملخص التحليل والاعتماد" subtitle="متطابق مع سجل المحتوى والإصدارات المحفوظة." />
               <BarList items={[
-                { label: "متوسط الامتثال", value: avgCompliance },
+                { label: "نسبة الإصدارات الملتزمة", value: complianceRate },
                 { label: "نسبة المحتوى المعتمد", value: analyzed.length ? Math.round((approved.length / analyzed.length) * 100) : 0 },
                 { label: "نسبة المخاطر غير المرتفعة", value: analyzed.length ? Math.round(((analyzed.length - highRisk) / analyzed.length) * 100) : 0 }
               ]} tone="good" />
@@ -134,7 +137,7 @@ export default function AnalyticsPage() {
                   <div key={record.id} className="grid gap-3 rounded-lg border border-line p-4 text-sm md:grid-cols-6">
                     <div className="md:col-span-2"><p className="font-normal">{record.title}</p><p className="text-xs text-ink/55">المادة الحالية في سجل المحتوى</p></div>
                     <div>الإصدار {record.currentVersion}</div>
-                    <div>الامتثال {current?.analysis?.complianceScore ?? "—"}</div>
+                    <div>الامتثال {current?.analysis ? (current.analysis.findings.length === 0 ? "ملتزم" : "غير ملتزم") : "—"}</div>
                     <div>المخاطر {riskDisplayLabel(current?.analysis?.riskLevel as RiskLevel)}</div>
                     <StatusBadge tone={record.approvedVersion ? "good" : "neutral"}>{record.approvedVersion ? `معتمد — الإصدار ${record.approvedVersion}` : record.status}</StatusBadge>
                   </div>

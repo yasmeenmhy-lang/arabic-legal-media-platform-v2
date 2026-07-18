@@ -16,7 +16,7 @@ export type StoredReviewContext = {
   audience?: string;
   purpose?: string;
   riskLevel?: string;
-  complianceScore?: number;
+  isCompliant?: boolean;
   publishingReadinessScore?: number;
   reviewedAt?: string;
 };
@@ -76,7 +76,8 @@ export function saveLatestReviewSnapshot(review: ReviewResult) {
   const context: StoredReviewContext = {
     ...review.reviewContext,
     riskLevel: review.riskLevel,
-    complianceScore: review.complianceScore,
+    // الامتثال حكم نظامي مباشر (وجود مخالفة أو عدمه) لا نسبة مئوية — بقرار مالكة المنصة
+    isCompliant: review.findings.length === 0,
     publishingReadinessScore: review.publishingReadinessScore
   };
   const snapshot: StoredReviewSnapshot = {
@@ -201,7 +202,7 @@ export function ReviewContextSummary({ focus }: { focus: "findings" | "opportuni
           <div className="rounded-md bg-paper p-3"><span className="block text-ink/50">نوع المحتوى</span><strong className="mt-1 block font-normal text-ink">{context.contentType ?? "غير محدد"}</strong></div>
           <div className="rounded-md bg-paper p-3"><span className="block text-ink/50">القناة</span><strong className="mt-1 block font-normal text-ink">{context.channel ?? "غير محدد"}</strong></div>
           <div className="rounded-md bg-paper p-3"><span className="block text-ink/50">مستوى المخاطر</span><strong className="mt-1 block font-normal text-ink">{context.riskLevel ? riskDisplayLabel(context.riskLevel as RiskLevel) : "غير متاح"}</strong></div>
-          <div className="rounded-md bg-paper p-3"><span className="block text-ink/50">الامتثال</span><strong className="mt-1 block font-normal text-ink">{typeof context.complianceScore === "number" ? `${context.complianceScore}%` : "غير متاح"}</strong></div>
+          <div className="rounded-md bg-paper p-3"><span className="block text-ink/50">الامتثال</span><strong className="mt-1 block font-normal text-ink">{typeof context.isCompliant === "boolean" ? (context.isCompliant ? "ملتزم" : "غير ملتزم") : "غير متاح"}</strong></div>
           <div className="rounded-md bg-paper p-3"><span className="block text-ink/50">جاهزية النشر</span><strong className="mt-1 block font-normal text-ink">{typeof context.publishingReadinessScore === "number" ? `${context.publishingReadinessScore}%` : "غير متاح"}</strong></div>
         </div>
       </div>
