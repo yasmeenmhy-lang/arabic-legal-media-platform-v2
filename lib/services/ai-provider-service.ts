@@ -159,8 +159,8 @@ async function requestAnthropicJson(input: AIProviderRequest) {
     body: JSON.stringify({
       model: "claude-sonnet-5",
       max_tokens: input.maxTokens ?? 1600,
+      // النماذج بعد Opus 4.6 (ومنها Sonnet 5) ترفض أي حرارة غير 1.0 بخطأ 400 — لا تُضبط
       thinking: { type: "disabled" },
-      temperature: 0.2,
       system: input.system,
       messages: [{ role: "user", content: input.user }]
     })
@@ -306,8 +306,8 @@ export async function diagnoseAIEnhancementProvider(): Promise<AIProviderDiagnos
           body: JSON.stringify({
             model: "claude-sonnet-5",
             max_tokens: 700,
+            // النماذج بعد Opus 4.6 (ومنها Sonnet 5) ترفض أي حرارة غير 1.0 بخطأ 400 — لا تُضبط
             thinking: { type: "disabled" },
-            temperature: 0,
             system,
             messages: [{ role: "user", content: user }]
           })

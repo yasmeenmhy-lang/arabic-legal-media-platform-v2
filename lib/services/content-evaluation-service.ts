@@ -215,10 +215,9 @@ export async function evaluateContent(text: string): Promise<ContentEvaluation> 
         // Sonnet لا haiku: محرّك المخاطر يكتب شرحاً حراً ويحدد الجهات — النموذج
         // الأقوى أدق في الحكم وأقل زلّات إملائية (جذر خطأ «قواعس» من haiku)
         model: "claude-sonnet-5",
-        // حكم ثابت: حرارة صفر — نفس النص يعطي نفس التقييم في كل تشغيل.
-        // تعطيل وضع التفكير شرط لقبول حرارة ≠ 1 في Sonnet 5 (وإلا يرفض النداء كاملاً)
+        // تنبيه من SDK المثبت: النماذج بعد Opus 4.6 (ومنها Sonnet 5) ترفض أي حرارة
+        // غير 1.0 بخطأ 400 — لا يوجد خيار «حرارة صفر» على هذا النموذج، فلا تُضبط.
         thinking: { type: "disabled" },
-        temperature: 0,
         max_tokens: 4096,
         messages: [{ role: "user", content: buildEvaluationPrompt(text) }]
       });
