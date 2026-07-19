@@ -987,6 +987,82 @@ export default function ContentStudioPage() {
 
   // ── Run review ──
 
+  // مهمة التحليل الخلفية — بقرار مالكة المنصة: لا يلزم البقاء في الصفحة كي لا يتوقف
+  // التحليل ولا تضيع نتيجته. نفس أسلوب مهام الإنشاء الخلفية تماماً: الخادم يسجّل مهمة
+  // ويرد فوراً برقمها، ويكمل التحليل عبر waitUntil ولو غادرت المستخدمة الصفحة أو
+  // أغلقت المتصفح؛ وعند العودة يُستأنف الاستطلاع تلقائياً وتظهر النتيجة بلا فقدان.
+  const PENDING_REVIEW_KEY = "lawyer-media:pending-review";
+
+  async function pollReviewJob(jobId: string): Promise<{ data?: ReviewResult; error?: string }> {
+    const deadline = Date.now() + 10 * 60 * 1000;
+    for (;;) {
+      if (Date.now() > deadline) return { error: "طالت المتابعة أكثر من المتوقع — أعد المحاولة." };
+      try {
+        const res = await fetch(`/api/reviews/status?id=${encodeURIComponent(jobId)}`);
+        const data = (await res.json()) as { status?: string; data?: ReviewResult; error?: string };
+        if (data.status === "done") {
+          void fetch(`/api/reviews/status?id=${encodeURIComponent(jobId)}&ack=1`).catch(() => {});
+          try { window.localStorage.removeItem(scopedKey(PENDING_REVIEW_KEY)); } catch { /* بيئة بلا تخزين */ }
+          return { data: data.data };
+        }
+        if (data.status === "error" || data.status === "missing") {
+          try { window.localStorage.removeItem(scopedKey(PENDING_REVIEW_KEY)); } catch { /* بيئة بلا تخزين */ }
+          return { error: data.status === "missing" ? "انتهت صلاحية هذا التحليل — أعد المحاولة." : data.error ?? "تعذر إكمال المراجعة." };
+        }
+      } catch {
+        /* انقطاع شبكة عابر — نواصل الاستطلاع */
+      }
+      await new Promise((resolve) => setTimeout(resolve, 2500));
+    }
+  }
+
+  // استئناف تلقائي عند فتح الصفحة: مهمة تحليل معلّقة محفوظة → نتابعها ونعرض نتيجتها
+  useEffect(() => {
+    let raw = "";
+    try { raw = window.localStorage.getItem(scopedKey(PENDING_REVIEW_KEY)) ?? ""; } catch { return; }
+    if (!raw) return;
+    let pending: { jobId?: string; contentId?: string; body?: string; contentType?: ContentKind; contentTypeLabel?: string; channel?: string; audience?: string; purpose?: string; specialty?: string; charLimit?: number | null; adCta?: string; adStyle?: string; scriptDuration?: string; scriptStyle?: string; articleLength?: string } | null = null;
+    try { pending = JSON.parse(raw); } catch { /* قيمة تالفة */ }
+    if (!pending?.jobId) {
+      try { window.localStorage.removeItem(scopedKey(PENDING_REVIEW_KEY)); } catch { /* تجاهل */ }
+      return;
+    }
+    const requestId = ++reviewRequestIdRef.current;
+    setReviewing(true);
+    setReviewError("");
+    void (async () => {
+      const outcome = await pollReviewJob(pending!.jobId!);
+      if (requestId !== reviewRequestIdRef.current) return;
+      if (outcome.data) {
+        const result = outcome.data;
+        setReview(result);
+        saveLatestReviewSnapshot(result);
+        const saved = upsertAnalyzedVersion({
+          contentId: pending!.contentId,
+          body: pending!.body ?? "",
+          contentType: pending!.contentType ?? "post",
+          contentTypeLabel: pending!.contentTypeLabel ?? "",
+          channel: pending!.channel ?? "",
+          audience: pending!.audience ?? "",
+          purpose: pending!.purpose ?? "",
+          specialty: pending!.specialty ?? "",
+          charLimit: pending!.charLimit ?? null,
+          adCta: pending!.adCta ?? "",
+          adStyle: pending!.adStyle ?? "",
+          scriptDuration: pending!.scriptDuration ?? "",
+          scriptStyle: pending!.scriptStyle ?? "",
+          articleLength: pending!.articleLength ?? "",
+          review: result,
+        });
+        setContentId(saved.record.id);
+      } else {
+        setReviewError(outcome.error ?? "تعذر إكمال المراجعة.");
+      }
+      setReviewing(false);
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   async function runReview() {
     const text = path === "create" ? generatedText : reviewText;
     if (text.trim().length < 5) return;
@@ -1002,26 +1078,52 @@ export default function ContentStudioPage() {
     setImprovedTextAI("");
     setImprovedError("");
     const contentTypeLabel = contentKindLabels[kind];
+    const trimmed = text.trim();
     try {
-      const res = await fetch("/api/reviews", {
+      const startRes = await fetch("/api/reviews/start", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: text.trim(), kind, contentType: contentTypeLabel, channel, audience, purpose }),
+        body: JSON.stringify({ contentId, text: trimmed, kind, contentType: contentTypeLabel, channel, audience, purpose }),
       });
+      const startPayload = (await startRes.json().catch(() => ({}))) as { jobId?: string | null; error?: string };
+      if (requestId !== reviewRequestIdRef.current) return;
+
+      let outcome: { data?: ReviewResult; error?: string };
+      if (startPayload.jobId) {
+        try {
+          window.localStorage.setItem(scopedKey(PENDING_REVIEW_KEY), JSON.stringify({
+            jobId: startPayload.jobId, at: Date.now(), contentId, body: trimmed, contentType: kind, contentTypeLabel,
+            channel, audience, purpose, specialty, charLimit, adCta, adStyle, scriptDuration, scriptStyle, articleLength,
+          }));
+        } catch { /* بيئة بلا تخزين — تبقى المتابعة داخل الجلسة فقط */ }
+        outcome = await pollReviewJob(startPayload.jobId);
+      } else {
+        // بلا قاعدة بيانات (مهام خلفية غير متاحة): تراجع للطلب المباشر القديم
+        const res = await fetch("/api/reviews", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ text: trimmed, kind, contentType: contentTypeLabel, channel, audience, purpose }),
+        });
+        if (!res.ok) {
+          const payload = await res.json().catch(() => ({})) as { error?: string };
+          outcome = { error: payload.error ?? "تعذر إكمال المراجعة." };
+        } else {
+          outcome = { data: ((await res.json()).data) as ReviewResult };
+        }
+      }
+
       // استجابة متأخرة لطلب سبقه طلب أحدث: تُهمل ولا تُطبَّق — لا تكتب فوق نتيجة أحدث
       if (requestId !== reviewRequestIdRef.current) return;
-      if (!res.ok) {
-        const payload = await res.json().catch(() => ({})) as { error?: string };
-        setReviewError(payload.error ?? "تعذر إكمال المراجعة.");
+      if (!outcome.data) {
+        setReviewError(outcome.error ?? "تعذر إكمال المراجعة.");
         return;
       }
-      const result = ((await res.json()).data) as ReviewResult;
-      if (requestId !== reviewRequestIdRef.current) return;
+      const result = outcome.data;
       setReview(result);
       saveLatestReviewSnapshot(result);
       const saved = upsertAnalyzedVersion({
         contentId,
-        body: text.trim(),
+        body: trimmed,
         contentType: kind,
         contentTypeLabel,
         channel,
