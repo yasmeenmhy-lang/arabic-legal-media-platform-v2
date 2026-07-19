@@ -197,7 +197,9 @@ export async function buildReviewResult(
     reviewStatus
   });
   const readyForPublishing = readiness.readyForPublishing;
-  const governedRewrites = buildGovernedRewriteSuggestions({
+  // القاعدة الأساسية: الصياغة المقترحة تمر ببوابة الحاكم داخلياً — فشل مغلق فلا
+  // تُعرض صياغة فيها مخالفة أو لم تُفحص (انظر recommendation-service)
+  const governedRewrites = await buildGovernedRewriteSuggestions({
     text,
     kind,
     context,

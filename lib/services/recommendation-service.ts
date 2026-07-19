@@ -11,6 +11,7 @@ import { legalKnowledgeEntries, legalSourceDocuments } from "@/lib/legal-knowled
 import { reviewLanguageQuality } from "@/lib/services/language-quality-service";
 import { rebuildComplianceFromFindings } from "@/lib/services/legal-compliance-service";
 import { resolveScoringProfile } from "@/lib/scoring-profiles";
+import { governTextFull } from "@/lib/services/governor-gate";
 
 function envFlag(name: string, fallback: boolean) {
   const value = process.env[name];
@@ -211,7 +212,7 @@ function hasNewViolation(originalFindings: ReviewFinding[], proposedFindings: Re
   return proposedFindings.some((finding) => !originalIds.has(finding.legalKnowledgeEntryId));
 }
 
-export function buildGovernedRewriteSuggestions({
+export async function buildGovernedRewriteSuggestions({
   text,
   kind,
   context,
@@ -229,14 +230,24 @@ export function buildGovernedRewriteSuggestions({
   originalLanguageQuality: number;
   originalRiskLevel: RiskLevel;
   originalRiskScore: number;
-}): GovernedRewriteSuggestion[] {
+}): Promise<GovernedRewriteSuggestion[]> {
   if (!text.trim()) return [];
-  if (originalFindings.length === 0 && originalLanguageQuality >= governedRewriteSettings.minimumLanguageQualityThreshold) return [];
+  // الصياغة المقترحة تُعرض فقط لمعالجة مخالفات مرصودة — التحسين اللغوي الصرف له
+  // زر «أعد صياغة المحتوى» (reformulate) المحكوم بالبوابة أصلاً
+  if (originalFindings.length === 0) return [];
 
   const candidateText = buildCandidateText(text, originalFindings, kind, context);
   if (candidateText.trim() === text.trim()) return [];
 
-  const proposedCompliance = rebuildComplianceFromFindings([], resolveScoringProfile(kind, context.channel));
+  // ★ القاعدة الأساسية (بقرار مالكة المنصة): ممنوع عرض أي نص من إنتاج المنصة —
+  // ولو كان استبدالاً آلياً — دون فحصه فعلياً ببوابة الحاكم نفسها (محرك الحكم
+  // الدلالي على المتن الرسمي الكامل). كان الفحص السابق زائفاً: يفحص قائمة مخالفات
+  // فارغة مفترضة بدل النص المقترح نفسه، فتُعرض «صياغة مقترحة» قد تحمل مخالفات لم
+  // تُفحص قط. فشل مغلق: تعذُّر حكم الذكاء أو بقاء أي مخالفة ⇒ لا تُعرض الصياغة.
+  const gate = await governTextFull(candidateText, context, kind, { checkLanguage: false });
+  if (!gate.semanticResult || !gate.compliant) return [];
+
+  const proposedCompliance = rebuildComplianceFromFindings(gate.semanticResult.findings, resolveScoringProfile(kind, context.channel));
   const proposedLanguage = reviewLanguageQuality({ text: candidateText, kind }, governedRewriteSettings.minimumLanguageQualityThreshold);
   const referencesUsed = referencesFromFindings(originalFindings);
   const validationReferences = referencesUsed.length > 0 ? referencesUsed : generalValidationReferences();
@@ -263,10 +274,7 @@ export function buildGovernedRewriteSuggestions({
     {
       id: "governed-rewrite-1",
       suggestedText: candidateText,
-      basis:
-        originalFindings.length > 0
-          ? "صياغة مقترحة لمعالجة الملاحظات المرتبطة بالمراجع المهنية والتنظيمية المسجلة."
-          : "صياغة مقترحة لتحسين اللغة المهنية بعد التحقق من عدم رصد ملاحظات مرتبطة بالمراجع المسجلة.",
+      basis: "صياغة مقترحة لمعالجة الملاحظات المرتبطة بالمراجع المهنية والتنظيمية المسجلة — فُحصت ببوابة الحاكم وخلت من المخالفات.",
       originalComplianceScore,
       proposedComplianceScore: proposedCompliance.complianceScore,
       originalLanguageQuality,

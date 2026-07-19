@@ -54,10 +54,12 @@ function sanitizeEnhancement(raw: unknown, review: ReviewResult): AIEnhancement 
       const entry = item as Record<string, unknown>;
       const rewriteId = cleanText(entry.rewriteId, 120);
       if (!rewriteId || !rewriteIds.has(rewriteId)) return [];
+      // ★ القاعدة الأساسية (بقرار مالكة المنصة): طبقة التحسين شارحة فقط — ممنوع
+      // قبول أي نص بديل منها (suggestedText) لأنه لا يمر ببوابة الحاكم، فكان
+      // يُعرض ويُطبَّق بأولوية فوق الصياغة المفحوصة وهو غير مفحوص إطلاقاً.
       return [{
         rewriteId,
-        explanation: cleanText(entry.explanation),
-        suggestedText: cleanText(entry.suggestedText, 1200)
+        explanation: cleanText(entry.explanation)
       }];
     });
 

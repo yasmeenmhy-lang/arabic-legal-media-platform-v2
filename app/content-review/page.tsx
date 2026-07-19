@@ -664,8 +664,9 @@ export default function ContentReviewPage() {
     const rewrite = review?.governedRewrites[0];
     // كسابقتها: التطبيق بعد المراجعة ولا يُرسل «التخصص»، فلا يُشترط هنا كي لا يتوقف الزر بصمت.
     if (!rewrite || !kind || !audience || !purpose) return;
-    const enhancedRewrite = review.aiEnhancement?.rewriteSuggestions.find((item) => item.rewriteId === rewrite.id);
-    const rewriteText = enhancedRewrite?.suggestedText ?? rewrite.suggestedText;
+    // ★ القاعدة الأساسية: يُطبَّق فقط النص المفحوص ببوابة الحاكم (rewrite.suggestedText) —
+    // نص طبقة التحسين غير مفحوص وممنوع تطبيقه (يشمل تحليلات قديمة محفوظة قبل المنع)
+    const rewriteText = rewrite.suggestedText;
     setText(rewriteText);
     setMessage("تم تطبيق الصياغة المقترحة. جار إعادة التقييم للتحقق من النتيجة الفعلية.");
     const requestId = ++reviewRequestIdRef.current;
