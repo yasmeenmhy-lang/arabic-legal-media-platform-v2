@@ -1243,6 +1243,16 @@ export default function ContentStudioPage() {
     if (!activeText.trim()) return;
     try {
       const visuals = await collectSessionVisuals();
+      // محتوى محفوظ ومحلَّل مسبقاً (contentId قائم): لا يُنشأ سجل جديد منفصل بلا تحليل —
+      // كان ذلك يحوّل «الاختيار النشط» لنسخة فارغة فيختفي التقييم من الاستديو والسجل
+      // والمراجعة معاً. تُلحق المرئيات بالسجل القائم ويبقى الاختيار النشط عليه بتحليله.
+      if (contentId) {
+        visuals.forEach((visual) => persistVisualToRecord(visual));
+        const record = loadContentRecords().find((item) => item.id === contentId);
+        if (record) setActiveContentSelection(contentId, record.currentVersion);
+        router.push("/content-management");
+        return;
+      }
       createDraftRecord(activeText, { kind, channel, audience, purpose }, visuals);
       router.push("/content-management");
     } catch {
