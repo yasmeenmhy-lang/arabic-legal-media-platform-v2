@@ -2896,8 +2896,10 @@ export default function ContentStudioPage() {
           <textarea
             value={reviewText}
             onChange={(e) => setReviewText(e.target.value)}
+            // أثناء التحليل يُقفل النص — تعديل نص يجري تحليله يجعل النتيجة عن نص غير المعروض
+            disabled={reviewing}
             placeholder="أدخل النص هنا أو اختر صيغة مقترحة أعلاه..."
-            className={`min-h-44 w-full rounded-lg border p-4 leading-8 transition ${
+            className={`min-h-44 w-full rounded-lg border p-4 leading-8 transition disabled:bg-paper disabled:text-ink/60 ${
               charLimit !== null && reviewText.length > charLimit
                 ? "border-red-400 focus:border-red-400"
                 : "border-line"
@@ -3082,7 +3084,9 @@ export default function ContentStudioPage() {
           <textarea
             value={generatedText}
             onChange={(e) => setGeneratedText(e.target.value)}
-            className={`min-h-44 w-full rounded-lg border p-4 leading-8 transition ${
+            // أثناء التحليل يُقفل النص — تعديل نص يجري تحليله يجعل النتيجة عن نص غير المعروض
+            disabled={reviewing}
+            className={`min-h-44 w-full rounded-lg border p-4 leading-8 transition disabled:bg-paper disabled:text-ink/60 ${
               charLimit !== null && generatedText.length > charLimit
                 ? "border-red-400 focus:border-red-400"
                 : "border-line"

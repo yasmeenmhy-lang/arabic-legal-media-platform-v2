@@ -53,7 +53,10 @@ export async function POST(request: Request) {
           return;
         }
         const review = await enhanceReviewOutput({ text, kind, context, review: baseReview });
-        if (contentId) await persistReviewResult(contentId, review);
+        // طبقة حفظ Prisma القديمة اختيارية وغير مقروءة في الواجهة — فشلها (تهيئة
+        // sqlite قديمة على قاعدة Postgres) كان يفجّر المهمة بعد اكتمال التحليل
+        // كاملاً فيضيع ويظهر خطأ إنجليزي خام. لا يُعطَّل تسليم النتيجة بسببها أبداً.
+        if (contentId) await persistReviewResult(contentId, review).catch((err) => console.error("[reviews/start:persist]", err));
         await completeJob(sql, jobId, JSON.stringify(review), false);
       } catch (error) {
         console.error("[reviews/start:job]", error);

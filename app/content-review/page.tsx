@@ -1646,7 +1646,9 @@ export default function ContentReviewPage() {
             value={text}
             onFocus={enterEditingIfNeeded}
             onChange={(event) => { enterEditingIfNeeded(); setText(event.target.value); }}
-            className={`mt-2 min-h-44 w-full rounded-lg border p-4 leading-8 transition ${
+            // أثناء التحليل يُقفل النص — تعديل نص يجري تحليله يجعل النتيجة عن نص غير المعروض
+            disabled={loading}
+            className={`mt-2 min-h-44 w-full rounded-lg border p-4 leading-8 transition disabled:bg-paper disabled:text-ink/60 ${
               charLimit !== null && text.length > charLimit ? "border-red-400 focus:border-red-400" : "border-line"
             }`}
           />

@@ -49,7 +49,8 @@ export async function POST(request: Request) {
       review: baseReview
     });
 
-    if (parsed.data.contentId) await persistReviewResult(parsed.data.contentId, review);
+    // طبقة حفظ Prisma القديمة اختيارية — فشلها لا يُسقط نتيجة تحليل مكتملة أبداً
+    if (parsed.data.contentId) await persistReviewResult(parsed.data.contentId, review).catch((err) => console.error("[reviews:persist]", err));
 
     return ok(review);
   } catch (error) {
