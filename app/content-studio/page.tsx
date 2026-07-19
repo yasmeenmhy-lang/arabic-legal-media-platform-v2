@@ -751,23 +751,18 @@ export default function ContentStudioPage() {
     ((providerInfo.openai && providerInfo.openaiVerified) || (!providerInfo.openai && providerInfo.gemini))
   );
 
-  // علامة الخروج العمدي من النتائج — بالجلسة، معزولة لكل حساب
-  const STUDIO_RESULTS_DISMISSED_KEY = "lawyer-media:studio-results-dismissed";
-
-  // العودة للاستديو تفتح نتيجة المحتوى النشط نفسها، لا نموذجاً فارغاً — سواء بزر
-  // «العودة من التحليل التفصيلي» (results=1) أو بمجرد فتح تبويب الاستديو من جديد:
-  // النتائج لا تختفي بالتنقل بين الصفحات. الاستثناء الوحيد: إن خرجت المستخدمة من
-  // النتائج بزر «رجوع» عمداً، لا تُفرض عليها ثانية عند عودتها (علامة تجاهل بالجلسة).
+  // الكونسبت بقرار مالكة المنصة: فتح تبويب الاستوديو من القائمة = صفحة جديدة نظيفة
+  // دائماً؛ أما «العودة من التحليل التفصيلي» (results=1) فهي وحدها تعيد فتح نتائج
+  // النص نفسه — التنقل داخل الدورة لا يضيع المعلومات، وبدء عمل جديد لا يُفرض عليه قديم.
   useEffect(() => {
-    const explicitReturn = new URLSearchParams(window.location.search).get("results") === "1";
+    if (new URLSearchParams(window.location.search).get("results") !== "1") return;
     const records = loadContentRecords();
     const selection = getActiveContentSelection();
     // المرشح الأول: المحتوى النشط إن كان محلَّلاً فعلاً
     let record = selection ? records.find((item) => item.id === selection.contentId) : undefined;
     let version = selection ? record?.versions.find((item) => item.version === selection.version) : undefined;
     if (!version?.analysis) {
-      // المحتوى النشط مسودة بلا تحليل (أو لا يوجد نشط): يُفتح آخر محتوى محلَّل فعلاً —
-      // فلا يفتح الاستديو فارغاً أبداً ما دام في السجل تحليل محفوظ
+      // المحتوى النشط مسودة بلا تحليل: تُفتح نتيجة آخر محتوى محلَّل فعلاً بدل صفحة فارغة
       record = undefined;
       version = undefined;
       for (const candidate of records) {
@@ -780,13 +775,6 @@ export default function ContentStudioPage() {
       }
     }
     if (!record || !version?.analysis) return;
-    if (explicitReturn) {
-      try { window.sessionStorage.removeItem(scopedKey(STUDIO_RESULTS_DISMISSED_KEY)); } catch { /* تجاهل */ }
-    } else {
-      try {
-        if (window.sessionStorage.getItem(scopedKey(STUDIO_RESULTS_DISMISSED_KEY)) === `${record.id}::${version.version}`) return;
-      } catch { /* بيئة بلا تخزين */ }
-    }
     // تثبيت الاختيار النشط على المحتوى المعروض فعلاً — فتتوافق معه بقية الصفحات
     setActiveContentSelection(record.id, version.version);
 
@@ -1167,8 +1155,6 @@ export default function ContentStudioPage() {
         return;
       }
       const result = outcome.data;
-      // تحليل جديد مكتمل: تُمسح علامة الخروج العمدي — النتيجة الجديدة تُعرض دوماً عند العودة
-      try { window.sessionStorage.removeItem(scopedKey(STUDIO_RESULTS_DISMISSED_KEY)); } catch { /* تجاهل */ }
       setReview(result);
       saveLatestReviewSnapshot(result);
       const saved = upsertAnalyzedVersion({
@@ -1328,12 +1314,6 @@ export default function ContentStudioPage() {
       return;
     }
     if (review) {
-      // خروج عمدي من النتائج: علامة تجاهل بالجلسة كي لا تُفرض النتيجة نفسها
-      // تلقائياً عند فتح الاستديو من جديد (تبقى محفوظة في السجل كما هي)
-      try {
-        const selection = getActiveContentSelection();
-        if (selection) window.sessionStorage.setItem(scopedKey(STUDIO_RESULTS_DISMISSED_KEY), `${selection.contentId}::${selection.version}`);
-      } catch { /* بيئة بلا تخزين */ }
       setPath(null);
       return;
     }
