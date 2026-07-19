@@ -783,6 +783,51 @@ export default function ContentStudioPage() {
     setContentId(record.id);
     setReview(version.analysis ? normalizeReviewResult(version.analysis) : null);
 
+    // إن كان لهذا المحتوى نفسه تحليل ما زال يكتمل في الخلفية (بدأته صفحة المراجعة)،
+    // يُتابَع هنا وتُعرض نتيجته فور اكتمالها — لا يُطلب «إعادة تحليل» لعملٍ يجري أصلاً.
+    if (!version.analysis) {
+      try {
+        const rawPending = window.localStorage.getItem(scopedKey("lawyer-media:pending-review:review"));
+        const pendingReview = rawPending ? (JSON.parse(rawPending) as { jobId?: string; contentId?: string }) : null;
+        if (pendingReview?.jobId && pendingReview.contentId === record.id) {
+          const requestId = ++reviewRequestIdRef.current;
+          setReviewing(true);
+          const adoptedJobId = pendingReview.jobId;
+          void (async () => {
+            const outcome = await pollReviewJob(adoptedJobId);
+            if (requestId !== reviewRequestIdRef.current) return;
+            if (outcome.data) {
+              try { window.localStorage.removeItem(scopedKey("lawyer-media:pending-review:review")); } catch { /* تجاهل */ }
+              const result = outcome.data;
+              setReview(result);
+              saveLatestReviewSnapshot(result);
+              const saved = upsertAnalyzedVersion({
+                contentId: record.id,
+                body: version.body,
+                contentType: version.contentType,
+                contentTypeLabel: version.contentTypeLabel,
+                channel: version.channel,
+                audience: version.audience,
+                purpose: version.purpose,
+                specialty: version.specialty ?? "",
+                charLimit: version.charLimit ?? null,
+                adCta: version.adCta ?? "",
+                adStyle: version.adStyle ?? "",
+                scriptDuration: version.scriptDuration ?? "",
+                scriptStyle: version.scriptStyle ?? "",
+                articleLength: version.articleLength ?? "",
+                review: result,
+              });
+              setContentId(saved.record.id);
+            } else if (outcome.error) {
+              setReviewError(outcome.error);
+            }
+            setReviewing(false);
+          })();
+        }
+      } catch { /* قيمة معلّقة تالفة — تُتجاهل */ }
+    }
+
     const visual = version.visuals?.[0];
     if (visual?.svg) setVtSvg(visual.svg);
     if (visual?.imageUrl) setVtPremiumUrl(visual.imageUrl);
