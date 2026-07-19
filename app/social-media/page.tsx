@@ -98,17 +98,30 @@ export default function SocialMediaPage() {
   }
 
   useEffect(() => {
-    const loaded = loadContentRecords();
-    const activeSelection = getActiveContentSelection();
-    const activeApprovedRecord = activeSelection
-      ? loaded.find((item) =>
-          item.id === activeSelection.contentId &&
-          item.approvedVersion === activeSelection.version &&
-          item.versions.some((version) => version.version === activeSelection.version && Boolean(version.approvedAt))
-        )
-      : undefined;
-    setRecords(loaded);
-    setSelectedId(activeApprovedRecord?.id ?? loaded.find((item) => item.approvedVersion)?.id ?? "");
+    // إعادة التحميل عند العودة من ذاكرة المتصفح (bfcache) — التنقل بالسحب للخلف أو
+    // تبديل التطبيقات في سفاري/iOS يستعيد الصفحة من ذاكرة مؤقتة أحياناً دون إعادة
+    // تحميلها فعلياً، فتبقى البيانات كما كانت أول زيارة (نسخة معتمدة قديمة) ولا
+    // تعكس أي اعتماد جديد حدث بعدها. إعادة القراءة عند كل ظهور تضمن بيانات حيّة دوماً.
+    function loadLatest() {
+      const loaded = loadContentRecords();
+      const activeSelection = getActiveContentSelection();
+      const activeApprovedRecord = activeSelection
+        ? loaded.find((item) =>
+            item.id === activeSelection.contentId &&
+            item.approvedVersion === activeSelection.version &&
+            item.versions.some((version) => version.version === activeSelection.version && Boolean(version.approvedAt))
+          )
+        : undefined;
+      setRecords(loaded);
+      setSelectedId(activeApprovedRecord?.id ?? loaded.find((item) => item.approvedVersion)?.id ?? "");
+    }
+    loadLatest();
+    window.addEventListener("pageshow", loadLatest);
+    document.addEventListener("visibilitychange", loadLatest);
+    return () => {
+      window.removeEventListener("pageshow", loadLatest);
+      document.removeEventListener("visibilitychange", loadLatest);
+    };
   }, []);
 
   const approvedItems = useMemo(() => records.flatMap((record) => {
