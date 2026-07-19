@@ -40,7 +40,7 @@ import {
 } from "lucide-react";
 import { Button, ButtonLink, DgaSpinner, PageHeader, Panel, SectionTitle, StatusBadge } from "@/components/ui";
 import { FieldLabel } from "@/components/field-label";
-import { MobileSelect, ChannelSelect } from "@/components/mobile-select";
+import { MobileSelect } from "@/components/mobile-select";
 import { specialties } from "@/lib/specialties";
 import {
   LinkedInIcon,
@@ -1419,11 +1419,10 @@ export default function ContentReviewPage() {
             </span>
           </div>
           <div className="mt-3">
-        {/* القناة (اختياري) */}
+        {/* القناة (اختياري) — شعارات ملونة ظاهرة دائماً على كل أحجام الشاشات، بلا قائمة منسدلة */}
         <div className="mb-4">
           <FieldLabel label="القناة" optional />
-          <ChannelSelect value={channel} onChange={setChannel} channels={channels} />
-          <div className="hidden flex-wrap gap-2 sm:flex">
+          <div className="flex flex-wrap gap-2">
             {channels.map((item) => (
               <button key={item} type="button" onClick={() => setChannel(channel === item ? "" : item)} className={`${chipBase} ${channel === item ? chipSelected : chipIdle}`}>
                 {channelIcons[item]}{item}

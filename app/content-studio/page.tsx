@@ -51,7 +51,7 @@ import { QUOTE_INTEGRITY_NOTICE } from "@/lib/quote-notice";
 import type { VisualPlan } from "@/lib/visual-translator";
 import { isConditionalSource, isGlobalSubVisible, isSourceVisible } from "@/lib/source-specialty-map";
 import { FieldLabel } from "@/components/field-label";
-import { MobileSelect, ChannelSelect, ChannelGlyph } from "@/components/mobile-select";
+import { MobileSelect, ChannelGlyph } from "@/components/mobile-select";
 import { specialties } from "@/lib/specialties";
 import {
   attachVisualsToVersion,
@@ -662,7 +662,7 @@ export default function ContentStudioPage() {
   const [source, setSource] = useState("");
   const [globalSub, setGlobalSub] = useState("");
   // خيارات متقدمة (التخصص وحد الحروف) — مطوية افتراضياً وتبقى مفتوحة مع وجود اختيار
-  const [advancedOpen, setAdvancedOpen] = useState(false);
+  const [advancedOpen, setAdvancedOpen] = useState(true);
   // تنبيه غير معيق عند تحديث المصادر تبعاً للتخصص
   const [sourceToast, setSourceToast] = useState("");
   // تمييز أول حقل إلزامي ناقص عند محاولة الإنشاء
@@ -2578,11 +2578,11 @@ export default function ContentStudioPage() {
           </button>
 
           <div className={`overflow-hidden transition-all duration-300 ${advancedIsOpen ? "mt-3 max-h-[600px] opacity-100" : "max-h-0 opacity-0"}`}>
-        {/* Channel — اختيارية بقرارها: بلا قناة يُكتب النص بصيغة عامة صالحة لأي منصة */}
+        {/* Channel — اختيارية بقرارها: بلا قناة يُكتب النص بصيغة عامة صالحة لأي منصة.
+            شعارات القنوات الملونة ظاهرة دائماً على كل أحجام الشاشات — بلا قائمة منسدلة بديلة. */}
         <div className="mb-1">
           <FieldLabel label="القناة" optional />
-          <ChannelSelect value={channel} onChange={setChannel} channels={channels} />
-          <div className="hidden flex-wrap gap-2 sm:flex">
+          <div className="flex flex-wrap gap-2">
             {channels.map((item) => (
               <button
                 key={item}
