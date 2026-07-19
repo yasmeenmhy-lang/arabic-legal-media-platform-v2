@@ -2582,13 +2582,13 @@ export default function ContentStudioPage() {
             شعارات القنوات الملونة ظاهرة دائماً على كل أحجام الشاشات — بلا قائمة منسدلة بديلة. */}
         <div className="mb-1">
           <FieldLabel label="القناة" optional />
-          <div className="flex flex-wrap gap-2">
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
             {channels.map((item) => (
               <button
                 key={item}
                 type="button"
                 onClick={() => setChannel(channel === item ? "" : item)}
-                className={`${chipBase} ${channel === item ? chipSelected : chipIdle}`}
+                className={`${chipBase} justify-center ${channel === item ? chipSelected : chipIdle}`}
               >
                 {channelIcons[item]}
                 {item}
