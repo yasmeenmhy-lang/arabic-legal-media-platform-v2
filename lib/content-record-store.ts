@@ -209,7 +209,35 @@ export function loadContentRecords(): StoredContentRecord[] {
 
 export function saveContentRecords(records: StoredContentRecord[]) {
   if (typeof window === "undefined") return;
-  window.localStorage.setItem(scopedKey(CONTENT_RECORDS_KEY), JSON.stringify(records));
+  const key = scopedKey(CONTENT_RECORDS_KEY);
+  try {
+    window.localStorage.setItem(key, JSON.stringify(records));
+  } catch {
+    // امتلاء حصة تخزين المتصفح — كان الحفظ يفشل هنا بصمت فيضيع التحليل رغم ظهوره
+    // على الشاشة. الآن يُخفَّف الحمل تدريجياً (الأقدم أولاً) حتى ينجح الحفظ:
+    // ١) إسقاط بيانات الصور الضخمة، ٢) إسقاط طبقة التحسين الشكلي من التحليلات القديمة
+    // (لا تمس المخالفات ولا المؤشرات)، وإن استحال بعد كل ذلك يُرفع الخطأ صريحاً.
+    const oldestFirst = [...records].sort((a, b) => String(a.updatedAt ?? "").localeCompare(String(b.updatedAt ?? "")));
+    let saved = false;
+    for (const record of oldestFirst) {
+      for (const version of record.versions) {
+        if (version.visuals?.some((visual) => visual.imageUrl)) {
+          version.visuals = version.visuals.filter((visual) => !visual.imageUrl);
+          if (version.visuals.length === 0) version.visuals = undefined;
+        }
+      }
+      try { window.localStorage.setItem(key, JSON.stringify(records)); saved = true; break; } catch { /* واصل التخفيف */ }
+    }
+    if (!saved) {
+      for (const record of oldestFirst) {
+        for (const version of record.versions) {
+          if (version.analysis?.aiEnhancement) version.analysis = { ...version.analysis, aiEnhancement: undefined };
+        }
+        try { window.localStorage.setItem(key, JSON.stringify(records)); saved = true; break; } catch { /* واصل التخفيف */ }
+      }
+    }
+    if (!saved) window.localStorage.setItem(key, JSON.stringify(records)); // فشل نهائي: خطأ صريح للمستدعي — لا فشل صامت
+  }
   window.dispatchEvent(new Event("lawyer-media:records-updated"));
   // إشعار طبقة المزامنة السحابية — بأمر مالكة المنصة: الحساب يرى سجله على كل الأجهزة
   try { window.dispatchEvent(new CustomEvent("lm-records-changed")); } catch { /* بيئة بلا نافذة */ }

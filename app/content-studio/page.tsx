@@ -760,18 +760,35 @@ export default function ContentStudioPage() {
   // النتائج بزر «رجوع» عمداً، لا تُفرض عليها ثانية عند عودتها (علامة تجاهل بالجلسة).
   useEffect(() => {
     const explicitReturn = new URLSearchParams(window.location.search).get("results") === "1";
+    const records = loadContentRecords();
     const selection = getActiveContentSelection();
-    if (!selection) return;
-    const record = loadContentRecords().find((item) => item.id === selection.contentId);
-    const version = record?.versions.find((item) => item.version === selection.version);
+    // المرشح الأول: المحتوى النشط إن كان محلَّلاً فعلاً
+    let record = selection ? records.find((item) => item.id === selection.contentId) : undefined;
+    let version = selection ? record?.versions.find((item) => item.version === selection.version) : undefined;
+    if (!version?.analysis) {
+      // المحتوى النشط مسودة بلا تحليل (أو لا يوجد نشط): يُفتح آخر محتوى محلَّل فعلاً —
+      // فلا يفتح الاستديو فارغاً أبداً ما دام في السجل تحليل محفوظ
+      record = undefined;
+      version = undefined;
+      for (const candidate of records) {
+        const analyzed = [...candidate.versions].reverse().find((item) => item.analysis);
+        if (!analyzed) continue;
+        if (!version || String(analyzed.updatedAt ?? "").localeCompare(String(version.updatedAt ?? "")) > 0) {
+          record = candidate;
+          version = analyzed;
+        }
+      }
+    }
     if (!record || !version?.analysis) return;
     if (explicitReturn) {
       try { window.sessionStorage.removeItem(scopedKey(STUDIO_RESULTS_DISMISSED_KEY)); } catch { /* تجاهل */ }
     } else {
       try {
-        if (window.sessionStorage.getItem(scopedKey(STUDIO_RESULTS_DISMISSED_KEY)) === `${selection.contentId}::${selection.version}`) return;
+        if (window.sessionStorage.getItem(scopedKey(STUDIO_RESULTS_DISMISSED_KEY)) === `${record.id}::${version.version}`) return;
       } catch { /* بيئة بلا تخزين */ }
     }
+    // تثبيت الاختيار النشط على المحتوى المعروض فعلاً — فتتوافق معه بقية الصفحات
+    setActiveContentSelection(record.id, version.version);
 
     // إبطال أي طلب تحليل ما زال معلّقاً: العودة لنتيجة محفوظة لا يجوز أن تكتب استجابته المتأخرة فوقها
     reviewRequestIdRef.current++;
