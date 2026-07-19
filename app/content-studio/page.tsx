@@ -751,14 +751,27 @@ export default function ContentStudioPage() {
     ((providerInfo.openai && providerInfo.openaiVerified) || (!providerInfo.openai && providerInfo.gemini))
   );
 
-  // العودة من التحليل التفصيلي تفتح نتيجة الاستديو النشطة نفسها، لا نموذجاً فارغاً.
+  // علامة الخروج العمدي من النتائج — بالجلسة، معزولة لكل حساب
+  const STUDIO_RESULTS_DISMISSED_KEY = "lawyer-media:studio-results-dismissed";
+
+  // العودة للاستديو تفتح نتيجة المحتوى النشط نفسها، لا نموذجاً فارغاً — سواء بزر
+  // «العودة من التحليل التفصيلي» (results=1) أو بمجرد فتح تبويب الاستديو من جديد:
+  // النتائج لا تختفي بالتنقل بين الصفحات. الاستثناء الوحيد: إن خرجت المستخدمة من
+  // النتائج بزر «رجوع» عمداً، لا تُفرض عليها ثانية عند عودتها (علامة تجاهل بالجلسة).
   useEffect(() => {
-    if (new URLSearchParams(window.location.search).get("results") !== "1") return;
+    const explicitReturn = new URLSearchParams(window.location.search).get("results") === "1";
     const selection = getActiveContentSelection();
     if (!selection) return;
     const record = loadContentRecords().find((item) => item.id === selection.contentId);
     const version = record?.versions.find((item) => item.version === selection.version);
     if (!record || !version?.analysis) return;
+    if (explicitReturn) {
+      try { window.sessionStorage.removeItem(scopedKey(STUDIO_RESULTS_DISMISSED_KEY)); } catch { /* تجاهل */ }
+    } else {
+      try {
+        if (window.sessionStorage.getItem(scopedKey(STUDIO_RESULTS_DISMISSED_KEY)) === `${selection.contentId}::${selection.version}`) return;
+      } catch { /* بيئة بلا تخزين */ }
+    }
 
     // إبطال أي طلب تحليل ما زال معلّقاً: العودة لنتيجة محفوظة لا يجوز أن تكتب استجابته المتأخرة فوقها
     reviewRequestIdRef.current++;
@@ -1137,6 +1150,8 @@ export default function ContentStudioPage() {
         return;
       }
       const result = outcome.data;
+      // تحليل جديد مكتمل: تُمسح علامة الخروج العمدي — النتيجة الجديدة تُعرض دوماً عند العودة
+      try { window.sessionStorage.removeItem(scopedKey(STUDIO_RESULTS_DISMISSED_KEY)); } catch { /* تجاهل */ }
       setReview(result);
       saveLatestReviewSnapshot(result);
       const saved = upsertAnalyzedVersion({
@@ -1296,6 +1311,12 @@ export default function ContentStudioPage() {
       return;
     }
     if (review) {
+      // خروج عمدي من النتائج: علامة تجاهل بالجلسة كي لا تُفرض النتيجة نفسها
+      // تلقائياً عند فتح الاستديو من جديد (تبقى محفوظة في السجل كما هي)
+      try {
+        const selection = getActiveContentSelection();
+        if (selection) window.sessionStorage.setItem(scopedKey(STUDIO_RESULTS_DISMISSED_KEY), `${selection.contentId}::${selection.version}`);
+      } catch { /* بيئة بلا تخزين */ }
       setPath(null);
       return;
     }
