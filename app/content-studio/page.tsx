@@ -1316,10 +1316,13 @@ export default function ContentStudioPage() {
       // كان ذلك يحوّل «الاختيار النشط» لنسخة فارغة فيختفي التقييم من الاستديو والسجل
       // والمراجعة معاً. تُلحق المرئيات بالسجل القائم ويبقى الاختيار النشط عليه بتحليله.
       if (contentId) {
+        // محتوى محلَّل مسبقاً محفوظ أصلاً تلقائياً لحظة اكتمال التحليل — لا داعي
+        // لطردها من شاشة النتائج بالانتقال للسجل؛ يكفي إلحاق مرئيات الجلسة وتأكيد
+        // الحفظ في مكانها (زر «التحليل التفصيلي» موجود لمن تريد الانتقال فعلاً)
         visuals.forEach((visual) => persistVisualToRecord(visual));
         const record = loadContentRecords().find((item) => item.id === contentId);
         if (record) setActiveContentSelection(contentId, record.currentVersion);
-        router.push("/content-management");
+        flash("محفوظ في سجل المحتوى.");
         return;
       }
       createDraftRecord(
