@@ -1662,11 +1662,13 @@ export default function ContentReviewPage() {
               title="المؤشرات المساندة للقرار"
               subtitle="توضح الرسوم مستوى كل جانب، بينما تبقى الملاحظات والأدلة والأثر والإجراء الموصى به هي أساس القرار."
             />
-            <div className="grid auto-rows-fr gap-4 md:grid-cols-2">
-              <div className="min-w-0 [&>*]:h-full"><ComplianceIndicatorCard review={review} staticSummary /></div>
-              <div className="min-w-0 [&>*]:h-full"><RiskIndicatorCard review={review} staticSummary /></div>
-              <div className="min-w-0 [&>*]:h-full"><ProfessionalismIndicatorCard review={review} staticSummary /></div>
-              <div className="min-w-0 [&>*]:h-full"><LanguageIndicatorCard review={review} staticSummary /></div>
+            {/* items-start يمنع تمدد كل بطاقة لملء أعلى ارتفاع في صفّها — كل صندوق يتكيّف
+                على حجم نتيجته فعلاً بدل فراغ فارغ يتبع أطول بطاقة مجاورة */}
+            <div className="grid items-start gap-4 md:grid-cols-2">
+              <div className="min-w-0"><ComplianceIndicatorCard review={review} staticSummary /></div>
+              <div className="min-w-0"><RiskIndicatorCard review={review} staticSummary /></div>
+              <div className="min-w-0"><ProfessionalismIndicatorCard review={review} staticSummary /></div>
+              <div className="min-w-0"><LanguageIndicatorCard review={review} staticSummary /></div>
             </div>
           </section>
 
