@@ -68,7 +68,11 @@ export type StoredReviewSnapshot = {
 
 export function saveLatestReviewContext(context: StoredReviewContext) {
   if (typeof window === "undefined") return;
-  window.sessionStorage.setItem(scopedKey(STORAGE_KEY), JSON.stringify(context));
+  try {
+    window.sessionStorage.setItem(scopedKey(STORAGE_KEY), JSON.stringify(context));
+  } catch {
+    /* بيئة بلا تخزين أو حصة ممتلئة — اللقطة إثراء اختياري */
+  }
 }
 
 export function saveLatestReviewSnapshot(review: ReviewResult) {
@@ -117,8 +121,14 @@ export function saveLatestReviewSnapshot(review: ReviewResult) {
     },
     references: review.referencesPanel
   };
-  window.sessionStorage.setItem(scopedKey(STORAGE_KEY), JSON.stringify(context));
-  window.sessionStorage.setItem(scopedKey(SNAPSHOT_KEY), JSON.stringify(snapshot));
+  // فشل تخزين المتصفح (امتلاء الحصة/وضع خاص) لا يجوز أن يُفجّر مساراً يعرض نتيجة
+  // جاهزة — اللقطة إثراء اختياري، وضياعها أهون من تجميد شاشة النتائج على «يعمل...»
+  try {
+    window.sessionStorage.setItem(scopedKey(STORAGE_KEY), JSON.stringify(context));
+    window.sessionStorage.setItem(scopedKey(SNAPSHOT_KEY), JSON.stringify(snapshot));
+  } catch {
+    /* بيئة بلا تخزين أو حصة ممتلئة — نتجاوز بصمت */
+  }
 }
 
 function useLatestReviewSnapshot() {

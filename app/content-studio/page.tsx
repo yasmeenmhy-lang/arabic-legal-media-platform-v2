@@ -1180,28 +1180,36 @@ export default function ContentStudioPage() {
     // المسار تلقائياً (pendingGeneratedReview يُمسح عند أي تعديل) فيعمل التحليل العادي.
     if (path === "create" && pendingGeneratedReview && pendingGeneratedReview.text === trimmed) {
       const result = pendingGeneratedReview.review;
-      setReview(result);
-      saveLatestReviewSnapshot(result);
-      const saved = upsertAnalyzedVersion({
-        contentId,
-        body: trimmed,
-        contentType: kind,
-        contentTypeLabel,
-        channel,
-        audience,
-        purpose,
-        specialty,
-        charLimit,
-        adCta,
-        adStyle,
-        scriptDuration,
-        scriptStyle,
-        articleLength,
-        review: result,
-      });
-      setContentId(saved.record.id);
-      setReviewError("");
-      setReviewing(false);
+      // عرض النتيجة أولاً وقبل أي حفظ محلي — فشل التخزين (حصة ممتلئة ونحوه) لا يجوز
+      // أن يحجب نتيجة جاهزة أو يجمّد شارة «المحرك يعمل» إلى الأبد
+      try {
+        setReview(result);
+        setReviewError("");
+        saveLatestReviewSnapshot(result);
+        const saved = upsertAnalyzedVersion({
+          contentId,
+          body: trimmed,
+          contentType: kind,
+          contentTypeLabel,
+          channel,
+          audience,
+          purpose,
+          specialty,
+          charLimit,
+          adCta,
+          adStyle,
+          scriptDuration,
+          scriptStyle,
+          articleLength,
+          review: result,
+        });
+        setContentId(saved.record.id);
+      } catch (error) {
+        // النتيجة معروضة فعلاً — فشل الحفظ المحلي يُسجَّل فقط ولا يعطّل العرض
+        console.error("[studio:unified-review-persist]", error);
+      } finally {
+        setReviewing(false);
+      }
       return;
     }
 

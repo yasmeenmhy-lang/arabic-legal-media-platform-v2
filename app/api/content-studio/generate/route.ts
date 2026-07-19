@@ -386,7 +386,14 @@ ${briefType
       const context = { contentType, channel, audience, purpose };
       const base = await buildReviewResult(text, contentKind, context, gov.semanticResult, gov.contentEval);
       if (base.analysisMode === "pattern-only" || base.evaluationIncomplete) return null;
-      return await enhanceReviewOutput({ text, kind: contentKind, context, review: base });
+      // طبقة التحسين اختيارية: فشلها لا يُسقط التقرير الموحد — يُرفق الأساس كما هو
+      // (نفس الحكم ونفس المخالفات؛ التحسين صياغة شارحة فقط لا يغيّر أي نتيجة)
+      try {
+        return await enhanceReviewOutput({ text, kind: contentKind, context, review: base });
+      } catch (error) {
+        console.error("[content-studio/generate:unified-review-enhance]", error);
+        return base;
+      }
     } catch (error) {
       console.error("[content-studio/generate:unified-review]", error);
       return null;
