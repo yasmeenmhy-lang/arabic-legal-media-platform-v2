@@ -2068,6 +2068,10 @@ export default function ContentStudioPage() {
     if (kind === "infographic" && infographicDesc.trim() && !topic) {
       setTopic(infographicDesc.trim());
     }
+    // بدء صريح لمحتوى جديد — يقطع أي ارتباط بسجل سابق (معتمد أو محلَّل) كان قائماً
+    // في هذه الجلسة، وإلا التصق تحليل ونشر النص الجديد بسجل نص قديم غير مرتبط.
+    setReview(null);
+    setContentId(undefined);
     setPath("create");
   }
 
@@ -2906,7 +2910,7 @@ export default function ContentStudioPage() {
           <div className="grid gap-4 md:grid-cols-2">
             <button
               type="button"
-              onClick={() => setPath("review")}
+              onClick={() => { setReview(null); setContentId(undefined); setPath("review"); }}
               className="flex flex-col items-start gap-3 rounded-xl border-2 border-line bg-white p-6 text-right transition hover:border-palm hover:shadow-md focus-ring"
             >
               <span className="rounded-lg bg-mint p-2.5 text-palm">
