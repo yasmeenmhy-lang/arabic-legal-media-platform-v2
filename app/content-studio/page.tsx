@@ -756,27 +756,13 @@ export default function ContentStudioPage() {
   // النص نفسه — التنقل داخل الدورة لا يضيع المعلومات، وبدء عمل جديد لا يُفرض عليه قديم.
   useEffect(() => {
     if (new URLSearchParams(window.location.search).get("results") !== "1") return;
-    const records = loadContentRecords();
     const selection = getActiveContentSelection();
-    // المرشح الأول: المحتوى النشط إن كان محلَّلاً فعلاً
-    let record = selection ? records.find((item) => item.id === selection.contentId) : undefined;
-    let version = selection ? record?.versions.find((item) => item.version === selection.version) : undefined;
-    if (!version?.analysis) {
-      // المحتوى النشط مسودة بلا تحليل: تُفتح نتيجة آخر محتوى محلَّل فعلاً بدل صفحة فارغة
-      record = undefined;
-      version = undefined;
-      for (const candidate of records) {
-        const analyzed = [...candidate.versions].reverse().find((item) => item.analysis);
-        if (!analyzed) continue;
-        if (!version || String(analyzed.updatedAt ?? "").localeCompare(String(version.updatedAt ?? "")) > 0) {
-          record = candidate;
-          version = analyzed;
-        }
-      }
-    }
-    if (!record || !version?.analysis) return;
-    // تثبيت الاختيار النشط على المحتوى المعروض فعلاً — فتتوافق معه بقية الصفحات
-    setActiveContentSelection(record.id, version.version);
+    if (!selection) return;
+    // العودة تفتح المحتوى النشط نفسه حصراً — لا يُستبدل بمحتوى آخر أبداً (بقرارها:
+    // «العودة = نفس النص»). إن كان بلا تحليل يُفتح نصه وسياقه بلا نتائج ليُحلَّل.
+    const record = loadContentRecords().find((item) => item.id === selection.contentId);
+    const version = record?.versions.find((item) => item.version === selection.version);
+    if (!record || !version) return;
 
     // إبطال أي طلب تحليل ما زال معلّقاً: العودة لنتيجة محفوظة لا يجوز أن تكتب استجابته المتأخرة فوقها
     reviewRequestIdRef.current++;
@@ -795,7 +781,7 @@ export default function ContentStudioPage() {
     setScriptStyle(version.scriptStyle ?? "");
     setArticleLength(version.articleLength ?? "");
     setContentId(record.id);
-    setReview(normalizeReviewResult(version.analysis));
+    setReview(version.analysis ? normalizeReviewResult(version.analysis) : null);
 
     const visual = version.visuals?.[0];
     if (visual?.svg) setVtSvg(visual.svg);
