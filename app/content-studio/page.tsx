@@ -2588,7 +2588,7 @@ export default function ContentStudioPage() {
                 key={item}
                 type="button"
                 onClick={() => setChannel(channel === item ? "" : item)}
-                className={`${chipBase} justify-center ${channel === item ? chipSelected : chipIdle}`}
+                className={`${chipBase} justify-center ${item === "الموقع الإلكتروني" ? "col-span-2 sm:col-span-3" : ""} ${channel === item ? chipSelected : chipIdle}`}
               >
                 {channelIcons[item]}
                 {item}

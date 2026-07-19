@@ -1424,7 +1424,7 @@ export default function ContentReviewPage() {
           <FieldLabel label="القناة" optional />
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
             {channels.map((item) => (
-              <button key={item} type="button" onClick={() => setChannel(channel === item ? "" : item)} className={`${chipBase} justify-center ${channel === item ? chipSelected : chipIdle}`}>
+              <button key={item} type="button" onClick={() => setChannel(channel === item ? "" : item)} className={`${chipBase} justify-center ${item === "الموقع الإلكتروني" ? "col-span-2 sm:col-span-3" : ""} ${channel === item ? chipSelected : chipIdle}`}>
                 {channelIcons[item]}{item}
               </button>
             ))}
