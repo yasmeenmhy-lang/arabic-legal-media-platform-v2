@@ -201,7 +201,7 @@ export default function ContentManagementPage() {
                     </p>
                     <p className="mt-1 text-xs text-ink/55">{formatDate(version.updatedAt)} — {version.contentTypeLabel} — {version.channel}</p>
                   </div>
-                  <Link onClick={() => openVersion(record.id, version.version)} href="/content-review"
+                  <Link onClick={() => openVersion(record.id, version.version)} href="/content-review?open=1"
                     className="inline-flex items-center gap-2 rounded-md border border-palm px-3 py-2 text-sm text-palm focus-ring">
                     <RotateCcw size={14} /> فتح
                   </Link>
@@ -510,7 +510,7 @@ export default function ContentManagementPage() {
                         <div className="flex flex-wrap gap-2">
                           {current && (
                             <Link
-                              href="/content-review"
+                              href="/content-review?open=1"
                               onClick={() => openVersion(record.id, current.version)}
                               className="inline-flex items-center gap-1.5 rounded-lg bg-palm px-3 py-1.5 text-xs font-medium text-white transition hover:bg-palmDark focus-ring"
                             >
@@ -593,7 +593,7 @@ export default function ContentManagementPage() {
                           <div className="flex items-center gap-2">
                             {current && (
                               <Link
-                                href="/content-review"
+                                href="/content-review?open=1"
                                 onClick={() => openVersion(record.id, current.version)}
                                 className="inline-flex items-center gap-1.5 rounded-lg bg-palm px-3 py-1.5 text-xs font-medium text-white transition hover:bg-palmDark focus-ring"
                               >

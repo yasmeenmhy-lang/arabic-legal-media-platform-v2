@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { KeyRound, LogIn, LogOut } from "lucide-react";
 import { setSessionUser } from "@/lib/user-scope";
+import { clearActiveContentSelection } from "@/lib/content-record-store";
 
 // شارة الجلسة في الترويسة — بقرار مالكة المنصة:
 // غير الداخل يرى زر «تسجيل الدخول» دائماً، والداخل يرى اسمه الحقيقي وزر «تسجيل الخروج».
@@ -47,6 +48,8 @@ export function SessionChip() {
 
   async function logout() {
     await fetch("/api/auth/logout", { method: "POST" }).catch(() => undefined);
+    // تسجيل الخروج يمسح «المحتوى النشط» — فلا يبقى نص جلسة سابقة معلّقاً بعد دخول جديد
+    clearActiveContentSelection();
     setSessionUser(null);
     window.location.href = "/login";
   }

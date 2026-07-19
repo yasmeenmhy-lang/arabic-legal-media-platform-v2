@@ -137,7 +137,7 @@ export function StudioResultsDashboard({ review, text, visuals = [], onEdit, onS
 
       <div className="flex flex-col gap-3 border-t border-line pt-5 sm:flex-row sm:items-center sm:justify-between">
         <div><p className="text-sm font-semibold text-ink">لمزيد من التفاصيل</p><p className="mt-1 text-xs text-ink/50">الملاحظات، الأدلة، الأثر، والإجراء الموصى به.</p></div>
-        <ButtonLink href="/content-review">التحليل التفصيلي للمحتوى المهني</ButtonLink>
+        <ButtonLink href="/content-review?open=1">التحليل التفصيلي للمحتوى المهني</ButtonLink>
       </div>
 
       <Panel>

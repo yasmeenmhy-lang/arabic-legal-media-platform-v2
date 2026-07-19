@@ -418,6 +418,10 @@ export default function ContentReviewPage() {
 
   useEffect(() => {
     setSavedRecords(loadContentRecords());
+    // بقرار مالكة المنصة: فتح صفحة المراجعة من التبويب = نموذج نظيف دائماً.
+    // المحتوى النشط يُحمَّل فقط عند فتح صريح (open=1): زر «فتح» في السجل،
+    // أو زر «التحليل التفصيلي» في الاستديو — لا نص «معلّقاً» من جلسة سابقة.
+    if (new URLSearchParams(window.location.search).get("open") !== "1") return;
     const selection = getActiveContentSelection();
     if (!selection) return;
     const record = loadContentRecords().find((item) => item.id === selection.contentId);
