@@ -480,7 +480,9 @@ export default function ContentReviewPage() {
   // مهمة التحليل الخلفية — بقرار مالكة المنصة: لا يلزم البقاء في الصفحة كي لا يتوقف
   // التحليل ولا تضيع نتيجته. الخادم يسجّل مهمة ويرد فوراً برقمها ويكملها عبر waitUntil
   // ولو غادرت المستخدمة الصفحة، وعند العودة يُستأنف الاستطلاع تلقائياً بلا فقدان.
-  const PENDING_REVIEW_KEY = "lawyer-media:pending-review";
+  // مفتاح خاص بصفحة المراجعة وحدها — كل صفحة تستأنف مهامها المعلّقة هي فقط،
+  // فلا يخطف الاستديو مهمة بدأتها المراجعة ولا العكس
+  const PENDING_REVIEW_KEY = "lawyer-media:pending-review:review";
 
   async function pollReviewJob(jobId: string): Promise<{ data?: ReviewResult; error?: string }> {
     const deadline = Date.now() + 10 * 60 * 1000;

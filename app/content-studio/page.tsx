@@ -1027,7 +1027,9 @@ export default function ContentStudioPage() {
   // التحليل ولا تضيع نتيجته. نفس أسلوب مهام الإنشاء الخلفية تماماً: الخادم يسجّل مهمة
   // ويرد فوراً برقمها، ويكمل التحليل عبر waitUntil ولو غادرت المستخدمة الصفحة أو
   // أغلقت المتصفح؛ وعند العودة يُستأنف الاستطلاع تلقائياً وتظهر النتيجة بلا فقدان.
-  const PENDING_REVIEW_KEY = "lawyer-media:pending-review";
+  // مفتاح خاص بالاستديو وحده — كل صفحة تستأنف مهامها المعلّقة هي فقط: مهمة بدأتها
+  // صفحة المراجعة لا يخطفها الاستديو فيغطي نتائج محفوظة بشاشة «المحرك يعمل»
+  const PENDING_REVIEW_KEY = "lawyer-media:pending-review:studio";
 
   async function pollReviewJob(jobId: string): Promise<{ data?: ReviewResult; error?: string }> {
     const deadline = Date.now() + 10 * 60 * 1000;
