@@ -522,7 +522,24 @@ export default function ContentReviewPage() {
       try { window.localStorage.removeItem(scopedKey(PENDING_REVIEW_KEY)); } catch { /* تجاهل */ }
       return;
     }
+    // استعادة كاملة ومتماسكة لسياق المهمة المعلّقة نفسها — لا يكفي عرض نتيجتها فوق أياً
+    // كان النص المعروض حالياً (قد يكون نصاً آخر غير مرتبط كتبته المستخدمة لتوّها)، فتظهر
+    // نتيجة تحليل لا تطابق النص المعروض. الاستئناف يُبدّل العرض بالكامل لسياق تلك المهمة.
     const requestId = ++reviewRequestIdRef.current;
+    setText(pending.body ?? "");
+    if (pending.contentType) setKind(pending.contentType);
+    setChannel(pending.channel ?? "");
+    setAudience(pending.audience ?? "");
+    setPurpose(pending.purpose ?? "");
+    setSpecialty(pending.specialty ?? "");
+    setCharLimit(pending.charLimit ?? null);
+    setAdCta(pending.adCta ?? "");
+    setAdStyle(pending.adStyle ?? "");
+    setScriptDuration(pending.scriptDuration ?? "");
+    setScriptStyle(pending.scriptStyle ?? "");
+    setArticleLength(pending.articleLength ?? "");
+    setContentId(pending.contentId);
+    setReview(null);
     setLoading(true);
     setMessage("");
     void (async () => {

@@ -54,10 +54,12 @@ import { FieldLabel } from "@/components/field-label";
 import { MobileSelect, ChannelGlyph } from "@/components/mobile-select";
 import { specialties } from "@/lib/specialties";
 import {
+  approveContentVersion,
   attachVisualsToVersion,
   DEMO_USER_NAME,
   getActiveContentSelection,
   loadContentRecords,
+  markContentShared,
   saveContentRecords,
   setActiveContentSelection,
   upsertAnalyzedVersion,
@@ -1096,7 +1098,25 @@ export default function ContentStudioPage() {
       try { window.localStorage.removeItem(scopedKey(PENDING_REVIEW_KEY)); } catch { /* تجاهل */ }
       return;
     }
+    // استعادة كاملة ومتماسكة لسياق المهمة المعلّقة نفسها — لا يكفي عرض نتيجتها فوق أياً
+    // كان النص المعروض حالياً (قد يكون نصاً آخر غير مرتبط كتبته المستخدمة لتوّها)، فتظهر
+    // نتيجة تحليل لا تطابق النص المعروض. الاستئناف يُبدّل العرض بالكامل لسياق تلك المهمة.
     const requestId = ++reviewRequestIdRef.current;
+    setPath("review");
+    setReviewText(pending.body ?? "");
+    if (pending.contentType) setKind(pending.contentType);
+    setChannel(pending.channel ?? "");
+    setAudience(pending.audience ?? "");
+    setPurpose(pending.purpose ?? "");
+    setSpecialty(pending.specialty ?? "");
+    setCharLimit(pending.charLimit ?? null);
+    setAdCta(pending.adCta ?? "");
+    setAdStyle(pending.adStyle ?? "");
+    setScriptDuration(pending.scriptDuration ?? "");
+    setScriptStyle(pending.scriptStyle ?? "");
+    setArticleLength(pending.articleLength ?? "");
+    setContentId(pending.contentId);
+    setReview(null);
     setReviewing(true);
     setReviewError("");
     void (async () => {
@@ -1339,6 +1359,39 @@ export default function ContentStudioPage() {
   function flash(msg: string) {
     setActionMsg(msg);
     setTimeout(() => setActionMsg(""), 3000);
+  }
+
+  // «نشر مباشرة»: لا يجوز الانتقال مباشرة لصفحة المشاركة (/social-media) دون اعتماد
+  // صريح لهذه النسخة بعينها — تلك الصفحة تعرض أي نسخة معتمدة سابقة في السجل كبديل
+  // احتياطي إن لم تجد نسخة معتمدة مطابقة للمحتوى النشط، فينتقل بها المستخدم دون علم
+  // إلى نص آخر مختلف تماماً. الاعتماد هنا يمر بنفس بوابة صفحة المراجعة نفسها (لا
+  // اعتماد بلا امتثال كامل ولا مخاطر عالية) فتصبح هذه النسخة تحديداً هي المطابقة.
+  async function publishNow() {
+    if (!review || review.publicationDecision.outcome !== "RECOMMENDED") {
+      flash("النشر المباشر متاح فقط بعد امتثال النص كاملاً — عالج الملاحظات الظاهرة أولاً.");
+      return;
+    }
+    if (!contentId) {
+      flash("لا توجد نسخة محفوظة مرتبطة بهذا التحليل — أعد التحليل ثم حاول مجدداً.");
+      return;
+    }
+    const record = loadContentRecords().find((item) => item.id === contentId);
+    if (!record) {
+      flash("لا توجد نسخة محفوظة مرتبطة بهذا التحليل — أعد التحليل ثم حاول مجدداً.");
+      return;
+    }
+    const versionNumber = record.currentVersion;
+    const approvedSave = approveContentVersion(contentId, versionNumber);
+    if (!approvedSave) {
+      flash("تعذر الاعتماد: عالج الملاحظات والحواجز الظاهرة أولاً من صفحة المراجعة.");
+      return;
+    }
+    if (!markContentShared(contentId, versionNumber)) {
+      flash("تعذر تجهيز النسخة للمشاركة — حاول مرة أخرى.");
+      return;
+    }
+    setActiveContentSelection(contentId, versionNumber);
+    router.push("/social-media");
   }
 
   // ── Reset ──
@@ -4008,7 +4061,7 @@ export default function ContentStudioPage() {
           <Panel className="lg:hidden">
             <p className="mb-4 text-sm font-semibold text-ink">ماذا تريد؟</p>
             <div className="flex flex-wrap gap-3">
-              <ButtonLink href="/social-media">📤 نشر مباشرة</ButtonLink>
+              <Button onClick={() => void publishNow()}>📤 نشر مباشرة</Button>
               <ButtonLink href="/calendar" variant="secondary">📅 جدولة</ButtonLink>
               <Button variant="secondary-gray" onClick={saveDraft} leadingIcon={<Save size={16} />}>
                 حفظ مسودة
@@ -4105,7 +4158,7 @@ export default function ContentStudioPage() {
             <Panel>
               <p className="mb-4 text-sm font-semibold text-ink">ماذا تريد؟</p>
               <div className="flex flex-wrap gap-3">
-                <ButtonLink href="/social-media">📤 نشر مباشرة</ButtonLink>
+                <Button onClick={() => void publishNow()}>📤 نشر مباشرة</Button>
                 <ButtonLink href="/calendar" variant="secondary">📅 جدولة</ButtonLink>
                 <Button variant="secondary-gray" onClick={saveDraft} leadingIcon={<Save size={16} />}>
                   حفظ مسودة
