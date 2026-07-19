@@ -508,7 +508,12 @@ function compressImageForStorage(url: string): Promise<string> {
 
 function createDraftRecord(
   body: string,
-  ctx: { kind: ContentKind | null; channel: string; audience: string; purpose: string },
+  ctx: {
+    kind: ContentKind | null; channel: string; audience: string; purpose: string;
+    // كل معلومات السياق المدخلة تُحفظ مع المسودة — فلا تختفي عند فتحها لاحقاً
+    specialty?: string; charLimit?: number | null; adCta?: string; adStyle?: string;
+    scriptDuration?: string; scriptStyle?: string; articleLength?: string;
+  },
   // بقرار مالكة المنصة: المرئيات تنتقل مع المحتوى وتُحفظ في السجل فلا تختفي
   visuals: Omit<StoredVisual, "id" | "createdAt">[] = []
 ): string {
@@ -530,6 +535,13 @@ function createDraftRecord(
     channel: ctx.channel || "LinkedIn",
     audience: ctx.audience || "الجمهور العام",
     purpose: ctx.purpose || "تثقيف الجمهور حول موضوع نظامي",
+    specialty: ctx.specialty || undefined,
+    charLimit: ctx.charLimit ?? null,
+    adCta: ctx.adCta || undefined,
+    adStyle: ctx.adStyle || undefined,
+    scriptDuration: ctx.scriptDuration || undefined,
+    scriptStyle: ctx.scriptStyle || undefined,
+    articleLength: ctx.articleLength || undefined,
     status: "مسودة",
     createdAt: timestamp,
     updatedAt: timestamp,
@@ -758,6 +770,12 @@ export default function ContentStudioPage() {
     setPurpose(version.purpose);
     setSpecialty(version.specialty ?? "");
     setCharLimit(version.charLimit ?? null);
+    // استرجاع بقية معلومات السياق المحفوظة — فلا «تختفي الخواص» عند العودة للنتيجة
+    setAdCta(version.adCta ?? "");
+    setAdStyle(version.adStyle ?? "");
+    setScriptDuration(version.scriptDuration ?? "");
+    setScriptStyle(version.scriptStyle ?? "");
+    setArticleLength(version.articleLength ?? "");
     setContentId(record.id);
     setReview(normalizeReviewResult(version.analysis));
 
@@ -1253,7 +1271,11 @@ export default function ContentStudioPage() {
         router.push("/content-management");
         return;
       }
-      createDraftRecord(activeText, { kind, channel, audience, purpose }, visuals);
+      createDraftRecord(
+        activeText,
+        { kind, channel, audience, purpose, specialty, charLimit, adCta, adStyle, scriptDuration, scriptStyle, articleLength },
+        visuals
+      );
       router.push("/content-management");
     } catch {
       flash("تعذر حفظ المسودة — حاول مرة أخرى.");
