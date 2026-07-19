@@ -19,7 +19,15 @@ export async function GET(request: Request) {
 
   const job = await getJob(sql, id);
   if (!job) return NextResponse.json({ status: "missing" });
-  if (job.status === "done") return NextResponse.json({ status: "done", text: job.result_text ?? "", truncated: job.truncated });
+  if (job.status === "done") {
+    // review اختياري: تقرير مراجعة كامل محسوب من حكم الإنشاء نفسه إن توفر — عملاء
+    // لا يقرؤون هذا الحقل غير متأثرين إطلاقاً.
+    let review: unknown;
+    if (job.review_json) {
+      try { review = JSON.parse(job.review_json); } catch { review = undefined; }
+    }
+    return NextResponse.json({ status: "done", text: job.result_text ?? "", truncated: job.truncated, review });
+  }
   if (job.status === "error") return NextResponse.json({ status: "error", error: job.error ?? "تعذر إنشاء المحتوى — حاول مرة أخرى." });
   return NextResponse.json({ status: "pending", partial: job.partial_text ?? undefined });
 }

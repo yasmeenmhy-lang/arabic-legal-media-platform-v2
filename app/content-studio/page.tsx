@@ -692,6 +692,9 @@ export default function ContentStudioPage() {
   // مسودة معروضة والفحص النهائي يجري — شارة غير معطلة فوق النص
   const [finalizing, setFinalizing] = useState(false);
   const [generateError, setGenerateError] = useState("");
+  // تقرير مراجعة كامل محسوب من حكم الإنشاء نفسه (توحيد القرار) — صالح فقط طالما
+  // النص لم يُعدَّل حرفياً عن نص الإنشاء؛ أي تعديل يُسقطه فوراً فيعود التحليل العادي.
+  const [pendingGeneratedReview, setPendingGeneratedReview] = useState<{ text: string; review: ReviewResult } | null>(null);
 
   // Review result
   const [review, setReview] = useState<ReviewResult | null>(null);
@@ -894,7 +897,7 @@ export default function ContentStudioPage() {
   // وعند العودة يُستأنف تتبع المهمة تلقائياً وتُعرض النتيجة.
   const PENDING_GENERATION_KEY = "lawyer-media:pending-generation";
 
-  function deliverGenerationOutcome(outcome: { text?: string; error?: string; truncated?: boolean }) {
+  function deliverGenerationOutcome(outcome: { text?: string; error?: string; truncated?: boolean; review?: ReviewResult }) {
     setFinalizing(false);
     if (outcome.text) {
       setGeneratedText(outcome.text);
@@ -903,23 +906,25 @@ export default function ContentStudioPage() {
       setVtUrl("");
       setVtVisual(null);
       setVtError("");
+      // تقرير جاهز من حكم الإنشاء نفسه — يُعتمد لاحقاً عند طلب التحليل لو بقي النص كما هو حرفياً
+      setPendingGeneratedReview(outcome.review ? { text: outcome.text, review: outcome.review } : null);
     } else {
       setGenerateError(outcome.error ?? "تعذر إنشاء المحتوى — حاول مرة أخرى.");
     }
   }
 
-  async function pollGenerationJob(jobId: string, onDraft?: (text: string) => void): Promise<{ text?: string; error?: string; truncated?: boolean }> {
+  async function pollGenerationJob(jobId: string, onDraft?: (text: string) => void): Promise<{ text?: string; error?: string; truncated?: boolean; review?: ReviewResult }> {
     const deadline = Date.now() + 10 * 60 * 1000;
     for (;;) {
       if (Date.now() > deadline) return { error: "طالت المتابعة أكثر من المتوقع — أعد المحاولة." };
       try {
         const res = await fetch(`/api/content-studio/generate-status?id=${encodeURIComponent(jobId)}`);
-        const data = (await res.json()) as { status?: string; text?: string; error?: string; truncated?: boolean; partial?: string };
+        const data = (await res.json()) as { status?: string; text?: string; error?: string; truncated?: boolean; partial?: string; review?: ReviewResult };
         if (data.status === "pending" && data.partial) onDraft?.(data.partial);
         if (data.status === "done") {
           void fetch(`/api/content-studio/generate-status?id=${encodeURIComponent(jobId)}&ack=1`).catch(() => {});
           try { window.localStorage.removeItem(scopedKey(PENDING_GENERATION_KEY)); } catch { /* بيئة بلا تخزين */ }
-          return { text: data.text ?? "", truncated: data.truncated };
+          return { text: data.text ?? "", truncated: data.truncated, review: data.review };
         }
         if (data.status === "error" || data.status === "missing") {
           try { window.localStorage.removeItem(scopedKey(PENDING_GENERATION_KEY)); } catch { /* بيئة بلا تخزين */ }
@@ -1010,10 +1015,10 @@ export default function ContentStudioPage() {
       });
       // الوضع الأساسي: الخادم يرد فوراً برقم مهمة خلفية — نحفظه ونستطلع حتى تكتمل،
       // ولو غادرتِ الصفحة تستمر المهمة في الخادم ويُستأنف التتبع عند العودة.
-      let data: { text?: string; error?: string; truncated?: boolean } = {};
+      let data: { text?: string; error?: string; truncated?: boolean; review?: ReviewResult } = {};
       const contentType = res.headers.get("content-type") ?? "";
       if (contentType.includes("application/json")) {
-        const payload = (await res.json().catch(() => ({}))) as { jobId?: string; text?: string; error?: string; truncated?: boolean };
+        const payload = (await res.json().catch(() => ({}))) as { jobId?: string; text?: string; error?: string; truncated?: boolean; review?: ReviewResult };
         if (payload.jobId) {
           try {
             window.localStorage.setItem(scopedKey(PENDING_GENERATION_KEY), JSON.stringify({ jobId: payload.jobId, at: Date.now() }));
@@ -1037,7 +1042,7 @@ export default function ContentStudioPage() {
             newline = buffer.indexOf("\n");
             if (!line) continue;
             try {
-              const event = JSON.parse(line) as { type?: string; text?: string; error?: string; truncated?: boolean };
+              const event = JSON.parse(line) as { type?: string; text?: string; error?: string; truncated?: boolean; review?: ReviewResult };
               if (event.type === "partial" && event.text) showDraft(event.text);
               if (event.type === "result" || event.type === "error") data = event;
             } catch {
@@ -1168,6 +1173,38 @@ export default function ContentStudioPage() {
     setImprovedError("");
     const contentTypeLabel = contentKindLabels[kind];
     const trimmed = text.trim();
+
+    // توحيد القرار: النص نفسه حرفياً الذي وُلِّد وحُكم عليه بالامتثال لحظة الإنشاء —
+    // تقرير المراجعة الكامل جاهز فعلاً من نفس ذلك الحكم، فلا داعٍ لاستدعاء ذكاء
+    // مستقل ثانٍ قد يحكم حكماً مختلفاً على النص نفسه. أي تعديل على النص يُسقط هذا
+    // المسار تلقائياً (pendingGeneratedReview يُمسح عند أي تعديل) فيعمل التحليل العادي.
+    if (path === "create" && pendingGeneratedReview && pendingGeneratedReview.text === trimmed) {
+      const result = pendingGeneratedReview.review;
+      setReview(result);
+      saveLatestReviewSnapshot(result);
+      const saved = upsertAnalyzedVersion({
+        contentId,
+        body: trimmed,
+        contentType: kind,
+        contentTypeLabel,
+        channel,
+        audience,
+        purpose,
+        specialty,
+        charLimit,
+        adCta,
+        adStyle,
+        scriptDuration,
+        scriptStyle,
+        articleLength,
+        review: result,
+      });
+      setContentId(saved.record.id);
+      setReviewError("");
+      setReviewing(false);
+      return;
+    }
+
     try {
       const startRes = await fetch("/api/reviews/start", {
         method: "POST",
@@ -3143,7 +3180,7 @@ export default function ContentStudioPage() {
           {/* Text — always shown first */}
           <textarea
             value={generatedText}
-            onChange={(e) => setGeneratedText(e.target.value)}
+            onChange={(e) => { setGeneratedText(e.target.value); setPendingGeneratedReview(null); }}
             // أثناء التحليل يُقفل النص — تعديل نص يجري تحليله يجعل النتيجة عن نص غير المعروض
             disabled={reviewing}
             className={`min-h-44 w-full rounded-lg border p-4 leading-8 transition disabled:bg-paper disabled:text-ink/60 ${

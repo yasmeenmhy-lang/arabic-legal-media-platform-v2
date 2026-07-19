@@ -2,12 +2,14 @@ import { z } from "zod";
 import { NextResponse } from "next/server";
 import { badRequest } from "@/lib/api";
 import { AI_CONSTITUTION } from "@/lib/governance";
-import { governText } from "@/lib/services/governor-gate";
+import { governTextFull, type GovernTextFullResult } from "@/lib/services/governor-gate";
+import { buildReviewResult } from "@/lib/services/review-service";
+import { enhanceReviewOutput } from "@/lib/services/ai-enhancement-service";
 import { describeProviderError } from "@/lib/ai-provider-errors";
 import { completeJob, createJob, failJob, jobsDb, setJobPartial } from "@/lib/content-jobs";
 import { waitUntil } from "@vercel/functions";
 import { contentKindLabels } from "@/lib/content-types";
-import type { ContentKind } from "@/lib/types";
+import type { ContentKind, ReviewResult } from "@/lib/types";
 
 const schema = z.object({
   contentType: z.string().min(1),
@@ -315,7 +317,7 @@ ${briefType
 
   // الدورة الكاملة: توليد ← بوابة الحاكم ← إعادة كتابة عند الملاحظات — تُرجع نتيجة أو خطأ
   async function runPipeline(onDraft?: (text: string) => void): Promise<
-    | { kind: "ok"; text: string; truncated: boolean }
+    | { kind: "ok"; text: string; truncated: boolean; gov: GovernTextFullResult }
     | { kind: "err"; error: string }
   > {
     let promptText = user;
@@ -323,6 +325,7 @@ ${briefType
     let truncated = false;
     let clean = false;
     let compliant = false;
+    let lastGov: GovernTextFullResult | null = null;
 
     // جولتان كحد أقصى (كتابة + تصحيح واحد) — توازن السرعة مع النظافة؛ المخالفة
     // النظامية المتبقية بعدهما تحجب التسليم أصلاً فلا خصم على الامتثال.
@@ -339,8 +342,10 @@ ${briefType
       const inflated = !isOpenLength && truncated;
 
       // بوابة الحاكم — حصن حتمي + عمق دلالي + جودة اللغة، إلزامية على كل الأنواع.
-      // الوسوم لا نحو لها فيُقصر فحصها على الامتثال دون اللغة.
-      const gov = await governText(
+      // الوسوم لا نحو لها فيُقصر فحصها على الامتثال دون اللغة. تُبقي نتائج الذكاء
+      // الخام (gov.semanticResult/contentEval) — نفس الحكم يُستخدم لاحقاً لبناء تقرير
+      // المراجعة الكامل بدل استدعاء ذكاء ثانٍ مستقل قد يخالف هذا الحكم بعينه.
+      const gov = await governTextFull(
         text,
         { contentType, channel, audience, purpose },
         contentKind,
@@ -348,10 +353,11 @@ ${briefType
       );
       clean = gov.clean;
       compliant = gov.compliant;
+      lastGov = gov;
 
       // نظيف من كل النواحي (امتثال + لغة وأسلوب ووضوح) ومطابق لقالب نوعه → يُسلَّم
       if (clean && !inflated) {
-        return { kind: "ok", text, truncated: false };
+        return { kind: "ok", text, truncated: false, gov };
       }
 
       // بناء تصحيحات إلزامية لإعادة الكتابة كاملةً في المحاولة التالية
@@ -368,7 +374,23 @@ ${briefType
       return { kind: "err", error: "تعذّر إخراج نص مطابق لحاكم المنصة (قواعد السلوك المهني واللائحة التنفيذية). أعد المحاولة أو عدّل مدخلات السياق." };
     }
     // ممتثل نظامياً لكن بقيت ملاحظة لغوية/أسلوبية نادرة أو طول زائد — يُسلَّم مع تنبيه غير معطِّل
-    return { kind: "ok", text, truncated };
+    return { kind: "ok", text, truncated, gov: lastGov! };
+  }
+
+  // يبني تقرير المراجعة الكامل من حكم الإنشاء نفسه (بلا ذكاء ثانٍ مستقل) — يُستدعى فقط
+  // بعد نجاح التسليم. أي خطأ هنا لا يُسقط تسليم النص أبداً: يُسجَّل ويُتجاهل فقط
+  // (المستخدمة تبقى قادرة على طلب تحليل عادي لاحقاً كالمعتاد).
+  async function buildUnifiedReview(text: string, gov: GovernTextFullResult): Promise<ReviewResult | null> {
+    if (!contentKind || !gov.semanticResult || !gov.contentEval) return null;
+    try {
+      const context = { contentType, channel, audience, purpose };
+      const base = await buildReviewResult(text, contentKind, context, gov.semanticResult, gov.contentEval);
+      if (base.analysisMode === "pattern-only" || base.evaluationIncomplete) return null;
+      return await enhanceReviewOutput({ text, kind: contentKind, context, review: base });
+    } catch (error) {
+      console.error("[content-studio/generate:unified-review]", error);
+      return null;
+    }
   }
 
   // الوضع الأساسي (الإنتاج): مهمة خلفية — بقرار مالكة المنصة لا يلزم بقاء المستخدم في الصفحة.
@@ -384,8 +406,12 @@ ${briefType
         const result = await runPipeline((draft) => {
           void setJobPartial(sql, jobId, draft).catch(() => {});
         });
-        if (result.kind === "ok") await completeJob(sql, jobId, result.text, result.truncated);
-        else await failJob(sql, jobId, result.error);
+        if (result.kind === "ok") {
+          const review = await buildUnifiedReview(result.text, result.gov);
+          await completeJob(sql, jobId, result.text, result.truncated, review ? JSON.stringify(review) : undefined);
+        } else {
+          await failJob(sql, jobId, result.error);
+        }
       } catch (error) {
         console.error("[content-studio/generate:job]", error);
         const known = describeProviderError(error instanceof Error ? error.message : "");
@@ -419,8 +445,12 @@ ${briefType
       const heartbeat = setInterval(() => send({ type: "ping" }), 10_000);
       try {
         const result = await runPipeline((draft) => send({ type: "partial", text: draft }));
-        if (result.kind === "ok") send({ type: "result", text: result.text, truncated: result.truncated });
-        else send({ type: "error", error: result.error });
+        if (result.kind === "ok") {
+          const review = await buildUnifiedReview(result.text, result.gov);
+          send({ type: "result", text: result.text, truncated: result.truncated, review: review ?? undefined });
+        } else {
+          send({ type: "error", error: result.error });
+        }
       } catch (error) {
         console.error("[content-studio/generate]", error);
         const known = describeProviderError(error instanceof Error ? error.message : "");

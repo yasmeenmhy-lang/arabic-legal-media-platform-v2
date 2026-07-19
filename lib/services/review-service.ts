@@ -1,4 +1,5 @@
 import type {
+  ContentEvaluation,
   ContentKind,
   LanguageIssueCategory,
   LanguageIssueSeverity,
@@ -108,14 +109,17 @@ function mapToLanguageQualityResult(
   };
 }
 
-export async function reviewContent(text: string, kind: ContentKind = "post", context: ReviewContext = {}): Promise<ReviewResult> {
+// يبني تقرير المراجعة الكامل من نتائج ذكاء محسوبة سلفاً (بلا أي استدعاء ذكاء إضافي) —
+// يسمح بمشاركة نتيجة حكم واحدة (مثلاً حكم الإنشاء) لبناء تقرير المراجعة الكامل منها
+// بدل استدعاء ذكاء مستقل ثانٍ قد يحكم حكماً مختلفاً على النص نفسه.
+export async function buildReviewResult(
+  text: string,
+  kind: ContentKind,
+  context: ReviewContext,
+  semanticResult: SemanticAnalysisResult,
+  contentEval: ContentEvaluation
+): Promise<ReviewResult> {
   const profile = resolveScoringProfile(kind, context.channel);
-
-  // Run compliance analysis and content evaluation (risk + professionalism + language) in parallel
-  const [semanticResult, contentEval] = await Promise.all([
-    runSemanticAnalysis(text, context, kind),
-    evaluateContent(text)
-  ]);
 
   const semanticFindings = semanticResult.findings;
   const analysisMode: ReviewResult["analysisMode"] = semanticResult.mode;
@@ -269,6 +273,15 @@ export async function reviewContent(text: string, kind: ContentKind = "post", co
     degradedReason,
     evaluationIncomplete
   };
+}
+
+export async function reviewContent(text: string, kind: ContentKind = "post", context: ReviewContext = {}): Promise<ReviewResult> {
+  // Run compliance analysis and content evaluation (risk + professionalism + language) in parallel
+  const [semanticResult, contentEval] = await Promise.all([
+    runSemanticAnalysis(text, context, kind),
+    evaluateContent(text)
+  ]);
+  return buildReviewResult(text, kind, context, semanticResult, contentEval);
 }
 
 export async function assertContentCanExport(text: string, kind: ContentKind = "social_export") {

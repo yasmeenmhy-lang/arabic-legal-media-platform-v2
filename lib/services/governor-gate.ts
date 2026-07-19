@@ -9,8 +9,9 @@
 // تمرير نص لم يُفحص (نفس مبدأ المراجعة: تحذير بلا نتائج عند التعطل).
 // ─────────────────────────────────────────────────────────────────────────────
 import { runSemanticAnalysis } from "@/lib/services/semantic-analysis-service";
+import type { SemanticAnalysisResult } from "@/lib/services/semantic-analysis-service";
 import { evaluateContent } from "@/lib/services/content-evaluation-service";
-import type { ContentKind, ReviewContext } from "@/lib/types";
+import type { ContentEvaluation, ContentKind, ReviewContext } from "@/lib/types";
 
 // الحاكم الكامل: النص المقترح يجب أن يخرج نظيفاً من كل النواحي دفعة واحدة —
 // (١) الامتثال بالعمق الدلالي (نفس محرك المراجعة على المتن الرسمي الكامل)،
@@ -20,12 +21,23 @@ import type { ContentKind, ReviewContext } from "@/lib/types";
 // `compliant` يميز الامتثال النظامي: المخالفة النظامية تحجب التسليم نهائياً،
 // أما الملاحظة اللغوية المتبقية بعد كل المحاولات فلا تحجب نصاً ممتثلاً.
 // checkLanguage=false يقصره على الامتثال (للنصوص القصيرة كالعناوين والوسوم).
-export async function governText(
+export type GovernTextFullResult = {
+  clean: boolean;
+  compliant: boolean;
+  corrections: string[];
+  // نتائج الذكاء الخام كما حكم بها الحاكم فعلاً — تُستخدم لبناء تقرير المراجعة الكامل
+  // من الحكم نفسه دون استدعاء ذكاء ثانٍ مستقل قد يختلف حكمه (سبب تناقض «ممتثل عند
+  // الإنشاء» ثم «به مخالفة عند المراجعة»). null عند فشل الحكم أو تعطيل فحص اللغة.
+  semanticResult: SemanticAnalysisResult | null;
+  contentEval: ContentEvaluation | null;
+};
+
+async function governTextFull(
   text: string,
   context: ReviewContext | undefined,
   contentKind?: ContentKind,
   opts?: { checkLanguage?: boolean }
-): Promise<{ clean: boolean; compliant: boolean; corrections: string[] }> {
+): Promise<GovernTextFullResult> {
   const checkLanguage = opts?.checkLanguage !== false;
   const [gov, evaluation] = await Promise.all([
     runSemanticAnalysis(text, context, contentKind),
@@ -39,6 +51,8 @@ export async function governText(
       clean: false,
       compliant: false,
       corrections: ["- تعذّر التحقق من الامتثال بالذكاء الاصطناعي حالياً — لا يُسلَّم نص لم يُفحص. أعد المحاولة بعد قليل."],
+      semanticResult: null,
+      contentEval: evaluation,
     };
   }
 
@@ -58,5 +72,22 @@ export async function governText(
     clean: corrections.length === 0,
     compliant: semantic.length === 0,
     corrections,
+    semanticResult: gov,
+    contentEval: evaluation,
   };
 }
+
+export async function governText(
+  text: string,
+  context: ReviewContext | undefined,
+  contentKind?: ContentKind,
+  opts?: { checkLanguage?: boolean }
+): Promise<{ clean: boolean; compliant: boolean; corrections: string[] }> {
+  const full = await governTextFull(text, context, contentKind, opts);
+  return { clean: full.clean, compliant: full.compliant, corrections: full.corrections };
+}
+
+// نسخة الحاكم التي تُبقي نتائج الذكاء الخام — تُستخدم فقط حين يحتاج المستدعي بناء
+// تقرير مراجعة كامل من نفس الحكم لاحقاً (توحيد الإنشاء والمراجعة). لا تُغيّر سلوك
+// governText القائم إطلاقاً — إضافة صرفة بجانبها.
+export { governTextFull };
