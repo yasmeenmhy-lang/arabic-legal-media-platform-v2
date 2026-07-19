@@ -12,6 +12,7 @@ type Props = {
   visuals?: VisualPreview[];
   onEdit: () => void;
   onSaveDraft: () => void;
+  onPublish: () => void;
   actionMessage?: string;
 };
 type Tone = "good" | "gold" | "warning" | "danger" | "neutral";
@@ -38,7 +39,7 @@ function riskTone(review: ReviewResult): Tone {
   return "good";
 }
 
-export function StudioResultsDashboard({ review, text, visuals = [], onEdit, onSaveDraft, actionMessage }: Props) {
+export function StudioResultsDashboard({ review, text, visuals = [], onEdit, onSaveDraft, onPublish, actionMessage }: Props) {
   const unavailable = review.analysisMode === "pattern-only" || review.evaluationIncomplete;
   const conductFindings = review.professionalConductCompliance.findings;
   const regulationFindings = review.executiveRegulationCompliance.findings;
@@ -143,7 +144,7 @@ export function StudioResultsDashboard({ review, text, visuals = [], onEdit, onS
       <Panel>
         <p className="mb-4 text-sm font-semibold text-ink">ماذا تريد؟</p>
         <div className="grid grid-cols-2 gap-3 sm:flex sm:flex-wrap">
-          <ButtonLink href="/social-media" className="w-full sm:w-auto">📤 نشر مباشرة</ButtonLink>
+          <Button onClick={onPublish} className="w-full sm:w-auto">📤 نشر مباشرة</Button>
           <ButtonLink href="/calendar" variant="secondary" className="w-full sm:w-auto">📅 جدولة</ButtonLink>
           <Button variant="secondary-gray" onClick={onSaveDraft} className="w-full sm:w-auto">حفظ مسودة</Button>
           <Button variant="secondary-gray" onClick={onEdit} className="w-full sm:w-auto">تعديل</Button>

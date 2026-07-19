@@ -219,7 +219,7 @@ export default function SocialMediaPage() {
         title="تجهيز مخرجات النشر المعتمدة"
         description="اختر نسخة معتمدة، ثم انسخها أو عدّلها أو نزّل حزمها أو افتح قناة المشاركة."
       />
-      <Link href="/content-review" className="inline-flex rounded-md border border-line px-4 py-2 text-sm text-palm transition hover:border-palm hover:bg-mint focus-ring">
+      <Link href="/content-review?open=1" className="inline-flex rounded-md border border-line px-4 py-2 text-sm text-palm transition hover:border-palm hover:bg-mint focus-ring">
         عودة إلى نتائج المراجعة
       </Link>
 

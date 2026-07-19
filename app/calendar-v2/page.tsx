@@ -152,15 +152,15 @@ const STAGE_LABELS = [
 // فتفتح المراجعة على المحتوى المحدَّد. مراحل الفكرة/التحسين تُوجَّه للمراجعة أيضاً
 // (المحتوى قائم فعلاً) بدل استوديو الإنشاء الفارغ.
 const STAGE_HREFS = [
-  "/content-review",            // فكرة المحتوى
-  "/content-review#findings",   // المراجعة والامتثال
-  "/content-review#rewrite",    // الصياغة المقترحة
-  "/content-review#approval",   // اعتماد النسخة
-  "/content-review#channels",   // القنوات المقترحة
-  "/calendar-v2",               // موعد النشر
-  "/content-management",        // تجهيز النشر
-  "/content-management",        // المتابعة
-  "/content-review",            // التحسين
+  "/content-review?open=1",            // فكرة المحتوى
+  "/content-review?open=1#findings",   // المراجعة والامتثال
+  "/content-review?open=1#rewrite",    // الصياغة المقترحة
+  "/content-review?open=1#approval",   // اعتماد النسخة
+  "/content-review?open=1#channels",   // القنوات المقترحة
+  "/calendar-v2",                      // موعد النشر
+  "/content-management",               // تجهيز النشر
+  "/content-management",               // المتابعة
+  "/content-review?open=1",            // التحسين
 ];
 
 function computeStages(record: StoredContentRecord, targetDate: string) {
@@ -818,6 +818,7 @@ function ContentPanel({
           <div className="grid grid-cols-2 gap-2">
             <Link
               href="/social-media"
+              onClick={() => setActiveContentSelection(record.id, record.currentVersion)}
               className="flex items-center justify-center gap-1.5 rounded-lg bg-palm px-3 py-2.5 text-sm text-white transition hover:bg-palm/90"
             >
               <Upload size={14} /> تصدير

@@ -3733,6 +3733,7 @@ export default function ContentStudioPage() {
             window.requestAnimationFrame(() => document.getElementById("studio-text-editor")?.scrollIntoView({ behavior: "smooth", block: "start" }));
           }}
           onSaveDraft={saveDraft}
+          onPublish={() => void publishNow()}
           actionMessage={actionMsg}
         />
       )}
