@@ -9,11 +9,12 @@ import { navItems, platformTitle } from "@/lib/navigation";
 // شريط تنقّل سفلي للجوال فقط (تجربة الجوال) — يعيد استخدام المسارات الفعلية،
 // و«المزيد» يفتح القائمة الجانبية القائمة. الحاسوب لا يتأثر (sm:hidden).
 // الاستوديو في الوسط بزر بارز مرتفع (تجربة الجوال)
+// بقرار مالكة المنصة: «المزيد» في أول الشريط (أقصى اليمين) و«السجل» في آخره
 const bottomTabs = [
-  { title: "السجل", href: "/content-management", icon: FileClock, primary: false },
   { title: "المراجعة", href: "/content-review", icon: FileCheck2, primary: false },
   { title: "الاستوديو", href: "/content-studio", icon: Sparkles, primary: true },
   { title: "التخطيط", href: "/calendar-v2", icon: CalendarDays, primary: false },
+  { title: "السجل", href: "/content-management", icon: FileClock, primary: false },
 ];
 import { SessionChip } from "@/components/session-chip";
 import { clsx } from "clsx";
@@ -162,6 +163,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           aria-label="التنقّل السريع"
           className="fixed inset-x-0 bottom-0 z-40 flex items-end justify-around border-t border-line bg-white/95 px-1 pb-1.5 pt-1 backdrop-blur sm:hidden"
         >
+          <button
+            type="button"
+            onClick={() => setNavOpen(true)}
+            className="flex flex-1 flex-col items-center gap-1 py-2 text-[11px] text-ink/55 transition focus-ring"
+          >
+            <Menu size={20} aria-hidden="true" />
+            <span>المزيد</span>
+          </button>
           {bottomTabs.map((tab) => {
             const Icon = tab.icon;
             const active = pathname === tab.href;
@@ -196,14 +205,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               </Link>
             );
           })}
-          <button
-            type="button"
-            onClick={() => setNavOpen(true)}
-            className="flex flex-1 flex-col items-center gap-1 py-2 text-[11px] text-ink/55 transition focus-ring"
-          >
-            <Menu size={20} aria-hidden="true" />
-            <span>المزيد</span>
-          </button>
         </nav>
       ) : null}
     </div>
