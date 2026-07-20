@@ -1419,7 +1419,8 @@ export default function ContentStudioPage() {
         });
         setContentId(saved.record.id);
         visuals.forEach((visual) => persistVisualToRecord(visual, saved.record.id));
-        router.push("/content-management");
+        // البقاء في شاشة النتائج — الحفظ يؤكد ولا يطرد (نفس سلوك الحفظ للمحتوى القائم)
+        flash("محفوظ في سجل المحتوى بتحليله الكامل.");
         return;
       }
       createDraftRecord(
