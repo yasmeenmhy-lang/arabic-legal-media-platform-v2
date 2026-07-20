@@ -246,7 +246,21 @@ export function saveContentRecords(records: StoredContentRecord[]) {
         try { window.localStorage.setItem(key, JSON.stringify(records)); saved = true; break; } catch { /* واصل التخفيف */ }
       }
     }
-    if (!saved) window.localStorage.setItem(key, JSON.stringify(records)); // فشل نهائي: خطأ صريح للمستدعي — لا فشل صامت
+    if (!saved) {
+      // ٤) كل المرئيات (حتى الرسوم) من كل النسخ — النصوص والتحليلات الحالية أولى بالمساحة
+      for (const record of records) {
+        for (const version of record.versions) version.visuals = undefined;
+      }
+      try { window.localStorage.setItem(key, JSON.stringify(records)); saved = true; } catch { /* واصل */ }
+    }
+    if (!saved) {
+      // ٥) الملاذ الأخير: إبقاء أحدث ١٠ سجلات كاملة فقط وإسقاط الأقدم (المزامنة
+      // السحابية تحتفظ بنسخها في الحساب) — الحفظ الجاري لا يفشل بسبب أرشيف قديم
+      const newestFirst = [...records].sort((a, b) => String(b.updatedAt ?? "").localeCompare(String(a.updatedAt ?? "")));
+      records.length = 0;
+      records.push(...newestFirst.slice(0, 10));
+      window.localStorage.setItem(key, JSON.stringify(records)); // إن فشل حتى هذا: خطأ صريح — لا فشل صامت
+    }
   }
   window.dispatchEvent(new Event("lawyer-media:records-updated"));
   // إشعار طبقة المزامنة السحابية — بأمر مالكة المنصة: الحساب يرى سجله على كل الأجهزة
