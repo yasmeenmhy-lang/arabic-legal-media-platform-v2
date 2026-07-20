@@ -397,7 +397,10 @@ ${briefType
       // النص المولد كله من صياغة المنصة، فأي مستوى مخاطر فوق «منخفض» في حكم
       // التقييم المرافق = مخاطر مهنية من صياغتها ⇒ حاجب للتسليم (الوسوم بلا تقييم
       // لغوي/مخاطر أصلاً contentEval=null — لا سرد فيها يحمل مخاطر صياغة)
-      riskBlocked = gov.contentEval !== null && gov.contentEval.risks.level !== "منخفض";
+      // «تعذّر» في شرح المخاطر = حكم المخاطر نفسه لم يكتمل ⇒ مؤشر غير متحقق ⇒ لا تسليم
+      riskBlocked =
+        gov.contentEval !== null &&
+        (gov.contentEval.risks.level !== "منخفض" || (gov.contentEval.risks.explanation ?? "").startsWith("تعذّر"));
       if (riskBlocked && gov.contentEval) {
         // سجل خادمي تشخيصي — سبب الحجب لازم للمعايرة والمراجعة، ولا يصل للمستخدم
         console.log("[generate:risk-gate]", gov.contentEval.risks.level, "|", gov.contentEval.risks.explanation.slice(0, 300));
