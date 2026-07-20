@@ -12,6 +12,10 @@ import { completeJob, createJob, failJob, jobsDb } from "@/lib/content-jobs";
 // content_jobs المشترك)، بحيث لو غادرت المستخدمة الصفحة يكمل الخادم التحليل، وعند
 // العودة يُستأنف الاستطلاع تلقائياً وتظهر النتيجة كأن شيئاً لم يحدث.
 
+// مدة تنفيذ صريحة على فيرسل — بدونها تُقتل الدالة بعد المدة الافتراضية القصيرة
+// فتموت المهمة الخلفية (waitUntil محكوم بعمر الدالة) ويتوقف التحليل في منتصفه.
+export const maxDuration = 300;
+
 const schema = z.object({
   contentId: z.string().min(1).optional(),
   text: z.string().min(5),

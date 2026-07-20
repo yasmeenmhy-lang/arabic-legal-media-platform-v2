@@ -6,6 +6,10 @@ import { runSemanticAnalysis } from "@/lib/services/semantic-analysis-service";
 import { evaluateContent } from "@/lib/services/content-evaluation-service";
 import { describeProviderError } from "@/lib/ai-provider-errors";
 
+// مدة تنفيذ صريحة على فيرسل — إعادة الصياغة دورة ذكاء كاملة (توليد + حكم)
+// تتجاوز المدة الافتراضية القصيرة فتُقطع في منتصفها بدون هذا التصريح.
+export const maxDuration = 300;
+
 const schema = z.object({
   text: z.string().min(5),
   contentType: z.string().optional(),

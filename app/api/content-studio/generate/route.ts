@@ -12,6 +12,12 @@ import { waitUntil } from "@vercel/functions";
 import { contentKindLabels } from "@/lib/content-types";
 import type { ContentKind, ReviewResult } from "@/lib/types";
 
+// مدة تنفيذ صريحة على فيرسل — بدونها تُقتل الدالة بعد المدة الافتراضية القصيرة
+// فتموت المهمة الخلفية (waitUntil محكوم بعمر الدالة) ويتجمد التحليل ولو غادرت
+// المستخدمة الصفحة وعادت. الدورة الكاملة (توليد + جولات تصحيح + تقرير موحد)
+// تحتاج دقائق، والمدة أدناه تسعها بهامش.
+export const maxDuration = 300;
+
 const schema = z.object({
   contentType: z.string().min(1),
   channel: z.string().min(1),
