@@ -111,7 +111,8 @@ export function professionalismKpiTone(score: number): "good" | "gold" | "danger
 }
 
 export function professionalismExplanation(score: number) {
-  if (score >= 80) return { explanation: "الأسلوب مستوفٍ للمعايير المهنية المعتمدة.", action: "حافظ على هذا المستوى في جميع منشوراتك." };
+  // عند الاستيفاء لا يُعرض «إصلاح مقترح» — بقرار مالكة المنصة: لا حاجة لتوجيه على نتيجة سليمة
+  if (score >= 80) return { explanation: "الأسلوب مستوفٍ للمعايير المهنية المعتمدة.", action: "" };
   if (score >= 60) return { explanation: "الأسلوب بحاجة لتحسين ليستوفي المعايير المهنية المعتمدة.", action: "أعد صياغة النص بأسلوب أكاديمي رسمي وفق المعايير المهنية المعتمدة للممارسة النظامية للمحاماة." };
   return { explanation: "الأسلوب غير مستوفٍ للمعايير المهنية المعتمدة — يحتاج إعادة كتابة كاملة.", action: "اكتب النص من جديد بلغة فصحى قانونية تخدم هدفاً مهنياً أو تثقيفياً واضحاً." };
 }
@@ -260,10 +261,12 @@ export function ProfessionalismIndicatorCard({ review, staticSummary }: { review
       badge={<StatusBadge tone={tone}>{passed ? "مستوفٍ للمعايير" : "يتطلب تحسيناً"}</StatusBadge>}
     >
       <p className="rounded-lg border-r-2 border-amber-300 bg-amber-50 p-3 text-sm leading-6">{explanation}</p>
-      <div className="mt-3 rounded-lg bg-slate-50 p-3 text-sm leading-6">
-        <span className="mb-1 block text-xs font-bold uppercase tracking-wider text-slate-400">الإصلاح المقترح</span>
-        {action}
-      </div>
+      {action ? (
+        <div className="mt-3 rounded-lg bg-slate-50 p-3 text-sm leading-6">
+          <span className="mb-1 block text-xs font-bold uppercase tracking-wider text-slate-400">الإصلاح المقترح</span>
+          {action}
+        </div>
+      ) : null}
     </IndicatorShell>
   );
 }
