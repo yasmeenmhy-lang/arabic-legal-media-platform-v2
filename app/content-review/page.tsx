@@ -1823,7 +1823,7 @@ export default function ContentReviewPage() {
                 || !review.languageQuality.passed;
               const otherIssueReasons = [
                 ["بالغ", "حرج", "مرتفع"].includes(review.riskLevel) && `مستوى مخاطر ${review.riskLevel}`,
-                review.professionalismScore < 60 && "أسلوب لا يليق بالمهنة القانونية",
+                review.professionalismScore < 60 && "أسلوب غير مستوفٍ للمعايير المهنية المعتمدة",
                 !review.languageQuality.passed && "أخطاء لغوية تحتاج تصحيحاً"
               ].filter(Boolean).join(" · ");
               return (
