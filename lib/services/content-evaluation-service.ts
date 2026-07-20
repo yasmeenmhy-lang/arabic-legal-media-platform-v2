@@ -4,7 +4,7 @@
 // Separate from the legal compliance engine (semantic-analysis-service.ts).
 
 import Anthropic from "@anthropic-ai/sdk";
-import { AUTHORITIES_RULE, KINGDOM_STYLE_RULE, PLATFORM_SUPREME_RULE } from "@/lib/governance";
+import { AUTHORITIES_RULE, CONTENT_QUALITY_STANDARDS, KINGDOM_STYLE_RULE, PLATFORM_SUPREME_RULE } from "@/lib/governance";
 import type {
   ContentEvaluation,
   ContentEvaluationLanguage,
@@ -22,6 +22,10 @@ const PROFESSIONALISM_THRESHOLD = 80;
 
 function buildEvaluationPrompt(text: string): string {
   return `${PLATFORM_SUPREME_RULE}
+
+${CONTENT_QUALITY_STANDARDS}
+
+مرجعية الحكم على الجودة (ملزمة): المعايير الاثنا عشر أعلاه — بقرار مالكة المنصة — هي مقياس التقييم الحصري في محوري الجوانب المهنية واللغة: احكم على النص بها بنداً بنداً، لا بذوقك ولا بأي معيار من عندك، وأي إخلال بأحدها يُذكر في الشرح باسم المعيار المُخلّ به.
 
 أنت مستشار قانوني ومحكّم متخصص في تقييم المحتوى الإعلامي للمحامين في المملكة العربية السعودية.
 
