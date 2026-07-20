@@ -14,6 +14,9 @@ type Props = {
   onSaveDraft: () => void;
   onPublish: () => void;
   actionMessage?: string;
+  // زر «التحليل التفصيلي» يفتح السجل النشط المحفوظ — إن لم تكن هذه النتيجة محفوظة
+  // فعلاً (فشل حفظ محلي) يُعطَّل الزر بدل أن يفتح محتوى آخر قديماً من السجل
+  detailedAnalysisAvailable?: boolean;
 };
 type Tone = "good" | "gold" | "warning" | "danger" | "neutral";
 
@@ -39,7 +42,7 @@ function riskTone(review: ReviewResult): Tone {
   return "good";
 }
 
-export function StudioResultsDashboard({ review, text, visuals = [], onEdit, onSaveDraft, onPublish, actionMessage }: Props) {
+export function StudioResultsDashboard({ review, text, visuals = [], onEdit, onSaveDraft, onPublish, actionMessage, detailedAnalysisAvailable = true }: Props) {
   const unavailable = review.analysisMode === "pattern-only" || review.evaluationIncomplete;
   const conductFindings = review.professionalConductCompliance.findings;
   const regulationFindings = review.executiveRegulationCompliance.findings;
@@ -137,8 +140,12 @@ export function StudioResultsDashboard({ review, text, visuals = [], onEdit, onS
       </div>
 
       <div className="flex flex-col gap-3 border-t border-line pt-5 sm:flex-row sm:items-center sm:justify-between">
-        <div><p className="text-sm font-semibold text-ink">لمزيد من التفاصيل</p><p className="mt-1 text-xs text-ink/50">الملاحظات، الأدلة، الأثر، والإجراء الموصى به.</p></div>
-        <ButtonLink href="/content-review?open=1">التحليل التفصيلي للمحتوى المهني</ButtonLink>
+        <div><p className="text-sm font-semibold text-ink">لمزيد من التفاصيل</p><p className="mt-1 text-xs text-ink/50">{detailedAnalysisAvailable ? "الملاحظات، الأدلة، الأثر، والإجراء الموصى به." : "تعذر حفظ هذه النتيجة في سجل المحتوى — أعد التحليل لإتاحة التحليل التفصيلي."}</p></div>
+        {detailedAnalysisAvailable ? (
+          <ButtonLink href="/content-review?open=1">التحليل التفصيلي للمحتوى المهني</ButtonLink>
+        ) : (
+          <Button variant="secondary-gray" disabled className="cursor-not-allowed opacity-60">التحليل التفصيلي غير متاح</Button>
+        )}
       </div>
 
       <Panel>

@@ -14,6 +14,12 @@ const CHUNK_LIMIT = 700_000; // حد حجم الدفعة الواحدة (حدو�
 let pushTimer: ReturnType<typeof setTimeout> | null = null;
 let suppressPush = false;
 
+// ترشيد استهلاك القاعدة (بأمر مالكة المنصة): الرفع تفاضلي — بصمة آخر رفع ناجح لكل
+// سجل (updatedAt)، فلا يُرفع إلا ما تغيّر فعلاً بدل إعادة رفع السجل كاملاً في كل
+// حفظ وتركيز وعودة للتبويب (كان هذا هو مستنزف حصة نقل قاعدة البيانات).
+// أول رفع بعد فتح الصفحة كامل دوماً (تسوية) لأن البصمات تبدأ فارغة.
+const lastPushedStamp = new Map<string, string>();
+
 export function scheduleCloudPush() {
   if (suppressPush) return;
   if (pushTimer) clearTimeout(pushTimer);
@@ -25,16 +31,22 @@ export function scheduleCloudPush() {
 
 export async function pushAllToCloud() {
   try {
-    const records = loadContentRecords();
+    const records = loadContentRecords().filter(
+      (record) => lastPushedStamp.get(record.id) !== String(record.updatedAt ?? "")
+    );
+    if (!records.length) return; // لا تغيير — لا طلب أصلاً
     let batch: StoredContentRecord[] = [];
     let size = 0;
     const flush = async () => {
       if (!batch.length) return;
-      await fetch("/api/user-records", {
+      const sent = batch;
+      const res = await fetch("/api/user-records", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ records: batch }),
-      }).catch(() => {});
+        body: JSON.stringify({ records: sent }),
+      }).catch(() => null);
+      // تُحدَّث البصمات فقط بعد قبول الخادم — فشل الرفع يُبقي السجل «متغيراً» ليُعاد
+      if (res?.ok) for (const r of sent) lastPushedStamp.set(r.id, String(r.updatedAt ?? ""));
       batch = [];
       size = 0;
     };
@@ -67,8 +79,16 @@ function broadcastStatus(state: SyncState) {
   }
 }
 
+// خانق السحب: السحب يجلب السجل كاملاً من الخادم، وتكراره مع كل تركيز/عودة للتبويب
+// كان يستهلك حصة النقل بلا جديد — يكفي سحب واحد كل دقيقة كحد أقصى، وضمانة
+// «الجهاز المفتوح حديثاً يجد كل شيء» باقية (أول سحب دوماً ينفذ فوراً).
+let lastPullAt = 0;
+const PULL_MIN_INTERVAL_MS = 60_000;
+
 export async function pullAndMergeFromCloud() {
   try {
+    if (Date.now() - lastPullAt < PULL_MIN_INTERVAL_MS) return;
+    lastPullAt = Date.now();
     const res = await fetch("/api/user-records");
     if (res.status === 401) { broadcastStatus("signedout"); return; }
     if (!res.ok) { broadcastStatus("offline"); return; }
@@ -87,6 +107,12 @@ export async function pullAndMergeFromCloud() {
       const mine = merged.get(remote.id);
       if (!mine || String(remote.updatedAt ?? "") > String(mine.updatedAt ?? "")) {
         merged.set(remote.id, remote);
+      }
+      // ما هو موجود لدى الخادم أصلاً بهذه النسخة لا يُعاد رفعه إليه (منع الصدى):
+      // تُختم بصمته كأنه مرفوع — فيبقى للرفع فقط ما هو أحدث محلياً أو غير موجود سحابياً
+      const applied = merged.get(remote.id);
+      if (applied && String(applied.updatedAt ?? "") === String(remote.updatedAt ?? "")) {
+        lastPushedStamp.set(remote.id, String(remote.updatedAt ?? ""));
       }
     }
     for (const deletedId of payload.deletedIds ?? []) merged.delete(deletedId);

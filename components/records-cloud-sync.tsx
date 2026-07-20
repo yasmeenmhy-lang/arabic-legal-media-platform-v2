@@ -28,7 +28,9 @@ export function RecordsCloudSync() {
     window.addEventListener("lm-work-changed", onWorkChange);
     window.addEventListener("focus", onFocus);
     document.addEventListener("visibilitychange", onVisible);
-    const interval = window.setInterval(syncNow, 120_000);
+    // ترشيد: الدورة الخلفية كل ٥ دقائق تكفي (الرفع تفاضلي يتخطى ما لم يتغير،
+    // والسحب مخنوق لدقيقة) — التركيز والعودة للتبويب يزامنان فوراً كما كانا
+    const interval = window.setInterval(syncNow, 300_000);
     return () => {
       window.removeEventListener("lm-records-changed", onRecordsChange);
       window.removeEventListener("lm-work-changed", onWorkChange);

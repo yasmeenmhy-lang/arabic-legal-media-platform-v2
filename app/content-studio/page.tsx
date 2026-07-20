@@ -1207,8 +1207,10 @@ export default function ContentStudioPage() {
         });
         setContentId(saved.record.id);
       } catch (error) {
-        // النتيجة معروضة فعلاً — فشل الحفظ المحلي يُسجَّل فقط ولا يعطّل العرض
+        // النتيجة معروضة فعلاً — فشل الحفظ المحلي لا يعطّل العرض، لكنه لم يعد صامتاً:
+        // يُبلَّغ المستخدم ويُعطَّل «التحليل التفصيلي» (contentId بقي فارغاً) بدل فتح سجل قديم
         console.error("[studio:unified-review-persist]", error);
+        flash("تعذر حفظ النتيجة في سجل المحتوى — التحليل التفصيلي غير متاح لهذه النسخة حتى تعيد التحليل.");
       } finally {
         setReviewing(false);
       }
@@ -3786,6 +3788,7 @@ export default function ContentStudioPage() {
           onSaveDraft={saveDraft}
           onPublish={() => void publishNow()}
           actionMessage={actionMsg}
+          detailedAnalysisAvailable={Boolean(contentId)}
         />
       )}
 
