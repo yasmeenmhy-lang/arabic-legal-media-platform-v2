@@ -105,7 +105,7 @@ export function normalizeReviewResult(review: ReviewResult): ReviewResult {
             ...gate,
             passed,
             sourceValue: professionalismScore,
-            reason: passed ? "الأسلوب يليق بمحامٍ مهني." : "الأسلوب لا يليق بمحامٍ."
+            reason: passed ? "الأسلوب مستوفٍ للمعايير المهنية المعتمدة." : "الأسلوب غير مستوفٍ للمعايير المهنية المعتمدة."
           };
         }
         if (gate.key === "language") {

@@ -311,8 +311,8 @@ export function calculatePublishingReadiness({
       sourceValue: professionalismScore,
       threshold: "80%",
       reason: professionalismScore >= 80
-        ? "الأسلوب يليق بمحامٍ مهني."
-        : "الأسلوب لا يليق بمحامٍ."
+        ? "الأسلوب مستوفٍ للمعايير المهنية المعتمدة."
+        : "الأسلوب غير مستوفٍ للمعايير المهنية المعتمدة."
     },
     {
       key: "language",
