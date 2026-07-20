@@ -4,7 +4,7 @@
 // Separate from the legal compliance engine (semantic-analysis-service.ts).
 
 import Anthropic from "@anthropic-ai/sdk";
-import { AUTHORITIES_RULE, KINGDOM_STYLE_RULE } from "@/lib/governance";
+import { AUTHORITIES_RULE, KINGDOM_STYLE_RULE, PLATFORM_SUPREME_RULE } from "@/lib/governance";
 import type {
   ContentEvaluation,
   ContentEvaluationLanguage,
@@ -21,7 +21,9 @@ const LANGUAGE_THRESHOLD = 75;
 const PROFESSIONALISM_THRESHOLD = 80;
 
 function buildEvaluationPrompt(text: string): string {
-  return `أنت مستشار قانوني ومحكّم متخصص في تقييم المحتوى الإعلامي للمحامين في المملكة العربية السعودية.
+  return `${PLATFORM_SUPREME_RULE}
+
+أنت مستشار قانوني ومحكّم متخصص في تقييم المحتوى الإعلامي للمحامين في المملكة العربية السعودية.
 
 ${AUTHORITIES_RULE}
 ${KINGDOM_STYLE_RULE}

@@ -7,7 +7,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import type { ContentKind, FindingCategory, FindingDomain, ReviewContext, ReviewFinding, RiskLevel } from "@/lib/types";
 import { legalKnowledgeEntries } from "@/lib/legal-knowledge-base";
 import { OFFICIAL_CORPUS, type OfficialCorpusItem } from "@/lib/legal-official-corpus";
-import { AUTHORITIES_RULE } from "@/lib/governance";
+import { AUTHORITIES_RULE, PLATFORM_SUPREME_RULE } from "@/lib/governance";
 import {
   arabicSeverity,
   businessSeverityForFinding,
@@ -98,7 +98,9 @@ function findOfficialCorpusItem(ruleReference: string): OfficialCorpusItem | nul
 function buildHolisticSystem(entries: typeof legalKnowledgeEntries): string {
   const validRefs = buildValidReferencesList();
   const ruleCorpus = buildRuleCorpus(entries);
-  return `أنت العقل الشامل والوحيد للحكم في هذه المنصة: خبير أول في نظام المحاماة، واللائحة التنفيذية لنظام المحاماة ١٤٤٦هـ (90 مادة — متنها الرسمي الكامل مرفق أدناه)، وقواعد السلوك المهني للمحامين (متنها الرسمي الكامل مرفق أدناه)، بخبرة عملية تعادل مدير الإدارة العامة للمحاماة، ومدقق جودة وامتثال محترف. تحكم بعقل قانوني مهني منطقي كخبير بشري — لا بمطابقة كلمات أو أنماط — وتزن المعنى والغرض والأثر على كرامة المهنة كما يفعل خبير حقيقي.
+  return `${PLATFORM_SUPREME_RULE}
+
+أنت العقل الشامل والوحيد للحكم في هذه المنصة: خبير أول في نظام المحاماة، واللائحة التنفيذية لنظام المحاماة ١٤٤٦هـ (90 مادة — متنها الرسمي الكامل مرفق أدناه)، وقواعد السلوك المهني للمحامين (متنها الرسمي الكامل مرفق أدناه)، بخبرة عملية تعادل مدير الإدارة العامة للمحاماة، ومدقق جودة وامتثال محترف. تحكم بعقل قانوني مهني منطقي كخبير بشري — لا بمطابقة كلمات أو أنماط — وتزن المعنى والغرض والأثر على كرامة المهنة كما يفعل خبير حقيقي.
 لا توجد طبقة أخرى تسندك أو تكمّل نقصك: أنت وحدك تغطّي كل النواحي بالمعنى. أي مخالفة تفوتك تُنشر فعلاً، فكن شاملاً ودقيقاً كخبير مسؤول.
 
 ${AUTHORITIES_RULE}
