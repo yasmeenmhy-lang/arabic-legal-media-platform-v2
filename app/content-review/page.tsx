@@ -791,6 +791,17 @@ export default function ContentReviewPage() {
       setSaveLaterMsg("تعذر الحفظ: بيانات المحتوى أو السياق غير مكتملة.");
       return;
     }
+    // حماية من فشل التخزين (امتلاء ذاكرة المتصفح): لا ضغطة صامتة بلا أثر أبداً
+    try {
+      saveForLaterInner();
+    } catch (error) {
+      console.error("[review:save-later]", error);
+      setSaveLaterMsg("تعذر الحفظ لامتلاء ذاكرة المتصفح — أعد المحاولة الآن (تنظف المساحة تلقائياً).");
+    }
+  }
+
+  function saveForLaterInner() {
+    if (!review || !kind) return;
     const saved = upsertAnalyzedVersion({
       contentId,
       title: contentTitle,
