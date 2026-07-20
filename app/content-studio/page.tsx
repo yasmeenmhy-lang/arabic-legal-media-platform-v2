@@ -420,11 +420,12 @@ const purposeIcons: Record<string, React.ReactNode> = {
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
+// تسميات معيارية قابلة للقياس — بقرار مالكة المنصة: لا أوصاف ذوقية (ممتاز/جيد/ضعيف)
 function qualLabel(score: number) {
-  if (score >= 85) return { label: "ممتاز", cls: "bg-green-100 text-green-800" };
-  if (score >= 70) return { label: "جيد", cls: "bg-blue-100 text-blue-800" };
-  if (score >= 50) return { label: "متوسط", cls: "bg-amber-100 text-amber-800" };
-  return { label: "ضعيف", cls: "bg-red-100 text-red-800" };
+  if (score >= 85) return { label: "مستوفٍ بدرجة عالية", cls: "bg-green-100 text-green-800" };
+  if (score >= 70) return { label: "مستوفٍ", cls: "bg-blue-100 text-blue-800" };
+  if (score >= 50) return { label: "مستوفٍ جزئياً", cls: "bg-amber-100 text-amber-800" };
+  return { label: "غير مستوفٍ", cls: "bg-red-100 text-red-800" };
 }
 
 function toneBorder(tone: "good" | "gold" | "danger" | "neutral") {

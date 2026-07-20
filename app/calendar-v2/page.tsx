@@ -842,7 +842,7 @@ function ContentPanel({
                     : postOutcome === "delayed"   ? "bg-goldSoft text-gold"
                     : "bg-red-50 text-red-600"
                   }`}>
-                    {postOutcome === "published" && "تم تأكيد النشر — أحسنت!"}
+                    {postOutcome === "published" && "تم تأكيد النشر."}
                     {postOutcome === "delayed"   && "تم تسجيل التأجيل."}
                     {postOutcome === "cancelled" && "تم تسجيل الإلغاء."}
                   </p>
