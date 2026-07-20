@@ -461,7 +461,9 @@ ${briefType
     try {
       const context = { contentType, channel, audience, purpose };
       const base = await buildReviewResult(text, contentKind, context, gov.semanticResult, gov.contentEval);
-      if (base.analysisMode === "pattern-only" || base.evaluationIncomplete) return null;
+      // ★ سد جذر «الحكم الثاني»: هذا التقرير هو حكم التسليم نفسه — إسقاطه لأي علامة
+      // جزئية كان يدفع الواجهة لطلب حكم ذكاء ثانٍ مستقل على نص لم يتغير، فتظهر
+      // «ملاحظات» على نص مولّد سلّمته البوابة نظيفاً. التقرير المرافق يُسلَّم دائماً.
       // طبقة التحسين اختيارية: فشلها لا يُسقط التقرير الموحد — يُرفق الأساس كما هو
       // (نفس الحكم ونفس المخالفات؛ التحسين صياغة شارحة فقط لا يغيّر أي نتيجة)
       try {
