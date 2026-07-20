@@ -81,21 +81,24 @@ async function verifySuggestion(
     runSemanticAnalysis(text, context),
     evaluateContent(text)
   ]);
-  const spellingGrammarIssues = evaluation.language.issues.filter(
-    (issue) => issue.category === "spelling" || issue.category === "grammar"
-  );
+  // ★ بأمر مالكة المنصة: كل المؤشرات بلا استثناء — المخالفة والخطأ اللغوي
+  // والملاحظة الأسلوبية والمخاطر؛ أي مؤشر غير مستوفٍ يمنع عرض الصياغة
   const clean =
     semantic.findings.length === 0 &&
     evaluation.language.passed &&
-    spellingGrammarIssues.length === 0;
+    evaluation.language.issues.length === 0 &&
+    evaluation.risks.level === "منخفض";
 
   const remainingNotes = [
     ...semantic.findings.map(
       (f) => `- مخالفة: ${f.issue} — العبارة: "${f.evidence}" — البديل الآمن: ${f.suggestedSaferWording}`
     ),
-    ...spellingGrammarIssues.map(
-      (i) => `- خطأ لغوي: "${i.excerpt}" — ${i.message} — التصحيح: ${i.suggestion}`
-    )
+    ...evaluation.language.issues.map(
+      (i) => `- ${i.category === "spelling" || i.category === "grammar" ? "خطأ لغوي" : "ملاحظة أسلوبية"}: "${i.excerpt ?? ""}" — ${i.message}${i.suggestion ? ` — التصحيح: ${i.suggestion}` : ""}`
+    ),
+    ...(evaluation.risks.level !== "منخفض"
+      ? [`- مخاطر مهنية (${evaluation.risks.level}): ${evaluation.risks.explanation}${evaluation.risks.fix ? ` — المعالجة: ${evaluation.risks.fix}` : ""}`]
+      : [])
   ];
   return { clean, remainingNotes };
 }

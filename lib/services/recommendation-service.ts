@@ -244,8 +244,11 @@ export async function buildGovernedRewriteSuggestions({
   // الدلالي على المتن الرسمي الكامل). كان الفحص السابق زائفاً: يفحص قائمة مخالفات
   // فارغة مفترضة بدل النص المقترح نفسه، فتُعرض «صياغة مقترحة» قد تحمل مخالفات لم
   // تُفحص قط. فشل مغلق: تعذُّر حكم الذكاء أو بقاء أي مخالفة ⇒ لا تُعرض الصياغة.
-  const gate = await governTextFull(candidateText, context, kind, { checkLanguage: false });
-  if (!gate.semanticResult || !gate.compliant) return [];
+  // ★ بأمر مالكة المنصة: المقترح يُفحص بكل المؤشرات بلا استثناء — الامتثال واللغة
+  // والإملاء والأسلوب والمخاطر؛ أي مؤشر غير مستوفٍ = لا يُعرض المقترح إطلاقاً
+  const gate = await governTextFull(candidateText, context, kind, { checkLanguage: true });
+  if (!gate.semanticResult || !gate.compliant || !gate.clean) return [];
+  if (gate.contentEval && gate.contentEval.risks.level !== "منخفض") return [];
 
   const proposedCompliance = rebuildComplianceFromFindings(gate.semanticResult.findings, resolveScoringProfile(kind, context.channel));
   const proposedLanguage = reviewLanguageQuality({ text: candidateText, kind }, governedRewriteSettings.minimumLanguageQualityThreshold);

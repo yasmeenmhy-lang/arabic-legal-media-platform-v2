@@ -145,7 +145,8 @@ export function normalizeReviewResult(review: ReviewResult): ReviewResult {
       confidence,
       readiness: readinessDecision,
       findings: review.findings,
-      riskLevel
+      riskLevel,
+      languageIssuesCount: review.languageQuality?.issues?.length ?? 0
     });
 
     return {

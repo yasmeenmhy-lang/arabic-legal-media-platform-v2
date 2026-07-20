@@ -92,12 +92,17 @@ export function buildPublicationDecision({
   confidence,
   readiness,
   findings,
-  riskLevel
+  riskLevel,
+  languageIssuesCount = 0
 }: {
   confidence: AssessmentConfidence;
   readiness: ReadinessDecision;
   findings: ReviewFinding[];
   riskLevel: RiskLevel;
+  // ★ بأمر مالكة المنصة (اتساق القرار مع الاعتماد): الملاحظة اللغوية أو الأسلوبية
+  // مؤشر كأي مؤشر — وجودها يمنع «موصى بالنشر» كما يمنع الاعتماد، فلا يظهر قرار
+  // موصى بالنشر لنسخة يتعذر اعتمادها منطقياً
+  languageIssuesCount?: number;
 }): PublicationDecision {
   // أي مخالفة غير معالجة ⇒ غير موصى بالنشر — النشر غير مسموح قبل المعالجة
   const unresolved = findings.filter((finding) => !finding.resolved);
@@ -123,11 +128,13 @@ export function buildPublicationDecision({
       recommended: false
     };
   }
-  if (readiness.level !== "جاهز للنشر" || findings.some((finding) => !finding.resolved)) {
+  if (readiness.level !== "جاهز للنشر" || findings.some((finding) => !finding.resolved) || languageIssuesCount > 0) {
     return {
       outcome: "RECOMMENDED_AFTER_FINDINGS",
       label: "موصى بالنشر بعد معالجة الملاحظات",
-      reason: "يمكن أن يصبح المحتوى مناسباً للنشر بعد تنفيذ الإجراءات المحددة وإعادة التقييم واعتماد النسخة النهائية.",
+      reason: languageIssuesCount > 0
+        ? "توجد ملاحظات لغوية أو أسلوبية لم تُعالج بعد — عالجها ثم أعد التقييم ليصبح المحتوى قابلاً للاعتماد والنشر."
+        : "يمكن أن يصبح المحتوى مناسباً للنشر بعد تنفيذ الإجراءات المحددة وإعادة التقييم واعتماد النسخة النهائية.",
       blockers: readiness.blockers,
       actions: readiness.actions,
       recommended: false

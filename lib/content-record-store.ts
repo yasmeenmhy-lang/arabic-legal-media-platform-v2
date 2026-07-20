@@ -236,6 +236,16 @@ export function saveContentRecords(records: StoredContentRecord[]) {
         try { window.localStorage.setItem(key, JSON.stringify(records)); saved = true; break; } catch { /* واصل التخفيف */ }
       }
     }
+    if (!saved) {
+      // ٣) أشد التخفيف: إسقاط تحليلات النسخ القديمة غير الحالية (نصوصها تبقى كاملة،
+      // وفتحها لاحقاً يعرض «أعد التحليل») — حكم النسخة الحالية لا يُمس أبداً
+      for (const record of oldestFirst) {
+        for (const version of record.versions) {
+          if (version.version !== record.currentVersion && version.analysis) version.analysis = undefined;
+        }
+        try { window.localStorage.setItem(key, JSON.stringify(records)); saved = true; break; } catch { /* واصل التخفيف */ }
+      }
+    }
     if (!saved) window.localStorage.setItem(key, JSON.stringify(records)); // فشل نهائي: خطأ صريح للمستدعي — لا فشل صامت
   }
   window.dispatchEvent(new Event("lawyer-media:records-updated"));
@@ -485,17 +495,24 @@ export function upsertAnalyzedVersion(input: {
   return { record, version };
 }
 
+// المقياس الواحد لحواجز الاعتماد — بأمر مالكة المنصة: زر الاعتماد وسطر «الجاهزية»
+// وأي عرض آخر يقرؤون من هذه الدالة وحدها، فلا يظهر «جاهزة — لا حواجز» مع «تعذر
+// الاعتماد» معاً أبداً. القائمة الفارغة = يجوز الاعتماد.
+export function approvalBarriers(version: StoredContentVersion | undefined): string[] {
+  if (!version?.analysis) return ["لا يوجد تحليل محفوظ لهذه النسخة — أعد التحليل أولاً"];
+  const barriers: string[] = [];
+  if (version.analysis.findings.some((finding) => !finding.resolved)) barriers.push("ملاحظات امتثالية لم تُعالج بعد");
+  if (!version.analysis.languageQuality.passed) barriers.push("جودة اللغة دون الحد المطلوب");
+  else if ((version.analysis.languageQuality.issues?.length ?? 0) > 0) barriers.push("ملاحظات لغوية أو أسلوبية لم تُعالج بعد");
+  if (["بالغ", "حرج", "مرتفع"].includes(version.analysis.riskLevel)) barriers.push("مستوى المخاطر مرتفع");
+  return barriers;
+}
+
 export function approveContentVersion(contentId: string, versionNumber: number) {
   const records = loadContentRecords();
   const record = records.find((item) => item.id === contentId);
   const version = record?.versions.find((item) => item.version === versionNumber);
-  if (
-    !record ||
-    !version?.analysis ||
-    version.analysis.findings.some((finding) => !finding.resolved) ||
-    !version.analysis.languageQuality.passed ||
-    ["بالغ", "حرج", "مرتفع"].includes(version.analysis.riskLevel)
-  ) return null;
+  if (!record || !version || approvalBarriers(version).length > 0) return null;
   const timestamp = now();
   version.status = "معتمد";
   version.approvedAt = timestamp;

@@ -1258,29 +1258,39 @@ export default function ContentStudioPage() {
       }
       const result = outcome.data;
       setReview(result);
-      saveLatestReviewSnapshot(result);
-      const saved = upsertAnalyzedVersion({
-        contentId,
-        body: trimmed,
-        contentType: kind,
-        contentTypeLabel,
-        channel,
-        audience,
-        purpose,
-        specialty,
-        charLimit,
-        adCta,
-        adStyle,
-        scriptDuration,
-        scriptStyle,
-        articleLength,
-        review: result,
-      });
-      setContentId(saved.record.id);
       setReviewError("");
+      saveLatestReviewSnapshot(result);
+      // الحفظ المحلي في عزلة عن عرض النتيجة: فشله (امتلاء ذاكرة المتصفح) لا يحجب
+      // النتيجة المعروضة ولا يقذف رسالة المتصفح الخام بالإنجليزية للمستخدم —
+      // رسالة عربية واضحة، ويبقى «التحليل التفصيلي» معطلاً حتى تنجح إعادة التحليل
+      try {
+        const saved = upsertAnalyzedVersion({
+          contentId,
+          body: trimmed,
+          contentType: kind,
+          contentTypeLabel,
+          channel,
+          audience,
+          purpose,
+          specialty,
+          charLimit,
+          adCta,
+          adStyle,
+          scriptDuration,
+          scriptStyle,
+          articleLength,
+          review: result,
+        });
+        setContentId(saved.record.id);
+      } catch (persistError) {
+        console.error("[studio:review-persist]", persistError);
+        flash("تعذر حفظ النتيجة في سجل المحتوى (امتلأت ذاكرة المتصفح) — أعد التحليل لإتاحة التحليل التفصيلي.");
+      }
     } catch (error) {
       if (requestId !== reviewRequestIdRef.current) return;
-      setReviewError(error instanceof Error ? error.message : "تعذر إكمال المراجعة.");
+      const raw = error instanceof Error ? error.message : "";
+      // لا تُعرض رسائل المتصفح/النظام الخام (وقد تكون بالإنجليزية) — عربية مفهومة دائماً
+      setReviewError(raw && /[؀-ۿ]/.test(raw) ? raw : "تعذر إكمال المراجعة — حاول مرة أخرى.");
     } finally {
       if (requestId === reviewRequestIdRef.current) setReviewing(false);
     }
@@ -1338,13 +1348,14 @@ export default function ContentStudioPage() {
   // مفاتيح البصمة تمنع تكرار حفظ المرئي نفسه أكثر من مرة في السجل الواحد
   const persistedVisualKeysRef = useRef<Set<string>>(new Set());
 
-  function persistVisualToRecord(visual: Omit<StoredVisual, "id" | "createdAt">) {
-    if (!contentId) return;
-    const key = `${contentId}::${visual.visualType}::${visual.svg?.length ?? 0}::${visual.imageUrl?.length ?? 0}`;
+  function persistVisualToRecord(visual: Omit<StoredVisual, "id" | "createdAt">, recordId?: string) {
+    const targetId = recordId ?? contentId;
+    if (!targetId) return;
+    const key = `${targetId}::${visual.visualType}::${visual.svg?.length ?? 0}::${visual.imageUrl?.length ?? 0}`;
     if (persistedVisualKeysRef.current.has(key)) return;
-    const record = loadContentRecords().find((item) => item.id === contentId);
+    const record = loadContentRecords().find((item) => item.id === targetId);
     if (!record) return;
-    const outcome = attachVisualsToVersion(contentId, record.currentVersion, [visual]);
+    const outcome = attachVisualsToVersion(targetId, record.currentVersion, [visual]);
     if (outcome !== "failed") {
       persistedVisualKeysRef.current.add(key);
       flash("حُفظ المرئي مع المحتوى في سجل المحتوى");
@@ -1392,6 +1403,23 @@ export default function ContentStudioPage() {
         const record = loadContentRecords().find((item) => item.id === contentId);
         if (record) setActiveContentSelection(contentId, record.currentVersion);
         flash("محفوظ في سجل المحتوى.");
+        return;
+      }
+      // ★ بأمر مالكة المنصة: الحفظ لا يُضيع التحليل القائم — إن كانت النتيجة معروضة
+      // تُحفظ النسخة بتحليلها كاملاً (الحكم يسافر مع النص)، ولا يُطلب تحليل من جديد
+      if (review && kind) {
+        const saved = upsertAnalyzedVersion({
+          contentId: contentId ?? undefined,
+          body: activeText,
+          contentType: kind,
+          contentTypeLabel: contentKindLabels[kind],
+          channel, audience, purpose, specialty, charLimit,
+          adCta, adStyle, scriptDuration, scriptStyle, articleLength,
+          review,
+        });
+        setContentId(saved.record.id);
+        visuals.forEach((visual) => persistVisualToRecord(visual, saved.record.id));
+        router.push("/content-management");
         return;
       }
       createDraftRecord(

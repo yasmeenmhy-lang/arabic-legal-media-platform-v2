@@ -225,7 +225,8 @@ export async function buildReviewResult(
     confidence,
     readiness: readinessDecision,
     findings: compliance.findings,
-    riskLevel
+    riskLevel,
+    languageIssuesCount: languageQuality.issues.length
   });
   const channelRecommendations = buildChannelRecommendations(kind, context, compliance.findings, readinessDecision);
   const decisionWorkflow = buildDecisionWorkflow(publicationDecision, governedRewrites.length > 0, approved);

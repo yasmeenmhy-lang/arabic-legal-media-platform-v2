@@ -56,6 +56,7 @@ import { OfficialLogo, officialEntityFromUrl } from "@/components/official-logos
 import { contentKindOptions } from "@/lib/content-types";
 import { QUOTE_INTEGRITY_NOTICE } from "@/lib/quote-notice";
 import {
+  approvalBarriers,
   approveContentVersion,
   getActiveContentSelection,
   loadContentRecords,
@@ -449,6 +450,21 @@ export default function ContentReviewPage() {
   // إعادة التحليل تُتاح فقط بعد «تعديل» أو «مسح + كتابة» (كلاهما يفعّل isEditing) — لا على محتوى مُحلَّل لم يُلمس.
   // التحليل الأول يتطلب اكتمال السياق مع التخصص. النص لا يقل عن ٥ أحرف في الحالتين.
   const canAnalyze = text.trim().length >= 5 && Boolean(kind && audience && purpose) && (isReanalysis ? isEditing : Boolean(specialty));
+  // المقياس الموحد لحواجز الاعتماد — بأمر مالكة المنصة: زر الاعتماد وأسبابه وسطر
+  // «الجاهزية» يقرؤون جميعاً من هذه القائمة الواحدة فلا يظهر «جاهزة — لا حواجز»
+  // مع «تعذر الاعتماد» معاً أبداً. الملاحظة الأسلوبية حاجز كأي مؤشر (كل المؤشرات).
+  const approvalBlockReasons = useMemo(() => {
+    if (!review) return [] as string[];
+    if (!contentId || !versionNumber) return ["لا توجد نسخة محفوظة لهذه النتيجة — أعد التحليل لربط النتائج بنسخة قابلة للاعتماد"];
+    const reasons: string[] = [];
+    const unresolvedCount = review.findings.filter((finding) => !finding.resolved).length;
+    if (unresolvedCount) reasons.push(`${unresolvedCount} مخالفة غير معالجة — عالجها بالصياغة المقترحة أو عدّل النص ثم أعد التحليل`);
+    if (!review.languageQuality.passed) reasons.push("جودة اللغة دون الحد المطلوب");
+    else if (review.languageQuality.issues.length > 0) reasons.push("ملاحظات لغوية أو أسلوبية لم تُعالج بعد — طبّق الصياغة المقترحة أو عدّل النص");
+    if (["بالغ", "حرج", "مرتفع"].includes(review.riskLevel)) reasons.push(`مستوى المخاطر «${review.riskLevel}» يمنع الاعتماد`);
+    return reasons;
+  }, [review, contentId, versionNumber]);
+  const approveBlocked = approvalBlockReasons.length > 0;
   const contextScore = [kind, audience, purpose, specialty].filter(Boolean).length;
   const contentTypeLabel = kind ? contentTypes.find((item) => item.value === kind)?.label ?? "محتوى مهني" : "";
   const sortedFindings = useMemo(() => {
@@ -812,10 +828,15 @@ export default function ContentReviewPage() {
     try {
       const saved = approveContentVersion(contentId, versionNumber);
       if (!saved) {
-        setApproveMsg("تعذر الاعتماد: عالج الملاحظات والحواجز الظاهرة أولاً.");
+        // نفس مقياس الحواجز الموحد — تُعرض الأسباب الفعلية لا رسالة عامة
+        const version = loadContentRecords().find((r) => r.id === contentId)?.versions.find((v) => v.version === versionNumber);
+        const barriers = approvalBarriers(version);
+        setApproveMsg(barriers.length ? `تعذر الاعتماد: ${barriers.join("؛ ")}.` : "تعذر الاعتماد — أعد التحليل ثم حاول مجدداً.");
         return;
       }
-      const approvedReview = await requestReview("READY_FOR_PUBLISHING");
+      // توحيد الحكم (بقرار مالكة المنصة): الاعتماد يختم الحكم القائم نفسه ولا يعيد
+      // تحليل نص لم يتغير — لا استدعاء ذكاء جديداً قد يناقض ما اعتُمد للتو
+      const approvedReview: ReviewResult = { ...review, reviewStatus: "READY_FOR_PUBLISHING" };
       saved.version.analysis = approvedReview;
       setReview(approvedReview);
       saveLatestReviewSnapshot(approvedReview);
@@ -1904,7 +1925,7 @@ export default function ContentReviewPage() {
                     <button
                       type="button"
                       onClick={approveCurrentVersion}
-                      disabled={approved || approving || review.findings.some((f) => !f.resolved) || !review.languageQuality.passed || ["بالغ", "حرج", "مرتفع"].includes(review.riskLevel)}
+                      disabled={approved || approving || approveBlocked}
                       className="inline-flex items-center gap-2 rounded-md border border-palm px-4 py-2.5 text-sm text-palm disabled:cursor-not-allowed disabled:opacity-40"
                     >
                       <CheckCircle2 size={16} aria-hidden="true" />
@@ -1923,7 +1944,7 @@ export default function ContentReviewPage() {
                   <button
                     type="button"
                     onClick={approveCurrentVersion}
-                    disabled={approved || approving || review.findings.some((f) => !f.resolved) || !review.languageQuality.passed || ["بالغ", "حرج", "مرتفع"].includes(review.riskLevel)}
+                    disabled={approved || approving || approveBlocked}
                     className="inline-flex items-center gap-2 rounded-md border border-palm px-4 py-2.5 text-sm text-palm disabled:cursor-not-allowed disabled:opacity-40"
                   >
                     <CheckCircle2 size={16} aria-hidden="true" />
@@ -1960,18 +1981,14 @@ export default function ContentReviewPage() {
           <Panel id="approval" className="h-full scroll-mt-24">
             <SectionTitle title="7. اعتماد النسخة" subtitle="لا تتاح المشاركة أو التصدير إلا للنسخة النهائية التي تمت مراجعتها واعتمادها." />
             <div className="flex flex-wrap gap-3">
-              <button type="button" onClick={approveCurrentVersion} disabled={approved || approving || review.findings.some((finding) => !finding.resolved) || !review.languageQuality.passed || ["بالغ", "حرج", "مرتفع"].includes(review.riskLevel)} className="inline-flex items-center gap-2 rounded-md bg-palm px-5 py-2.5 text-white disabled:cursor-not-allowed disabled:opacity-50"><Save size={16} />{approved ? "تم اعتماد النسخة" : approving ? "جار الاعتماد..." : "اعتماد النسخة الحالية"}</button>
+              <button type="button" onClick={approveCurrentVersion} disabled={approved || approving || approveBlocked} className="inline-flex items-center gap-2 rounded-md bg-palm px-5 py-2.5 text-white disabled:cursor-not-allowed disabled:opacity-50"><Save size={16} />{approved ? "تم اعتماد النسخة" : approving ? "جار الاعتماد..." : "اعتماد النسخة الحالية"}</button>
               <button type="button" onClick={saveForLater} className="inline-flex items-center gap-2 rounded-md border border-palm px-5 py-2.5 font-medium text-palm transition hover:bg-mint focus-ring"><Save size={16} />حفظ ومتابعة لاحقًا</button>
             </div>
             {saveLaterMsg ? <p className="mt-3 rounded-lg bg-mint/50 px-3 py-2 text-sm leading-6 text-palm">{saveLaterMsg}</p> : null}
             {approveMsg ? <p className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-sm leading-6 text-red-700">{approveMsg}</p> : null}
             {!approved ? (() => {
               // شفافية القفل: يُعرض سبب تعطل الاعتماد بدقة لا برسالة عامة
-              const unresolvedCount = review.findings.filter((finding) => !finding.resolved).length;
-              const reasons: string[] = [];
-              if (unresolvedCount) reasons.push(`${unresolvedCount} مخالفة غير معالجة — عالجها بالصياغة المقترحة أو عدّل النص ثم أعد التحليل`);
-              if (!review.languageQuality.passed) reasons.push("جودة اللغة دون الحد المطلوب");
-              if (["بالغ", "حرج", "مرتفع"].includes(review.riskLevel)) reasons.push(`مستوى المخاطر «${review.riskLevel}» يمنع الاعتماد`);
+              const reasons = approvalBlockReasons;
               return reasons.length ? (
                 <div className="mt-3 rounded-lg bg-red-50 p-3 text-sm leading-6 text-red-800">
                   <p className="font-semibold">يتعذّر اعتماد النسخة الحالية للأسباب التالية:</p>
@@ -2067,14 +2084,10 @@ export default function ContentReviewPage() {
             {/* اعتماد النسخة — في الرَّيل على الحاسب (نفس الزر والمنطق والأسباب) */}
             <Panel>
               <SectionTitle title="7. اعتماد النسخة" subtitle="لا تتاح المشاركة أو التصدير إلا للنسخة النهائية التي تمت مراجعتها واعتمادها." />
-              <button type="button" onClick={approveCurrentVersion} disabled={approved || approving || review.findings.some((finding) => !finding.resolved) || !review.languageQuality.passed || ["بالغ", "حرج", "مرتفع"].includes(review.riskLevel)} className="inline-flex items-center gap-2 rounded-md bg-palm px-5 py-2.5 text-white disabled:cursor-not-allowed disabled:opacity-50"><Save size={16} />{approved ? "تم اعتماد النسخة" : approving ? "جار الاعتماد..." : "اعتماد النسخة الحالية"}</button>
+              <button type="button" onClick={approveCurrentVersion} disabled={approved || approving || approveBlocked} className="inline-flex items-center gap-2 rounded-md bg-palm px-5 py-2.5 text-white disabled:cursor-not-allowed disabled:opacity-50"><Save size={16} />{approved ? "تم اعتماد النسخة" : approving ? "جار الاعتماد..." : "اعتماد النسخة الحالية"}</button>
               {approveMsg ? <p className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-sm leading-6 text-red-700">{approveMsg}</p> : null}
               {!approved ? (() => {
-                const unresolvedCount = review.findings.filter((finding) => !finding.resolved).length;
-                const reasons: string[] = [];
-                if (unresolvedCount) reasons.push(`${unresolvedCount} مخالفة غير معالجة — عالجها بالصياغة المقترحة أو عدّل النص ثم أعد التحليل`);
-                if (!review.languageQuality.passed) reasons.push("جودة اللغة دون الحد المطلوب");
-                if (["بالغ", "حرج", "مرتفع"].includes(review.riskLevel)) reasons.push(`مستوى المخاطر «${review.riskLevel}» يمنع الاعتماد`);
+                const reasons = approvalBlockReasons;
                 return reasons.length ? (
                   <div className="mt-3 rounded-lg bg-red-50 p-3 text-sm leading-6 text-red-800">
                     <p className="font-semibold">يتعذّر اعتماد النسخة الحالية للأسباب التالية:</p>
