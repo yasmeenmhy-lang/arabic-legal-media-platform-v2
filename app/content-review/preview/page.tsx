@@ -96,12 +96,12 @@ const MOCK_REVIEW: ReviewResult = {
     gates: [
       { key: "compliance", label: "الامتثال", passed: false, sourceValue: 30, threshold: "≥ 70%", reason: "مخالفات ق38 وق2" },
       { key: "risk",       label: "المخاطر",  passed: false, sourceValue: 55, threshold: "≤ 50%", reason: "مستوى مخاطر متوسط" },
-      { key: "professionalism", label: "الكتابة", passed: true,  sourceValue: 100, threshold: "≥ 80%", reason: "أسلوب رصين" },
+      { key: "professionalism", label: "الكتابة", passed: true,  sourceValue: 100, threshold: "≥ 80%", reason: "الأسلوب مستوفٍ للمعايير المهنية المعتمدة" },
       { key: "language",  label: "اللغة",    passed: false, sourceValue: 72,  threshold: "≥ 80%", reason: "ألفاظ عامية" },
     ],
   },
   reviewStatus: "NEEDS_CORRECTION",
-  summary: "المحتوى يخالف قواعد الإعلان ويُظهر مظاهر مادية لا تليق بمحامٍ مرخص. يُنصح بمراجعة شاملة قبل النشر.",
+  summary: "المحتوى يخالف قواعد الإعلان ويُظهر مظاهر مادية تخل بالمعايير المهنية المعتمدة. يُنصح بمراجعة شاملة قبل النشر.",
   findings: [
     {
       traceabilityId: "f-001",
@@ -267,7 +267,7 @@ const MOCK_REVIEW: ReviewResult = {
     level: "غير جاهز",
     reasons: ["مخالفة ضوابط الإعلان (المادة 38)", "إخلال بمعيار الكرامة المهنية (المادة 2)"],
     blockers: ["مخالفة المادة 38", "مخالفة المادة 2"],
-    actions: ["عدّل النص ليُبرز الخدمة القانونية لا المظاهر المادية", "استخدم لغة فصحى رصينة"],
+    actions: ["عدّل النص ليُبرز الخدمة القانونية لا المظاهر المادية", "استخدم لغة فصحى قانونية"],
   },
   channelRecommendations: [
     {
