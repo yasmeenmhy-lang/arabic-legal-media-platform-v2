@@ -1,9 +1,11 @@
-// أيقونة الموقع: قلم يكتب داخل دائرة بلون الخزامى (#80519F من هوية المنصّة)
+// أيقونة الموقع: قلم واضح داخل دائرة بلون المنصة الأساسي (#25935F الأخضر) — بنفس
+// شكل أيقونة «تعديل» (Edit3) المستخدمة في كل أزرار التعديل عبر المنصة (لغة تصميم موحدة)
 const favicon = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <circle cx="32" cy="32" r="30" fill="#80519F"/>
-  <path d="M42 17 L27 32" stroke="#fff" stroke-width="5.4" stroke-linecap="round"/>
-  <path d="M26.2 32.8 l-4 8.4 l8.4 -4 z" fill="#fff"/>
-  <path d="M19 45 q5 -4.5 10 0 t10 0" stroke="#fff" stroke-width="2.8" fill="none" stroke-linecap="round"/>
+  <circle cx="32" cy="32" r="30" fill="#25935F"/>
+  <g transform="translate(32,32) scale(1.5) translate(-12,-12)" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/>
+    <path d="m15 5 4 4"/>
+  </g>
 </svg>`;
 
 export function GET() {
