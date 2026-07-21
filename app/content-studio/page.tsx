@@ -51,6 +51,7 @@ import { QUOTE_INTEGRITY_NOTICE } from "@/lib/quote-notice";
 import type { VisualPlan } from "@/lib/visual-translator";
 import { isConditionalSource, isGlobalSubVisible, isSourceVisible, isSourceVisibleForContentType } from "@/lib/source-specialty-map";
 import { FieldLabel } from "@/components/field-label";
+import { SourcesPanel, type Source } from "@/components/sources-panel";
 import { MobileSelect, ChannelGlyph } from "@/components/mobile-select";
 import { specialties } from "@/lib/specialties";
 import {
@@ -695,6 +696,8 @@ export default function ContentStudioPage() {
   const specialtyFieldRef = useRef<HTMLDivElement>(null);
   const [topic, setTopic] = useState("");
   const [generatedText, setGeneratedText] = useState("");
+  // المصادر المعتمدة التي جلبها البحث الحي للمحتوى المُنشأ — تُعرض كأدلة مرئية
+  const [generatedSources, setGeneratedSources] = useState<Source[]>([]);
   const [generating, setGenerating] = useState(false);
   // مسودة معروضة والفحص النهائي يجري — شارة غير معطلة فوق النص
   const [finalizing, setFinalizing] = useState(false);
@@ -722,6 +725,8 @@ export default function ContentStudioPage() {
   // بمرجع موثّق من المصادر المعتمدة، تماماً كنظيره في صفحة المراجعة.
   const [improvedHasSource, setImprovedHasSource] = useState(false);
   const [improvedSourceHint, setImprovedSourceHint] = useState("");
+  // المصادر المعتمدة المجلوبة لإعادة الصياغة — تُعرض كأدلة مرئية
+  const [improvedSources, setImprovedSources] = useState<Source[]>([]);
 
   // Action feedback
   const [actionMsg, setActionMsg] = useState("");
@@ -933,10 +938,11 @@ export default function ContentStudioPage() {
   // وعند العودة يُستأنف تتبع المهمة تلقائياً وتُعرض النتيجة.
   const PENDING_GENERATION_KEY = "lawyer-media:pending-generation";
 
-  function deliverGenerationOutcome(outcome: { text?: string; error?: string; truncated?: boolean; review?: ReviewResult }) {
+  function deliverGenerationOutcome(outcome: { text?: string; error?: string; truncated?: boolean; review?: ReviewResult; sources?: Source[] }) {
     setFinalizing(false);
     if (outcome.text) {
       setGeneratedText(outcome.text);
+      setGeneratedSources(outcome.sources ?? []);
       setGenerateError(outcome.truncated ? "النص طويل وقد لا يكون مكتملاً تماماً — راجع نهايته أو أعد الإنشاء." : "");
       setVtSvg("");
       setVtUrl("");
@@ -949,7 +955,7 @@ export default function ContentStudioPage() {
     }
   }
 
-  async function pollGenerationJob(jobId: string, onDraft?: (text: string) => void, startedAt?: number): Promise<{ text?: string; error?: string; truncated?: boolean; review?: ReviewResult }> {
+  async function pollGenerationJob(jobId: string, onDraft?: (text: string) => void, startedAt?: number): Promise<{ text?: string; error?: string; truncated?: boolean; review?: ReviewResult; sources?: Source[] }> {
     // الحدّ الزمني مطلق من بدء المهمة لا من كل استطلاع — فمهمة ماتت على الخادم لا
     // يُعاد استطلاعها بلا نهاية عند كل تحديث أو دخول (سبب تعليق الصفحة). حدّ الخادم
     // ٣٠٠ ثانية، فأي مهمة تجاوزت نحو ست دقائق ميتة قطعاً. وعند البلوغ نُحرّر المهمة
@@ -962,13 +968,13 @@ export default function ContentStudioPage() {
       }
       try {
         const res = await fetch(`/api/content-studio/generate-status?id=${encodeURIComponent(jobId)}`);
-        const data = (await res.json()) as { status?: string; text?: string; error?: string; truncated?: boolean; partial?: string; review?: ReviewResult };
+        const data = (await res.json()) as { status?: string; text?: string; error?: string; truncated?: boolean; partial?: string; review?: ReviewResult; sources?: Source[] };
         // بأمر مالكة المنصة: لا تُعرض مسودة قبل اجتياز كل المؤشرات — المسودات
         // الجزئية المعلقة (من نشرات سابقة) تُتجاهل ولا تُعرض
         if (data.status === "done") {
           void fetch(`/api/content-studio/generate-status?id=${encodeURIComponent(jobId)}&ack=1`).catch(() => {});
           try { window.localStorage.removeItem(scopedKey(PENDING_GENERATION_KEY)); } catch { /* بيئة بلا تخزين */ }
-          return { text: data.text ?? "", truncated: data.truncated, review: data.review };
+          return { text: data.text ?? "", truncated: data.truncated, review: data.review, sources: data.sources };
         }
         if (data.status === "error" || data.status === "missing") {
           try { window.localStorage.removeItem(scopedKey(PENDING_GENERATION_KEY)); } catch { /* بيئة بلا تخزين */ }
@@ -1033,6 +1039,7 @@ export default function ContentStudioPage() {
     if (source !== "ai-original" && topic.trim().length < 3) return;
     setGenerating(true);
     setGenerateError("");
+    setGeneratedSources([]);
     try {
       const sourceLabel =
         source === "global-news" && globalSub
@@ -1069,10 +1076,10 @@ export default function ContentStudioPage() {
       });
       // الوضع الأساسي: الخادم يرد فوراً برقم مهمة خلفية — نحفظه ونستطلع حتى تكتمل،
       // ولو غادرتِ الصفحة تستمر المهمة في الخادم ويُستأنف التتبع عند العودة.
-      let data: { text?: string; error?: string; truncated?: boolean; review?: ReviewResult } = {};
+      let data: { text?: string; error?: string; truncated?: boolean; review?: ReviewResult; sources?: Source[] } = {};
       const contentType = res.headers.get("content-type") ?? "";
       if (contentType.includes("application/json")) {
-        const payload = (await res.json().catch(() => ({}))) as { jobId?: string; text?: string; error?: string; truncated?: boolean; review?: ReviewResult };
+        const payload = (await res.json().catch(() => ({}))) as { jobId?: string; text?: string; error?: string; truncated?: boolean; review?: ReviewResult; sources?: Source[] };
         if (payload.jobId) {
           try {
             window.localStorage.setItem(scopedKey(PENDING_GENERATION_KEY), JSON.stringify({ jobId: payload.jobId, at: Date.now() }));
@@ -1096,7 +1103,7 @@ export default function ContentStudioPage() {
             newline = buffer.indexOf("\n");
             if (!line) continue;
             try {
-              const event = JSON.parse(line) as { type?: string; text?: string; error?: string; truncated?: boolean; review?: ReviewResult };
+              const event = JSON.parse(line) as { type?: string; text?: string; error?: string; truncated?: boolean; review?: ReviewResult; sources?: Source[] };
               // لا عرض للمسودات الجزئية — التسليم حتمي: الناتج النهائي المستوفي فقط
               if (event.type === "result" || event.type === "error") data = event;
             } catch {
@@ -1355,6 +1362,7 @@ export default function ContentStudioPage() {
     setImprovedLoading(true);
     setImprovedError("");
     setImprovedTextAI("");
+    setImprovedSources([]);
     try {
       const res = await fetch("/api/reformulate", {
         method: "POST",
@@ -1383,12 +1391,13 @@ export default function ContentStudioPage() {
           sourceHint: improvedHasSource ? (improvedSourceHint.trim() || undefined) : undefined,
         }),
       });
-      const payload = (await res.json().catch(() => null)) as { data?: { suggestedText?: string }; error?: string } | null;
+      const payload = (await res.json().catch(() => null)) as { data?: { suggestedText?: string; sources?: Source[] }; error?: string } | null;
       if (!res.ok || !payload?.data?.suggestedText) {
         setImprovedError(payload?.error ?? "تعذر إنشاء الصياغة المقترحة — حاول مرة أخرى.");
         return;
       }
       setImprovedTextAI(payload.data.suggestedText.trim());
+      setImprovedSources(payload.data.sources ?? []);
     } catch {
       setImprovedError("تعذر الاتصال بخدمة الصياغة.");
     } finally {
@@ -3350,6 +3359,10 @@ export default function ContentStudioPage() {
               )}
             </div>
           )}
+          <SourcesPanel
+            sources={generatedSources}
+            onInsert={(block) => { setGeneratedText((prev) => prev + block); setPendingGeneratedReview(null); }}
+          />
           </div>
           {/* عمود جانبي: ترجمة المحتوى بصرياً — بالمكوّنات الحالية نفسها */}
           <div className="min-w-0">
@@ -4251,6 +4264,10 @@ export default function ContentStudioPage() {
                 {improvedTextAI ? (
                   <>
                     <p className="whitespace-pre-wrap rounded-lg bg-white/70 p-4 text-sm leading-8 text-violetText">{improvedTextAI}</p>
+                    <SourcesPanel
+                      sources={improvedSources}
+                      onInsert={(block) => setImprovedTextAI((prev) => prev + block)}
+                    />
                     <div className="mt-3 flex flex-wrap gap-3">
                       <button
                         type="button"

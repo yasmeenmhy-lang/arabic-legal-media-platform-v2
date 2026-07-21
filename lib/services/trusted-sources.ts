@@ -11,8 +11,8 @@
 // للتوسعة بإضافة نطاق موثوق جديد دون أي تغيير في المنطق.
 // ─────────────────────────────────────────────────────────────────────────────
 
-export const TRUSTED_SOURCE_DOMAINS: string[] = [
-  // ── جهات المملكة الرسمية ──
+// ── جهات المملكة الرسمية ──
+const SAUDI_OFFICIAL_DOMAINS: string[] = [
   "moj.gov.sa",           // وزارة العدل ومنصة التشريعات
   "laws.moj.gov.sa",      // منصة الأنظمة واللوائح الرسمية
   "boe.gov.sa",           // أم القرى — الجريدة الرسمية
@@ -29,8 +29,10 @@ export const TRUSTED_SOURCE_DOMAINS: string[] = [
   "spa.gov.sa",           // وكالة الأنباء السعودية (مصدر رسمي)
   "bog.gov.sa",           // ديوان المظالم
   "sjp.gov.sa",           // البوابة القضائية
+];
 
-  // ── منظمات وهيئات دولية رسمية ──
+// ── منظمات وهيئات دولية رسمية ──
+const INTERNATIONAL_DOMAINS: string[] = [
   "un.org",               // الأمم المتحدة وأجهزتها
   "uncitral.un.org",      // لجنة الأمم المتحدة للقانون التجاري الدولي
   "wto.org",              // منظمة التجارة العالمية
@@ -46,8 +48,10 @@ export const TRUSTED_SOURCE_DOMAINS: string[] = [
   "arbitration-icca.org", // المجلس الدولي للتحكيم التجاري
   "lcia.org",             // محكمة لندن للتحكيم الدولي
   "sccinstitute.com",     // معهد التحكيم بغرفة ستوكهولم
+];
 
-  // ── جامعات ومراكز بحث أكاديمية ودوريات علمية محكّمة ──
+// ── جامعات ومراكز بحث أكاديمية ودوريات علمية محكّمة ──
+const ACADEMIC_DOMAINS: string[] = [
   "ssrn.com",             // شبكة أبحاث العلوم الاجتماعية
   "heinonline.org",       // قاعدة الأبحاث القانونية
   "jstor.org",            // أرشيف الدوريات العلمية
@@ -63,3 +67,30 @@ export const TRUSTED_SOURCE_DOMAINS: string[] = [
   "kau.edu.sa",           // جامعة الملك عبدالعزيز
   "imamu.edu.sa",         // جامعة الإمام محمد بن سعود الإسلامية
 ];
+
+// القائمة الموحّدة التي يقصر عليها البحث (allowed_domains) — مصدر واحد للحقيقة
+export const TRUSTED_SOURCE_DOMAINS: string[] = [
+  ...SAUDI_OFFICIAL_DOMAINS,
+  ...INTERNATIONAL_DOMAINS,
+  ...ACADEMIC_DOMAINS,
+];
+
+// تصنيف نوع الجهة من رابط المصدر — لعرض شارة «حكومي/دولي/أكاديمي» في لوحة الأدلة.
+// عرضٌ صرف لا يمسّ الفحص. أي نطاق سعودي حكومي (gov.sa) يُصنَّف حكومياً ولو لم يُدرَج
+// بذاته، والباقي يُطابَق على المجموعات؛ وما لا يُعرف يُعرض «مصدر موثّق» دون تصنيف.
+export type SourceCategory = "حكومي" | "دولي" | "أكاديمي" | "موثّق";
+
+export function classifySourceUrl(url: string): SourceCategory {
+  let host = "";
+  try {
+    host = new URL(url).hostname.toLowerCase().replace(/^www\./, "");
+  } catch {
+    host = (url || "").toLowerCase();
+  }
+  const matches = (list: string[]) =>
+    list.some((d) => host === d || host.endsWith(`.${d}`));
+  if (host.endsWith(".gov.sa") || matches(SAUDI_OFFICIAL_DOMAINS)) return "حكومي";
+  if (matches(INTERNATIONAL_DOMAINS)) return "دولي";
+  if (host.endsWith(".edu") || host.endsWith(".edu.sa") || matches(ACADEMIC_DOMAINS)) return "أكاديمي";
+  return "موثّق";
+}

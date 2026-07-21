@@ -368,9 +368,12 @@ ${briefType
 
   // الدورة الكاملة: توليد ← بوابة الحاكم ← إعادة كتابة عند الملاحظات — تُرجع نتيجة أو خطأ
   async function runPipeline(onDraft?: (text: string) => void): Promise<
-    | { kind: "ok"; text: string; truncated: boolean; gov: GovernTextFullResult }
+    | { kind: "ok"; text: string; truncated: boolean; gov: GovernTextFullResult; sources: { title: string; url: string }[] }
     | { kind: "err"; error: string }
   > {
+    // المصادر الموثوقة المجلوبة فعلاً — تُرفَع من كتلة البحث لتُعرض للمستخدم كأدلة
+    // مرئية (لوحة «المصادر المعتمدة»)، بقرار مالكة المنصة. عرضٌ صرف لا يمسّ الفحص.
+    let researchSources: { title: string; url: string }[] = [];
     let promptText = user;
     let text = "";
     let truncated = false;
@@ -399,6 +402,7 @@ ${briefType
       const research = await researchTrustedSources({ specialty, source, topic, contentType, spec: sourceSpec });
       if (research) {
         console.log("[generate:research]", research.sources.length, "مصدر موثوق");
+        researchSources = research.sources; // للعرض كأدلة مرئية للمستخدم
         const sourceLines = research.sources.map((s) => `- ${s.title}: ${s.url}`).join("\n");
         // حين طلب المستخدم المصدر صراحةً: إلزام الكاتب بذكر الرابط في النص عند الاستشهاد.
         const linkDirective = wantSource
@@ -484,7 +488,7 @@ ${briefType
       if (candidates.length === 0) return { kind: "err", error: "لم يُنشأ أي محتوى" };
 
       const winner = candidates.find((c) => c.deliverable);
-      if (winner) return { kind: "ok", text: winner.text, truncated: false, gov: winner.gov };
+      if (winner) return { kind: "ok", text: winner.text, truncated: false, gov: winner.gov, sources: researchSources };
 
       // لا مستوفي بعد: يُختار الأقرب (أقل تصحيحات) لجولة تصحيح موضعي
       const best = [...candidates].sort((a, b) => a.corrections.length - b.corrections.length)[0];
@@ -542,7 +546,7 @@ ${briefType
       console.log("[generate:style-residual]", JSON.stringify(lastGov?.corrections ?? []).slice(0, 900));
       return { kind: "err", error: "تعذّر إنشاء نص مستوفٍ لجميع مؤشرات الجودة (بقيت ملاحظة أسلوبية). أعد المحاولة." };
     }
-    return { kind: "ok", text, truncated, gov: lastGov! };
+    return { kind: "ok", text, truncated, gov: lastGov!, sources: researchSources };
   }
 
   // يبني تقرير المراجعة الكامل من حكم الإنشاء نفسه (بلا ذكاء ثانٍ مستقل) — يُستدعى فقط
@@ -585,7 +589,11 @@ ${briefType
         });
         if (result.kind === "ok") {
           const review = await buildUnifiedReview(result.text, result.gov);
-          await completeJob(sql, jobId, result.text, result.truncated, review ? JSON.stringify(review) : undefined);
+          await completeJob(
+            sql, jobId, result.text, result.truncated,
+            review ? JSON.stringify(review) : undefined,
+            result.sources.length ? JSON.stringify(result.sources) : undefined,
+          );
         } else {
           await failJob(sql, jobId, result.error);
         }
@@ -624,7 +632,7 @@ ${briefType
         const result = await runPipeline((draft) => send({ type: "partial", text: draft }));
         if (result.kind === "ok") {
           const review = await buildUnifiedReview(result.text, result.gov);
-          send({ type: "result", text: result.text, truncated: result.truncated, review: review ?? undefined });
+          send({ type: "result", text: result.text, truncated: result.truncated, review: review ?? undefined, sources: result.sources.length ? result.sources : undefined });
         } else {
           send({ type: "error", error: result.error });
         }

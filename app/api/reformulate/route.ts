@@ -124,6 +124,8 @@ export async function POST(request: Request) {
   // فتُجلب مصادر موثوقة حقيقية يستند إليها التحسين بدل إبقاء تخمين النص الأصلي.
   // لا تمسّ الفحص: الصياغة المحسّنة تمرّ على المؤشرات كاملةً. فشلها لا يوقف التحسين.
   let researchBlock = "";
+  // المصادر المعتمدة المجلوبة — تُعاد للواجهة لعرضها كأدلة مرئية (لوحة «المصادر المعتمدة»)
+  let researchSources: { title: string; url: string }[] = [];
   if (hasSource || mentionsSource(text)) {
     const hint = (sourceHint ?? "").trim();
     const research = await researchTrustedSources({
@@ -133,6 +135,7 @@ export async function POST(request: Request) {
       spec: hint ? { wantSource: true, sourceDesc: hint } : undefined,
     });
     if (research) {
+      researchSources = research.sources; // للعرض كأدلة مرئية
       const sourceLines = research.sources.map((s) => `- ${s.title}: ${s.url}`).join("\n");
       researchBlock = [
         "",
@@ -243,7 +246,7 @@ export async function POST(request: Request) {
     }
 
     // حارس نطاق المملكة الحتمي على النص النهائي المنشور
-    return ok({ suggestedText: suggestedText });
+    return ok({ suggestedText: suggestedText, sources: researchSources.length ? researchSources : undefined });
   } catch (error) {
     const raw = error instanceof Error ? error.message : "خطأ غير متوقع";
     // أخطاء المزود المعروفة (رصيد/مفتاح/ضغط) تُعرض بالعربية بسببها وإجرائها — لا بنصها الإنجليزي الخام

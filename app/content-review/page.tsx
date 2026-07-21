@@ -40,6 +40,7 @@ import {
 } from "lucide-react";
 import { Button, ButtonLink, DgaSpinner, PageHeader, Panel, SectionTitle, StatusBadge } from "@/components/ui";
 import { FieldLabel } from "@/components/field-label";
+import { SourcesPanel, type Source } from "@/components/sources-panel";
 import { MobileSelect } from "@/components/mobile-select";
 import { specialties } from "@/lib/specialties";
 import {
@@ -250,6 +251,8 @@ export default function ContentReviewPage() {
   const [aiSuggestion, setAiSuggestion] = useState<string | null>(null);
   const [suggestingAI, setSuggestingAI] = useState(false);
   const [suggestionError, setSuggestionError] = useState<string | null>(null);
+  // المصادر المعتمدة التي جلبها البحث الحي للصياغة المقترحة — تُعرض كأدلة مرئية
+  const [rewriteSources, setRewriteSources] = useState<Source[]>([]);
   // إقرار المستخدم بأن النص المُراد مراجعته يتضمن مرجعاً أو دراسة (بقرار مالكة المنصة):
   // عند تفعيله تُدعَّم الصياغة المحسّنة بمرجع موثّق حقيقي — وإلا فالتحسين كالمعتاد.
   const [reviewHasSource, setReviewHasSource] = useState(false);
@@ -937,6 +940,7 @@ export default function ContentReviewPage() {
     setSuggestingAI(true);
     setAiSuggestion(null);
     setSuggestionError(null);
+    setRewriteSources([]);
     try {
       const response = await fetch("/api/reformulate", {
         method: "POST",
@@ -966,13 +970,14 @@ export default function ContentReviewPage() {
           sourceHint: reviewHasSource ? (reviewSourceHint.trim() || undefined) : undefined
         })
       });
-      const payload = await response.json().catch(() => null) as { data?: { suggestedText?: string }; error?: string } | null;
+      const payload = await response.json().catch(() => null) as { data?: { suggestedText?: string; sources?: Source[] }; error?: string } | null;
       if (!response.ok || !payload) {
         throw new Error(payload?.error ?? "تعذر إنشاء الصياغة المقترحة — حاول مرة أخرى.");
       }
       const suggested = payload.data?.suggestedText?.trim() ?? "";
       if (!suggested) throw new Error("أعاد النموذج نصًا فارغًا، حاول مرة أخرى.");
       setAiSuggestion(suggested);
+      setRewriteSources(payload.data?.sources ?? []);
     } catch (error) {
       setSuggestionError(error instanceof Error ? error.message : "تعذر إنشاء الصياغة المقترحة.");
     } finally {
@@ -1974,6 +1979,10 @@ export default function ContentReviewPage() {
                   <p className="text-xs leading-6 text-ink/55">
                     يمكنك تعديل الصياغة قبل تطبيقها. هذا المقترح استرشادي وتظل مسؤولية الاعتماد والنشر على المستخدم.
                   </p>
+                  <SourcesPanel
+                    sources={rewriteSources}
+                    onInsert={(block) => setAiSuggestion((prev) => (prev ?? "") + block)}
+                  />
                   <div className="flex flex-wrap gap-3">
                     <button
                       type="button"

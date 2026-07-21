@@ -26,7 +26,12 @@ export async function GET(request: Request) {
     if (job.review_json) {
       try { review = JSON.parse(job.review_json); } catch { review = undefined; }
     }
-    return NextResponse.json({ status: "done", text: job.result_text ?? "", truncated: job.truncated, review });
+    // المصادر المعتمدة المجلوبة (أدلة مرئية) — اختيارية، عملاء لا يقرؤونها غير متأثرين
+    let sources: { title: string; url: string }[] | undefined;
+    if (job.sources_json) {
+      try { sources = JSON.parse(job.sources_json); } catch { sources = undefined; }
+    }
+    return NextResponse.json({ status: "done", text: job.result_text ?? "", truncated: job.truncated, review, sources });
   }
   if (job.status === "error") return NextResponse.json({ status: "error", error: job.error ?? "تعذر إنشاء المحتوى — حاول مرة أخرى." });
   return NextResponse.json({ status: "pending", partial: job.partial_text ?? undefined });
