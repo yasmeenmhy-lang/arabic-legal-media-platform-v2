@@ -21,6 +21,14 @@ export type ResearchResult = {
   sources: { title: string; url: string }[];
 };
 
+// مواصفات المصدر التي يطلبها المستخدم (اختيارية كلها) — تُوجّه البحث بدقة
+export type SourceSpec = {
+  wantSource?: boolean;   // طلب صريح للدعم بمصدر
+  sourceKind?: string;    // نوع المصدر (دراسة/نظام/إحصائية...)
+  sourceEntity?: string;  // اسم الجهة (كتابة حرة)
+  sourceDesc?: string;    // وصف المصدر (كتابة حرة)
+};
+
 // أقصى عدد مصادر تُسلَّم للكاتب (بقرار المالكة: لا نُغرقه بقائمة طويلة — المقال
 // وغيره يكفيه القليل الموثوق). حد البحث نفسه ٣ عمليات، وهذا حدٌّ على النتائج بعده.
 const MAX_SOURCES_TO_WRITER = 5;
@@ -33,9 +41,14 @@ const NO_RESEARCH_TYPES = new Set([
 ]);
 
 // هل يحتاج هذا الطلب بحثاً حياً؟ (مشروط — بقرار المالكة لتوفير الوقت والرصيد)
-// نعم فقط حين: النوع معرفي (لا موجز/تعريفي)، والمحتوى يستند إلى واقعة خارجية
-// (نظام، حكم، دراسة، إحصائية، تطور دولي). ما عدا ذلك يبقى بسرعته بلا بحث.
-export function needsResearch(source: string, topic: string, contentType?: string): boolean {
+// - طلب المستخدم الصريح (wantSource) يُفعّله دائماً بمواصفاته، في أي نوع محتوى.
+// - وإلا فالبحث التلقائي المشروط: النوع معرفي (لا موجز/تعريفي) والمحتوى يستند إلى
+//   واقعة خارجية (نظام، حكم، دراسة، إحصائية، تطور دولي). ما عدا ذلك يبقى بسرعته.
+export function needsResearch(
+  source: string, topic: string, contentType?: string, spec?: SourceSpec
+): boolean {
+  // طلب المستخدم الصريح يسبق كل شيء — هو من قرر أنه يريد الاستدلال بمصدر
+  if (spec?.wantSource) return true;
   if (contentType && NO_RESEARCH_TYPES.has(contentType)) return false;
   const s = source || "";
   const t = topic || "";
@@ -50,6 +63,7 @@ export function needsResearch(source: string, topic: string, contentType?: strin
 
 function buildResearchInstruction(context: {
   specialty?: string; source?: string; topic?: string; contentType?: string;
+  spec?: SourceSpec;
 }): string {
   const parts = [
     context.contentType && `نوع المحتوى: ${context.contentType}`,
@@ -57,9 +71,19 @@ function buildResearchInstruction(context: {
     context.source && `مصدر الفكرة: ${context.source}`,
     context.topic && `الموضوع أو التوجيه: ${context.topic}`,
   ].filter(Boolean).join(" | ");
+  // مواصفات المصدر التي طلبها المستخدم صراحةً — توجّه البحث بدقة أعلى
+  const sp = context.spec;
+  const specLines = sp?.wantSource
+    ? [
+        "\n★ طلب المستخدم صراحةً دعم المحتوى بمصدر موثوق بهذه المواصفات — استهدفها في بحثك:",
+        sp.sourceKind && `- نوع المصدر المطلوب: ${sp.sourceKind}`,
+        sp.sourceEntity && `- الجهة المطلوبة: ${sp.sourceEntity} (إن لم تجد لها مصدراً في المصادر المعتمدة، ابحث عن بديل موثوق للموضوع نفسه، ولا تختلق نسبةً إليها)`,
+        sp.sourceDesc && `- وصف المصدر المطلوب: ${sp.sourceDesc}`,
+      ].filter(Boolean).join("\n")
+    : "";
   return `أنت باحث قانوني موثوق. مهمتك جمع وقائع متحقق منها فقط من نتائج البحث في المصادر الموثوقة المتاحة، لإعداد محامٍ سعودي لكتابة محتوى مهني.
 
-السياق: ${parts}
+السياق: ${parts}${specLines}
 
 نفّذ بحثاً موجزاً (بحدود ثلاث عمليات) عن الوقائع والأنظمة والدراسات والإحصائيات ذات الصلة بهذا السياق تحديداً، ثم أخرج تقريراً موجزاً بالعربية على هذا النحو حصراً:
 - كل واقعة أو حكم أو رقم في سطر مستقل، منسوباً لجهته الرسمية باسمها، متبوعاً برابط مصدره الحرفي بين قوسين.
@@ -101,6 +125,7 @@ function extractText(content: unknown[]): string {
 // (النسبة العامة الصادقة) — البحث تحسين لجودة المصدر لا شرط لعمل المنصة.
 export async function researchTrustedSources(context: {
   specialty?: string; source?: string; topic?: string; contentType?: string;
+  spec?: SourceSpec;
 }): Promise<ResearchResult | null> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) return null;

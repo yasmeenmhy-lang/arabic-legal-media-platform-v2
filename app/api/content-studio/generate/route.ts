@@ -41,6 +41,12 @@ const schema = z.object({
   campaignGoal: z.string().max(120).optional(),
   planFrequency: z.string().max(60).optional(),
   planDateRange: z.string().max(60).optional(),
+  // ── دعم استدلالي بمصدر موثوق (بقرار مالكة المنصة) — اختياري، تحكّم بيد المستخدم ──
+  // wantSource=true يُفعّل البحث الحي بمواصفات المستخدم؛ وإلا يبقى البحث المشروط التلقائي.
+  wantSource: z.boolean().optional(),
+  sourceKind: z.string().max(60).optional(),   // نوع المصدر (دراسة/نظام/إحصائية...)
+  sourceEntity: z.string().max(200).optional(), // اسم الجهة (كتابة حرة)
+  sourceDesc: z.string().max(400).optional(),   // وصف المصدر (كتابة حرة)
 });
 
 // الأنواع مفتوحة الطول — يجوز لها الإكمال التلقائي عند بلوغ السقف فلا تُقطع؛
@@ -68,6 +74,7 @@ export async function POST(request: Request) {
     contentType, channel, audience, purpose, specialty, source, topic, charLimit,
     scriptDuration, scriptStyle, articleLength, adCta, adStyle,
     campaignName, campaignDuration, campaignGoal, planFrequency, planDateRange,
+    wantSource, sourceKind, sourceEntity, sourceDesc,
   } = parsed.data;
 
   // إطار متطلبات النوع — اختيار النوع يحدد قالب النص ومقاييسه، لا تسميته فقط
@@ -369,12 +376,22 @@ ${briefType
     // (لا تُستدعى إلا حين يحتاجها المصدر أو الموضوع)، فتُجلب مصادر موثوقة حقيقية
     // يستند إليها الكاتب بدل التخمين. لا تمسّ الفحص إطلاقاً: النص الناتج يمرّ على
     // كل المؤشرات كاملةً. فشلها لا يُسقط التوليد — يكمل الكاتب بضوابطه الحالية.
-    if (needsResearch(source, topic, contentType)) {
-      const research = await researchTrustedSources({ specialty, source, topic, contentType });
+    const sourceSpec = { wantSource, sourceKind, sourceEntity, sourceDesc };
+    if (needsResearch(source, topic, contentType, sourceSpec)) {
+      const research = await researchTrustedSources({ specialty, source, topic, contentType, spec: sourceSpec });
       if (research) {
         console.log("[generate:research]", research.sources.length, "مصدر موثوق");
         const sourceLines = research.sources.map((s) => `- ${s.title}: ${s.url}`).join("\n");
-        promptText = `${user}\n\n★ مصادر موثوقة مجلوبة من البحث الحي في جهات رسمية وأكاديمية معتبرة — استند إليها حصراً عند أي حكم نظامي أو رقم أو دراسة أو إحصائية، وانسب المعلومة لجهتها باسمها مع ذكر رابطها في النص عند الاستشهاد. ممنوع الاستشهاد برقم مادة أو دراسة أو إحصائية من ذاكرتك خارج هذه المصادر؛ وما لا تجد له سنداً هنا اعرضه نسبةً عامة صادقة دون رقم مخترع.\n\nتقرير المصادر:\n${research.briefing}\n\nقائمة الروابط للاستشهاد:\n${sourceLines}`;
+        // حين طلب المستخدم المصدر صراحةً: إلزام الكاتب بذكر الرابط في النص عند الاستشهاد.
+        const linkDirective = wantSource
+          ? "وبما أن المستخدم طلب الدعم بمصدر صراحةً، يجب أن تستشهد بأحد هذه المصادر فعلاً في النص وتذكر رابطه بين قوسين عقب المعلومة المستمدة منه."
+          : "واذكر رابط المصدر في النص عند الاستشهاد المباشر به.";
+        promptText = `${user}\n\n★ مصادر موثوقة مجلوبة من البحث الحي في جهات رسمية وأكاديمية معتبرة — استند إليها حصراً عند أي حكم نظامي أو رقم أو دراسة أو إحصائية، وانسب المعلومة لجهتها باسمها. ${linkDirective} ممنوع الاستشهاد برقم مادة أو دراسة أو إحصائية من ذاكرتك خارج هذه المصادر؛ وما لا تجد له سنداً هنا اعرضه نسبةً عامة صادقة دون رقم مخترع.\n\nتقرير المصادر:\n${research.briefing}\n\nقائمة الروابط للاستشهاد:\n${sourceLines}`;
+      } else if (wantSource) {
+        // المصارحة (بقرار المالكة): طلب المستخدم مصدراً ولم يُعثر على مطابق موثوق —
+        // يُوجَّه الكاتب للأمانة (نسبة عامة صادقة، لا اختلاق)، ويُبلَّغ المستخدم بذلك.
+        console.log("[generate:research] لا مصدر موثوق مطابق للطلب");
+        promptText = `${user}\n\n★ طلب المستخدم دعم المحتوى بمصدر، ولم يُعثر على مصدر موثوق مطابق للمواصفات في المصادر المعتمدة. لا تختلق مصدراً ولا رقماً ولا دراسة إطلاقاً — اكتب المحتوى بنسبة عامة صادقة (اتجاهات معروفة، أحكام عامة دون رقم مخترع)، وأشر بإيجاز مهني إلى أن التفاصيل تُراجَع في مصادرها الرسمية.`;
       }
     }
 

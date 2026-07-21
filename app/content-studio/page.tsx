@@ -669,6 +669,11 @@ export default function ContentStudioPage() {
   const [imageGenError, setImageGenError] = useState("");
   const [imageGenSvg, setImageGenSvg] = useState("");
   const [charLimit, setCharLimit] = useState<number | null>(null);
+  // دعم استدلالي بمصدر موثوق (بقرار مالكة المنصة) — تحكّم بيد المستخدم، اختياري
+  const [wantSource, setWantSource] = useState(false);
+  const [sourceKind, setSourceKind] = useState("");
+  const [sourceEntity, setSourceEntity] = useState("");
+  const [sourceDesc, setSourceDesc] = useState("");
 
   // Path
   const [path, setPath] = useState<"review" | "create" | null>(null);
@@ -1016,6 +1021,11 @@ export default function ContentStudioPage() {
           campaignGoal: kind === "campaign" ? (campaignGoal || undefined) : undefined,
           planFrequency: kind === "publishing_plan" ? (planFrequency || undefined) : undefined,
           planDateRange: kind === "publishing_plan" ? (planDateRange || undefined) : undefined,
+          // دعم استدلالي بمصدر موثوق — يُرسل فقط عند تفعيل المستخدم له
+          wantSource: wantSource || undefined,
+          sourceKind: wantSource ? (sourceKind || undefined) : undefined,
+          sourceEntity: wantSource ? (sourceEntity.trim() || undefined) : undefined,
+          sourceDesc: wantSource ? (sourceDesc.trim() || undefined) : undefined,
         }),
       });
       // الوضع الأساسي: الخادم يرد فوراً برقم مهمة خلفية — نحفظه ونستطلع حتى تكتمل،
@@ -2990,6 +3000,82 @@ export default function ContentStudioPage() {
                 {CHANNEL_CHAR_LIMITS[channel]!} حرف
               </button>
             </p>
+          )}
+        </div>
+
+        {/* دعم استدلالي بمصدر موثوق (بقرار مالكة المنصة) — اختياري، تحكّم بيد المستخدم.
+            عند التفعيل يبحث الذكاء عن مصدر حقيقي بمواصفات المستخدم في المصادر المعتمدة
+            حصراً، ويستشهد به برابطه؛ وإن لم يجد مطابقاً صارح المستخدم ولم يختلق. */}
+        <div className="mt-4 border-t border-line pt-4">
+          <label className="flex cursor-pointer items-start justify-between gap-3">
+            <span>
+              <span className="text-sm text-ink/80">دعم المحتوى بمصدر أو دراسة؟</span>
+              <span className="mt-0.5 block text-xs leading-5 text-ink/45">
+                يبحث الذكاء عن مصدر حقيقي في المصادر المعتمدة الموثوقة ويستشهد به برابطه — وإن لم يجد مطابقاً صارحك ولم يختلق.
+              </span>
+            </span>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={wantSource}
+              onClick={() => setWantSource((v) => !v)}
+              className={`relative mt-0.5 h-6 w-11 shrink-0 rounded-full transition ${wantSource ? "bg-palm" : "bg-line"}`}
+            >
+              <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all ${wantSource ? "right-0.5" : "right-[22px]"}`} />
+            </button>
+          </label>
+
+          {wantSource && (
+            <div className="mt-3 space-y-3">
+              {/* نوع المصدر */}
+              <div>
+                <FieldLabel label="نوع المصدر" optional />
+                <div className="flex flex-wrap gap-2">
+                  {["دراسة أو بحث أكاديمي", "نظام أو تشريع", "إحصائية رسمية", "تقرير منظمة دولية", "حكم أو مبدأ قضائي", "أي مصدر معتمد"].map((k) => (
+                    <button
+                      key={k}
+                      type="button"
+                      onClick={() => setSourceKind(sourceKind === k ? "" : k)}
+                      className={`${chipBase} text-xs ${sourceKind === k ? chipSelected : chipIdle}`}
+                    >
+                      {k}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* اسم الجهة — مواصفات فوقها ثم كتابة حرة */}
+              <div>
+                <FieldLabel label="اسم الجهة" optional />
+                <p className="mb-1.5 text-xs leading-5 text-ink/45">
+                  اكتب اسم الجهة الرسمية أو الأكاديمية التي تريد الاستدلال بمصدرها — ويبقى البحث محصوراً في المصادر المعتمدة الموثوقة.
+                </p>
+                <input
+                  type="text"
+                  value={sourceEntity}
+                  onChange={(e) => setSourceEntity(e.target.value)}
+                  placeholder="مثال: لجنة الأمم المتحدة للقانون التجاري الدولي"
+                  maxLength={200}
+                  className="w-full rounded-lg border border-line p-2.5 text-sm transition focus:border-palm focus:outline-none"
+                />
+              </div>
+
+              {/* وصف المصدر — مواصفات فوقها ثم كتابة حرة */}
+              <div>
+                <FieldLabel label="وصف المصدر" optional />
+                <p className="mb-1.5 text-xs leading-5 text-ink/45">
+                  صف المصدر الذي تريده بدقة ليستهدفه البحث.
+                </p>
+                <input
+                  type="text"
+                  value={sourceDesc}
+                  onChange={(e) => setSourceDesc(e.target.value)}
+                  placeholder="مثال: دراسة عن أثر شرط التحكيم على أمد النزاعات التجارية"
+                  maxLength={400}
+                  className="w-full rounded-lg border border-line p-2.5 text-sm transition focus:border-palm focus:outline-none"
+                />
+              </div>
+            </div>
           )}
         </div>
           </div>
