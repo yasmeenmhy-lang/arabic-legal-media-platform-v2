@@ -381,7 +381,7 @@ ${briefType
       // ليُبنى منها تقرير المراجعة الموحد نفسه (الحكم يسافر مع النص)
       const gov = await governTextFull(
         candidateText,
-        { contentType, channel, audience, purpose },
+        { contentType, channel, audience, purpose, specialty, source, topic },
         contentKind,
         { checkLanguage: contentType !== "وسم" }
       );
@@ -483,7 +483,7 @@ ${briefType
   async function buildUnifiedReview(text: string, gov: GovernTextFullResult): Promise<ReviewResult | null> {
     if (!contentKind || !gov.semanticResult || !gov.contentEval) return null;
     try {
-      const context = { contentType, channel, audience, purpose };
+      const context = { contentType, channel, audience, purpose, specialty, source, topic };
       const base = await buildReviewResult(text, contentKind, context, gov.semanticResult, gov.contentEval);
       // ★ سد جذر «الحكم الثاني»: هذا التقرير هو حكم التسليم نفسه — إسقاطه لأي علامة
       // جزئية كان يدفع الواجهة لطلب حكم ذكاء ثانٍ مستقل على نص لم يتغير، فتظهر

@@ -180,6 +180,11 @@ export type ReviewContext = {
   channel?: string;
   audience?: string;
   purpose?: string;
+  // بقرار مالكة المنصة: السياق كله يصل القاضيين لا الكاتب وحده — النتيجة
+  // حاصل تحليل العوامل مجتمعة (النوع، الجمهور، الهدف، التخصص، القناة، المصدر، الموضوع)
+  specialty?: string;
+  source?: string;
+  topic?: string;
   reviewStatus?: ReviewReadinessStatus;
 };
 

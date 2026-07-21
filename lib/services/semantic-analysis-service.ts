@@ -35,7 +35,10 @@ function buildContextSummary(context?: ReviewContext): string {
     context.contentType && `نوع المحتوى: ${context.contentType}`,
     context.channel && `القناة: ${context.channel}`,
     context.audience && `الجمهور: ${context.audience}`,
-    context.purpose && `الهدف: ${context.purpose}`
+    context.purpose && `الهدف: ${context.purpose}`,
+    context.specialty && `التخصص: ${context.specialty}`,
+    context.source && `مصدر الفكرة: ${context.source}`,
+    context.topic && `الموضوع المدخل: ${context.topic}`
   ].filter(Boolean);
   return parts.length > 0 ? parts.join(" | ") : "غير محدد";
 }
