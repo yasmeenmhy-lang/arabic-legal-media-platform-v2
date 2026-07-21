@@ -2187,6 +2187,18 @@ export default function ContentStudioPage() {
           subtitle="كلما اكتمل السياق ارتفعت موثوقية التوصية."
         />
 
+        {/* بقرار مالكة المنصة: السياق أكورديون يُطوى تلقائياً عند عرض النتائج (نص مُنشأ
+            أو مراجعة جاهزة) فلا يشغل مساحة فوق المحتوى — ويبقى مفتوحاً أثناء الإدخال */}
+        <details open={!review && !generatedText} className="group">
+          <summary className="flex cursor-pointer list-none items-center justify-between gap-3 rounded-lg border border-line bg-paper px-4 py-3 text-sm font-semibold text-ink focus-ring">
+            <span>{review || generatedText ? "عرض السياق أو تعديله" : "إدخال السياق"}</span>
+            <span className="flex items-center gap-2 text-xs font-normal text-ink/50">
+              {review || generatedText ? "معبأ وجاهز" : "أكمل الحقول المطلوبة"}
+              <ChevronDown size={16} className="transition-transform group-open:rotate-180" aria-hidden="true" />
+            </span>
+          </summary>
+          <div className="pt-5">
+
         {/* Progress */}
         <div className="mb-5">
           <div className="mb-1.5 flex items-center justify-between text-xs">
@@ -2982,6 +2994,8 @@ export default function ContentStudioPage() {
         </div>
           </div>
         </div>
+          </div>
+        </details>
       </Panel>
 
       {/* ── 2. Path selection ── */}
@@ -3218,8 +3232,9 @@ export default function ContentStudioPage() {
             </button>
           </div>
 
-          {/* توزيع أفقي على الحاسب: المحرّر (رئيسي كبير) + ترجمة المحتوى بصرياً (عمود جانبي) */}
-          <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_26rem] lg:items-start lg:gap-6">
+          {/* توزيع رأسي: المحرّر أولاً، ثم ترجمة المحتوى بصرياً أسفله — بلا عمود جانبي
+              يترك مساحة فارغة حين يقصر أحد القسمين عن الآخر (بقرار مالكة المنصة) */}
+          <div>
           <div className="min-w-0">
           {/* Text — always shown first */}
           <textarea
