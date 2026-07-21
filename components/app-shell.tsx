@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BookOpen, CalendarDays, ExternalLink, FileCheck2, FileClock, Headphones, Menu, ShieldCheck, Sparkles, X } from "lucide-react";
+import { BookOpen, CalendarDays, ExternalLink, FileCheck2, FileClock, Headphones, Menu, Sparkles, X } from "lucide-react";
 import { navItems, platformTitle } from "@/lib/navigation";
 
 // شريط تنقّل سفلي للجوال فقط (تجربة الجوال) — يعيد استخدام المسارات الفعلية،
@@ -82,9 +82,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <div className="border-b border-line bg-paper p-4 sm:p-6 md:hidden">
           <div className="flex items-start justify-between gap-3">
             <div className="flex items-start gap-3">
-              <div className="grid h-12 w-12 place-items-center rounded-lg bg-palm text-white shadow-sm">
-                <ShieldCheck size={24} />
-              </div>
               <div>
                 <p className="text-base font-normal text-palm">إدارة المحتوى الإعلامي والإعلاني للمحامين</p>
                 <p className="mt-1 max-w-48 text-xs leading-6 text-ink/65">
