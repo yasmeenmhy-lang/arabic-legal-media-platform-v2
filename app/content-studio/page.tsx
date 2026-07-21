@@ -922,7 +922,8 @@ export default function ContentStudioPage() {
       try {
         const res = await fetch(`/api/content-studio/generate-status?id=${encodeURIComponent(jobId)}`);
         const data = (await res.json()) as { status?: string; text?: string; error?: string; truncated?: boolean; partial?: string; review?: ReviewResult };
-        if (data.status === "pending" && data.partial) onDraft?.(data.partial);
+        // بأمر مالكة المنصة: لا تُعرض مسودة قبل اجتياز كل المؤشرات — المسودات
+        // الجزئية المعلقة (من نشرات سابقة) تُتجاهل ولا تُعرض
         if (data.status === "done") {
           void fetch(`/api/content-studio/generate-status?id=${encodeURIComponent(jobId)}&ack=1`).catch(() => {});
           try { window.localStorage.removeItem(scopedKey(PENDING_GENERATION_KEY)); } catch { /* بيئة بلا تخزين */ }
@@ -1045,7 +1046,7 @@ export default function ContentStudioPage() {
             if (!line) continue;
             try {
               const event = JSON.parse(line) as { type?: string; text?: string; error?: string; truncated?: boolean; review?: ReviewResult };
-              if (event.type === "partial" && event.text) showDraft(event.text);
+              // لا عرض للمسودات الجزئية — التسليم حتمي: الناتج النهائي المستوفي فقط
               if (event.type === "result" || event.type === "error") data = event;
             } catch {
               /* سطر غير مكتمل — يُتجاهل */
