@@ -32,7 +32,9 @@ const schema = z.object({
   })).default([]),
   // بقرار مالكة المنصة: البحث في التحسين يعمل إن كان النص يتضمن مصدراً — يُكشف تلقائياً،
   // أو يُقرّه المستخدم صراحةً من مسار المراجعة (hasSource) فيُدعَّم بمصدر موثوق حقيقي.
-  hasSource: z.boolean().optional()
+  hasSource: z.boolean().optional(),
+  // وصف المرجع الذي يريده المستخدم أو رابطه — يوجّه البحث بدقة داخل المصادر المعتمدة.
+  sourceHint: z.string().max(500).optional()
 });
 
 // إكمال تلقائي: إن قُطعت الصياغة لبلوغ سقف التوكنز تُطلب متابعتها من حيث توقفت
@@ -114,7 +116,7 @@ export async function POST(request: Request) {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) return NextResponse.json({ error: "خدمة التحليل غير متاحة حالياً — تواصل مع مسؤول المنصة." }, { status: 503 });
 
-  const { text, contentType, channel, audience, purpose, charLimit, findings, languageIssues, hasSource } = parsed.data;
+  const { text, contentType, channel, audience, purpose, charLimit, findings, languageIssues, hasSource, sourceHint } = parsed.data;
   const context = { contentType, channel, audience, purpose };
 
   // ★ طبقة البحث الحي في التحسين (بقرار مالكة المنصة): تعمل فقط إن كان النص المُحسَّن
@@ -123,7 +125,13 @@ export async function POST(request: Request) {
   // لا تمسّ الفحص: الصياغة المحسّنة تمرّ على المؤشرات كاملةً. فشلها لا يوقف التحسين.
   let researchBlock = "";
   if (hasSource || mentionsSource(text)) {
-    const research = await researchTrustedSources({ contentType, topic: text.slice(0, 500) });
+    const hint = (sourceHint ?? "").trim();
+    const research = await researchTrustedSources({
+      contentType,
+      topic: text.slice(0, 500),
+      // وصف/رابط المرجع الذي حدده المستخدم يوجّه البحث بدقة داخل المصادر المعتمدة
+      spec: hint ? { wantSource: true, sourceDesc: hint } : undefined,
+    });
     if (research) {
       const sourceLines = research.sources.map((s) => `- ${s.title}: ${s.url}`).join("\n");
       researchBlock = [

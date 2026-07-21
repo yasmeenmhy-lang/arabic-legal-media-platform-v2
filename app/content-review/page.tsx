@@ -253,6 +253,8 @@ export default function ContentReviewPage() {
   // إقرار المستخدم بأن النص المُراد مراجعته يتضمن مرجعاً أو دراسة (بقرار مالكة المنصة):
   // عند تفعيله تُدعَّم الصياغة المحسّنة بمرجع موثّق حقيقي — وإلا فالتحسين كالمعتاد.
   const [reviewHasSource, setReviewHasSource] = useState(false);
+  // وصف المرجع الذي يريده المستخدم أو رابطه — يوجّه البحث داخل المصادر المعتمدة.
+  const [reviewSourceHint, setReviewSourceHint] = useState("");
   const [shareMessage, setShareMessage] = useState("");
   const [specialty, setSpecialty] = useState("");
   const [charLimit, setCharLimit] = useState<number | null>(null);
@@ -959,7 +961,9 @@ export default function ContentReviewPage() {
             suggestion: i.suggestion ?? ""
           })),
           // إقرار المستخدم بوجود مرجع في نصه — يُفعّل تعزيز الصياغة بمرجع موثّق
-          hasSource: reviewHasSource || undefined
+          hasSource: reviewHasSource || undefined,
+          // وصف المرجع أو رابطه الذي حدده المستخدم — يوجّه البحث بدقة
+          sourceHint: reviewHasSource ? (reviewSourceHint.trim() || undefined) : undefined
         })
       });
       const payload = await response.json().catch(() => null) as { data?: { suggestedText?: string }; error?: string } | null;
@@ -1137,6 +1141,22 @@ export default function ContentReviewPage() {
               <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all ${reviewHasSource ? "right-0.5" : "right-[22px]"}`} />
             </button>
           </label>
+
+          {reviewHasSource && (
+            <div className="mt-3 border-t border-line pt-3">
+              <p className="mb-1.5 text-xs leading-5 text-ink/50">
+                صِف المرجع الذي تريد الاستناد إليه أو الصق رابطه؛ ويبقى الاستناد محصوراً في المصادر المعتمدة.
+              </p>
+              <input
+                type="text"
+                value={reviewSourceHint}
+                onChange={(e) => setReviewSourceHint(e.target.value)}
+                placeholder="مثال: دراسة عن أثر شرط التحكيم — أو الصق رابط المرجع"
+                maxLength={500}
+                className="w-full rounded-lg border border-line p-2.5 text-sm transition focus:border-palm focus:outline-none"
+              />
+            </div>
+          )}
         </div>
 
         <div className="mt-3">
