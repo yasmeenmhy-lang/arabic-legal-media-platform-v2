@@ -1043,9 +1043,81 @@ export default function ContentReviewPage() {
       <Panel id="input">
         <SectionTitle title="1. إدخال المحتوى والسياق" subtitle="كلما اكتمل السياق ارتفعت موثوقية التوصية." />
 
-        <details open={!review} className="group">
+        {/* عنوان المحتوى والنص محل المراجعة — بقرار مالكة المنصة: ظاهران دائماً خارج
+            الأكورديون، حتى في عرض النتائج، فلا يحتاج المستخدم فتح السياق ليرى محتواه */}
+        <label className="block text-sm">
+          <span className="mb-2 flex flex-wrap items-center justify-between gap-2">
+            <FieldLabel as="span" label="عنوان المحتوى" className="mb-0" />
+            <Button
+              size="sm"
+              variant="secondary-gray"
+              disabled={text.trim().length < 20 || titleSuggesting || (Boolean(review) && !isEditing)}
+              onClick={async () => {
+                setTitleSuggesting(true);
+                try {
+                  const res = await fetch("/api/suggest-title", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ text }),
+                  });
+                  const data = (await res.json()) as { title?: string };
+                  if (res.ok && data.title) setContentTitle(data.title);
+                } catch { /* يبقى الحقل كما هو */ } finally {
+                  setTitleSuggesting(false);
+                }
+              }}
+              leadingIcon={<Sparkles size={14} aria-hidden="true" />}
+            >
+              {titleSuggesting ? "جارٍ الاقتراح..." : "اقتراح تلقائي"}
+            </Button>
+          </span>
+          <input
+            type="text"
+            value={contentTitle}
+            disabled={Boolean(review) && !isEditing}
+            onChange={(event) => setContentTitle(event.target.value)}
+            placeholder="مثال: توعية بحقوق العامل عند انتهاء العقد"
+            className="mt-2 w-full rounded-lg border border-line p-3 text-sm leading-7 transition disabled:bg-paper disabled:text-ink/65"
+            maxLength={90}
+          />
+        </label>
+        <label className="mt-4 block text-sm">
+          <span className="flex flex-wrap items-center justify-between gap-2">
+            <span>النص محل المراجعة</span>
+            <Button size="sm" variant="secondary-gray" onClick={clearContentInput} disabled={loading || text.length === 0} leadingIcon={<XCircle size={14} aria-hidden="true" />}>مسح المحتوى</Button>
+          </span>
+          <textarea
+            value={text}
+            onFocus={enterEditingIfNeeded}
+            onChange={(event) => { enterEditingIfNeeded(); setText(event.target.value); }}
+            // أثناء التحليل يُقفل النص — تعديل نص يجري تحليله يجعل النتيجة عن نص غير المعروض
+            disabled={loading}
+            className={`mt-2 min-h-44 w-full rounded-lg border p-4 leading-8 transition disabled:bg-paper disabled:text-ink/60 ${
+              charLimit !== null && text.length > charLimit ? "border-red-400 focus:border-red-400" : "border-line"
+            }`}
+          />
+        </label>
+        {charLimit !== null && (
+          <div className={`mt-1 text-left text-xs tabular-nums ${
+            text.length > charLimit
+              ? "font-bold text-red-500"
+              : text.length > charLimit * 0.9
+              ? "text-amber-500"
+              : "text-ink/35"
+          }`}>
+            {text.length} / {charLimit}
+            {text.length > charLimit && (
+              <span className="mr-2">(تجاوز بـ {text.length - charLimit} حرف)</span>
+            )}
+          </div>
+        )}
+        <div className="mt-3">
+          <InlineContentGuidance review={review} draftText={text} onApplyRewrite={applyRewrite} loading={loading} />
+        </div>
+
+        <details open={!review} className="mt-5 group">
           <summary className="flex cursor-pointer list-none items-center justify-between gap-3 rounded-lg border border-line bg-paper px-4 py-3 text-sm font-semibold text-ink focus-ring">
-            <span>{review ? "عرض السياق والمحتوى أو تعديله" : "إدخال السياق والمحتوى"}</span>
+            <span>{review ? "عرض السياق أو تعديله" : "إدخال السياق"}</span>
             <span className="flex items-center gap-2 text-xs font-normal text-ink/50">
               {review ? "معبأ وجاهز من الاستديو" : "أكمل الحقول المطلوبة"}
               <ChevronDown size={16} className="transition-transform group-open:rotate-180" aria-hidden="true" />
@@ -1650,76 +1722,6 @@ export default function ContentReviewPage() {
         {!hasReviewContext ? (
           <p className="mt-2 text-xs leading-6 text-ink/60">اختر نوع المحتوى والجمهور والهدف والتخصص حتى يكون التحليل مرتبطًا بالسياق الصحيح.</p>
         ) : null}
-        {/* عنوان المحتوى — بقرار مالكة المنصة: بجوار النص الذي يصفه، فوق النص محل المراجعة */}
-        <label className="mt-4 block text-sm">
-          <span className="mb-2 flex flex-wrap items-center justify-between gap-2">
-            <FieldLabel as="span" label="عنوان المحتوى" className="mb-0" />
-            <Button
-              size="sm"
-              variant="secondary-gray"
-              disabled={text.trim().length < 20 || titleSuggesting || (Boolean(review) && !isEditing)}
-              onClick={async () => {
-                setTitleSuggesting(true);
-                try {
-                  const res = await fetch("/api/suggest-title", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ text }),
-                  });
-                  const data = (await res.json()) as { title?: string };
-                  if (res.ok && data.title) setContentTitle(data.title);
-                } catch { /* يبقى الحقل كما هو */ } finally {
-                  setTitleSuggesting(false);
-                }
-              }}
-              leadingIcon={<Sparkles size={14} aria-hidden="true" />}
-            >
-              {titleSuggesting ? "جارٍ الاقتراح..." : "اقتراح تلقائي"}
-            </Button>
-          </span>
-          <input
-            type="text"
-            value={contentTitle}
-            disabled={Boolean(review) && !isEditing}
-            onChange={(event) => setContentTitle(event.target.value)}
-            placeholder="مثال: توعية بحقوق العامل عند انتهاء العقد"
-            className="mt-2 w-full rounded-lg border border-line p-3 text-sm leading-7 transition disabled:bg-paper disabled:text-ink/65"
-            maxLength={90}
-          />
-        </label>
-        <label className="mt-4 block text-sm">
-          <span className="flex flex-wrap items-center justify-between gap-2">
-            <span>النص محل المراجعة</span>
-            <Button size="sm" variant="secondary-gray" onClick={clearContentInput} disabled={loading || text.length === 0} leadingIcon={<XCircle size={14} aria-hidden="true" />}>مسح المحتوى</Button>
-          </span>
-          <textarea
-            value={text}
-            onFocus={enterEditingIfNeeded}
-            onChange={(event) => { enterEditingIfNeeded(); setText(event.target.value); }}
-            // أثناء التحليل يُقفل النص — تعديل نص يجري تحليله يجعل النتيجة عن نص غير المعروض
-            disabled={loading}
-            className={`mt-2 min-h-44 w-full rounded-lg border p-4 leading-8 transition disabled:bg-paper disabled:text-ink/60 ${
-              charLimit !== null && text.length > charLimit ? "border-red-400 focus:border-red-400" : "border-line"
-            }`}
-          />
-        </label>
-        {charLimit !== null && (
-          <div className={`mt-1 text-left text-xs tabular-nums ${
-            text.length > charLimit
-              ? "font-bold text-red-500"
-              : text.length > charLimit * 0.9
-              ? "text-amber-500"
-              : "text-ink/35"
-          }`}>
-            {text.length} / {charLimit}
-            {text.length > charLimit && (
-              <span className="mr-2">(تجاوز بـ {text.length - charLimit} حرف)</span>
-            )}
-          </div>
-        )}
-        <div className="mt-3">
-          <InlineContentGuidance review={review} draftText={text} onApplyRewrite={applyRewrite} loading={loading} />
-        </div>
         {/* توعوي بحت عند رصد اقتباس في النص الملصق — كشف عرضي حتمي، لا يمس المؤشرات ولا محرك التحليل */}
         {review ? (
           <div className="mt-3 rounded-xl border border-infoBorder bg-infoSoft p-4">
