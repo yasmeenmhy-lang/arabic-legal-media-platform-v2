@@ -139,11 +139,17 @@ export async function researchTrustedSources(context: {
 }): Promise<ResearchResult | null> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) return null;
+  // سقف زمني صارم للبحث (بقرار مالكة المنصة لمنع تعليق الصفحة): البحث الحي مع
+  // الفلترة الديناميكية قد يطول، وتجاوزه حدَّ الخادم يقتل الطلب فتعلق الواجهة.
+  // إن تجاوز البحث السقف يُلغى ويكمل الكاتب بضوابطه — البحث تحسين لا شرط.
+  const controller = new AbortController();
+  const abortTimer = setTimeout(() => controller.abort(), 60_000);
   try {
     const response = await fetch(
       `${process.env.ANTHROPIC_BASE_URL ?? "https://api.anthropic.com"}/v1/messages`,
       {
         method: "POST",
+        signal: controller.signal,
         headers: {
           "x-api-key": apiKey,
           "anthropic-version": "2023-06-01",
@@ -178,5 +184,7 @@ export async function researchTrustedSources(context: {
     return { briefing, sources };
   } catch {
     return null;
+  } finally {
+    clearTimeout(abortTimer);
   }
 }

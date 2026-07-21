@@ -303,25 +303,34 @@ ${briefType
   // استدعاء واحد لـSonnet — يعيد النص وسبب التوقف لكشف القطع
   const key: string = apiKey;
   async function callSonnet(messages: { role: "user" | "assistant"; content: string }[]) {
-    const response = await fetch(`${process.env.ANTHROPIC_BASE_URL ?? "https://api.anthropic.com"}/v1/messages`, {
-      method: "POST",
-      headers: {
-        "x-api-key": key,
-        "anthropic-version": "2023-06-01",
-        "content-type": "application/json",
-      },
-      // تخزين مؤقت للجزء الثابت (الدستور والتعليمات) لدى المزود — قراءة واحدة تخدم كل
-      // الطلبات المتزامنة: أسرع وأوفر مع كثرة المستخدمين، ونص المستخدم لا يدخل التخزين.
-      body: JSON.stringify({
-        model: "claude-sonnet-5",
-        max_tokens: maxTokens,
-        // الكتابة بلا تفكير داخلي — التعليمات التفصيلية تقوم مقامه، والزمن ينخفض كثيراً؛
-        // قاضي الامتثال يبقى بتفكيره الكامل لأن دقته لا تُمس.
-        thinking: { type: "disabled" },
-        system: [{ type: "text", text: system, cache_control: { type: "ephemeral" } }],
-        messages,
-      }),
-    });
+    // سقف زمني لكل نداء نموذج (يمنع نداءً معلّقاً من إيقاف الطلب كله فتعلق الواجهة)
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), 150_000);
+    let response: Response;
+    try {
+      response = await fetch(`${process.env.ANTHROPIC_BASE_URL ?? "https://api.anthropic.com"}/v1/messages`, {
+        method: "POST",
+        signal: ctrl.signal,
+        headers: {
+          "x-api-key": key,
+          "anthropic-version": "2023-06-01",
+          "content-type": "application/json",
+        },
+        // تخزين مؤقت للجزء الثابت (الدستور والتعليمات) لدى المزود — قراءة واحدة تخدم كل
+        // الطلبات المتزامنة: أسرع وأوفر مع كثرة المستخدمين، ونص المستخدم لا يدخل التخزين.
+        body: JSON.stringify({
+          model: "claude-sonnet-5",
+          max_tokens: maxTokens,
+          // الكتابة بلا تفكير داخلي — التعليمات التفصيلية تقوم مقامه، والزمن ينخفض كثيراً؛
+          // قاضي الامتثال يبقى بتفكيره الكامل لأن دقته لا تُمس.
+          thinking: { type: "disabled" },
+          system: [{ type: "text", text: system, cache_control: { type: "ephemeral" } }],
+          messages,
+        }),
+      });
+    } finally {
+      clearTimeout(t);
+    }
     if (!response.ok) {
       const body = await response.text().catch(() => "");
       throw new Error(`upstream ${response.status} ${body.slice(0, 200)}`);
@@ -371,6 +380,15 @@ ${briefType
     let riskBlocked = false;
     let lastGov: GovernTextFullResult | null = null;
     let lastCitationIssues: ReturnType<typeof verifyCorpusCitations> = [];
+
+    // ★ حارس الحدّ الزمني (بقرار مالكة المنصة لمنع تعليق الصفحة): الطلب الخلفي
+    // محدود بـ maxDuration=300 ثانية على الخادم؛ فإن تجاوز الدورة الكاملة (بحث +
+    // جولات) هذا الحد يُقتل الطلب ويبقى في «قيد المعالجة» فتعلق الواجهة. لذا نضع
+    // ميزانية زمنية أدنى (بهامش أمان): قبل بدء أي جولة تصحيح جديدة نتحقق من الوقت،
+    // فإن قاربنا الحد نتوقف ونُخرج نتيجة حاسمة (تسليم أفضل مرشح أو فشل واضح) بدل
+    // ترك الطلب يُقتل صامتاً. المهمة تُكمَل دائماً ولا تعلق أبداً.
+    const startedAt = Date.now();
+    const DEADLINE_MS = 240_000; // نتوقف عند ٢٤٠ ثانية، وباقي الستين لبناء التقرير والحفظ
 
     // ★ طبقة البحث الحي (بقرار مالكة المنصة): مرة واحدة مشتركة قبل السباق — مشروطة
     // (لا تُستدعى إلا حين يحتاجها المصدر أو الموضوع)، فتُجلب مصادر موثوقة حقيقية
@@ -478,6 +496,15 @@ ${briefType
       hardLanguageError = best.hardLanguageError;
       riskBlocked = best.riskBlocked;
       lastCitationIssues = best.citationIssues;
+      // حارس الحدّ الزمني: إن قاربنا الميزانية لا نبدأ جولة تصحيح جديدة (قد تطول
+      // فتتجاوز حدّ الخادم وتُقتل المهمة وتعلق الواجهة). نتوقف الآن ونخرج بالفشل
+      // الواضح أدناه (رسالة «أعد المحاولة») بدل الصمت — البوابة تبقى كما هي بلا
+      // أي تخفيف: لا يُسلَّم نص بقيت عليه أي ملاحظة، والمهمة تُكمَل دائماً ولا تعلق.
+      if (Date.now() - startedAt > DEADLINE_MS) {
+        console.log("[generate:deadline] بلوغ الحد الزمني — إخراج فشل واضح بدل تعليق الطلب");
+        break;
+      }
+
       // تصحيح موضعي لا إعادة تأليف — الإبقاء حرفياً على ما اجتاز ومعالجة المرصود حصراً.
       // حين لا يتبقّى إلا ملاحظات أسلوب/وضوح (النص ممتثل، لا خطأ لغوي صلب ولا مخاطر ولا
       // استشهاد مغلوط) يكون التصحيح جراحياً على الجملة المرصودة وحدها — أدق توجيه يرفع
