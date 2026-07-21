@@ -748,6 +748,13 @@ export default function ContentStudioPage() {
     (a, b) => Number(isConditionalSource(a.key)) - Number(isConditionalSource(b.key))
   );
   const advancedIsOpen = advancedOpen || charLimit !== null || Boolean(channel);
+  // «دعم بمصدر» متاح فقط للأنواع المعرفية التي قد تستند لواقعة خارجية — يُخفى في
+  // الأنواع الموجزة والتعريفية والشخصية (نفس قائمة الاستبعاد في الخادم).
+  const NO_SOURCE_LABELS = new Set([
+    "إعلان مهني", "تعليق", "يوميات", "تصريح", "وسم", "عنوان",
+    "محتوى بصري", "تصدير اجتماعي", "حملة", "خطة نشر",
+  ]);
+  const canSupportSource = Boolean(kind) && !NO_SOURCE_LABELS.has(kind ? contentKindLabels[kind] : "");
   const activeText = path === "create" ? generatedText : reviewText;
   // نوع المحتوى هو مصدر الحقيقة الوحيد — قسم بصري رئيسي واحد فقط لكل نوع:
   // «رسم توضيحي»: قسم «إعداد المرئيات والمخططات» وامتداده التوليدي (النوع من الإعداد، بلا اختيار مكرر)
@@ -1021,11 +1028,11 @@ export default function ContentStudioPage() {
           campaignGoal: kind === "campaign" ? (campaignGoal || undefined) : undefined,
           planFrequency: kind === "publishing_plan" ? (planFrequency || undefined) : undefined,
           planDateRange: kind === "publishing_plan" ? (planDateRange || undefined) : undefined,
-          // دعم استدلالي بمصدر موثوق — يُرسل فقط عند تفعيل المستخدم له
-          wantSource: wantSource || undefined,
-          sourceKind: wantSource ? (sourceKind || undefined) : undefined,
-          sourceEntity: wantSource ? (sourceEntity.trim() || undefined) : undefined,
-          sourceDesc: wantSource ? (sourceDesc.trim() || undefined) : undefined,
+          // دعم استدلالي بمصدر موثوق — يُرسل فقط عند تفعيله في نوع مؤهل له
+          wantSource: (wantSource && canSupportSource) || undefined,
+          sourceKind: wantSource && canSupportSource ? (sourceKind || undefined) : undefined,
+          sourceEntity: wantSource && canSupportSource ? (sourceEntity.trim() || undefined) : undefined,
+          sourceDesc: wantSource && canSupportSource ? (sourceDesc.trim() || undefined) : undefined,
         }),
       });
       // الوضع الأساسي: الخادم يرد فوراً برقم مهمة خلفية — نحفظه ونستطلع حتى تكتمل،
@@ -2925,7 +2932,7 @@ export default function ContentStudioPage() {
             <ChevronDown size={15} className={`shrink-0 transition-transform duration-300 ${advancedIsOpen ? "rotate-180" : ""}`} />
           </button>
 
-          <div className={`overflow-hidden transition-all duration-300 ${advancedIsOpen ? "mt-3 max-h-[600px] opacity-100" : "max-h-0 opacity-0"}`}>
+          <div className={`overflow-hidden transition-all duration-300 ${advancedIsOpen ? "mt-3 max-h-[1600px] opacity-100" : "max-h-0 opacity-0"}`}>
         {/* Channel — اختيارية بقرارها: بلا قناة يُكتب النص بصيغة عامة صالحة لأي منصة.
             شعارات القنوات الملونة ظاهرة دائماً على كل أحجام الشاشات — بلا قائمة منسدلة بديلة. */}
         <div className="mb-1">
@@ -3005,7 +3012,9 @@ export default function ContentStudioPage() {
 
         {/* دعم استدلالي بمصدر موثوق (بقرار مالكة المنصة) — اختياري، تحكّم بيد المستخدم.
             عند التفعيل يبحث الذكاء عن مصدر حقيقي بمواصفات المستخدم في المصادر المعتمدة
-            حصراً، ويستشهد به برابطه؛ وإن لم يجد مطابقاً صارح المستخدم ولم يختلق. */}
+            حصراً، ويستشهد به برابطه؛ وإن لم يجد مطابقاً صارح المستخدم ولم يختلق.
+            يُخفى في الأنواع التي لا تستند لواقعة خارجية (إعلان، خطة نشر، تعليق...). */}
+        {canSupportSource && (
         <div className="mt-4 border-t border-line pt-4">
           <label className="flex cursor-pointer items-start justify-between gap-3">
             <span>
@@ -3078,6 +3087,7 @@ export default function ContentStudioPage() {
             </div>
           )}
         </div>
+        )}
           </div>
         </div>
           </div>
