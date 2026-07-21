@@ -61,6 +61,14 @@ export function needsResearch(
   return sourceAnchored || topicAnchored;
 }
 
+// هل يتضمن النص المُحسَّن/المراجَع مصدراً أو مرجعاً أو دراسة؟ (لمسار التحسين)
+// بقرار المالكة: البحث في التحسين يعمل فقط إن كان النص نفسه يستند إلى مصدر — فنتحقق
+// منه وندعمه؛ وإلا فلا يحتاج بحثاً. كشف لغوي بسيط لألفاظ الاستناد الخارجي.
+export function mentionsSource(text: string): boolean {
+  const t = text || "";
+  return /دراس|بحث علمي|أبحاث|إحصائ|تقرير|مصدر|مرجع|وفق|بحسب|أشار|نشرت|جامعة|منظمة|الأونسيترال|المادة\s|نظام\s|لائحة|نسبة\s|معدل\s|٪|%/.test(t);
+}
+
 function buildResearchInstruction(context: {
   specialty?: string; source?: string; topic?: string; contentType?: string;
   spec?: SourceSpec;

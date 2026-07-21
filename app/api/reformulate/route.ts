@@ -5,6 +5,7 @@ import { AI_CONSTITUTION } from "@/lib/governance";
 import { runSemanticAnalysis } from "@/lib/services/semantic-analysis-service";
 import { evaluateContent } from "@/lib/services/content-evaluation-service";
 import { describeProviderError } from "@/lib/ai-provider-errors";
+import { mentionsSource, researchTrustedSources } from "@/lib/services/web-research-service";
 
 // مدة تنفيذ صريحة على فيرسل — إعادة الصياغة دورة ذكاء كاملة (توليد + حكم)
 // تتجاوز المدة الافتراضية القصيرة فتُقطع في منتصفها بدون هذا التصريح.
@@ -28,7 +29,10 @@ const schema = z.object({
     message: z.string(),
     excerpt: z.string().optional(),
     suggestion: z.string().optional()
-  })).default([])
+  })).default([]),
+  // بقرار مالكة المنصة: البحث في التحسين يعمل إن كان النص يتضمن مصدراً — يُكشف تلقائياً،
+  // أو يُقرّه المستخدم صراحةً من مسار المراجعة (hasSource) فيُدعَّم بمصدر موثوق حقيقي.
+  hasSource: z.boolean().optional()
 });
 
 // إكمال تلقائي: إن قُطعت الصياغة لبلوغ سقف التوكنز تُطلب متابعتها من حيث توقفت
@@ -110,8 +114,28 @@ export async function POST(request: Request) {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) return NextResponse.json({ error: "خدمة التحليل غير متاحة حالياً — تواصل مع مسؤول المنصة." }, { status: 503 });
 
-  const { text, contentType, channel, audience, purpose, charLimit, findings, languageIssues } = parsed.data;
+  const { text, contentType, channel, audience, purpose, charLimit, findings, languageIssues, hasSource } = parsed.data;
   const context = { contentType, channel, audience, purpose };
+
+  // ★ طبقة البحث الحي في التحسين (بقرار مالكة المنصة): تعمل فقط إن كان النص المُحسَّن
+  // يتضمن مصدراً أو مرجعاً أو دراسة — يُكشف تلقائياً أو يُقرّه المستخدم (hasSource).
+  // فتُجلب مصادر موثوقة حقيقية يستند إليها التحسين بدل إبقاء تخمين النص الأصلي.
+  // لا تمسّ الفحص: الصياغة المحسّنة تمرّ على المؤشرات كاملةً. فشلها لا يوقف التحسين.
+  let researchBlock = "";
+  if (hasSource || mentionsSource(text)) {
+    const research = await researchTrustedSources({ contentType, topic: text.slice(0, 500) });
+    if (research) {
+      const sourceLines = research.sources.map((s) => `- ${s.title}: ${s.url}`).join("\n");
+      researchBlock = [
+        "",
+        "★ مصادر موثوقة مجلوبة من البحث الحي في جهات رسمية وأكاديمية معتمدة — إن أشار النص الأصلي إلى مصدر أو دراسة أو رقم، فصحّحه أو ادعمه بهذه المصادر الحقيقية واذكر رابطها في النص عند الاستشهاد. ممنوع الإبقاء على رقم مادة أو دراسة أو إحصائية لا سند لها هنا؛ وما لا تجد له سنداً موثوقاً اعرضه نسبةً عامة صادقة دون رقم مخترع.",
+        "تقرير المصادر:",
+        research.briefing,
+        "قائمة الروابط للاستشهاد:",
+        sourceLines,
+      ].join("\n");
+    }
+  }
 
   const findingsList = findings.length
     ? findings.map((f, i) =>
@@ -166,6 +190,7 @@ export async function POST(request: Request) {
     "",
     "الملاحظات اللغوية والإملائية التي يجب تصحيحها:",
     languageList,
+    researchBlock,
     "",
     "أعد كتابة النص معالجًا جميع النقاط أعلاه مع الحفاظ على روح النص وهدفه المهني:"
   ].join("\n");
