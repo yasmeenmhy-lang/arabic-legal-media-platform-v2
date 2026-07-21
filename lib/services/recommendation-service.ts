@@ -277,7 +277,7 @@ export async function buildGovernedRewriteSuggestions({
     {
       id: "governed-rewrite-1",
       suggestedText: candidateText,
-      basis: "صياغة مقترحة لمعالجة الملاحظات المرتبطة بالمراجع المهنية والتنظيمية المسجلة — فُحصت ببوابة الحاكم وخلت من المخالفات.",
+      basis: "صياغة مقترحة لمعالجة الملاحظات المرتبطة بالمراجع المهنية والتنظيمية المسجلة — فُحصت بجميع مؤشرات الجودة وخلت من المخالفات.",
       originalComplianceScore,
       proposedComplianceScore: proposedCompliance.complianceScore,
       originalLanguageQuality,
