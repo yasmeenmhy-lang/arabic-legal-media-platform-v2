@@ -3018,9 +3018,9 @@ export default function ContentStudioPage() {
         <div className="mt-4 border-t border-line pt-4">
           <label className="flex cursor-pointer items-start justify-between gap-3">
             <span>
-              <span className="text-sm text-ink/80">دعم المحتوى بمصدر أو دراسة؟</span>
+              <span className="text-sm text-ink/80">تعزيز المحتوى بمرجع موثّق</span>
               <span className="mt-0.5 block text-xs leading-5 text-ink/45">
-                يبحث الذكاء عن مصدر حقيقي في المصادر المعتمدة الموثوقة ويستشهد به برابطه — وإن لم يجد مطابقاً صارحك ولم يختلق.
+                عند التفعيل، يُستند إلى مرجع موثّق من المصادر المعتمدة ويُوثّق برابطه الرسمي. وإذا تعذّر إيجاد مرجع مطابق، يُنبَّه إلى ذلك ويُعرض المحتوى بنسبة عامة دقيقة دون افتراض.
               </span>
             </span>
             <button
@@ -3055,9 +3055,9 @@ export default function ContentStudioPage() {
 
               {/* اسم الجهة — مواصفات فوقها ثم كتابة حرة */}
               <div>
-                <FieldLabel label="اسم الجهة" optional />
+                <FieldLabel label="الجهة المرجعية" optional />
                 <p className="mb-1.5 text-xs leading-5 text-ink/45">
-                  اكتب اسم الجهة الرسمية أو الأكاديمية التي تريد الاستدلال بمصدرها — ويبقى البحث محصوراً في المصادر المعتمدة الموثوقة.
+                  حدّد الجهة الرسمية أو الأكاديمية المراد الاستناد إلى مرجعها؛ ويبقى الاستناد محصوراً في المصادر المعتمدة.
                 </p>
                 <input
                   type="text"
@@ -3071,9 +3071,9 @@ export default function ContentStudioPage() {
 
               {/* وصف المصدر — مواصفات فوقها ثم كتابة حرة */}
               <div>
-                <FieldLabel label="وصف المصدر" optional />
+                <FieldLabel label="وصف المرجع" optional />
                 <p className="mb-1.5 text-xs leading-5 text-ink/45">
-                  صف المصدر الذي تريده بدقة ليستهدفه البحث.
+                  صِف المرجع المطلوب بدقة لتوجيه الاستناد إليه.
                 </p>
                 <input
                   type="text"
