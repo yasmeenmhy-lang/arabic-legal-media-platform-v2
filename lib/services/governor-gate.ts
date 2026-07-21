@@ -56,7 +56,7 @@ async function governTextFull(
   const checkLanguage = opts?.checkLanguage !== false;
   const [gov, evaluation] = await Promise.all([
     runSemanticAnalysis(text, context, contentKind),
-    checkLanguage ? evaluateContent(text) : Promise.resolve(null),
+    checkLanguage ? evaluateContent(text, context) : Promise.resolve(null),
   ]);
 
   // فشل مغلق: تعذّر حكم الذكاء (عطل مفتاح/خدمة) ⇒ لا يُعد النص ممتثلاً ولا يُسلَّم —

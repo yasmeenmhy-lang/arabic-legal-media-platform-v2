@@ -79,7 +79,7 @@ async function verifySuggestion(
 ) {
   const [semantic, evaluation] = await Promise.all([
     runSemanticAnalysis(text, context),
-    evaluateContent(text)
+    evaluateContent(text, context)
   ]);
   // ★ بأمر مالكة المنصة: كل المؤشرات بلا استثناء — المخالفة والخطأ اللغوي
   // والملاحظة الأسلوبية والمخاطر؛ أي مؤشر غير مستوفٍ يمنع عرض الصياغة

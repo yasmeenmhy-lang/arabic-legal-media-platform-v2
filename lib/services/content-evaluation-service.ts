@@ -13,6 +13,7 @@ import type {
   ContentEvaluationRisks,
   LanguageIssueCategory,
   LanguageIssueSeverity,
+  ReviewContext,
   RiskAffectedParty,
   RiskLevel
 } from "@/lib/types";
@@ -44,6 +45,7 @@ ${KINGDOM_STYLE_RULE}
 
 ## النص المراد تقييمه
 يصلك النص كاملاً في رسالة المستخدم بين علامتي «...» — قيّمه هو حصراً.
+وقد يسبق النصَّ سطرُ سياق (نوع المحتوى، القناة، الجمهور، الهدف): كل نوع محتوى له خصائصه ومقاييسه، فقِس الرصانة المهنية والأسلوب والوضوح بمعيار هذا النوع وقناته وجمهوره — التعليق واليوميات والمنشور التوعوي بنبرتها الطبيعية المهنية الموجزة لا بمعيار المقال الرسمي، والمقال الأكاديمي بمعياره الرصين، وقناة التواصل بإيقاعها المتعارف. السياق ليس ذريعة تساهل: أخطاء الإملاء والنحو القطعية والمخاطر المهنية تُرصد كما هي في كل الأنواع بلا استثناء — السياق يضبط مقياس الأسلوب والرصانة فقط.
 
 ## المهمة
 قيّم النص على ثلاثة محاور وفق القواعد المرجعية أعلاه وأرجع النتيجة بصيغة JSON فقط.
@@ -217,7 +219,21 @@ function buildFallbackEvaluation(): ContentEvaluation {
   };
 }
 
-export async function evaluateContent(text: string): Promise<ContentEvaluation> {
+// سطر السياق يسبق النص في رسالة المستخدم (لا في الموجّه الثابت حفاظاً على التخزين
+// المؤقت) — بقاعدة مالكة المنصة المؤسِّسة: كل نوع محتوى له خصائصه ومقاييسه،
+// فالحكم على الأسلوب والرصانة يكون بمعيار النوع وقناته لا بمعيار واحد للجميع.
+function buildContextLine(context?: ReviewContext): string {
+  if (!context) return "";
+  const parts = [
+    context.contentType ? `نوع المحتوى: ${context.contentType}` : "",
+    context.channel ? `القناة: ${context.channel}` : "",
+    context.audience ? `الجمهور: ${context.audience}` : "",
+    context.purpose ? `الهدف: ${context.purpose}` : "",
+  ].filter(Boolean);
+  return parts.length > 0 ? `سياق النص — ${parts.join("، ")}\n` : "";
+}
+
+export async function evaluateContent(text: string, context?: ReviewContext): Promise<ContentEvaluation> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
     console.warn("[evaluation] ANTHROPIC_API_KEY missing — returning fallback evaluation");
@@ -240,7 +256,7 @@ export async function evaluateContent(text: string): Promise<ContentEvaluation> 
         thinking: { type: "disabled" },
         max_tokens: 4096,
         system: [{ type: "text", text: buildEvaluationSystem(), cache_control: { type: "ephemeral" } }],
-        messages: [{ role: "user", content: `«${text}»` }]
+        messages: [{ role: "user", content: `${buildContextLine(context)}«${text}»` }]
       });
 
       if (message.stop_reason === "max_tokens") {

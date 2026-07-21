@@ -282,7 +282,7 @@ export async function reviewContent(text: string, kind: ContentKind = "post", co
   // Run compliance analysis and content evaluation (risk + professionalism + language) in parallel
   const [semanticResult, contentEval] = await Promise.all([
     runSemanticAnalysis(text, context, kind),
-    evaluateContent(text)
+    evaluateContent(text, context)
   ]);
   return buildReviewResult(text, kind, context, semanticResult, contentEval);
 }
