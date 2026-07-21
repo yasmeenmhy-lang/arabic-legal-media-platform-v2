@@ -945,10 +945,17 @@ export default function ContentStudioPage() {
     }
   }
 
-  async function pollGenerationJob(jobId: string, onDraft?: (text: string) => void): Promise<{ text?: string; error?: string; truncated?: boolean; review?: ReviewResult }> {
-    const deadline = Date.now() + 10 * 60 * 1000;
+  async function pollGenerationJob(jobId: string, onDraft?: (text: string) => void, startedAt?: number): Promise<{ text?: string; error?: string; truncated?: boolean; review?: ReviewResult }> {
+    // الحدّ الزمني مطلق من بدء المهمة لا من كل استطلاع — فمهمة ماتت على الخادم لا
+    // يُعاد استطلاعها بلا نهاية عند كل تحديث أو دخول (سبب تعليق الصفحة). حدّ الخادم
+    // ٣٠٠ ثانية، فأي مهمة تجاوزت نحو ست دقائق ميتة قطعاً. وعند البلوغ نُحرّر المهمة
+    // المحفوظة كي لا تُستأنف ثانيةً.
+    const deadline = (startedAt ?? Date.now()) + 6 * 60 * 1000;
     for (;;) {
-      if (Date.now() > deadline) return { error: "طالت المتابعة أكثر من المتوقع — أعد المحاولة." };
+      if (Date.now() > deadline) {
+        try { window.localStorage.removeItem(scopedKey(PENDING_GENERATION_KEY)); } catch { /* بيئة بلا تخزين */ }
+        return { error: "طالت المتابعة أكثر من المتوقع — أعد المحاولة." };
+      }
       try {
         const res = await fetch(`/api/content-studio/generate-status?id=${encodeURIComponent(jobId)}`);
         const data = (await res.json()) as { status?: string; text?: string; error?: string; truncated?: boolean; partial?: string; review?: ReviewResult };
@@ -976,8 +983,16 @@ export default function ContentStudioPage() {
     try { raw = window.localStorage.getItem(scopedKey(PENDING_GENERATION_KEY)) ?? ""; } catch { return; }
     if (!raw) return;
     let jobId = "";
-    try { jobId = (JSON.parse(raw) as { jobId?: string }).jobId ?? ""; } catch { /* قيمة تالفة */ }
-    if (!jobId) {
+    let startedAt = 0;
+    try {
+      const parsed = JSON.parse(raw) as { jobId?: string; at?: number };
+      jobId = parsed.jobId ?? "";
+      startedAt = parsed.at ?? 0;
+    } catch { /* قيمة تالفة */ }
+    // مهمة قديمة تجاوزت حدّ الخادم (نحو ٦ دقائق) ميتة قطعاً — لا تُستأنف، تُحرَّر فوراً
+    // كي لا تعلق الصفحة على «يُنشئ المحتوى» بلا نهاية (سبب التعليق المستمر بعد الدخول).
+    const stale = startedAt > 0 && Date.now() - startedAt > 6 * 60 * 1000;
+    if (!jobId || stale) {
       try { window.localStorage.removeItem(scopedKey(PENDING_GENERATION_KEY)); } catch { /* تجاهل */ }
       return;
     }
@@ -985,7 +1000,7 @@ export default function ContentStudioPage() {
     setGenerating(true);
     setGenerateError("");
     void (async () => {
-      const outcome = await pollGenerationJob(jobId, showDraft);
+      const outcome = await pollGenerationJob(jobId, showDraft, startedAt);
       deliverGenerationOutcome(outcome);
       setGenerating(false);
     })();

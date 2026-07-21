@@ -73,6 +73,10 @@ export async function failJob(sql: Sql, id: string, error: string) {
 
 export async function getJob(sql: Sql, id: string): Promise<ContentJob | null> {
   await ensureJobsTable(sql);
+  // حارس المهمة العالقة (بقرار مالكة المنصة لمنع تعليق الصفحة): مهمة بقيت «pending»
+  // أطول من حدّ الخادم (٣٠٠ ثانية) بهامش أمان ⇒ قُتلت في منتصفها ولن تكتمل أبداً.
+  // نُعلّمها فاشلة عند أول استعلام بعد ذلك، فتُنهي الواجهة انتظارها بدل التعليق الأبدي.
+  await sql`UPDATE content_jobs SET status = 'error', error = ${"تعذّر إكمال الإنشاء في الوقت المتاح — أعد المحاولة."}, updated_at = now() WHERE id = ${id} AND status = 'pending' AND created_at < now() - interval '6 minutes'`;
   const rows = (await sql`SELECT id, status, result_text, partial_text, error, truncated, review_json FROM content_jobs WHERE id = ${id}`) as ContentJob[];
   return rows[0] ?? null;
 }
