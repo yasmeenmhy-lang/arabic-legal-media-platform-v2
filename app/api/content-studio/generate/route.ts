@@ -244,6 +244,7 @@ export async function POST(request: Request) {
 ٢. حدّد المؤسسة أو الهيئة الأعلى سلطةً واختصاصاً في هذا المجال تحديداً، واستشهد بوثيقتها لا بمجرد اسمها.
 ٣. اقتصر على المراجع التي تُضيف قيمة فعلية — لا تُدرج مرجعاً لأنه مشهور بل لأنه الأدق في هذا السياق.
 ٤. ضابط المصادر الخارجية الصارم: إن لم تكن متيقناً فعلاً من تفصيلة مصدر خارجي — اسم دراسة أو سلسلة بحثية بعينها، سنة، رقم، نسبة مئوية — فممنوع ذكرها إطلاقاً: استخدم النسبة العامة للجهة ("وفق تقارير [اسم المؤسسة]"، "بحسب ما نشرته [الجهة]") دون التفصيلة، أو استغنِ عنها كلياً. اختلاق تفصيلة محددة أشد ضرراً من غيابها، والصياغة العامة المنسوبة ليست ضعفاً بل أمانة.
+٥. أسبقية الأمانة على الفكرة: إذا طلبت فكرة المستخدم ما تحظره القواعد — مثل «ادعم بدراسات دولية» وأنت غير متيقن من دراسة بعينها — فطلبُه لا يبيح الاختلاق أبداً: لبِّ روح الطلب بالمتاح المشروع (النسبة العامة الصادقة لجهات حقيقية، الاتجاهات المعروفة بثقة دون أسماء وأرقام مختلقة) — ولا تحاول إرضاء الفكرة بتفصيلة غير متيقنة فتُحجب كلياً.
 
 تفرّد النص إلزامي (المنصة يستخدمها محامون كثر وقد يتناولون موضوعاً واحداً): لا تكتب بقالب واحد متكرر — نوّع الافتتاحية جذرياً بين النصوص (واقعة عملية، حكم نظامي مباشر، رقم مادة وأثرها، مفارقة تحليلية، خلاصة خبير تُفصَّل بعدها — وأخيراً سؤال تحليلي رصين يؤسس لإشكالية نظامية، لا سؤال تشويقي موجه للقارئ)، ونوّع بنية العرض وترتيب الحجج والأمثلة، واستمد زاوية النص من مدخلات هذا المستخدم تحديداً (تخصصه وجمهوره وهدفه وفكرته) — بحيث لو طلب مستخدمان الموضوع نفسه خرج لكلٍّ نص مختلف البصمة في افتتاحيته وبنيته وأمثلته.
 
@@ -363,84 +364,89 @@ ${briefType
     // ثلاث جولات كحد أقصى (كتابة + تصحيحان) — بوابة «كل المؤشرات بلا استثناء»
     // تحجب أي بقية، والجولة الثالثة ترفع حظ الخروج بنص مستوفٍ بدل «أعد المحاولة»؛
     // المهام الخلفية تتسع للوقت الإضافي بقرار مالكة المنصة (لا يلزم بقاء المستخدم).
-    for (let attempt = 0; attempt < 3; attempt++) {
-      const produced = await produceComplete(promptText);
-      // حارس نطاق المملكة الحتمي — يُطبَّق قبل المسودة والحاكم والتسليم فلا يظهر كيان خاطئ في أي مرحلة
-      text = produced.text;
-      truncated = produced.truncated;
-      if (!text) return { kind: "err", error: "لم يُنشأ أي محتوى" };
-      // ★ بأمر مالكة المنصة: التسليم حتمي والتوليد احتمالي معزول داخل المنصة —
-      // لا تُعرض أي مسودة قبل اجتيازها كل المؤشرات؛ لا يصل الشاشة إلا الناتج
-      // النهائي المستوفي (كان عرض المسودة الأولى «ريثما يكتمل الفحص» خرقاً لهذا)
-
-      // نوع موجز بلغ السقف = تضخّم خارج قالبه — يُعاد أقصر ليعكس النوع
-      const inflated = !isOpenLength && truncated;
-
-      // بوابة الحاكم — حصن حتمي + عمق دلالي + جودة اللغة، إلزامية على كل الأنواع.
-      // الوسوم لا نحو لها فيُقصر فحصها على الامتثال دون اللغة. تُبقي نتائج الذكاء
-      // الخام (gov.semanticResult/contentEval) — نفس الحكم يُستخدم لاحقاً لبناء تقرير
-      // المراجعة الكامل بدل استدعاء ذكاء ثانٍ مستقل قد يخالف هذا الحكم بعينه.
+    // تأليف مرشح واحد وفحصه بكل المؤشرات — لبنة الجولات والسباق معاً
+    type Candidate = {
+      text: string; truncated: boolean; inflated: boolean; gov: GovernTextFullResult;
+      citationIssues: ReturnType<typeof verifyCorpusCitations>;
+      hardLanguageError: boolean; riskBlocked: boolean; deliverable: boolean; corrections: string[];
+    };
+    const produceAndJudge = async (prompt: string): Promise<Candidate | null> => {
+      const produced = await produceComplete(prompt);
+      if (!produced.text) return null;
+      const candidateText = produced.text;
+      const inflated = !isOpenLength && produced.truncated;
+      // بوابة الحاكم — حصن حتمي + عمق دلالي + جودة اللغة؛ نتائجها الخام تُبقى
+      // ليُبنى منها تقرير المراجعة الموحد نفسه (الحكم يسافر مع النص)
       const gov = await governTextFull(
-        text,
+        candidateText,
         { contentType, channel, audience, purpose },
         contentKind,
         { checkLanguage: contentType !== "وسم" }
       );
-      clean = gov.clean;
-      compliant = gov.compliant;
-      lastGov = gov;
-
-      // ★ إنفاذ قاعدة التسليم الأساسية PLATFORM_DELIVERY_RULE (بنص مالكة المنصة في
-      // lib/governance.ts): البند الأول (المخالفة النظامية) ينفذه compliant،
-      // وهذان ينفذان البندين الثاني (الأخطاء اللغوية) والثالث (المخاطر المهنية):
-      // خطأ لغوي صلب (إملاء/نحو) حاجب — الملاحظة الأسلوبية الذوقية ليست خطأً لغوياً
-      hardLanguageError = (gov.contentEval?.language.issues ?? []).some(
+      // ★ إنفاذ قاعدة التسليم الأساسية PLATFORM_DELIVERY_RULE: المخالفة النظامية
+      // (compliant) والخطأ اللغوي الصلب والمخاطر فوق «منخفض» (أو تعذّر حكمها)
+      // كلها حاجبة — والملاحظة الأسلوبية حاجبة ضمن clean (كل المؤشرات بلا استثناء)
+      const hardLang = (gov.contentEval?.language.issues ?? []).some(
         (i) => i.category === "spelling" || i.category === "grammar"
       );
-      // النص المولد كله من صياغة المنصة، فأي مستوى مخاطر فوق «منخفض» في حكم
-      // التقييم المرافق = مخاطر مهنية من صياغتها ⇒ حاجب للتسليم (الوسوم بلا تقييم
-      // لغوي/مخاطر أصلاً contentEval=null — لا سرد فيها يحمل مخاطر صياغة)
-      // «تعذّر» في شرح المخاطر = حكم المخاطر نفسه لم يكتمل ⇒ مؤشر غير متحقق ⇒ لا تسليم
-      riskBlocked =
+      const risk =
         gov.contentEval !== null &&
         (gov.contentEval.risks.level !== "منخفض" || (gov.contentEval.risks.explanation ?? "").startsWith("تعذّر"));
-      if (riskBlocked && gov.contentEval) {
-        // سجل خادمي تشخيصي — سبب الحجب لازم للمعايرة والمراجعة، ولا يصل للمستخدم
+      if (risk && gov.contentEval) {
         console.log("[generate:risk-gate]", gov.contentEval.risks.level, "|", gov.contentEval.risks.explanation.slice(0, 300));
       }
-
-      // المتحقق الحتمي من الاستشهادات بالمتن المعتمد — إنفاذ برمجي قطعي (بلا ذكاء)
-      // لبند القاعدة العليا «يُحظر اختلاق المواد أو القواعد أو الاستشهادات»:
-      // استشهاد بمرجع غير موجود أو اقتباس لا يطابق نصه الرسمي = مخالفة حاجبة للتسليم
-      lastCitationIssues = verifyCorpusCitations(text);
-
-      // نظيف من كل النواحي (امتثال + لغة وأسلوب ووضوح + مخاطر منخفضة + استشهادات مطابقة)
-      // ومطابق لقالب نوعه → يُسلَّم
-      if (clean && !inflated && !riskBlocked && lastCitationIssues.length === 0) {
-        return { kind: "ok", text, truncated: false, gov };
-      }
-
-      // بناء تصحيحات إلزامية لإعادة الكتابة كاملةً في المحاولة التالية
+      // المتحقق الحتمي من الاستشهادات بالمتن المعتمد — برمجي قطعي، حاجب للتسليم
+      const citationIssues = verifyCorpusCitations(candidateText);
       const corrections: string[] = [];
-      if (inflated) {
-        corrections.push(`- تجاوزتَ قالب النوع «${contentType}» وطوله المحدد: النص يجب أن يلتزم بنية هذا النوع وإيجازه — أعد كتابته أقصر ومكتمل المعنى دون قطع.`);
-      }
-      corrections.push(...lastCitationIssues.map((issue) => `- ${issue.message} صحّح المرجع أو الاقتباس ليطابق المتن الرسمي حرفياً، أو احذف الاستشهاد.`));
-      if (riskBlocked && gov.contentEval) {
+      if (inflated) corrections.push(`- تجاوزتَ قالب النوع «${contentType}» وطوله المحدد: النص يجب أن يلتزم بنية هذا النوع وإيجازه — أعد كتابته أقصر ومكتمل المعنى دون قطع.`);
+      corrections.push(...citationIssues.map((issue) => `- ${issue.message} صحّح المرجع أو الاقتباس ليطابق المتن الرسمي حرفياً، أو احذف الاستشهاد.`));
+      if (risk && gov.contentEval) {
         corrections.push(
           `- حكم المخاطر المهنية على نصك: «${gov.contentEval.risks.level}» — السبب: ${gov.contentEval.risks.explanation} المعالجة الإلزامية: ${gov.contentEval.risks.fix || "أزل مصدر الخطر من الصياغة نفسها"} — وإن كان مصدر الخطر سردَ واقعة استشارة أو موكل أو شخص، فأعد بناء الفكرة مثالاً افتراضياً عاماً معلناً أو نمطاً مجمّعاً بلا واقعة بعينها.`
         );
       }
       corrections.push(...gov.corrections);
-      // تصحيح موضعي لا إعادة تأليف: إعادة الكتابة الكاملة كانت تُدخل مشكلات جديدة
-      // في مواضع كانت سليمة (لعبة المطرقة) فتستهلك الجولات — الإبقاء على ما اجتاز
-      promptText = `${user}\n\nتصحيحات إلزامية قبل الإخراج — نصك السابق (أدناه) رصد عليه حاكم المنصة النقاط المحددة التالية فقط. أخرج النص نفسه معالجاً هذه النقاط حصراً بأدنى تغيير ممكن، وأبقِ كل ما سواها كما هو حرفياً — لا تعد صياغة ما اجتاز الفحص:\n${corrections.join("\n")}\n\nنصك السابق:\n${text}`;
+      return {
+        text: candidateText, truncated: produced.truncated, inflated, gov, citationIssues,
+        hardLanguageError: hardLang, riskBlocked: risk,
+        deliverable: gov.clean && !inflated && !risk && citationIssues.length === 0,
+        corrections,
+      };
+    };
+
+    for (let attempt = 0; attempt < 3; attempt++) {
+      // سباق المرشحين (بقرار مالكة المنصة للتسريع): الجولة الأولى تؤلف نسختين
+      // بالتوازي وتفحصهما بالتوازي — أول مستوفٍ يُسلَّم فوراً، فتنتهي أغلب الطلبات
+      // في جولة واحدة بدل جولتين أو ثلاث؛ جولات التصحيح موضعية بمرشح واحد
+      const candidates = (attempt === 0
+        ? await Promise.all([produceAndJudge(promptText), produceAndJudge(promptText)])
+        : [await produceAndJudge(promptText)]
+      ).filter((c): c is Candidate => c !== null);
+      if (candidates.length === 0) return { kind: "err", error: "لم يُنشأ أي محتوى" };
+
+      const winner = candidates.find((c) => c.deliverable);
+      if (winner) return { kind: "ok", text: winner.text, truncated: false, gov: winner.gov };
+
+      // لا مستوفي بعد: يُختار الأقرب (أقل تصحيحات) لجولة تصحيح موضعي
+      const best = [...candidates].sort((a, b) => a.corrections.length - b.corrections.length)[0];
+      text = best.text;
+      truncated = best.truncated;
+      clean = best.gov.clean;
+      compliant = best.gov.compliant;
+      lastGov = best.gov;
+      hardLanguageError = best.hardLanguageError;
+      riskBlocked = best.riskBlocked;
+      lastCitationIssues = best.citationIssues;
+      // تصحيح موضعي لا إعادة تأليف — الإبقاء حرفياً على ما اجتاز ومعالجة المرصود حصراً
+      promptText = `${user}\n\nتصحيحات إلزامية قبل الإخراج — نصك السابق (أدناه) رصد عليه حاكم المنصة النقاط المحددة التالية فقط. أخرج النص نفسه معالجاً هذه النقاط حصراً بأدنى تغيير ممكن، وأبقِ كل ما سواها كما هو حرفياً — لا تعد صياغة ما اجتاز الفحص:\n${best.corrections.join("\n")}\n\nنصك السابق:\n${best.text}`;
     }
 
     // استُنفدت المحاولات: المخالفة النظامية أو الاستشهاد المغلوط يحجبان التسليم نهائياً —
-    // لا يُسلَّم نص خارج إطار الحاكم ولا نص باستشهاد لا يطابق المتن الرسمي (فشل مغلق)
+    // لا يُسلَّم نص خارج إطار الحاكم ولا نص باستشهاد لا يطابق المتن الرسمي (فشل مغلق).
+    // الرسالة تحمل أبرز سبب فعلي (بلغة القاضي المهنية) — لا انتظار طويلاً ثم رفض مبهم
+    const topReason = (lastGov?.corrections[0] ?? "").replace(/^-\s*/, "").slice(0, 180);
     if (!compliant) {
-      return { kind: "err", error: "تعذّر إخراج نص مطابق لحاكم المنصة (قواعد السلوك المهني واللائحة التنفيذية). أعد المحاولة أو عدّل مدخلات السياق." };
+      return { kind: "err", error: `تعذّر إخراج نص مطابق لحاكم المنصة (قواعد السلوك المهني واللائحة التنفيذية).${topReason ? ` أبرز سبب: ${topReason}` : ""} أعد المحاولة أو عدّل مدخلات السياق.` };
     }
     if (lastCitationIssues.length > 0) {
       return { kind: "err", error: "تعذّر إخراج نص باستشهادات مطابقة للمتن الرسمي — رُصد استشهاد لا يطابق قواعد السلوك المهني أو اللائحة التنفيذية نصاً. أعد المحاولة." };

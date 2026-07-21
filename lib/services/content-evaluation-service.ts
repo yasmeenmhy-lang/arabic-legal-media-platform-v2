@@ -20,7 +20,9 @@ import type {
 const LANGUAGE_THRESHOLD = 75;
 const PROFESSIONALISM_THRESHOLD = 80;
 
-function buildEvaluationPrompt(text: string): string {
+// الجزء الثابت كاملاً في system مع تخزين مؤقت لدى المزود — كان يُعاد إرساله
+// وترميزه مع كل طلب داخل رسالة المستخدم فيبطئ ويكلف؛ النص المتغير وحده في الرسالة
+function buildEvaluationSystem(): string {
   return `${PLATFORM_SUPREME_RULE}
 
 ${CONTENT_QUALITY_STANDARDS}
@@ -41,7 +43,7 @@ ${KINGDOM_STYLE_RULE}
 هذه منصة داخلية مخصصة للمحامين المرخصين فقط. النص أدناه كتبه محامٍ مرخص ويريد نشره على وسائل التواصل الاجتماعي. المحامي مسؤول قانونياً ومهنياً عن كل ما ينشره. القواعد المرجعية هي قواعد السلوك المهني للمحامين في المملكة العربية السعودية واللائحة التنفيذية لنظام المحاماة.
 
 ## النص المراد تقييمه
-«${text}»
+يصلك النص كاملاً في رسالة المستخدم بين علامتي «...» — قيّمه هو حصراً.
 
 ## المهمة
 قيّم النص على ثلاثة محاور وفق القواعد المرجعية أعلاه وأرجع النتيجة بصيغة JSON فقط.
@@ -229,7 +231,8 @@ export async function evaluateContent(text: string): Promise<ContentEvaluation> 
         // غير 1.0 بخطأ 400 — لا يوجد خيار «حرارة صفر» على هذا النموذج، فلا تُضبط.
         thinking: { type: "disabled" },
         max_tokens: 4096,
-        messages: [{ role: "user", content: buildEvaluationPrompt(text) }]
+        system: [{ type: "text", text: buildEvaluationSystem(), cache_control: { type: "ephemeral" } }],
+        messages: [{ role: "user", content: `«${text}»` }]
       });
 
       if (message.stop_reason === "max_tokens") {
