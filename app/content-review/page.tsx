@@ -1121,44 +1121,6 @@ export default function ContentReviewPage() {
           </div>
         )}
 
-        {/* إقرار وجود مرجع في النص (بقرار مالكة المنصة) — عند التفعيل تُعزَّز الصياغة
-            المحسّنة بمرجع موثّق حقيقي من المصادر المعتمدة ويُوثّق برابطه. */}
-        <div className="mt-3 rounded-lg border border-line bg-paper/50 p-3">
-          <label className="flex cursor-pointer items-start justify-between gap-3">
-            <span>
-              <span className="text-sm text-ink/80">هل يتضمن نصك مرجعاً أو دراسة؟</span>
-              <span className="mt-0.5 block text-xs leading-5 text-ink/45">
-                عند التفعيل، تُعزَّز الصياغة المحسّنة بمرجع موثّق من المصادر المعتمدة ويُوثّق برابطه الرسمي.
-              </span>
-            </span>
-            <button
-              type="button"
-              role="switch"
-              aria-checked={reviewHasSource}
-              onClick={() => setReviewHasSource((v) => !v)}
-              className={`relative mt-0.5 h-6 w-11 shrink-0 rounded-full transition ${reviewHasSource ? "bg-palm" : "bg-line"}`}
-            >
-              <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all ${reviewHasSource ? "right-0.5" : "right-[22px]"}`} />
-            </button>
-          </label>
-
-          {reviewHasSource && (
-            <div className="mt-3 border-t border-line pt-3">
-              <p className="mb-1.5 text-xs leading-5 text-ink/50">
-                صِف المرجع الذي تريد الاستناد إليه أو الصق رابطه؛ ويبقى الاستناد محصوراً في المصادر المعتمدة.
-              </p>
-              <input
-                type="text"
-                value={reviewSourceHint}
-                onChange={(e) => setReviewSourceHint(e.target.value)}
-                placeholder="مثال: دراسة عن أثر شرط التحكيم — أو الصق رابط المرجع"
-                maxLength={500}
-                className="w-full rounded-lg border border-line p-2.5 text-sm transition focus:border-palm focus:outline-none"
-              />
-            </div>
-          )}
-        </div>
-
         <div className="mt-3">
           <InlineContentGuidance review={review} draftText={text} onApplyRewrite={applyRewrite} loading={loading} />
         </div>
@@ -1930,7 +1892,7 @@ export default function ContentReviewPage() {
 
           <section id="improvements" className="space-y-5 scroll-mt-24">
           <Panel id="rewrite" className="scroll-mt-24">
-            <SectionTitle title="4. الصياغة المقترحة وأثر التحسين" subtitle="الذكاء الاصطناعي يولّد صياغة معالِجة لجميع الملاحظات الامتثالية واللغوية. تُعاد المراجعة فعلياً بعد التطبيق." />
+            <SectionTitle title="4. معالجة الملاحظات وإعادة الصياغة" subtitle="الذكاء الاصطناعي يولّد صياغة معالِجة لجميع الملاحظات الامتثالية واللغوية. تُعاد المراجعة فعلياً بعد التطبيق." />
 
             {/* كتلة الصياغة الذكية */}
             <div className="mb-5 rounded-xl border border-violetBorder bg-violetSoft p-5">
@@ -1948,6 +1910,45 @@ export default function ContentReviewPage() {
                   <Sparkles size={15} aria-hidden="true" />
                   {suggestingAI ? "جار الإنشاء..." : aiSuggestion ? "إنشاء صياغة جديدة" : "صياغة مقترحة"}
                 </button>
+              </div>
+
+              {/* إقرار وجود مرجع (بقرار مالكة المنصة) — موضعه هنا لأنه يوجّه الصياغة
+                  المقترحة قبل توليدها: عند التفعيل تُعزَّز بمرجع موثّق من المصادر
+                  المعتمدة ويُوثّق برابطه، ويُصف المرجع أو يُلصق رابطه لتوجيه الاستناد. */}
+              <div className="mt-4 rounded-lg border border-line bg-white/70 p-3">
+                <label className="flex cursor-pointer items-start justify-between gap-3">
+                  <span>
+                    <span className="text-sm text-ink/80">هل يتضمن نصك مرجعاً أو دراسة؟</span>
+                    <span className="mt-0.5 block text-xs leading-5 text-ink/45">
+                      عند التفعيل، تُعزَّز الصياغة المقترحة بمرجع موثّق من المصادر المعتمدة ويُوثّق برابطه الرسمي.
+                    </span>
+                  </span>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={reviewHasSource}
+                    onClick={() => setReviewHasSource((v) => !v)}
+                    className={`relative mt-0.5 h-6 w-11 shrink-0 rounded-full transition ${reviewHasSource ? "bg-palm" : "bg-line"}`}
+                  >
+                    <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all ${reviewHasSource ? "right-0.5" : "right-[22px]"}`} />
+                  </button>
+                </label>
+
+                {reviewHasSource && (
+                  <div className="mt-3 border-t border-line pt-3">
+                    <p className="mb-1.5 text-xs leading-5 text-ink/50">
+                      صِف المرجع الذي تريد الاستناد إليه أو الصق رابطه؛ ويبقى الاستناد محصوراً في المصادر المعتمدة.
+                    </p>
+                    <input
+                      type="text"
+                      value={reviewSourceHint}
+                      onChange={(e) => setReviewSourceHint(e.target.value)}
+                      placeholder="مثال: دراسة عن أثر شرط التحكيم — أو الصق رابط المرجع"
+                      maxLength={500}
+                      className="w-full rounded-lg border border-line p-2.5 text-sm transition focus:border-palm focus:outline-none"
+                    />
+                  </div>
+                )}
               </div>
 
               {suggestingAI ? (

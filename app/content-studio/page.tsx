@@ -714,10 +714,14 @@ export default function ContentStudioPage() {
   const [contentId, setContentId] = useState<string | undefined>();
   const [savedStudioVisuals, setSavedStudioVisuals] = useState<StoredVisual[]>([]);
 
-  // AI full-rewrite suggestion (نص مقترح محسّن)
+  // AI full-rewrite suggestion (معالجة الملاحظات وإعادة الصياغة)
   const [improvedLoading, setImprovedLoading] = useState(false);
   const [improvedTextAI, setImprovedTextAI] = useState("");
   const [improvedError, setImprovedError] = useState("");
+  // إقرار وجود مرجع في مسار إعادة الصياغة (بقرار مالكة المنصة) — يوجّه دعم الصياغة
+  // بمرجع موثّق من المصادر المعتمدة، تماماً كنظيره في صفحة المراجعة.
+  const [improvedHasSource, setImprovedHasSource] = useState(false);
+  const [improvedSourceHint, setImprovedSourceHint] = useState("");
 
   // Action feedback
   const [actionMsg, setActionMsg] = useState("");
@@ -1374,6 +1378,9 @@ export default function ContentStudioPage() {
             excerpt: i.excerpt ?? "",
             suggestion: i.suggestion ?? "",
           })),
+          // إقرار المرجع — يُفعّل البحث الحي ودعم الصياغة بمصدر موثّق (اختياري)
+          hasSource: improvedHasSource || undefined,
+          sourceHint: improvedHasSource ? (improvedSourceHint.trim() || undefined) : undefined,
         }),
       });
       const payload = (await res.json().catch(() => null)) as { data?: { suggestedText?: string }; error?: string } | null;
@@ -4196,11 +4203,51 @@ export default function ContentStudioPage() {
               <Panel className="border-violetBorder bg-violetSoft">
                 <div className="mb-3 flex items-center gap-2">
                   <Sparkles size={16} className="text-violet" aria-hidden="true" />
-                  <p className="text-sm font-semibold text-violetText">نص مقترح محسّن</p>
+                  <p className="text-sm font-semibold text-violetText">معالجة الملاحظات وإعادة الصياغة</p>
                 </div>
                 <p className="mb-3 text-xs leading-6 text-violetText/70">
                   إعادة صياغة كاملة للمحتوى تعالج جميع الملاحظات وفق قواعد السلوك المهني واللائحة التنفيذية، وتُفحص آلياً عبر محرك الامتثال قبل عرضها.
                 </p>
+
+                {/* إقرار وجود مرجع (بقرار مالكة المنصة) — يوجّه إعادة الصياغة قبل توليدها:
+                    عند التفعيل تُعزَّز بمرجع موثّق من المصادر المعتمدة ويُوثّق برابطه.
+                    مطابق لنظيره في صفحة المراجعة ليتوحّد القسم اسماً ووظيفةً. */}
+                <div className="mb-4 rounded-lg border border-line bg-white/70 p-3">
+                  <label className="flex cursor-pointer items-start justify-between gap-3">
+                    <span>
+                      <span className="text-sm text-ink/80">هل يتضمن نصك مرجعاً أو دراسة؟</span>
+                      <span className="mt-0.5 block text-xs leading-5 text-ink/45">
+                        عند التفعيل، تُعزَّز الصياغة المقترحة بمرجع موثّق من المصادر المعتمدة ويُوثّق برابطه الرسمي.
+                      </span>
+                    </span>
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={improvedHasSource}
+                      onClick={() => setImprovedHasSource((v) => !v)}
+                      className={`relative mt-0.5 h-6 w-11 shrink-0 rounded-full transition ${improvedHasSource ? "bg-palm" : "bg-line"}`}
+                    >
+                      <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all ${improvedHasSource ? "right-0.5" : "right-[22px]"}`} />
+                    </button>
+                  </label>
+
+                  {improvedHasSource && (
+                    <div className="mt-3 border-t border-line pt-3">
+                      <p className="mb-1.5 text-xs leading-5 text-ink/50">
+                        صِف المرجع الذي تريد الاستناد إليه أو الصق رابطه؛ ويبقى الاستناد محصوراً في المصادر المعتمدة.
+                      </p>
+                      <input
+                        type="text"
+                        value={improvedSourceHint}
+                        onChange={(e) => setImprovedSourceHint(e.target.value)}
+                        placeholder="مثال: دراسة عن أثر شرط التحكيم — أو الصق رابط المرجع"
+                        maxLength={500}
+                        className="w-full rounded-lg border border-line p-2.5 text-sm transition focus:border-palm focus:outline-none"
+                      />
+                    </div>
+                  )}
+                </div>
+
                 {improvedTextAI ? (
                   <>
                     <p className="whitespace-pre-wrap rounded-lg bg-white/70 p-4 text-sm leading-8 text-violetText">{improvedTextAI}</p>
