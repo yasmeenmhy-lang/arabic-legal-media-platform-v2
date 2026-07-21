@@ -4,6 +4,7 @@ import { badRequest } from "@/lib/api";
 import { AI_CONSTITUTION } from "@/lib/governance";
 import { governTextFull, type GovernTextFullResult } from "@/lib/services/governor-gate";
 import { verifyCorpusCitations } from "@/lib/services/citation-verifier";
+import { needsResearch, researchTrustedSources } from "@/lib/services/web-research-service";
 import { buildReviewResult } from "@/lib/services/review-service";
 import { enhanceReviewOutput } from "@/lib/services/ai-enhancement-service";
 import { describeProviderError } from "@/lib/ai-provider-errors";
@@ -362,6 +363,19 @@ ${briefType
     let riskBlocked = false;
     let lastGov: GovernTextFullResult | null = null;
     let lastCitationIssues: ReturnType<typeof verifyCorpusCitations> = [];
+
+    // ★ طبقة البحث الحي (بقرار مالكة المنصة): مرة واحدة مشتركة قبل السباق — مشروطة
+    // (لا تُستدعى إلا حين يحتاجها المصدر أو الموضوع)، فتُجلب مصادر موثوقة حقيقية
+    // يستند إليها الكاتب بدل التخمين. لا تمسّ الفحص إطلاقاً: النص الناتج يمرّ على
+    // كل المؤشرات كاملةً. فشلها لا يُسقط التوليد — يكمل الكاتب بضوابطه الحالية.
+    if (needsResearch(source, topic)) {
+      const research = await researchTrustedSources({ specialty, source, topic, contentType });
+      if (research) {
+        console.log("[generate:research]", research.sources.length, "مصدر موثوق");
+        const sourceLines = research.sources.map((s) => `- ${s.title}: ${s.url}`).join("\n");
+        promptText = `${user}\n\n★ مصادر موثوقة مجلوبة من البحث الحي في جهات رسمية وأكاديمية معتبرة — استند إليها حصراً عند أي حكم نظامي أو رقم أو دراسة أو إحصائية، وانسب المعلومة لجهتها باسمها مع ذكر رابطها في النص عند الاستشهاد. ممنوع الاستشهاد برقم مادة أو دراسة أو إحصائية من ذاكرتك خارج هذه المصادر؛ وما لا تجد له سنداً هنا اعرضه نسبةً عامة صادقة دون رقم مخترع.\n\nتقرير المصادر:\n${research.briefing}\n\nقائمة الروابط للاستشهاد:\n${sourceLines}`;
+      }
+    }
 
     // أربع جولات كحد أقصى (كتابة + ثلاثة تصحيحات) — بوابة «كل المؤشرات بلا استثناء»
     // تحجب أي بقية، والجولة الثالثة ترفع حظ الخروج بنص مستوفٍ بدل «أعد المحاولة»؛
