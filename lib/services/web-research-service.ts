@@ -136,6 +136,9 @@ function extractText(content: unknown[]): string {
 export async function researchTrustedSources(context: {
   specialty?: string; source?: string; topic?: string; contentType?: string;
   spec?: SourceSpec;
+  // سقف زمني للبحث (اختياري). المسار المتزامن (إعادة الصياغة) يمرّر سقفاً أقصر كي
+  // يبقى الطلب قصيراً فلا ينقطع اتصال الجوال؛ المسار الخلفي (الإنشاء) يحتمل الأطول.
+  timeoutMs?: number;
 }): Promise<ResearchResult | null> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) return null;
@@ -143,7 +146,7 @@ export async function researchTrustedSources(context: {
   // الفلترة الديناميكية قد يطول، وتجاوزه حدَّ الخادم يقتل الطلب فتعلق الواجهة.
   // إن تجاوز البحث السقف يُلغى ويكمل الكاتب بضوابطه — البحث تحسين لا شرط.
   const controller = new AbortController();
-  const abortTimer = setTimeout(() => controller.abort(), 60_000);
+  const abortTimer = setTimeout(() => controller.abort(), context.timeoutMs ?? 60_000);
   try {
     const response = await fetch(
       `${process.env.ANTHROPIC_BASE_URL ?? "https://api.anthropic.com"}/v1/messages`,

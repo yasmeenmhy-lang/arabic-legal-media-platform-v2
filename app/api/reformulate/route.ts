@@ -133,6 +133,9 @@ export async function POST(request: Request) {
       topic: text.slice(0, 500),
       // وصف/رابط المرجع الذي حدده المستخدم يوجّه البحث بدقة داخل المصادر المعتمدة
       spec: hint ? { wantSource: true, sourceDesc: hint } : undefined,
+      // مسار متزامن (تنتظره الواجهة على اتصال واحد): سقف بحث أقصر يمنع طول الطلب
+      // وانقطاع اتصال الجوال («Load failed»)؛ يتراجع تلقائياً للنسبة العامة إن نفد.
+      timeoutMs: 30_000,
     });
     if (research) {
       researchSources = research.sources; // للعرض كأدلة مرئية
