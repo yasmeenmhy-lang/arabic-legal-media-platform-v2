@@ -21,10 +21,22 @@ export type ResearchResult = {
   sources: { title: string; url: string }[];
 };
 
-// هل يحتاج هذا الطلب بحثاً حياً؟ (مشروط — بقرار المالكة لتوفير الوقت)
-// نعم حين يستند المحتوى إلى واقعة خارجية (نظام، حكم، دراسة، إحصائية، تطور دولي)؛
-// لا حين يكون توعية عامة بحكم معروف يكفيه المرجع المخزّن في المنصة.
-export function needsResearch(source: string, topic: string): boolean {
+// أقصى عدد مصادر تُسلَّم للكاتب (بقرار المالكة: لا نُغرقه بقائمة طويلة — المقال
+// وغيره يكفيه القليل الموثوق). حد البحث نفسه ٣ عمليات، وهذا حدٌّ على النتائج بعده.
+const MAX_SOURCES_TO_WRITER = 5;
+
+// الأنواع الموجزة والتعريفية والشخصية لا تستند لواقعة خارجية، فلا تحتاج بحثاً
+// إطلاقاً (بقرار المالكة: الإعلان والتعليق واليوميات ونحوها لا تُبحث).
+const NO_RESEARCH_TYPES = new Set([
+  "إعلان مهني", "تعليق", "يوميات", "تصريح", "وسم", "عنوان",
+  "محتوى بصري", "تصدير اجتماعي", "حملة", "خطة نشر",
+]);
+
+// هل يحتاج هذا الطلب بحثاً حياً؟ (مشروط — بقرار المالكة لتوفير الوقت والرصيد)
+// نعم فقط حين: النوع معرفي (لا موجز/تعريفي)، والمحتوى يستند إلى واقعة خارجية
+// (نظام، حكم، دراسة، إحصائية، تطور دولي). ما عدا ذلك يبقى بسرعته بلا بحث.
+export function needsResearch(source: string, topic: string, contentType?: string): boolean {
+  if (contentType && NO_RESEARCH_TYPES.has(contentType)) return false;
   const s = source || "";
   const t = topic || "";
   const sourceAnchored =
@@ -121,7 +133,8 @@ export async function researchTrustedSources(context: {
     if (!response.ok) return null;
     const payload = (await response.json()) as { content?: unknown[] };
     const content = payload.content ?? [];
-    const sources = extractSources(content);
+    // أفضل المصادر فقط (لا نُغرق الكاتب) — بحد أقصى معتمد من المالكة
+    const sources = extractSources(content).slice(0, MAX_SOURCES_TO_WRITER);
     const briefing = extractText(content);
     // لا مصادر مجلوبة أو تقرير فارغ ⇒ لا فائدة من الحقن — يكمل الكاتب بضوابطه
     if (sources.length === 0 || !briefing || briefing.includes("لا توجد مصادر موثوقة")) {
