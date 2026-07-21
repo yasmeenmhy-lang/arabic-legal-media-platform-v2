@@ -6,6 +6,8 @@ import { runSemanticAnalysis } from "@/lib/services/semantic-analysis-service";
 import { evaluateContent } from "@/lib/services/content-evaluation-service";
 import { describeProviderError } from "@/lib/ai-provider-errors";
 import { mentionsSource, researchTrustedSources } from "@/lib/services/web-research-service";
+import { completeJob, createJob, failJob, jobsDb } from "@/lib/content-jobs";
+import { waitUntil } from "@vercel/functions";
 
 // مدة تنفيذ صريحة على فيرسل — إعادة الصياغة دورة ذكاء كاملة (توليد + حكم)
 // تتجاوز المدة الافتراضية القصيرة فتُقطع في منتصفها بدون هذا التصريح.
@@ -109,14 +111,14 @@ async function verifySuggestion(
   return { clean, remainingNotes };
 }
 
-export async function POST(request: Request) {
-  const parsed = schema.safeParse(await request.json());
-  if (!parsed.success) return badRequest("بيانات غير صالحة");
+type ReformOutcome =
+  | { ok: true; suggestedText: string; sources: { title: string; url: string }[] }
+  | { ok: false; status: number; error: string };
 
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) return NextResponse.json({ error: "خدمة التحليل غير متاحة حالياً — تواصل مع مسؤول المنصة." }, { status: 503 });
-
-  const { text, contentType, channel, audience, purpose, charLimit, findings, languageIssues, hasSource, sourceHint } = parsed.data;
+// دورة إعادة الصياغة الكاملة (بحث + كتابة + تحقق + تصحيح) — تُشغَّل خلفياً كي لا
+// يبقى المستخدم على طلب طويل متزامن ينقطع على الجوال. لا تمسّ منطق الفحص إطلاقاً.
+async function runReformulation(data: z.infer<typeof schema>, apiKey: string): Promise<ReformOutcome> {
+  const { text, contentType, channel, audience, purpose, charLimit, findings, languageIssues, hasSource, sourceHint } = data;
   const context = { contentType, channel, audience, purpose };
 
   // ★ طبقة البحث الحي في التحسين (بقرار مالكة المنصة): تعمل فقط إن كان النص المُحسَّن
@@ -133,9 +135,9 @@ export async function POST(request: Request) {
       topic: text.slice(0, 500),
       // وصف/رابط المرجع الذي حدده المستخدم يوجّه البحث بدقة داخل المصادر المعتمدة
       spec: hint ? { wantSource: true, sourceDesc: hint } : undefined,
-      // مسار متزامن (تنتظره الواجهة على اتصال واحد): سقف بحث أقصر يمنع طول الطلب
-      // وانقطاع اتصال الجوال («Load failed»)؛ يتراجع تلقائياً للنسبة العامة إن نفد.
-      timeoutMs: 30_000,
+      // صار المسار خلفياً، فيحتمل السقف الكامل (٦٠ث) لجودة أعلى للمصادر — والدورة
+      // كلها ضمن حدّ الدالة (٣٠٠ث) وحدّ المتابعة (٦ دقائق)، بلا انقطاع على الجوال.
+      timeoutMs: 60_000,
     });
     if (research) {
       researchSources = research.sources; // للعرض كأدلة مرئية
@@ -211,7 +213,7 @@ export async function POST(request: Request) {
 
   try {
     let suggestedText = await callModel(apiKey, systemPrompt, userPrompt);
-    if (!suggestedText) return NextResponse.json({ error: "لم يُنتج النموذج صياغة صالحة" }, { status: 503 });
+    if (!suggestedText) return { ok: false, status: 503, error: "لم يُنتج النموذج صياغة صالحة" };
 
     // جولة تحقق أولى عبر محركي الامتثال واللغة
     let verification = await verifySuggestion(suggestedText, context);
@@ -242,18 +244,52 @@ export async function POST(request: Request) {
 
     // لا تُعرض صياغة غير ملتزمة — القاعدة الدستورية
     if (!verification.clean) {
-      return NextResponse.json(
-        { error: "تعذر إنتاج صياغة ملتزمة بالكامل بقواعد السلوك المهني واللائحة التنفيذية — عدّل النص الأصلي ثم أعد المحاولة." },
-        { status: 422 }
-      );
+      return { ok: false, status: 422, error: "تعذر إنتاج صياغة ملتزمة بالكامل بقواعد السلوك المهني واللائحة التنفيذية — عدّل النص الأصلي ثم أعد المحاولة." };
     }
 
     // حارس نطاق المملكة الحتمي على النص النهائي المنشور
-    return ok({ suggestedText: suggestedText, sources: researchSources.length ? researchSources : undefined });
+    return { ok: true, suggestedText, sources: researchSources };
   } catch (error) {
     const raw = error instanceof Error ? error.message : "خطأ غير متوقع";
     // أخطاء المزود المعروفة (رصيد/مفتاح/ضغط) تُعرض بالعربية بسببها وإجرائها — لا بنصها الإنجليزي الخام
     const message = describeProviderError(raw) ?? raw;
-    return NextResponse.json({ error: message }, { status: 503 });
+    return { ok: false, status: 503, error: message };
   }
+}
+
+export async function POST(request: Request) {
+  const parsed = schema.safeParse(await request.json());
+  if (!parsed.success) return badRequest("بيانات غير صالحة");
+
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) return NextResponse.json({ error: "خدمة التحليل غير متاحة حالياً — تواصل مع مسؤول المنصة." }, { status: 503 });
+
+  // الوضع الأساسي (الإنتاج): مهمة خلفية — كمسار الإنشاء تماماً. الخادم يرد فوراً برقم
+  // مهمة، وتكمل الصياغة عبر waitUntil ولو أُغلقت الصفحة؛ فلا ينقطع طلب طويل على الجوال
+  // («Load failed»). الواجهة تتابع على نقطة حالة الإنشاء نفسها (النتيجة نص + مصادر).
+  const sql = jobsDb();
+  if (sql) {
+    const jobId = crypto.randomUUID();
+    await createJob(sql, jobId);
+    const work = (async () => {
+      try {
+        const r = await runReformulation(parsed.data, apiKey);
+        if (r.ok) {
+          await completeJob(sql, jobId, r.suggestedText, false, undefined, r.sources.length ? JSON.stringify(r.sources) : undefined);
+        } else {
+          await failJob(sql, jobId, r.error);
+        }
+      } catch (error) {
+        const raw = error instanceof Error ? error.message : "خطأ غير متوقع";
+        await failJob(sql, jobId, describeProviderError(raw) ?? raw).catch(() => {});
+      }
+    })();
+    try { waitUntil(work); } catch { void work; }
+    return NextResponse.json({ jobId });
+  }
+
+  // احتياطي (تشغيل محلي بلا قاعدة بيانات): متزامن كالسابق
+  const r = await runReformulation(parsed.data, apiKey);
+  if (r.ok) return ok({ suggestedText: r.suggestedText, sources: r.sources.length ? r.sources : undefined });
+  return NextResponse.json({ error: r.error }, { status: r.status });
 }

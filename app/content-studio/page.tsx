@@ -1391,13 +1391,23 @@ export default function ContentStudioPage() {
           sourceHint: improvedHasSource ? (improvedSourceHint.trim() || undefined) : undefined,
         }),
       });
-      const payload = (await res.json().catch(() => null)) as { data?: { suggestedText?: string; sources?: Source[] }; error?: string } | null;
-      if (!res.ok || !payload?.data?.suggestedText) {
+      const payload = (await res.json().catch(() => null)) as { jobId?: string; data?: { suggestedText?: string; sources?: Source[] }; error?: string } | null;
+      if (!res.ok || !payload) {
         setImprovedError(payload?.error ?? "تعذر إنشاء الصياغة المقترحة — حاول مرة أخرى.");
         return;
       }
-      setImprovedTextAI(payload.data.suggestedText.trim());
-      setImprovedSources(payload.data.sources ?? []);
+      // مهمة خلفية (كالإنشاء): نتابعها على نقطة الحالة نفسها فلا ينقطع الطلب على الجوال
+      let suggested = payload.data?.suggestedText?.trim() ?? "";
+      let srcs = payload.data?.sources ?? [];
+      if (payload.jobId) {
+        const outcome = await pollGenerationJob(payload.jobId);
+        if (outcome.error) { setImprovedError(outcome.error); return; }
+        suggested = (outcome.text ?? "").trim();
+        srcs = outcome.sources ?? [];
+      }
+      if (!suggested) { setImprovedError("تعذر إنشاء الصياغة المقترحة — حاول مرة أخرى."); return; }
+      setImprovedTextAI(suggested);
+      setImprovedSources(srcs);
     } catch {
       setImprovedError("تعذر الاتصال بخدمة الصياغة.");
     } finally {
@@ -4219,7 +4229,7 @@ export default function ContentStudioPage() {
                   <p className="text-sm font-semibold text-violetText">معالجة الملاحظات وإعادة الصياغة</p>
                 </div>
                 <p className="mb-3 text-xs leading-6 text-violetText/70">
-                  إعادة صياغة كاملة للمحتوى تعالج جميع الملاحظات وفق قواعد السلوك المهني واللائحة التنفيذية، وتُفحص آلياً عبر محرك الامتثال قبل عرضها.
+                  صياغة تعالج الملاحظات وفق الضوابط المهنية، وتُفحص آلياً قبل عرضها.
                 </p>
 
                 {/* إقرار وجود مرجع (بقرار مالكة المنصة) — يوجّه إعادة الصياغة قبل توليدها:
@@ -4230,7 +4240,7 @@ export default function ContentStudioPage() {
                     <span>
                       <span className="text-sm text-ink/80">هل يتضمن نصك مرجعاً أو دراسة؟</span>
                       <span className="mt-0.5 block text-xs leading-5 text-ink/45">
-                        عند التفعيل، تُعزَّز الصياغة المقترحة بمرجع موثّق من المصادر المعتمدة ويُوثّق برابطه الرسمي.
+                        تُدعَّم الصياغة بمرجع موثّق من المصادر المعتمدة برابطه الرسمي.
                       </span>
                     </span>
                     <button
@@ -4247,7 +4257,7 @@ export default function ContentStudioPage() {
                   {improvedHasSource && (
                     <div className="mt-3 border-t border-line pt-3">
                       <p className="mb-1.5 text-xs leading-5 text-ink/50">
-                        صِف المرجع الذي تريد الاستناد إليه أو الصق رابطه؛ ويبقى الاستناد محصوراً في المصادر المعتمدة.
+                        صِف المرجع أو الصق رابطه — الاستناد محصور في المصادر المعتمدة.
                       </p>
                       <input
                         type="text"
@@ -4290,7 +4300,7 @@ export default function ContentStudioPage() {
                 ) : improvedLoading ? (
                   <div className="flex items-center gap-3 rounded-lg bg-white/70 p-4 text-sm leading-7 text-violetText/75">
                     <span className="inline-block h-5 w-5 shrink-0 animate-spin rounded-full border-2 border-violet/20 border-t-violet" />
-                    جارٍ إعادة صياغة المحتوى والتحقق من التزامه بالقواعد — قد يستغرق حتى دقيقة...
+                    جارٍ إعادة الصياغة والتحقق…
                   </div>
                 ) : (
                   <button

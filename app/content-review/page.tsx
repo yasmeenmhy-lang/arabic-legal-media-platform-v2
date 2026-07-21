@@ -935,6 +935,27 @@ export default function ContentReviewPage() {
     setMessage("تم مسح صندوق النص فقط. النتيجة الحالية تبقى ظاهرة حتى تعيدي التحليل بعد كتابة النص الجديد.");
   }
 
+  // متابعة مهمة الصياغة الخلفية (كمسار الإنشاء): طلب قصير ثم استطلاع، فلا ينقطع
+  // طلب طويل على الجوال («Load failed»). النتيجة: نص الصياغة + مصادرها المعتمدة.
+  async function pollRewriteJob(jobId: string): Promise<{ text?: string; sources?: Source[]; error?: string }> {
+    const deadline = Date.now() + 6 * 60 * 1000;
+    for (;;) {
+      if (Date.now() > deadline) return { error: "طالت المتابعة أكثر من المتوقع — أعد المحاولة." };
+      try {
+        const res = await fetch(`/api/content-studio/generate-status?id=${encodeURIComponent(jobId)}`);
+        const data = (await res.json()) as { status?: string; text?: string; sources?: Source[]; error?: string };
+        if (data.status === "done") {
+          void fetch(`/api/content-studio/generate-status?id=${encodeURIComponent(jobId)}&ack=1`).catch(() => {});
+          return { text: data.text ?? "", sources: data.sources };
+        }
+        if (data.status === "error" || data.status === "missing") {
+          return { error: data.status === "missing" ? "انتهت صلاحية هذه الصياغة — أعد المحاولة." : data.error ?? "تعذر إنشاء الصياغة المقترحة." };
+        }
+      } catch { /* انقطاع عابر — نواصل */ }
+      await new Promise((resolve) => setTimeout(resolve, 2500));
+    }
+  }
+
   async function requestAISuggestion() {
     if (!review || suggestingAI) return;
     setSuggestingAI(true);
@@ -970,14 +991,22 @@ export default function ContentReviewPage() {
           sourceHint: reviewHasSource ? (reviewSourceHint.trim() || undefined) : undefined
         })
       });
-      const payload = await response.json().catch(() => null) as { data?: { suggestedText?: string; sources?: Source[] }; error?: string } | null;
+      const payload = await response.json().catch(() => null) as { jobId?: string; data?: { suggestedText?: string; sources?: Source[] }; error?: string } | null;
       if (!response.ok || !payload) {
         throw new Error(payload?.error ?? "تعذر إنشاء الصياغة المقترحة — حاول مرة أخرى.");
       }
-      const suggested = payload.data?.suggestedText?.trim() ?? "";
+      // مهمة خلفية: نتابعها بالاستطلاع بدل انتظار طلب طويل واحد
+      let suggested = payload.data?.suggestedText?.trim() ?? "";
+      let srcs = payload.data?.sources ?? [];
+      if (payload.jobId) {
+        const outcome = await pollRewriteJob(payload.jobId);
+        if (outcome.error) throw new Error(outcome.error);
+        suggested = (outcome.text ?? "").trim();
+        srcs = outcome.sources ?? [];
+      }
       if (!suggested) throw new Error("أعاد النموذج نصًا فارغًا، حاول مرة أخرى.");
       setAiSuggestion(suggested);
-      setRewriteSources(payload.data?.sources ?? []);
+      setRewriteSources(srcs);
     } catch (error) {
       setSuggestionError(error instanceof Error ? error.message : "تعذر إنشاء الصياغة المقترحة.");
     } finally {
@@ -1897,7 +1926,7 @@ export default function ContentReviewPage() {
 
           <section id="improvements" className="space-y-5 scroll-mt-24">
           <Panel id="rewrite" className="scroll-mt-24">
-            <SectionTitle title="4. معالجة الملاحظات وإعادة الصياغة" subtitle="الذكاء الاصطناعي يولّد صياغة معالِجة لجميع الملاحظات الامتثالية واللغوية. تُعاد المراجعة فعلياً بعد التطبيق." />
+            <SectionTitle title="4. معالجة الملاحظات وإعادة الصياغة" subtitle="صياغة تعالج الملاحظات الامتثالية واللغوية، وتُعاد المراجعة بعد التطبيق." />
 
             {/* كتلة الصياغة الذكية */}
             <div className="mb-5 rounded-xl border border-violetBorder bg-violetSoft p-5">
@@ -1925,7 +1954,7 @@ export default function ContentReviewPage() {
                   <span>
                     <span className="text-sm text-ink/80">هل يتضمن نصك مرجعاً أو دراسة؟</span>
                     <span className="mt-0.5 block text-xs leading-5 text-ink/45">
-                      عند التفعيل، تُعزَّز الصياغة المقترحة بمرجع موثّق من المصادر المعتمدة ويُوثّق برابطه الرسمي.
+                      تُدعَّم الصياغة بمرجع موثّق من المصادر المعتمدة برابطه الرسمي.
                     </span>
                   </span>
                   <button
@@ -1942,7 +1971,7 @@ export default function ContentReviewPage() {
                 {reviewHasSource && (
                   <div className="mt-3 border-t border-line pt-3">
                     <p className="mb-1.5 text-xs leading-5 text-ink/50">
-                      صِف المرجع الذي تريد الاستناد إليه أو الصق رابطه؛ ويبقى الاستناد محصوراً في المصادر المعتمدة.
+                      صِف المرجع أو الصق رابطه — الاستناد محصور في المصادر المعتمدة.
                     </p>
                     <input
                       type="text"
@@ -1959,7 +1988,7 @@ export default function ContentReviewPage() {
               {suggestingAI ? (
                 <div className="mt-4 flex items-center gap-3 rounded-lg bg-white p-4 text-sm leading-7 text-ink/60">
                   <DgaSpinner size="sm" tone="violet" label="جار إنشاء الصياغة..." />
-                  <span>جار إنشاء الصياغة المقترحة التي تعالج {review.findings.length ? `${review.findings.length} ملاحظة امتثالية` : "الملاحظات"}{review.languageQuality.issues.length ? ` و${review.languageQuality.issues.length} ملاحظة لغوية` : ""}...</span>
+                  <span>جارٍ إنشاء الصياغة المقترحة…</span>
                 </div>
               ) : suggestionError ? (
                 <div className="mt-4 rounded-lg border border-red-200 bg-red-50 p-4 text-sm leading-7 text-red-700">
@@ -2007,10 +2036,7 @@ export default function ContentReviewPage() {
               ) : (
                 <div className="mt-4 space-y-3">
                   <p className="text-sm leading-7 text-ink/65">
-                    صياغة مقترحة وفق الضوابط والقواعد المهنية، تعالج
-                    {review.findings.length ? ` ${review.findings.length} ملاحظة امتثالية` : " الملاحظات"}
-                    {review.languageQuality.issues.length ? ` و${review.languageQuality.issues.length} ملاحظة لغوية` : ""}
-                    ، مع الحفاظ على الدقة الإملائية والأسلوب المهني.
+                    صياغة تعالج الملاحظات وفق الضوابط المهنية، مع الحفاظ على الدقة والأسلوب.
                   </p>
                   <button
                     type="button"
