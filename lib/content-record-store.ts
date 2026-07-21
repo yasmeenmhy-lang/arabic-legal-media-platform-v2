@@ -237,22 +237,16 @@ export function saveContentRecords(records: StoredContentRecord[]) {
       }
     }
     if (!saved) {
-      // ٣) أشد التخفيف: إسقاط تحليلات النسخ القديمة غير الحالية (نصوصها تبقى كاملة،
-      // وفتحها لاحقاً يعرض «أعد التحليل») — حكم النسخة الحالية لا يُمس أبداً
-      for (const record of oldestFirst) {
-        for (const version of record.versions) {
-          if (version.version !== record.currentVersion && version.analysis) version.analysis = undefined;
-        }
-        try { window.localStorage.setItem(key, JSON.stringify(records)); saved = true; break; } catch { /* واصل التخفيف */ }
-      }
-    }
-    if (!saved) {
-      // ٤) كل المرئيات (حتى الرسوم) من كل النسخ — النصوص والتحليلات الحالية أولى بالمساحة
+      // ٣) كل المرئيات (حتى الرسوم) من كل النسخ — النصوص والأحكام أولى بالمساحة
       for (const record of records) {
         for (const version of record.versions) version.visuals = undefined;
       }
       try { window.localStorage.setItem(key, JSON.stringify(records)); saved = true; } catch { /* واصل */ }
     }
+    // ملاحظة معمارية بأمر مالكة المنصة: تجريد النسخ من أحكامها ممنوع — النسخة بلا
+    // حكمها تُفتح لاحقاً فتُعاد للحكم من جديد وحكم النموذج متقلب فيخترع ملاحظات على
+    // نص كان نظيفاً (الحكم يسافر مع النص دائماً). عند الضيق: إسقاط سجل كامل أولى —
+    // نسخته السحابية تعود كاملة بحكمها، بينما الحكم المجرّد محلياً لا يعود.
     if (!saved) {
       // ٥) الملاذ الأخير: إسقاط الأقدم واحداً فواحداً — أقل قدر ممكن فقط حتى ينجح
       // الحفظ، لا سقف عشوائي (نسخ المُسقَط في مزامنة الحساب السحابية وتعود بالسحب)

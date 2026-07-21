@@ -107,6 +107,13 @@ export async function pullAndMergeFromCloud() {
       const mine = merged.get(remote.id);
       if (!mine || String(remote.updatedAt ?? "") > String(mine.updatedAt ?? "")) {
         merged.set(remote.id, remote);
+      } else if (String(remote.updatedAt ?? "") === String(mine.updatedAt ?? "")) {
+        // شفاء الأحكام: نسخة محلية جُرّدت من تحليلها (ضيق مساحة سابق) ونظيرتها
+        // السحابية تحمله بنفس التاريخ ⟵ تُعتمد السحابية — الحكم يعود مع نصه
+        // فلا يُعاد الحكم على نص لم يتغير
+        const mineCurrent = mine.versions?.find((v) => v.version === mine.currentVersion);
+        const remoteCurrent = remote.versions?.find((v) => v.version === remote.currentVersion);
+        if (mineCurrent && !mineCurrent.analysis && remoteCurrent?.analysis) merged.set(remote.id, remote);
       }
       // ما هو موجود لدى الخادم أصلاً بهذه النسخة لا يُعاد رفعه إليه (منع الصدى):
       // تُختم بصمته كأنه مرفوع — فيبقى للرفع فقط ما هو أحدث محلياً أو غير موجود سحابياً
