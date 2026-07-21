@@ -250,6 +250,9 @@ export default function ContentReviewPage() {
   const [aiSuggestion, setAiSuggestion] = useState<string | null>(null);
   const [suggestingAI, setSuggestingAI] = useState(false);
   const [suggestionError, setSuggestionError] = useState<string | null>(null);
+  // إقرار المستخدم بأن النص المُراد مراجعته يتضمن مرجعاً أو دراسة (بقرار مالكة المنصة):
+  // عند تفعيله تُدعَّم الصياغة المحسّنة بمرجع موثّق حقيقي — وإلا فالتحسين كالمعتاد.
+  const [reviewHasSource, setReviewHasSource] = useState(false);
   const [shareMessage, setShareMessage] = useState("");
   const [specialty, setSpecialty] = useState("");
   const [charLimit, setCharLimit] = useState<number | null>(null);
@@ -954,7 +957,9 @@ export default function ContentReviewPage() {
             message: i.message,
             excerpt: i.excerpt ?? "",
             suggestion: i.suggestion ?? ""
-          }))
+          })),
+          // إقرار المستخدم بوجود مرجع في نصه — يُفعّل تعزيز الصياغة بمرجع موثّق
+          hasSource: reviewHasSource || undefined
         })
       });
       const payload = await response.json().catch(() => null) as { data?: { suggestedText?: string }; error?: string } | null;
@@ -1111,6 +1116,29 @@ export default function ContentReviewPage() {
             )}
           </div>
         )}
+
+        {/* إقرار وجود مرجع في النص (بقرار مالكة المنصة) — عند التفعيل تُعزَّز الصياغة
+            المحسّنة بمرجع موثّق حقيقي من المصادر المعتمدة ويُوثّق برابطه. */}
+        <div className="mt-3 rounded-lg border border-line bg-paper/50 p-3">
+          <label className="flex cursor-pointer items-start justify-between gap-3">
+            <span>
+              <span className="text-sm text-ink/80">هل يتضمن نصك مرجعاً أو دراسة؟</span>
+              <span className="mt-0.5 block text-xs leading-5 text-ink/45">
+                عند التفعيل، تُعزَّز الصياغة المحسّنة بمرجع موثّق من المصادر المعتمدة ويُوثّق برابطه الرسمي.
+              </span>
+            </span>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={reviewHasSource}
+              onClick={() => setReviewHasSource((v) => !v)}
+              className={`relative mt-0.5 h-6 w-11 shrink-0 rounded-full transition ${reviewHasSource ? "bg-palm" : "bg-line"}`}
+            >
+              <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all ${reviewHasSource ? "right-0.5" : "right-[22px]"}`} />
+            </button>
+          </label>
+        </div>
+
         <div className="mt-3">
           <InlineContentGuidance review={review} draftText={text} onApplyRewrite={applyRewrite} loading={loading} />
         </div>
