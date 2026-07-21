@@ -49,7 +49,7 @@ import { contentKindOptions, contentKindLabels } from "@/lib/content-types";
 import { extractTextNodes, applyEdits } from "@/components/editable-visual";
 import { QUOTE_INTEGRITY_NOTICE } from "@/lib/quote-notice";
 import type { VisualPlan } from "@/lib/visual-translator";
-import { isConditionalSource, isGlobalSubVisible, isSourceVisible } from "@/lib/source-specialty-map";
+import { isConditionalSource, isGlobalSubVisible, isSourceVisible, isSourceVisibleForContentType } from "@/lib/source-specialty-map";
 import { FieldLabel } from "@/components/field-label";
 import { MobileSelect, ChannelGlyph } from "@/components/mobile-select";
 import { specialties } from "@/lib/specialties";
@@ -724,12 +724,20 @@ export default function ContentStudioPage() {
 
   const contextScore = [kind, audience, purpose, specialty].filter(Boolean).length;
 
-  // بقرارها: المصادر تتبع التخصص — مصدر لم يعد متاحاً يُلغى اختياره تلقائياً مع تنبيه غير معيق
+  // بقرارها: المصادر تتبع التخصص ونوع المحتوى — مصدر لم يعد متاحاً يُلغى اختياره تلقائياً
   useEffect(() => {
+    const typeLabel = kind ? contentKindLabels[kind] : "";
     if (source && !isSourceVisible(source, specialty)) {
       setSource("");
       setGlobalSub("");
       setSourceToast("تم تحديث المصادر لتناسب التخصص المختار");
+      const timer = setTimeout(() => setSourceToast(""), 3000);
+      return () => clearTimeout(timer);
+    }
+    if (source && !isSourceVisibleForContentType(source, typeLabel)) {
+      setSource("");
+      setGlobalSub("");
+      setSourceToast("تم تحديث المصادر لتناسب نوع المحتوى المختار");
       const timer = setTimeout(() => setSourceToast(""), 3000);
       return () => clearTimeout(timer);
     }
@@ -739,7 +747,7 @@ export default function ContentStudioPage() {
       const timer = setTimeout(() => setSourceToast(""), 3000);
       return () => clearTimeout(timer);
     }
-  }, [specialty, source, globalSub]);
+  }, [specialty, source, globalSub, kind]);
 
   // المصادر المشروطة تُعرض آخر الشبكة حتى تنطوي بسلاسة دون ثقوب في الصفوف
   const orderedSources = [...contentSources].sort(
@@ -3124,7 +3132,8 @@ export default function ContentStudioPage() {
               المصادر المشروطة بالتخصص (خريطة lib/source-specialty-map) تنطوي بحركة fade+collapse دون قفز */}
           <div className="mb-4 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
             {orderedSources.map((s) => {
-              const visible = isSourceVisible(s.key, specialty);
+              const visible = isSourceVisible(s.key, specialty)
+                && isSourceVisibleForContentType(s.key, kind ? contentKindLabels[kind] : "");
               return (
                 <div
                   key={s.key}

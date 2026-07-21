@@ -35,6 +35,25 @@ export function isSourceVisible(sourceKey: string, specialty: string): boolean {
   return rule.visibleFor.includes(specialty);
 }
 
+// ── فلترة المصادر بنوع المحتوى (بقرار مالكة المنصة) ──
+// المصادر المستندة لواقعة معرفية خارجية (أنظمة، أحكام، إحصائيات، أكاديمية، أخبار،
+// صفقات، الهيئة) لا معنى لها في الأنواع التي لا تحتاج مصدراً (إعلان، تعليق، يوميات،
+// تصريح، وسم، عنوان، محتوى بصري، تصدير اجتماعي، حملة، خطة نشر) — فتُخفى، ويبقى فيها
+// ما يناسبها فقط (ابتكر من الذكاء، مناسبات، أخرى).
+const FACTUAL_SOURCE_KEYS = new Set([
+  "global-news", "local-news", "rulings", "regulations",
+  "bar-updates", "statistics", "academic", "deals",
+]);
+const NON_KNOWLEDGE_CONTENT_LABELS = new Set([
+  "إعلان مهني", "تعليق", "يوميات", "تصريح", "وسم", "عنوان",
+  "محتوى بصري", "تصدير اجتماعي", "حملة", "خطة نشر",
+]);
+export function isSourceVisibleForContentType(sourceKey: string, contentTypeLabel: string): boolean {
+  if (!contentTypeLabel) return true; // قبل اختيار النوع تُعرض كلها
+  if (NON_KNOWLEDGE_CONTENT_LABELS.has(contentTypeLabel) && FACTUAL_SOURCE_KEYS.has(sourceKey)) return false;
+  return true;
+}
+
 // ربط فروع «تخصص الخبر العالمي» بالتخصص الحاكم — بقرار مالكة المنصة: التخصص يحكم
 // كل شيء، وفرع الخبر العالمي زاوية مصدر يجب أن تكون من داخل مجال التخصص.
 // الفروع غير المذكورة هنا عامة تصلح لكل التخصصات (تشريعات جديدة، أحكام دولية،
