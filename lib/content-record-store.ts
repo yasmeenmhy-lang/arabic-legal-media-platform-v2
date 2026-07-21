@@ -254,12 +254,16 @@ export function saveContentRecords(records: StoredContentRecord[]) {
       try { window.localStorage.setItem(key, JSON.stringify(records)); saved = true; } catch { /* واصل */ }
     }
     if (!saved) {
-      // ٥) الملاذ الأخير: إبقاء أحدث ١٠ سجلات كاملة فقط وإسقاط الأقدم (المزامنة
-      // السحابية تحتفظ بنسخها في الحساب) — الحفظ الجاري لا يفشل بسبب أرشيف قديم
+      // ٥) الملاذ الأخير: إسقاط الأقدم واحداً فواحداً — أقل قدر ممكن فقط حتى ينجح
+      // الحفظ، لا سقف عشوائي (نسخ المُسقَط في مزامنة الحساب السحابية وتعود بالسحب)
       const newestFirst = [...records].sort((a, b) => String(b.updatedAt ?? "").localeCompare(String(a.updatedAt ?? "")));
-      records.length = 0;
-      records.push(...newestFirst.slice(0, 10));
-      window.localStorage.setItem(key, JSON.stringify(records)); // إن فشل حتى هذا: خطأ صريح — لا فشل صامت
+      while (newestFirst.length > 1 && !saved) {
+        newestFirst.pop();
+        records.length = 0;
+        records.push(...newestFirst);
+        try { window.localStorage.setItem(key, JSON.stringify(records)); saved = true; } catch { /* أسقط واحداً آخر */ }
+      }
+      if (!saved) window.localStorage.setItem(key, JSON.stringify(records)); // إن فشل حتى هذا: خطأ صريح — لا فشل صامت
     }
   }
   window.dispatchEvent(new Event("lawyer-media:records-updated"));
