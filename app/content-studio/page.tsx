@@ -669,11 +669,9 @@ export default function ContentStudioPage() {
   const [imageGenError, setImageGenError] = useState("");
   const [imageGenSvg, setImageGenSvg] = useState("");
   const [charLimit, setCharLimit] = useState<number | null>(null);
-  // دعم استدلالي بمصدر موثوق (بقرار مالكة المنصة) — تحكّم بيد المستخدم، اختياري
+  // تعزيز بمرجع موثّق (بقرار مالكة المنصة) — مفتاح المستخدم للمصادر غير المستندة
+  // لواقعة (ابتكر من الذكاء، أخرى، مناسبات)؛ أما المستندة لواقعة فتوثيقها تلقائي.
   const [wantSource, setWantSource] = useState(false);
-  const [sourceKind, setSourceKind] = useState("");
-  const [sourceEntity, setSourceEntity] = useState("");
-  const [sourceDesc, setSourceDesc] = useState("");
 
   // Path
   const [path, setPath] = useState<"review" | "create" | null>(null);
@@ -755,6 +753,16 @@ export default function ContentStudioPage() {
     "محتوى بصري", "تصدير اجتماعي", "حملة", "خطة نشر",
   ]);
   const canSupportSource = Boolean(kind) && !NO_SOURCE_LABELS.has(kind ? contentKindLabels[kind] : "");
+  // مصادر مستندة لواقعة خارجية بطبيعتها → يُوثَّق المحتوى بمرجعها تلقائياً (بلا مفتاح).
+  // «ابتكر من الذكاء» و«أخرى» و«المناسبات» لا مصدر خارجي حتمي لها → مفتاح اختياري واحد.
+  const AUTO_SOURCED_KEYS = new Set([
+    "global-news", "local-news", "rulings", "regulations",
+    "statistics", "academic", "deals", "bar-updates",
+  ]);
+  const isAutoSourced = AUTO_SOURCED_KEYS.has(source);
+  // wantSource الفعّال المُرسَل للخادم: تلقائي للمصادر المستندة لواقعة، أو بمفتاح
+  // المستخدم لغيرها — وكله مشروط بنوع محتوى مؤهل.
+  const effectiveWantSource = canSupportSource && (isAutoSourced || wantSource);
   const activeText = path === "create" ? generatedText : reviewText;
   // نوع المحتوى هو مصدر الحقيقة الوحيد — قسم بصري رئيسي واحد فقط لكل نوع:
   // «رسم توضيحي»: قسم «إعداد المرئيات والمخططات» وامتداده التوليدي (النوع من الإعداد، بلا اختيار مكرر)
@@ -1028,11 +1036,8 @@ export default function ContentStudioPage() {
           campaignGoal: kind === "campaign" ? (campaignGoal || undefined) : undefined,
           planFrequency: kind === "publishing_plan" ? (planFrequency || undefined) : undefined,
           planDateRange: kind === "publishing_plan" ? (planDateRange || undefined) : undefined,
-          // دعم استدلالي بمصدر موثوق — يُرسل فقط عند تفعيله في نوع مؤهل له
-          wantSource: (wantSource && canSupportSource) || undefined,
-          sourceKind: wantSource && canSupportSource ? (sourceKind || undefined) : undefined,
-          sourceEntity: wantSource && canSupportSource ? (sourceEntity.trim() || undefined) : undefined,
-          sourceDesc: wantSource && canSupportSource ? (sourceDesc.trim() || undefined) : undefined,
+          // تعزيز بمرجع موثّق — تلقائي للمصادر المستندة لواقعة، أو بمفتاح المستخدم لغيرها
+          wantSource: effectiveWantSource || undefined,
         }),
       });
       // الوضع الأساسي: الخادم يرد فوراً برقم مهمة خلفية — نحفظه ونستطلع حتى تكتمل،
@@ -3010,84 +3015,6 @@ export default function ContentStudioPage() {
           )}
         </div>
 
-        {/* دعم استدلالي بمصدر موثوق (بقرار مالكة المنصة) — اختياري، تحكّم بيد المستخدم.
-            عند التفعيل يبحث الذكاء عن مصدر حقيقي بمواصفات المستخدم في المصادر المعتمدة
-            حصراً، ويستشهد به برابطه؛ وإن لم يجد مطابقاً صارح المستخدم ولم يختلق.
-            يُخفى في الأنواع التي لا تستند لواقعة خارجية (إعلان، خطة نشر، تعليق...). */}
-        {canSupportSource && (
-        <div className="mt-4 border-t border-line pt-4">
-          <label className="flex cursor-pointer items-start justify-between gap-3">
-            <span>
-              <span className="text-sm text-ink/80">تعزيز المحتوى بمرجع موثّق</span>
-              <span className="mt-0.5 block text-xs leading-5 text-ink/45">
-                عند التفعيل، يُستند إلى مرجع موثّق من المصادر المعتمدة ويُوثّق برابطه الرسمي. وإذا تعذّر إيجاد مرجع مطابق، يُنبَّه إلى ذلك ويُعرض المحتوى بنسبة عامة دقيقة دون افتراض.
-              </span>
-            </span>
-            <button
-              type="button"
-              role="switch"
-              aria-checked={wantSource}
-              onClick={() => setWantSource((v) => !v)}
-              className={`relative mt-0.5 h-6 w-11 shrink-0 rounded-full transition ${wantSource ? "bg-palm" : "bg-line"}`}
-            >
-              <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all ${wantSource ? "right-0.5" : "right-[22px]"}`} />
-            </button>
-          </label>
-
-          {wantSource && (
-            <div className="mt-3 space-y-3">
-              {/* نوع المصدر */}
-              <div>
-                <FieldLabel label="نوع المصدر" optional />
-                <div className="flex flex-wrap gap-2">
-                  {["دراسة أو بحث أكاديمي", "نظام أو تشريع", "إحصائية رسمية", "تقرير منظمة دولية", "حكم أو مبدأ قضائي", "أي مصدر معتمد"].map((k) => (
-                    <button
-                      key={k}
-                      type="button"
-                      onClick={() => setSourceKind(sourceKind === k ? "" : k)}
-                      className={`${chipBase} text-xs ${sourceKind === k ? chipSelected : chipIdle}`}
-                    >
-                      {k}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* اسم الجهة — مواصفات فوقها ثم كتابة حرة */}
-              <div>
-                <FieldLabel label="الجهة المرجعية" optional />
-                <p className="mb-1.5 text-xs leading-5 text-ink/45">
-                  حدّد الجهة الرسمية أو الأكاديمية المراد الاستناد إلى مرجعها؛ ويبقى الاستناد محصوراً في المصادر المعتمدة.
-                </p>
-                <input
-                  type="text"
-                  value={sourceEntity}
-                  onChange={(e) => setSourceEntity(e.target.value)}
-                  placeholder="مثال: لجنة الأمم المتحدة للقانون التجاري الدولي"
-                  maxLength={200}
-                  className="w-full rounded-lg border border-line p-2.5 text-sm transition focus:border-palm focus:outline-none"
-                />
-              </div>
-
-              {/* وصف المصدر — مواصفات فوقها ثم كتابة حرة */}
-              <div>
-                <FieldLabel label="وصف المرجع" optional />
-                <p className="mb-1.5 text-xs leading-5 text-ink/45">
-                  صِف المرجع المطلوب بدقة لتوجيه الاستناد إليه.
-                </p>
-                <input
-                  type="text"
-                  value={sourceDesc}
-                  onChange={(e) => setSourceDesc(e.target.value)}
-                  placeholder="مثال: دراسة عن أثر شرط التحكيم على أمد النزاعات التجارية"
-                  maxLength={400}
-                  className="w-full rounded-lg border border-line p-2.5 text-sm transition focus:border-palm focus:outline-none"
-                />
-              </div>
-            </div>
-          )}
-        </div>
-        )}
           </div>
         </div>
           </div>
@@ -3276,6 +3203,40 @@ export default function ContentStudioPage() {
               className="w-full resize-none overflow-hidden rounded-lg border border-line p-4 leading-8"
             />
           </div>
+
+          {/* تعزيز بمرجع موثّق (بقرار مالكة المنصة) — جزء من منطق المصدر، بلا تشتيت:
+              • المصادر المستندة لواقعة (أنظمة، دراسة، أحكام...) → توثيق تلقائي، ملاحظة فقط.
+              • «ابتكر من الذكاء» وغيرها → مفتاح واحد اختياري.
+              • يظهر فقط للأنواع المعرفية المؤهلة، وبعد اختيار المصدر. */}
+          {canSupportSource && source && isAutoSourced && (
+            <div className="mb-4 flex items-start gap-2 rounded-lg border border-palm/25 bg-mint px-4 py-3">
+              <BookOpen size={16} className="mt-0.5 shrink-0 text-palm" aria-hidden="true" />
+              <p className="text-xs leading-6 text-palm">
+                هذا المصدر يستند إلى مرجع رسمي، فيُوثَّق المحتوى تلقائياً بمرجعه من المصادر المعتمدة ويُدرَج رابطه — دون خطوة إضافية.
+              </p>
+            </div>
+          )}
+          {canSupportSource && source && !isAutoSourced && (
+            <div className="mb-4 rounded-lg border border-line bg-paper/40 p-4">
+              <label className="flex cursor-pointer items-start justify-between gap-3">
+                <span>
+                  <span className="text-sm font-medium text-ink/85">تعزيز المحتوى بمرجع موثّق</span>
+                  <span className="mt-0.5 block text-xs leading-5 text-ink/50">
+                    خيار اختياري لهذا المصدر. عند التفعيل، يُستند إلى مرجع موثّق من المصادر المعتمدة ويُوثَّق برابطه الرسمي؛ وإذا تعذّر إيجاد مرجع مطابق، يُنبَّه إلى ذلك ويُعرض المحتوى بنسبة عامة دقيقة دون افتراض.
+                  </span>
+                </span>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={wantSource}
+                  onClick={() => setWantSource((v) => !v)}
+                  className={`relative mt-0.5 h-6 w-11 shrink-0 rounded-full transition ${wantSource ? "bg-palm" : "bg-line"}`}
+                >
+                  <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all ${wantSource ? "right-0.5" : "right-[22px]"}`} />
+                </button>
+              </label>
+            </div>
+          )}
 
           <button
             type="button"
