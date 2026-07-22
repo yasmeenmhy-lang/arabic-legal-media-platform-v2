@@ -41,6 +41,7 @@ import {
 import { Button, ButtonLink, DgaSpinner, PageHeader, Panel, SectionTitle, StatusBadge } from "@/components/ui";
 import { FieldLabel } from "@/components/field-label";
 import { SourcesPanel, type Source } from "@/components/sources-panel";
+import { PublishAcknowledgment, acknowledgmentTextFor, type AckTier } from "@/components/publish-acknowledgment";
 import { MobileSelect } from "@/components/mobile-select";
 import { specialties } from "@/lib/specialties";
 import {
@@ -253,6 +254,8 @@ export default function ContentReviewPage() {
   const [suggestionError, setSuggestionError] = useState<string | null>(null);
   // المصادر المعتمدة التي جلبها البحث الحي للصياغة المقترحة — تُعرض كأدلة مرئية
   const [rewriteSources, setRewriteSources] = useState<Source[]>([]);
+  // بوابة الإقرار قبل الاعتماد/النشر (بقرار مالكة المنصة)
+  const [ackOpen, setAckOpen] = useState(false);
   // إقرار المستخدم بأن النص المُراد مراجعته يتضمن مرجعاً أو دراسة (بقرار مالكة المنصة):
   // عند تفعيله تُدعَّم الصياغة المحسّنة بمرجع موثّق حقيقي — وإلا فالتحسين كالمعتاد.
   const [reviewHasSource, setReviewHasSource] = useState(false);
@@ -834,6 +837,18 @@ export default function ContentReviewPage() {
     setSaveLaterMsg("تم حفظ النسخة ونتائجها في سجل المحتوى، ويمكنك العودة إليها لاحقًا.");
   }
 
+  // بوابة الإقرار (بقرار مالكة المنصة): الاعتماد لا يتم إلا بعد إقرار المستخدم المخوّل.
+  // المرتفع/البالغ/المخالفة محجوبة أصلاً (approveBlocked) فلا تصل هنا. الضغط يفتح
+  // نافذة الإقرار المتدرّجة، وتأكيدها يستدعي الاعتماد الفعلي.
+  function requestApproval() {
+    if (!review || approving || approved || approveBlocked) return;
+    if (!contentId || !versionNumber) {
+      setApproveMsg("هذه المراجعة غير مرتبطة بنسخة محفوظة — أعد التحليل ثم جرّب الاعتماد.");
+      return;
+    }
+    setAckOpen(true);
+  }
+
   async function approveCurrentVersion() {
     if (!review || approving || approved) return;
     // لا صمت: غياب النسخة المحفوظة يُقال صراحة بدل تجاهل الضغطة
@@ -854,8 +869,18 @@ export default function ContentReviewPage() {
         return;
       }
       // توحيد الحكم (بقرار مالكة المنصة): الاعتماد يختم الحكم القائم نفسه ولا يعيد
-      // تحليل نص لم يتغير — لا استدعاء ذكاء جديداً قد يناقض ما اعتُمد للتو
-      const approvedReview: ReviewResult = { ...review, reviewStatus: "READY_FOR_PUBLISHING" };
+      // تحليل نص لم يتغير — لا استدعاء ذكاء جديداً قد يناقض ما اعتُمد للتو.
+      // تسجيل واقعة الإقرار سنداً إثباتياً (النص المُقَرّ به + وقته + مستوى المخاطر).
+      const ackTier: AckTier = review.riskLevel === "متوسط" ? "medium" : "low";
+      const approvedReview: ReviewResult = {
+        ...review,
+        reviewStatus: "READY_FOR_PUBLISHING",
+        approvalAcknowledgment: {
+          text: acknowledgmentTextFor(ackTier),
+          at: new Date().toISOString(),
+          riskLevel: review.riskLevel,
+        },
+      };
       saved.version.analysis = approvedReview;
       setReview(approvedReview);
       saveLatestReviewSnapshot(approvedReview);
@@ -2024,7 +2049,7 @@ export default function ContentReviewPage() {
                     </button>
                     <button
                       type="button"
-                      onClick={approveCurrentVersion}
+                      onClick={requestApproval}
                       disabled={approved || approving || approveBlocked}
                       className="inline-flex items-center gap-2 rounded-md border border-palm px-4 py-2.5 text-sm text-palm disabled:cursor-not-allowed disabled:opacity-40"
                     >
@@ -2040,7 +2065,7 @@ export default function ContentReviewPage() {
                   </p>
                   <button
                     type="button"
-                    onClick={approveCurrentVersion}
+                    onClick={requestApproval}
                     disabled={approved || approving || approveBlocked}
                     className="inline-flex items-center gap-2 rounded-md border border-palm px-4 py-2.5 text-sm text-palm disabled:cursor-not-allowed disabled:opacity-40"
                   >
@@ -2078,7 +2103,7 @@ export default function ContentReviewPage() {
           <Panel id="approval" className="h-full scroll-mt-24">
             <SectionTitle title="7. اعتماد النسخة" subtitle="لا تتاح المشاركة أو التصدير إلا للنسخة النهائية التي تمت مراجعتها واعتمادها." />
             <div className="flex flex-wrap gap-3">
-              <button type="button" onClick={approveCurrentVersion} disabled={approved || approving || approveBlocked} className="inline-flex items-center gap-2 rounded-md bg-palm px-5 py-2.5 text-white disabled:cursor-not-allowed disabled:opacity-50"><Save size={16} />{approved ? "تم اعتماد النسخة" : approving ? "جار الاعتماد..." : "اعتماد النسخة الحالية"}</button>
+              <button type="button" onClick={requestApproval} disabled={approved || approving || approveBlocked} className="inline-flex items-center gap-2 rounded-md bg-palm px-5 py-2.5 text-white disabled:cursor-not-allowed disabled:opacity-50"><Save size={16} />{approved ? "تم اعتماد النسخة" : approving ? "جار الاعتماد..." : "اعتماد النسخة الحالية"}</button>
               <button type="button" onClick={saveForLater} className="inline-flex items-center gap-2 rounded-md border border-palm px-5 py-2.5 font-medium text-palm transition hover:bg-mint focus-ring"><Save size={16} />حفظ ومتابعة لاحقًا</button>
             </div>
             {saveLaterMsg ? <p className="mt-3 rounded-lg bg-mint/50 px-3 py-2 text-sm leading-6 text-palm">{saveLaterMsg}</p> : null}
@@ -2181,7 +2206,7 @@ export default function ContentReviewPage() {
             {/* اعتماد النسخة — في الرَّيل على الحاسب (نفس الزر والمنطق والأسباب) */}
             <Panel>
               <SectionTitle title="7. اعتماد النسخة" subtitle="لا تتاح المشاركة أو التصدير إلا للنسخة النهائية التي تمت مراجعتها واعتمادها." />
-              <button type="button" onClick={approveCurrentVersion} disabled={approved || approving || approveBlocked} className="inline-flex items-center gap-2 rounded-md bg-palm px-5 py-2.5 text-white disabled:cursor-not-allowed disabled:opacity-50"><Save size={16} />{approved ? "تم اعتماد النسخة" : approving ? "جار الاعتماد..." : "اعتماد النسخة الحالية"}</button>
+              <button type="button" onClick={requestApproval} disabled={approved || approving || approveBlocked} className="inline-flex items-center gap-2 rounded-md bg-palm px-5 py-2.5 text-white disabled:cursor-not-allowed disabled:opacity-50"><Save size={16} />{approved ? "تم اعتماد النسخة" : approving ? "جار الاعتماد..." : "اعتماد النسخة الحالية"}</button>
               {approveMsg ? <p className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-sm leading-6 text-red-700">{approveMsg}</p> : null}
               {!approved ? (() => {
                 const reasons = approvalBlockReasons;
@@ -2210,6 +2235,23 @@ export default function ContentReviewPage() {
           </aside>
         ) : null}
       </div>
+
+      {/* بوابة الإقرار قبل الاعتماد/النشر (بقرار مالكة المنصة) */}
+      {review && (
+        <PublishAcknowledgment
+          open={ackOpen}
+          tier={review.riskLevel === "متوسط" ? "medium" : "low"}
+          lawyerNotice={
+            (review.riskScoreExplanation?.affectedParties?.length === 1 &&
+              review.riskScoreExplanation.affectedParties[0] === "المحامي") || undefined
+          }
+          parties={review.riskScoreExplanation?.affectedParties}
+          reason={review.riskScoreExplanation?.explanation}
+          action={review.riskScoreExplanation?.fix}
+          onCancel={() => setAckOpen(false)}
+          onConfirm={() => { setAckOpen(false); void approveCurrentVersion(); }}
+        />
+      )}
     </div>
   );
 }

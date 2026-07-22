@@ -414,6 +414,13 @@ export type ReviewResult = {
   degradedReason?: "missing-key" | "api-error" | "timeout";
   /** تعذّر تقييم الذكاء (مخاطر/رصانة/لغة) — يجب أن ينعكس على الجودة والجاهزية والقرار لا أن يظهر إيجاباً زائفاً */
   evaluationIncomplete?: boolean;
+  /** واقعة الإقرار قبل الاعتماد (بقرار مالكة المنصة) — سند إثباتي: النص المُقَرّ به،
+   *  ووقته، ومستوى المخاطر لحظتها. يُحفظ مع النسخة المعتمدة. */
+  approvalAcknowledgment?: {
+    text: string;
+    at: string;
+    riskLevel: RiskLevel;
+  };
 };
 
 export type AIEnhancement = {

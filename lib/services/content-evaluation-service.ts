@@ -163,8 +163,13 @@ function parseEvaluationResponse(raw: string): ContentEvaluation {
   const modelLevel = VALID_RISK_LEVELS.includes(rawRisks.level as RiskLevel)
     ? rawRisks.level as RiskLevel
     : "منخفض";
+  // ★ تصعيد سمعة المهنة (بقرار مالكة المنصة): الإضرار بسمعة المهنة لا يُساوَم عليه —
+  // المحامي يمثّل المهنة، فأيّ تضرّر لجهة «المهنة» يُصعَّد حتماً إلى «مرتفع» (حاجب)
+  // ولو كانت الجهة الوحيدة المتضررة. تشديدٌ للكشف لا إضعاف له.
+  const professionHarmed = affectedParties.includes("المهنة");
   const riskLevel: RiskLevel =
     affectedParties.length >= 3 ? (modelLevel === "بالغ" ? "بالغ" : "مرتفع")
+    : professionHarmed ? "مرتفع"
     : affectedParties.length === 2 ? "متوسط"
     : "منخفض";
 

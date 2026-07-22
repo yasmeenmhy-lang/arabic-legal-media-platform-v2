@@ -52,6 +52,7 @@ import type { VisualPlan } from "@/lib/visual-translator";
 import { isConditionalSource, isGlobalSubVisible, isSourceVisible, isSourceVisibleForContentType } from "@/lib/source-specialty-map";
 import { FieldLabel } from "@/components/field-label";
 import { SourcesPanel, type Source } from "@/components/sources-panel";
+import { PublishAcknowledgment, acknowledgmentTextFor, type AckTier } from "@/components/publish-acknowledgment";
 import { MobileSelect, ChannelGlyph } from "@/components/mobile-select";
 import { specialties } from "@/lib/specialties";
 import {
@@ -727,6 +728,8 @@ export default function ContentStudioPage() {
   const [improvedSourceHint, setImprovedSourceHint] = useState("");
   // المصادر المعتمدة المجلوبة لإعادة الصياغة — تُعرض كأدلة مرئية
   const [improvedSources, setImprovedSources] = useState<Source[]>([]);
+  // بوابة الإقرار قبل النشر المباشر (بقرار مالكة المنصة)
+  const [publishAckOpen, setPublishAckOpen] = useState(false);
 
   // Action feedback
   const [actionMsg, setActionMsg] = useState("");
@@ -1518,6 +1521,24 @@ export default function ContentStudioPage() {
   // احتياطي إن لم تجد نسخة معتمدة مطابقة للمحتوى النشط، فينتقل بها المستخدم دون علم
   // إلى نص آخر مختلف تماماً. الاعتماد هنا يمر بنفس بوابة صفحة المراجعة نفسها (لا
   // اعتماد بلا امتثال كامل ولا مخاطر عالية) فتصبح هذه النسخة تحديداً هي المطابقة.
+  // بوابة الإقرار قبل النشر (بقرار مالكة المنصة): تفتح النافذة بعد اجتياز الحواجز،
+  // وتأكيدها يستدعي النشر الفعلي. المرتفع/البالغ لا يكون RECOMMENDED فلا يصل هنا.
+  function requestPublish() {
+    if (!review || review.publicationDecision.outcome !== "RECOMMENDED") {
+      flash("النشر المباشر متاح فقط بعد امتثال النص كاملاً — عالج الملاحظات الظاهرة أولاً.");
+      return;
+    }
+    if (!contentId) {
+      flash("لا توجد نسخة محفوظة مرتبطة بهذا التحليل — أعد التحليل ثم حاول مجدداً.");
+      return;
+    }
+    if (!loadContentRecords().find((item) => item.id === contentId)) {
+      flash("لا توجد نسخة محفوظة مرتبطة بهذا التحليل — أعد التحليل ثم حاول مجدداً.");
+      return;
+    }
+    setPublishAckOpen(true);
+  }
+
   async function publishNow() {
     if (!review || review.publicationDecision.outcome !== "RECOMMENDED") {
       flash("النشر المباشر متاح فقط بعد امتثال النص كاملاً — عالج الملاحظات الظاهرة أولاً.");
@@ -1537,6 +1558,18 @@ export default function ContentStudioPage() {
     if (!approvedSave) {
       flash("تعذر الاعتماد: عالج الملاحظات والحواجز الظاهرة أولاً من صفحة المراجعة.");
       return;
+    }
+    // تسجيل واقعة الإقرار سنداً إثباتياً مع النسخة المعتمدة
+    if (approvedSave.version.analysis) {
+      const ackTier: AckTier = review.riskLevel === "متوسط" ? "medium" : "low";
+      approvedSave.version.analysis = {
+        ...approvedSave.version.analysis,
+        approvalAcknowledgment: {
+          text: acknowledgmentTextFor(ackTier),
+          at: new Date().toISOString(),
+          riskLevel: review.riskLevel,
+        },
+      };
     }
     if (!markContentShared(contentId, versionNumber)) {
       flash("تعذر تجهيز النسخة للمشاركة — حاول مرة أخرى.");
@@ -3944,7 +3977,7 @@ export default function ContentStudioPage() {
             window.requestAnimationFrame(() => document.getElementById("studio-text-editor")?.scrollIntoView({ behavior: "smooth", block: "start" }));
           }}
           onSaveDraft={saveDraft}
-          onPublish={() => void publishNow()}
+          onPublish={() => requestPublish()}
           actionMessage={actionMsg}
           detailedAnalysisAvailable={Boolean(contentId)}
         />
@@ -4435,6 +4468,23 @@ export default function ContentStudioPage() {
 
       {reviewError && !reviewing && (
         <p className="text-sm text-red-600">{reviewError}</p>
+      )}
+
+      {/* بوابة الإقرار قبل النشر المباشر (بقرار مالكة المنصة) */}
+      {review && (
+        <PublishAcknowledgment
+          open={publishAckOpen}
+          tier={review.riskLevel === "متوسط" ? "medium" : "low"}
+          lawyerNotice={
+            (review.riskScoreExplanation?.affectedParties?.length === 1 &&
+              review.riskScoreExplanation.affectedParties[0] === "المحامي") || undefined
+          }
+          parties={review.riskScoreExplanation?.affectedParties}
+          reason={review.riskScoreExplanation?.explanation}
+          action={review.riskScoreExplanation?.fix}
+          onCancel={() => setPublishAckOpen(false)}
+          onConfirm={() => { setPublishAckOpen(false); void publishNow(); }}
+        />
       )}
     </div>
   );
