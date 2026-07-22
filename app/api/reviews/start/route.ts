@@ -6,6 +6,8 @@ import { enhanceReviewOutput } from "@/lib/services/ai-enhancement-service";
 import { reviewContent } from "@/lib/services/review-service";
 import { persistReviewResult } from "@/lib/services/review-persistence-service";
 import { completeJob, createJob, failJob, jobsDb } from "@/lib/content-jobs";
+import { runWithCostMeter, meterCostUsd, currentMeter } from "@/lib/cost-meter";
+import { ledgerDb, deductUsd } from "@/lib/cost-ledger";
 
 // التحليل كمهمة خلفية — بقرار مالكة المنصة: لا يلزم البقاء في الصفحة كي لا يتوقف
 // التحليل ولا تضيع نتيجته. نفس منطق مهام الإنشاء الخلفية تماماً (waitUntil + جدول
@@ -50,10 +52,19 @@ export async function POST(request: Request) {
     const jobId = crypto.randomUUID();
     await createJob(sql, jobId);
     const work = (async () => {
+      // عدّاد التكلفة الداخلي (لمالكة المنصة وحدها) — قياس صرف لا يمسّ التحليل
+      await runWithCostMeter(async () => {
+      const settleCost = async (): Promise<number> => {
+        const m = currentMeter();
+        const costUsd = m ? meterCostUsd(m) : 0;
+        try { const l = ledgerDb(); if (l && costUsd > 0) await deductUsd(l, costUsd); } catch { /* دفتر اختياري */ }
+        return costUsd;
+      };
       try {
         const baseReview = await reviewContent(text, kind, context);
         if (baseReview.analysisMode === "pattern-only" || baseReview.evaluationIncomplete) {
-          await failJob(sql, jobId, "تعذّر إكمال التحليل بالذكاء الاصطناعي حالياً، ولم تُعرض أي نتائج حفاظاً على دقة الحكم. أعد المحاولة بعد قليل.");
+          const costUsd = await settleCost();
+          await failJob(sql, jobId, "تعذّر إكمال التحليل بالذكاء الاصطناعي حالياً، ولم تُعرض أي نتائج حفاظاً على دقة الحكم. أعد المحاولة بعد قليل.", costUsd);
           return;
         }
         const review = await enhanceReviewOutput({ text, kind, context, review: baseReview });
@@ -61,13 +72,16 @@ export async function POST(request: Request) {
         // sqlite قديمة على قاعدة Postgres) كان يفجّر المهمة بعد اكتمال التحليل
         // كاملاً فيضيع ويظهر خطأ إنجليزي خام. لا يُعطَّل تسليم النتيجة بسببها أبداً.
         if (contentId) await persistReviewResult(contentId, review).catch((err) => console.error("[reviews/start:persist]", err));
-        await completeJob(sql, jobId, JSON.stringify(review), false);
+        const costUsd = await settleCost();
+        await completeJob(sql, jobId, JSON.stringify(review), false, undefined, undefined, undefined, costUsd);
       } catch (error) {
         console.error("[reviews/start:job]", error);
         const message = error instanceof Error ? error.message : "خطأ غير متوقع في معالجة المراجعة";
         const isConfigError = message.includes("ANTHROPIC_API_KEY") || message.includes("غير مهيأ");
-        await failJob(sql, jobId, isConfigError ? "خدمة التحليل غير متاحة حالياً — تواصل مع مسؤول المنصة." : message).catch(() => {});
+        const costUsd = await settleCost().catch(() => 0);
+        await failJob(sql, jobId, isConfigError ? "خدمة التحليل غير متاحة حالياً — تواصل مع مسؤول المنصة." : message, costUsd).catch(() => {});
       }
+      });
     })();
     try {
       waitUntil(work);

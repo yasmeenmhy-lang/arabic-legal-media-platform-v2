@@ -6,6 +6,8 @@ import { governTextFull, type GovernTextFullResult } from "@/lib/services/govern
 import { verifyCorpusCitations } from "@/lib/services/citation-verifier";
 import { needsResearch, researchTrustedSources } from "@/lib/services/web-research-service";
 import { WRITING_CODE } from "@/lib/writing-code";
+import { recordUsage, runWithCostMeter, meterCostUsd, currentMeter } from "@/lib/cost-meter";
+import { ledgerDb, deductUsd } from "@/lib/cost-ledger";
 import { buildReviewResult } from "@/lib/services/review-service";
 import { enhanceReviewOutput } from "@/lib/services/ai-enhancement-service";
 import { describeProviderError } from "@/lib/ai-provider-errors";
@@ -338,7 +340,8 @@ ${briefType
       const body = await response.text().catch(() => "");
       throw new Error(`upstream ${response.status} ${body.slice(0, 200)}`);
     }
-    const payload = (await response.json()) as { content?: { type: string; text: string }[]; stop_reason?: string };
+    const payload = (await response.json()) as { content?: { type: string; text: string }[]; stop_reason?: string; usage?: unknown };
+    recordUsage(payload.usage); // عدّاد التكلفة الداخلي — قياس صرف
     const text = payload.content?.find((c) => c.type === "text")?.text ?? "";
     return { text, stopReason: payload.stop_reason };
   }
@@ -590,26 +593,41 @@ ${briefType
     const jobId = crypto.randomUUID();
     await createJob(sql, jobId);
     const work = (async () => {
+      // عدّاد التكلفة الداخلي (لمالكة المنصة وحدها): يلفّ الدورة كاملة — كل نداء ذكاء
+      // يُسجَّل، والتكلفة تُخزَّن مع المهمة وتُخصم من دفتر الرصيد. قياسٌ صرف لا يمسّ المنطق.
+      await runWithCostMeter(async () => {
+      // خصم التكلفة من دفتر الرصيد — أفضل جهد، لا يُسقط المهمة
+      const settleCost = async (): Promise<number> => {
+        const m = currentMeter();
+        const costUsd = m ? meterCostUsd(m) : 0;
+        try { const l = ledgerDb(); if (l && costUsd > 0) await deductUsd(l, costUsd); } catch { /* دفتر اختياري */ }
+        return costUsd;
+      };
       try {
         const result = await runPipeline((draft) => {
           void setJobPartial(sql, jobId, draft).catch(() => {});
         });
         if (result.kind === "ok") {
           const review = await buildUnifiedReview(result.text, result.gov);
+          const costUsd = await settleCost();
           await completeJob(
             sql, jobId, result.text, result.truncated,
             review ? JSON.stringify(review) : undefined,
             result.sources.length ? JSON.stringify(result.sources) : undefined,
             result.sourceNote,
+            costUsd,
           );
         } else {
-          await failJob(sql, jobId, result.error);
+          const costUsd = await settleCost();
+          await failJob(sql, jobId, result.error, costUsd);
         }
       } catch (error) {
         console.error("[content-studio/generate:job]", error);
         const known = describeProviderError(error instanceof Error ? error.message : "");
-        await failJob(sql, jobId, known ?? "تعذر الاتصال بخدمة الذكاء الاصطناعي — حاول مرة أخرى.").catch(() => {});
+        const costUsd = await settleCost().catch(() => 0);
+        await failJob(sql, jobId, known ?? "تعذر الاتصال بخدمة الذكاء الاصطناعي — حاول مرة أخرى.", costUsd).catch(() => {});
       }
+      });
     })();
     try {
       waitUntil(work);

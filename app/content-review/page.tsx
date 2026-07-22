@@ -42,6 +42,7 @@ import { Button, ButtonLink, DgaSpinner, PageHeader, Panel, SectionTitle, Status
 import { FieldLabel } from "@/components/field-label";
 import { SourcesPanel, type Source } from "@/components/sources-panel";
 import { PreviewToggleButton, ReadingPreview } from "@/components/text-preview";
+import { CostNotice } from "@/components/cost-notice";
 import { PublishAcknowledgment, acknowledgmentTextFor, type AckTier } from "@/components/publish-acknowledgment";
 import { countHardLanguageErrors } from "@/lib/language-gate";
 import { MobileSelect } from "@/components/mobile-select";
@@ -258,6 +259,9 @@ export default function ContentReviewPage() {
   const [rewriteSources, setRewriteSources] = useState<Source[]>([]);
   // إشعار المصارحة: أقرّ المستخدم بمرجع ولم يُعثر على مطابق — يُعرض صراحةً لا صمتاً
   const [rewriteSourceNote, setRewriteSourceNote] = useState("");
+  // عدّاد التكلفة الداخلي (يصل من الخادم لمالكة المنصة وحدها — يبقى undefined لغيرها)
+  const [opCostUsd, setOpCostUsd] = useState<number | undefined>(undefined);
+  const [opBalanceUsd, setOpBalanceUsd] = useState<number | undefined>(undefined);
   // معاينة القراءة النظيفة (بطلب مالكة المنصة) — للنص محل المراجعة وللصياغة المقترحة
   const [previewText, setPreviewText] = useState(false);
   const [previewSuggestion, setPreviewSuggestion] = useState(false);
@@ -527,17 +531,17 @@ export default function ContentReviewPage() {
   // فلا يخطف الاستديو مهمة بدأتها المراجعة ولا العكس
   const PENDING_REVIEW_KEY = "lawyer-media:pending-review:review";
 
-  async function pollReviewJob(jobId: string): Promise<{ data?: ReviewResult; error?: string }> {
+  async function pollReviewJob(jobId: string): Promise<{ data?: ReviewResult; error?: string; costUsd?: number; balanceUsd?: number }> {
     const deadline = Date.now() + 10 * 60 * 1000;
     for (;;) {
       if (Date.now() > deadline) return { error: "طالت المتابعة أكثر من المتوقع — أعد المحاولة." };
       try {
         const res = await fetch(`/api/reviews/status?id=${encodeURIComponent(jobId)}`);
-        const data = (await res.json()) as { status?: string; data?: ReviewResult; error?: string };
+        const data = (await res.json()) as { status?: string; data?: ReviewResult; error?: string; costUsd?: number; balanceUsd?: number };
         if (data.status === "done") {
           void fetch(`/api/reviews/status?id=${encodeURIComponent(jobId)}&ack=1`).catch(() => {});
           try { window.localStorage.removeItem(scopedKey(PENDING_REVIEW_KEY)); } catch { /* بيئة بلا تخزين */ }
-          return { data: data.data };
+          return { data: data.data, costUsd: data.costUsd, balanceUsd: data.balanceUsd };
         }
         if (data.status === "error" || data.status === "missing") {
           try { window.localStorage.removeItem(scopedKey(PENDING_REVIEW_KEY)); } catch { /* بيئة بلا تخزين */ }
@@ -606,6 +610,8 @@ export default function ContentReviewPage() {
     setMessage("");
     void (async () => {
       const outcome = await pollReviewJob(pending!.jobId!);
+      if (outcome.costUsd !== undefined) setOpCostUsd(outcome.costUsd);
+      if (outcome.balanceUsd !== undefined) setOpBalanceUsd(outcome.balanceUsd);
       if (requestId !== reviewRequestIdRef.current) return;
       if (outcome.data) {
         const result = outcome.data;
@@ -671,7 +677,7 @@ export default function ContentReviewPage() {
       const startPayload = (await startRes.json().catch(() => ({}))) as { jobId?: string | null; error?: string };
       if (requestId !== reviewRequestIdRef.current) return;
 
-      let outcome: { data?: ReviewResult; error?: string };
+      let outcome: { data?: ReviewResult; error?: string; costUsd?: number; balanceUsd?: number };
       if (startPayload.jobId) {
         try {
           window.localStorage.setItem(scopedKey(PENDING_REVIEW_KEY), JSON.stringify({
@@ -681,6 +687,8 @@ export default function ContentReviewPage() {
           }));
         } catch { /* بيئة بلا تخزين — تبقى المتابعة داخل الجلسة فقط */ }
         outcome = await pollReviewJob(startPayload.jobId);
+        if (outcome.costUsd !== undefined) setOpCostUsd(outcome.costUsd);
+        if (outcome.balanceUsd !== undefined) setOpBalanceUsd(outcome.balanceUsd);
       } else {
         // بلا قاعدة بيانات (مهام خلفية غير متاحة): تراجع للطلب المباشر القديم
         try {
@@ -1023,16 +1031,16 @@ export default function ContentReviewPage() {
 
   // متابعة مهمة الصياغة الخلفية (كمسار الإنشاء): طلب قصير ثم استطلاع، فلا ينقطع
   // طلب طويل على الجوال («Load failed»). النتيجة: نص الصياغة + مصادرها المعتمدة.
-  async function pollRewriteJob(jobId: string): Promise<{ text?: string; sources?: Source[]; sourceNote?: string; error?: string }> {
+  async function pollRewriteJob(jobId: string): Promise<{ text?: string; sources?: Source[]; sourceNote?: string; error?: string; costUsd?: number; balanceUsd?: number }> {
     const deadline = Date.now() + 6 * 60 * 1000;
     for (;;) {
       if (Date.now() > deadline) return { error: "طالت المتابعة أكثر من المتوقع — أعد المحاولة." };
       try {
         const res = await fetch(`/api/content-studio/generate-status?id=${encodeURIComponent(jobId)}`);
-        const data = (await res.json()) as { status?: string; text?: string; sources?: Source[]; sourceNote?: string; error?: string };
+        const data = (await res.json()) as { status?: string; text?: string; sources?: Source[]; sourceNote?: string; error?: string; costUsd?: number; balanceUsd?: number };
         if (data.status === "done") {
           void fetch(`/api/content-studio/generate-status?id=${encodeURIComponent(jobId)}&ack=1`).catch(() => {});
-          return { text: data.text ?? "", sources: data.sources, sourceNote: data.sourceNote };
+          return { text: data.text ?? "", sources: data.sources, sourceNote: data.sourceNote, costUsd: data.costUsd, balanceUsd: data.balanceUsd };
         }
         if (data.status === "error" || data.status === "missing") {
           return { error: data.status === "missing" ? "انتهت صلاحية هذه الصياغة — أعد المحاولة." : data.error ?? "تعذر إنشاء الصياغة المقترحة." };
@@ -1105,6 +1113,8 @@ export default function ContentReviewPage() {
           }));
         } catch { /* بيئة بلا تخزين */ }
         const outcome = await pollRewriteJob(payload.jobId);
+        if (outcome.costUsd !== undefined) setOpCostUsd(outcome.costUsd);
+        if (outcome.balanceUsd !== undefined) setOpBalanceUsd(outcome.balanceUsd);
         if (outcome.error) throw new Error(outcome.error);
         suggested = (outcome.text ?? "").trim();
         srcs = outcome.sources ?? [];
@@ -1146,6 +1156,8 @@ export default function ContentReviewPage() {
       setSuggestingAI(true);
       void (async () => {
         const outcome = await pollRewriteJob(pending!.jobId!);
+        if (outcome.costUsd !== undefined) setOpCostUsd(outcome.costUsd);
+        if (outcome.balanceUsd !== undefined) setOpBalanceUsd(outcome.balanceUsd);
         removePending();
         const suggested = (outcome.text ?? "").trim();
         if (outcome.error || !suggested) {
@@ -1321,6 +1333,7 @@ export default function ContentReviewPage() {
         <div className="mt-3">
           <InlineContentGuidance review={review} draftText={text} onApplyRewrite={applyRewrite} loading={loading} />
         </div>
+        <CostNotice costUsd={opCostUsd} balanceUsd={opBalanceUsd} />
 
         <details open={!review} className="mt-5 group">
           <summary className="flex cursor-pointer list-none items-center justify-between gap-3 rounded-lg border border-line bg-paper px-4 py-3 text-sm font-semibold text-ink focus-ring">

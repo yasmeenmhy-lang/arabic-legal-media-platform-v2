@@ -3,6 +3,7 @@
 // professional writing quality, and language/spelling quality.
 // Separate from the legal compliance engine (semantic-analysis-service.ts).
 
+import { recordUsage } from "@/lib/cost-meter";
 import Anthropic from "@anthropic-ai/sdk";
 import { AUTHORITIES_RULE, CONTENT_QUALITY_STANDARDS, KINGDOM_STYLE_RULE, PLATFORM_SUPREME_RULE } from "@/lib/governance";
 import type {
@@ -270,6 +271,8 @@ export async function evaluateContent(text: string, context?: ReviewContext): Pr
         system: [{ type: "text", text: buildEvaluationSystem(), cache_control: { type: "ephemeral" } }],
         messages: [{ role: "user", content: `${buildContextLine(context)}«${text}»` }]
       });
+
+      recordUsage(message.usage); // عدّاد التكلفة الداخلي — قياس صرف
 
       if (message.stop_reason === "max_tokens") {
         throw new Error("response truncated at max_tokens — JSON incomplete");

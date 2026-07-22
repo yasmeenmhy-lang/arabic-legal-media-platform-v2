@@ -1,3 +1,5 @@
+import { recordUsage } from "@/lib/cost-meter";
+
 type ProviderName = "openai" | "anthropic";
 
 type AIProviderRequest = {
@@ -171,7 +173,8 @@ async function requestAnthropicJson(input: AIProviderRequest) {
     logAIEnhancement("fallback", { reason: "anthropic response not ok", status: response.status });
     return null;
   }
-  const data = await response.json() as { content?: Array<{ type?: string; text?: string }> };
+  const data = await response.json() as { content?: Array<{ type?: string; text?: string }>; usage?: unknown };
+  recordUsage(data.usage); // عدّاد التكلفة الداخلي
   const content = data.content?.find((item) => item.type === "text")?.text;
   if (!content) {
     logAIEnhancement("fallback", { reason: "anthropic response missing text content" });

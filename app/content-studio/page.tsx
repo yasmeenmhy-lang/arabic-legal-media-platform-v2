@@ -55,6 +55,7 @@ import { FieldLabel } from "@/components/field-label";
 import { SourcesPanel, type Source } from "@/components/sources-panel";
 import { PublishAcknowledgment, acknowledgmentTextFor, type AckTier } from "@/components/publish-acknowledgment";
 import { PreviewToggleButton, ReadingPreview } from "@/components/text-preview";
+import { CostNotice } from "@/components/cost-notice";
 import { MobileSelect, ChannelGlyph } from "@/components/mobile-select";
 import { specialties } from "@/lib/specialties";
 import {
@@ -705,6 +706,9 @@ export default function ContentStudioPage() {
   const [generatedSourceNote, setGeneratedSourceNote] = useState("");
   // معاينة المحتوى المقترح بعرض قراءة نظيف بدل صندوق التحرير (بطلب مالكة المنصة)
   const [previewGenerated, setPreviewGenerated] = useState(false);
+  // عدّاد التكلفة الداخلي (يصل من الخادم لمالكة المنصة وحدها — يبقى undefined لغيرها)
+  const [opCostUsd, setOpCostUsd] = useState<number | undefined>(undefined);
+  const [opBalanceUsd, setOpBalanceUsd] = useState<number | undefined>(undefined);
   const [generating, setGenerating] = useState(false);
   // مسودة معروضة والفحص النهائي يجري — شارة غير معطلة فوق النص
   const [finalizing, setFinalizing] = useState(false);
@@ -952,8 +956,10 @@ export default function ContentStudioPage() {
   // وعند العودة يُستأنف تتبع المهمة تلقائياً وتُعرض النتيجة.
   const PENDING_GENERATION_KEY = "lawyer-media:pending-generation";
 
-  function deliverGenerationOutcome(outcome: { text?: string; error?: string; truncated?: boolean; review?: ReviewResult; sources?: Source[]; sourceNote?: string }) {
+  function deliverGenerationOutcome(outcome: { text?: string; error?: string; truncated?: boolean; review?: ReviewResult; sources?: Source[]; sourceNote?: string; costUsd?: number; balanceUsd?: number }) {
     setFinalizing(false);
+    if (outcome.costUsd !== undefined) setOpCostUsd(outcome.costUsd);
+    if (outcome.balanceUsd !== undefined) setOpBalanceUsd(outcome.balanceUsd);
     if (outcome.text) {
       setGeneratedText(outcome.text);
       setGeneratedSources(outcome.sources ?? []);
@@ -970,7 +976,7 @@ export default function ContentStudioPage() {
     }
   }
 
-  async function pollGenerationJob(jobId: string, onDraft?: (text: string) => void, startedAt?: number): Promise<{ text?: string; error?: string; truncated?: boolean; review?: ReviewResult; sources?: Source[]; sourceNote?: string }> {
+  async function pollGenerationJob(jobId: string, onDraft?: (text: string) => void, startedAt?: number): Promise<{ text?: string; error?: string; truncated?: boolean; review?: ReviewResult; sources?: Source[]; sourceNote?: string; costUsd?: number; balanceUsd?: number }> {
     // الحدّ الزمني مطلق من بدء المهمة لا من كل استطلاع — فمهمة ماتت على الخادم لا
     // يُعاد استطلاعها بلا نهاية عند كل تحديث أو دخول (سبب تعليق الصفحة). حدّ الخادم
     // ٣٠٠ ثانية، فأي مهمة تجاوزت نحو ست دقائق ميتة قطعاً. وعند البلوغ نُحرّر المهمة
@@ -983,17 +989,17 @@ export default function ContentStudioPage() {
       }
       try {
         const res = await fetch(`/api/content-studio/generate-status?id=${encodeURIComponent(jobId)}`);
-        const data = (await res.json()) as { status?: string; text?: string; error?: string; truncated?: boolean; partial?: string; review?: ReviewResult; sources?: Source[]; sourceNote?: string };
+        const data = (await res.json()) as { status?: string; text?: string; error?: string; truncated?: boolean; partial?: string; review?: ReviewResult; sources?: Source[]; sourceNote?: string; costUsd?: number; balanceUsd?: number };
         // بأمر مالكة المنصة: لا تُعرض مسودة قبل اجتياز كل المؤشرات — المسودات
         // الجزئية المعلقة (من نشرات سابقة) تُتجاهل ولا تُعرض
         if (data.status === "done") {
           void fetch(`/api/content-studio/generate-status?id=${encodeURIComponent(jobId)}&ack=1`).catch(() => {});
           try { window.localStorage.removeItem(scopedKey(PENDING_GENERATION_KEY)); } catch { /* بيئة بلا تخزين */ }
-          return { text: data.text ?? "", truncated: data.truncated, review: data.review, sources: data.sources, sourceNote: data.sourceNote };
+          return { text: data.text ?? "", truncated: data.truncated, review: data.review, sources: data.sources, sourceNote: data.sourceNote, costUsd: data.costUsd, balanceUsd: data.balanceUsd };
         }
         if (data.status === "error" || data.status === "missing") {
           try { window.localStorage.removeItem(scopedKey(PENDING_GENERATION_KEY)); } catch { /* بيئة بلا تخزين */ }
-          return { error: data.status === "missing" ? "انتهت صلاحية هذا الإنشاء — أعد المحاولة." : data.error ?? "تعذر إنشاء المحتوى — حاول مرة أخرى." };
+          return { error: data.status === "missing" ? "انتهت صلاحية هذا الإنشاء — أعد المحاولة." : data.error ?? "تعذر إنشاء المحتوى — حاول مرة أخرى.", costUsd: data.costUsd, balanceUsd: data.balanceUsd };
         }
       } catch {
         /* انقطاع شبكة عابر — نواصل الاستطلاع */
@@ -1222,17 +1228,17 @@ export default function ContentStudioPage() {
   // صفحة المراجعة لا يخطفها الاستديو فيغطي نتائج محفوظة بشاشة «المحرك يعمل»
   const PENDING_REVIEW_KEY = "lawyer-media:pending-review:studio";
 
-  async function pollReviewJob(jobId: string): Promise<{ data?: ReviewResult; error?: string }> {
+  async function pollReviewJob(jobId: string): Promise<{ data?: ReviewResult; error?: string; costUsd?: number; balanceUsd?: number }> {
     const deadline = Date.now() + 10 * 60 * 1000;
     for (;;) {
       if (Date.now() > deadline) return { error: "طالت المتابعة أكثر من المتوقع — أعد المحاولة." };
       try {
         const res = await fetch(`/api/reviews/status?id=${encodeURIComponent(jobId)}`);
-        const data = (await res.json()) as { status?: string; data?: ReviewResult; error?: string };
+        const data = (await res.json()) as { status?: string; data?: ReviewResult; error?: string; costUsd?: number; balanceUsd?: number };
         if (data.status === "done") {
           void fetch(`/api/reviews/status?id=${encodeURIComponent(jobId)}&ack=1`).catch(() => {});
           try { window.localStorage.removeItem(scopedKey(PENDING_REVIEW_KEY)); } catch { /* بيئة بلا تخزين */ }
-          return { data: data.data };
+          return { data: data.data, costUsd: data.costUsd, balanceUsd: data.balanceUsd };
         }
         if (data.status === "error" || data.status === "missing") {
           try { window.localStorage.removeItem(scopedKey(PENDING_REVIEW_KEY)); } catch { /* بيئة بلا تخزين */ }
@@ -1300,6 +1306,8 @@ export default function ContentStudioPage() {
     setReviewError("");
     void (async () => {
       const outcome = await pollReviewJob(pending!.jobId!);
+      if (outcome.costUsd !== undefined) setOpCostUsd(outcome.costUsd);
+      if (outcome.balanceUsd !== undefined) setOpBalanceUsd(outcome.balanceUsd);
       if (requestId !== reviewRequestIdRef.current) return;
       if (outcome.data) {
         const result = outcome.data;
@@ -1407,7 +1415,7 @@ export default function ContentStudioPage() {
       const startPayload = (await startRes.json().catch(() => ({}))) as { jobId?: string | null; error?: string };
       if (requestId !== reviewRequestIdRef.current) return;
 
-      let outcome: { data?: ReviewResult; error?: string };
+      let outcome: { data?: ReviewResult; error?: string; costUsd?: number; balanceUsd?: number };
       if (startPayload.jobId) {
         try {
           window.localStorage.setItem(scopedKey(PENDING_REVIEW_KEY), JSON.stringify({
@@ -1416,6 +1424,8 @@ export default function ContentStudioPage() {
           }));
         } catch { /* بيئة بلا تخزين — تبقى المتابعة داخل الجلسة فقط */ }
         outcome = await pollReviewJob(startPayload.jobId);
+        if (outcome.costUsd !== undefined) setOpCostUsd(outcome.costUsd);
+        if (outcome.balanceUsd !== undefined) setOpBalanceUsd(outcome.balanceUsd);
       } else {
         // بلا قاعدة بيانات (مهام خلفية غير متاحة): تراجع للطلب المباشر القديم
         const res = await fetch("/api/reviews", {
@@ -1532,6 +1542,8 @@ export default function ContentStudioPage() {
         suggested = (outcome.text ?? "").trim();
         srcs = outcome.sources ?? [];
         note = outcome.sourceNote ?? "";
+        if (outcome.costUsd !== undefined) setOpCostUsd(outcome.costUsd);
+        if (outcome.balanceUsd !== undefined) setOpBalanceUsd(outcome.balanceUsd);
       }
       if (!suggested) { setImprovedError("تعذر إنشاء الصياغة المقترحة — حاول مرة أخرى."); return; }
       setImprovedTextAI(suggested);
@@ -3576,6 +3588,7 @@ export default function ContentStudioPage() {
             sources={generatedSources}
             onInsert={(block) => { setGeneratedText((prev) => prev + block); setPendingGeneratedReview(null); }}
           />
+          <CostNotice costUsd={opCostUsd} balanceUsd={opBalanceUsd} />
           </div>
           {/* عمود جانبي: ترجمة المحتوى بصرياً — بالمكوّنات الحالية نفسها */}
           <div className="min-w-0">
@@ -4181,6 +4194,7 @@ export default function ContentStudioPage() {
           {/* قرار النشر */}
           <Panel>
             <SectionTitle title="نتائج التحليل" />
+            <CostNotice costUsd={opCostUsd} balanceUsd={opBalanceUsd} />
             {review.analysisMode === "pattern-only" || review.evaluationIncomplete ? (
               <div className="flex items-start gap-3 rounded-lg border border-line bg-paper p-3">
                 <AlertTriangle size={18} className="mt-0.5 shrink-0 text-ink/50" aria-hidden="true" />

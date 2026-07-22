@@ -3,6 +3,7 @@
 // of the 46 professional conduct rules to judge the text holistically.
 // Controlled by ANTHROPIC_API_KEY env var.
 
+import { recordUsage } from "@/lib/cost-meter";
 import Anthropic from "@anthropic-ai/sdk";
 import type { ContentKind, FindingCategory, FindingDomain, ReviewContext, ReviewFinding, RiskLevel } from "@/lib/types";
 import { legalKnowledgeEntries } from "@/lib/legal-knowledge-base";
@@ -494,6 +495,8 @@ async function callHolisticJudge(
     console.warn(`[semantic] ${label} call failed — reason:`, reason, err instanceof Error ? err.message : "");
     return { ok: false, reason };
   }
+
+  recordUsage(message.usage); // عدّاد التكلفة الداخلي — قياس صرف
 
   const rawText = message.content
     .filter((block) => block.type === "text")

@@ -13,6 +13,7 @@
 // النص المستند إلى مصادر البحث يمرّ على مسؤول الامتثال ومقيّم اللغة والمخاطر كاملاً.
 // ─────────────────────────────────────────────────────────────────────────────
 import { TRUSTED_SOURCE_DOMAINS } from "@/lib/services/trusted-sources";
+import { recordUsage } from "@/lib/cost-meter";
 
 export type ResearchResult = {
   // ملخص عربي للوقائع المتحقق منها، كل واقعة منسوبة لجهتها ورابطها — يُحقن في مطالبة الكاتب
@@ -175,7 +176,8 @@ export async function researchTrustedSources(context: {
       }
     );
     if (!response.ok) return null;
-    const payload = (await response.json()) as { content?: unknown[] };
+    const payload = (await response.json()) as { content?: unknown[]; usage?: unknown };
+    recordUsage(payload.usage); // عدّاد التكلفة الداخلي (يشمل عدد عمليات البحث)
     const content = payload.content ?? [];
     // أفضل المصادر فقط (لا نُغرق الكاتب) — بحد أقصى معتمد من المالكة
     const sources = extractSources(content).slice(0, MAX_SOURCES_TO_WRITER);

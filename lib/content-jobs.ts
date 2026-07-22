@@ -22,6 +22,8 @@ export type ContentJob = {
   sources_json: string | null;
   // إشعار المصارحة: طُلب مصدر ولم يُعثر عليه — يُعرض للمستخدم صراحةً في الواجهة
   source_note: string | null;
+  // تكلفة العملية بالدولار (عدّاد داخلي لمالكة المنصة وحدها — لا يُعرض لغيرها)
+  cost_usd: number | null;
 };
 
 export function jobsDb() {
@@ -56,6 +58,7 @@ export async function ensureJobsTable(sql: Sql) {
   await sql`ALTER TABLE content_jobs ADD COLUMN IF NOT EXISTS review_json text`;
   await sql`ALTER TABLE content_jobs ADD COLUMN IF NOT EXISTS sources_json text`;
   await sql`ALTER TABLE content_jobs ADD COLUMN IF NOT EXISTS source_note text`;
+  await sql`ALTER TABLE content_jobs ADD COLUMN IF NOT EXISTS cost_usd double precision`;
   ensured = true;
 }
 
@@ -70,12 +73,12 @@ export async function createJob(sql: Sql, id: string) {
   await sql`DELETE FROM content_jobs WHERE created_at < now() - interval '1 day'`;
 }
 
-export async function completeJob(sql: Sql, id: string, text: string, truncated: boolean, reviewJson?: string, sourcesJson?: string, sourceNote?: string) {
-  await sql`UPDATE content_jobs SET status = 'done', result_text = ${text}, truncated = ${truncated}, review_json = ${reviewJson ?? null}, sources_json = ${sourcesJson ?? null}, source_note = ${sourceNote ?? null}, updated_at = now() WHERE id = ${id}`;
+export async function completeJob(sql: Sql, id: string, text: string, truncated: boolean, reviewJson?: string, sourcesJson?: string, sourceNote?: string, costUsd?: number) {
+  await sql`UPDATE content_jobs SET status = 'done', result_text = ${text}, truncated = ${truncated}, review_json = ${reviewJson ?? null}, sources_json = ${sourcesJson ?? null}, source_note = ${sourceNote ?? null}, cost_usd = ${costUsd ?? null}, updated_at = now() WHERE id = ${id}`;
 }
 
-export async function failJob(sql: Sql, id: string, error: string) {
-  await sql`UPDATE content_jobs SET status = 'error', error = ${error}, updated_at = now() WHERE id = ${id}`;
+export async function failJob(sql: Sql, id: string, error: string, costUsd?: number) {
+  await sql`UPDATE content_jobs SET status = 'error', error = ${error}, cost_usd = ${costUsd ?? null}, updated_at = now() WHERE id = ${id}`;
 }
 
 export async function getJob(sql: Sql, id: string): Promise<ContentJob | null> {
@@ -84,7 +87,7 @@ export async function getJob(sql: Sql, id: string): Promise<ContentJob | null> {
   // أطول من حدّ الخادم (٣٠٠ ثانية) بهامش أمان ⇒ قُتلت في منتصفها ولن تكتمل أبداً.
   // نُعلّمها فاشلة عند أول استعلام بعد ذلك، فتُنهي الواجهة انتظارها بدل التعليق الأبدي.
   await sql`UPDATE content_jobs SET status = 'error', error = ${"تعذّر إكمال الإنشاء في الوقت المتاح — أعد المحاولة."}, updated_at = now() WHERE id = ${id} AND status = 'pending' AND created_at < now() - interval '6 minutes'`;
-  const rows = (await sql`SELECT id, status, result_text, partial_text, error, truncated, review_json, sources_json, source_note FROM content_jobs WHERE id = ${id}`) as ContentJob[];
+  const rows = (await sql`SELECT id, status, result_text, partial_text, error, truncated, review_json, sources_json, source_note, cost_usd FROM content_jobs WHERE id = ${id}`) as ContentJob[];
   return rows[0] ?? null;
 }
 

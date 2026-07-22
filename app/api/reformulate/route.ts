@@ -8,6 +8,8 @@ import { describeProviderError } from "@/lib/ai-provider-errors";
 import { mentionsSource, researchTrustedSources } from "@/lib/services/web-research-service";
 import { countHardLanguageErrors, HARD_LANGUAGE_CATEGORIES } from "@/lib/language-gate";
 import { WRITING_CODE } from "@/lib/writing-code";
+import { recordUsage, runWithCostMeter, meterCostUsd, currentMeter } from "@/lib/cost-meter";
+import { ledgerDb, deductUsd } from "@/lib/cost-ledger";
 import { completeJob, createJob, failJob, jobsDb } from "@/lib/content-jobs";
 import { waitUntil } from "@vercel/functions";
 
@@ -69,7 +71,8 @@ async function callModel(apiKey: string, systemPrompt: string, userPrompt: strin
       const err = await response.json().catch(() => ({})) as { error?: { message?: string } };
       throw new Error(err.error?.message ?? "تعذر إنشاء الصياغة المقترحة");
     }
-    const data = await response.json() as { content?: Array<{ type?: string; text?: string }>; stop_reason?: string };
+    const data = await response.json() as { content?: Array<{ type?: string; text?: string }>; stop_reason?: string; usage?: unknown };
+    recordUsage(data.usage); // عدّاد التكلفة الداخلي
     const part = data.content?.find((item) => item.type === "text")?.text ?? "";
     full += part;
     stopReason = data.stop_reason;
@@ -288,17 +291,28 @@ export async function POST(request: Request) {
     const jobId = crypto.randomUUID();
     await createJob(sql, jobId);
     const work = (async () => {
+      // عدّاد التكلفة الداخلي — التكلفة تُخزَّن مع المهمة وتُخصم من دفتر الرصيد
+      await runWithCostMeter(async () => {
+      const settleCost = async (): Promise<number> => {
+        const m = currentMeter();
+        const costUsd = m ? meterCostUsd(m) : 0;
+        try { const l = ledgerDb(); if (l && costUsd > 0) await deductUsd(l, costUsd); } catch { /* دفتر اختياري */ }
+        return costUsd;
+      };
       try {
         const r = await runReformulation(parsed.data, apiKey);
+        const costUsd = await settleCost();
         if (r.ok) {
-          await completeJob(sql, jobId, r.suggestedText, false, undefined, r.sources.length ? JSON.stringify(r.sources) : undefined, r.sourceNote);
+          await completeJob(sql, jobId, r.suggestedText, false, undefined, r.sources.length ? JSON.stringify(r.sources) : undefined, r.sourceNote, costUsd);
         } else {
-          await failJob(sql, jobId, r.error);
+          await failJob(sql, jobId, r.error, costUsd);
         }
       } catch (error) {
         const raw = error instanceof Error ? error.message : "خطأ غير متوقع";
-        await failJob(sql, jobId, describeProviderError(raw) ?? raw).catch(() => {});
+        const costUsd = await settleCost().catch(() => 0);
+        await failJob(sql, jobId, describeProviderError(raw) ?? raw, costUsd).catch(() => {});
       }
+      });
     })();
     try { waitUntil(work); } catch { void work; }
     return NextResponse.json({ jobId });

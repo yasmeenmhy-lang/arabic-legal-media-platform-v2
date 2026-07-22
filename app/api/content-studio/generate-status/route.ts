@@ -1,5 +1,20 @@
 import { NextResponse } from "next/server";
 import { deleteJob, getJob, jobsDb } from "@/lib/content-jobs";
+import { readSessionFromCookies } from "@/lib/access-auth";
+import { getBalanceUsd, ledgerDb } from "@/lib/cost-ledger";
+
+// عدّاد التكلفة الداخلي — يظهر لمالكة المنصة (دور admin) وحدها، لا لمستخدمي المنصة
+async function ownerCostFields(costUsd: number | null | undefined) {
+  try {
+    if (readSessionFromCookies()?.role !== "admin") return {};
+    let balanceUsd: number | undefined;
+    const l = ledgerDb();
+    if (l) balanceUsd = await getBalanceUsd(l);
+    return { costUsd: costUsd ?? undefined, balanceUsd };
+  } catch {
+    return {};
+  }
+}
 
 // متابعة مهمة إنشاء خلفية: الواجهة تستطلع حتى تكتمل — وتُقرّ بالاستلام فيُحذف الصف
 // (الجدول ممر تسليم مؤقت، لا مخزن محتوى — خصوصية بقرار مالكة المنصة).
@@ -31,8 +46,8 @@ export async function GET(request: Request) {
     if (job.sources_json) {
       try { sources = JSON.parse(job.sources_json); } catch { sources = undefined; }
     }
-    return NextResponse.json({ status: "done", text: job.result_text ?? "", truncated: job.truncated, review, sources, sourceNote: job.source_note ?? undefined });
+    return NextResponse.json({ status: "done", text: job.result_text ?? "", truncated: job.truncated, review, sources, sourceNote: job.source_note ?? undefined, ...(await ownerCostFields(job.cost_usd)) });
   }
-  if (job.status === "error") return NextResponse.json({ status: "error", error: job.error ?? "تعذر إنشاء المحتوى — حاول مرة أخرى." });
+  if (job.status === "error") return NextResponse.json({ status: "error", error: job.error ?? "تعذر إنشاء المحتوى — حاول مرة أخرى.", ...(await ownerCostFields(job.cost_usd)) });
   return NextResponse.json({ status: "pending", partial: job.partial_text ?? undefined });
 }
