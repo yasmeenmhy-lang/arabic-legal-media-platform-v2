@@ -1042,6 +1042,11 @@ export default function ContentReviewPage() {
     }
   }
 
+  // مفتاح الصياغة المقترحة المعلّقة — إغلاق آخر أطراف عائلة «الخروج يُضيع العمل»
+  // (بأمر مالكة المنصة: المعالجة على جميع الأصعدة): تُحفظ المهمة قبل الإرسال وتُستأنف
+  // عند العودة، فسياق المراجعة نفسه محفوظ في السجل ويُستعاد منه.
+  const PENDING_REWRITE_KEY = "lawyer-media:pending-rewrite:review";
+
   async function requestAISuggestion() {
     if (!review || suggestingAI) return;
     setSuggestingAI(true);
@@ -1050,6 +1055,12 @@ export default function ContentReviewPage() {
     setRewriteSources([]);
     setRewriteSourceNote("");
     setPreviewSuggestion(false);
+    // حفظ مُسبق قبل الإرسال — نفس معالجة مساري التحليل والإنشاء
+    try {
+      window.localStorage.setItem(scopedKey(PENDING_REWRITE_KEY), JSON.stringify({
+        at: Date.now(), contentId, versionNumber, hasSource: reviewHasSource, sourceHint: reviewSourceHint,
+      }));
+    } catch { /* بيئة بلا تخزين */ }
     try {
       const response = await fetch("/api/reformulate", {
         method: "POST",
@@ -1088,6 +1099,11 @@ export default function ContentReviewPage() {
       let srcs = payload.data?.sources ?? [];
       let note = payload.data?.sourceNote ?? "";
       if (payload.jobId) {
+        try {
+          window.localStorage.setItem(scopedKey(PENDING_REWRITE_KEY), JSON.stringify({
+            jobId: payload.jobId, at: Date.now(), contentId, versionNumber, hasSource: reviewHasSource, sourceHint: reviewSourceHint,
+          }));
+        } catch { /* بيئة بلا تخزين */ }
         const outcome = await pollRewriteJob(payload.jobId);
         if (outcome.error) throw new Error(outcome.error);
         suggested = (outcome.text ?? "").trim();
@@ -1101,9 +1117,58 @@ export default function ContentReviewPage() {
     } catch (error) {
       setSuggestionError(error instanceof Error ? error.message : "تعذر إنشاء الصياغة المقترحة.");
     } finally {
+      // وصلنا لخاتمة ضمن الجلسة (نتيجة أو خطأ) — يُزال السجل؛ يبقى فقط إن قُتلت الصفحة
+      try { window.localStorage.removeItem(scopedKey(PENDING_REWRITE_KEY)); } catch { /* تجاهل */ }
       setSuggestingAI(false);
     }
   }
+
+  // استئناف الصياغة المقترحة المعلّقة عند فتح الصفحة: يُستعاد سياق المراجعة من السجل
+  // المحفوظ، ثم تُتابَع المهمة وتُعرض نتيجتها — فلا تضيع صياغة اكتملت في الخادم.
+  useEffect(() => {
+    let raw = "";
+    try { raw = window.localStorage.getItem(scopedKey(PENDING_REWRITE_KEY)) ?? ""; } catch { return; }
+    if (!raw) return;
+    // مهمة تحليل معلّقة أولى بالاستئناف — لا يتنازع المساران على العرض
+    try { if (window.localStorage.getItem(scopedKey(PENDING_REVIEW_KEY))) return; } catch { /* تجاهل */ }
+    let pending: { jobId?: string; at?: number; contentId?: string; versionNumber?: number; hasSource?: boolean; sourceHint?: string } | null = null;
+    try { pending = JSON.parse(raw); } catch { /* قيمة تالفة */ }
+    const removePending = () => { try { window.localStorage.removeItem(scopedKey(PENDING_REWRITE_KEY)); } catch { /* تجاهل */ } };
+    if (!pending?.contentId || !pending?.versionNumber) { removePending(); return; }
+    const record = loadContentRecords().find((r) => r.id === pending!.contentId);
+    if (!record || !record.versions.find((v) => v.version === pending!.versionNumber)) { removePending(); return; }
+    const jobFresh = (pending.at ?? 0) > 0 && Date.now() - (pending.at ?? 0) < 10 * 60 * 1000;
+    const inputFresh = (pending.at ?? 0) > 0 && Date.now() - (pending.at ?? 0) < 24 * 60 * 60 * 1000;
+    if (pending.jobId && jobFresh) {
+      loadRecordVersion(record, pending.versionNumber);
+      setReviewHasSource(Boolean(pending.hasSource));
+      setReviewSourceHint(pending.sourceHint ?? "");
+      setSuggestingAI(true);
+      void (async () => {
+        const outcome = await pollRewriteJob(pending!.jobId!);
+        removePending();
+        const suggested = (outcome.text ?? "").trim();
+        if (outcome.error || !suggested) {
+          setSuggestionError(outcome.error ?? "تعذر إكمال الصياغة المقترحة — أعد المحاولة.");
+        } else {
+          setAiSuggestion(suggested);
+          setRewriteSources(outcome.sources ?? []);
+          setRewriteSourceNote(outcome.sourceNote ?? "");
+        }
+        setSuggestingAI(false);
+      })();
+    } else if (!pending.jobId && inputFresh) {
+      // خرجت قبل وصول رقم المهمة: يُستعاد السياق وتُعاد المحاولة بضغطة
+      loadRecordVersion(record, pending.versionNumber);
+      setReviewHasSource(Boolean(pending.hasSource));
+      setReviewSourceHint(pending.sourceHint ?? "");
+      setMessage("استُعيد سياقك — انقطع بدء الصياغة المقترحة عند مغادرة الصفحة. اضغط «صياغة مقترحة» مجدداً.");
+      removePending();
+    } else {
+      removePending();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   async function applyAISuggestion() {
     // التطبيق يجري بعد اكتمال المراجعة ولا يُرسل «التخصص» إلى الخدمة، فلا يُشترط هنا —
