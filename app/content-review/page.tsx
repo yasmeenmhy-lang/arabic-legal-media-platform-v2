@@ -549,10 +549,33 @@ export default function ContentReviewPage() {
     let raw = "";
     try { raw = window.localStorage.getItem(scopedKey(PENDING_REVIEW_KEY)) ?? ""; } catch { return; }
     if (!raw) return;
-    let pending: { jobId?: string; contentId?: string; title?: string; body?: string; contentType?: ContentKind; contentTypeLabel?: string; channel?: string; audience?: string; purpose?: string; specialty?: string; charLimit?: number | null; adCta?: string; adStyle?: string; scriptDuration?: string; scriptStyle?: string; articleLength?: string } | null = null;
+    let pending: { jobId?: string; at?: number; contentId?: string; title?: string; body?: string; contentType?: ContentKind; contentTypeLabel?: string; channel?: string; audience?: string; purpose?: string; specialty?: string; charLimit?: number | null; adCta?: string; adStyle?: string; scriptDuration?: string; scriptStyle?: string; articleLength?: string } | null = null;
     try { pending = JSON.parse(raw); } catch { /* قيمة تالفة */ }
     if (!pending?.jobId) {
-      try { window.localStorage.removeItem(scopedKey(PENDING_REVIEW_KEY)); } catch { /* تجاهل */ }
+      // سجل مُسبق بلا رقم مهمة: خرجت المستخدمة قبل وصول الرد (الجوال يجمّد التنفيذ
+      // لحظة المغادرة) — النص أثمن ما فيه فيُستعاد بدل أن يُرمى (الثغرة التي رصدتها
+      // مالكة المنصة: الخروج وقت التحليل كان يُضيع المحتوى). يبقى السجل حتى تكتمل
+      // مراجعة لاحقة فعلاً، ويسقط بعد يوم كامل حفاظاً على «النموذج النظيف».
+      const fresh = (pending?.at ?? 0) > 0 && Date.now() - (pending?.at ?? 0) < 24 * 60 * 60 * 1000;
+      if (pending?.body && fresh) {
+        setText(pending.body);
+        if (pending.contentType) setKind(pending.contentType);
+        setContentTitle(pending.title ?? "");
+        setChannel(pending.channel ?? "");
+        setAudience(pending.audience ?? "");
+        setPurpose(pending.purpose ?? "");
+        setSpecialty(pending.specialty ?? "");
+        setCharLimit(pending.charLimit ?? null);
+        setAdCta(pending.adCta ?? "");
+        setAdStyle(pending.adStyle ?? "");
+        setScriptDuration(pending.scriptDuration ?? "");
+        setScriptStyle(pending.scriptStyle ?? "");
+        setArticleLength(pending.articleLength ?? "");
+        setContentId(pending.contentId);
+        setMessage("استُعيد نصك — انقطع بدء التحليل عند مغادرة الصفحة. اضغط «تحليل المحتوى» للاستئناف.");
+      } else {
+        try { window.localStorage.removeItem(scopedKey(PENDING_REVIEW_KEY)); } catch { /* تجاهل */ }
+      }
       return;
     }
     // استعادة كاملة ومتماسكة لسياق المهمة المعلّقة نفسها — لا يكفي عرض نتيجتها فوق أياً
@@ -622,6 +645,17 @@ export default function ContentReviewPage() {
     const requestId = ++reviewRequestIdRef.current;
     setLoading(true);
     setMessage("");
+    // ★ حفظ مُسبق قبل الإرسال (سدّ ثغرة رصدتها مالكة المنصة): الجوال يجمّد التنفيذ
+    // لحظة مغادرة الصفحة، فلو انتظرنا رقم المهمة لضاع النص والسياق بلا أثر إن خرجت
+    // قبل وصول الرد. يُكتب السجل كاملاً الآن، ويُحدَّث برقم المهمة فور وصوله،
+    // ويُزال عند اكتمال النتيجة — فلا يضيع محتوى مهما كانت لحظة الخروج.
+    try {
+      window.localStorage.setItem(scopedKey(PENDING_REVIEW_KEY), JSON.stringify({
+        at: Date.now(), contentId, title: contentTitle, body: text, contentType: kind,
+        contentTypeLabel, channel: channel || "غير محددة", audience, purpose, specialty, charLimit, adCta, adStyle,
+        scriptDuration, scriptStyle, articleLength,
+      }));
+    } catch { /* بيئة بلا تخزين */ }
     try {
       const startRes = await fetch("/api/reviews/start", {
         method: "POST",
@@ -652,6 +686,8 @@ export default function ContentReviewPage() {
 
       // استجابة متأخرة لطلب سبقه طلب أحدث: تُهمل ولا تُطبَّق — لا تكتب فوق نتيجة أحدث
       if (requestId !== reviewRequestIdRef.current) return;
+      // وصلنا لنتيجة نهائية ضمن الجلسة — يُزال السجل المُسبق (إزالة آمنة مكررة)
+      try { window.localStorage.removeItem(scopedKey(PENDING_REVIEW_KEY)); } catch { /* تجاهل */ }
       if (!outcome.data) {
         setMessage(outcome.error ?? "تعذر إكمال المراجعة.");
         return;

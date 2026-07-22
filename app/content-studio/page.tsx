@@ -1161,10 +1161,31 @@ export default function ContentStudioPage() {
     let raw = "";
     try { raw = window.localStorage.getItem(scopedKey(PENDING_REVIEW_KEY)) ?? ""; } catch { return; }
     if (!raw) return;
-    let pending: { jobId?: string; contentId?: string; body?: string; contentType?: ContentKind; contentTypeLabel?: string; channel?: string; audience?: string; purpose?: string; specialty?: string; charLimit?: number | null; adCta?: string; adStyle?: string; scriptDuration?: string; scriptStyle?: string; articleLength?: string } | null = null;
+    let pending: { jobId?: string; at?: number; contentId?: string; body?: string; contentType?: ContentKind; contentTypeLabel?: string; channel?: string; audience?: string; purpose?: string; specialty?: string; charLimit?: number | null; adCta?: string; adStyle?: string; scriptDuration?: string; scriptStyle?: string; articleLength?: string } | null = null;
     try { pending = JSON.parse(raw); } catch { /* قيمة تالفة */ }
     if (!pending?.jobId) {
-      try { window.localStorage.removeItem(scopedKey(PENDING_REVIEW_KEY)); } catch { /* تجاهل */ }
+      // سجل مُسبق بلا رقم مهمة: خرجت المستخدمة قبل وصول الرد — النص يُستعاد بدل أن
+      // يُرمى (الثغرة التي رصدتها مالكة المنصة: الخروج وقت التحليل كان يُضيع المحتوى).
+      const fresh = (pending?.at ?? 0) > 0 && Date.now() - (pending?.at ?? 0) < 24 * 60 * 60 * 1000;
+      if (pending?.body && fresh) {
+        setPath("review");
+        setReviewText(pending.body);
+        if (pending.contentType) setKind(pending.contentType);
+        setChannel(pending.channel ?? "");
+        setAudience(pending.audience ?? "");
+        setPurpose(pending.purpose ?? "");
+        setSpecialty(pending.specialty ?? "");
+        setCharLimit(pending.charLimit ?? null);
+        setAdCta(pending.adCta ?? "");
+        setAdStyle(pending.adStyle ?? "");
+        setScriptDuration(pending.scriptDuration ?? "");
+        setScriptStyle(pending.scriptStyle ?? "");
+        setArticleLength(pending.articleLength ?? "");
+        setContentId(pending.contentId);
+        setReviewError("استُعيد نصك — انقطع بدء التحليل عند مغادرة الصفحة. اضغط «تحليل» للاستئناف.");
+      } else {
+        try { window.localStorage.removeItem(scopedKey(PENDING_REVIEW_KEY)); } catch { /* تجاهل */ }
+      }
       return;
     }
     // استعادة كاملة ومتماسكة لسياق المهمة المعلّقة نفسها — لا يكفي عرض نتيجتها فوق أياً
@@ -1279,6 +1300,15 @@ export default function ContentStudioPage() {
       return;
     }
 
+    // ★ حفظ مُسبق قبل الإرسال (سدّ ثغرة رصدتها مالكة المنصة): الجوال يجمّد التنفيذ
+    // لحظة المغادرة، فلو انتظرنا رقم المهمة لضاع النص إن خرجت قبل وصول الرد.
+    // يُكتب السجل الآن، ويُحدَّث برقم المهمة فور وصوله، ويُزال عند اكتمال النتيجة.
+    try {
+      window.localStorage.setItem(scopedKey(PENDING_REVIEW_KEY), JSON.stringify({
+        at: Date.now(), contentId, body: trimmed, contentType: kind, contentTypeLabel,
+        channel, audience, purpose, specialty, charLimit, adCta, adStyle, scriptDuration, scriptStyle, articleLength,
+      }));
+    } catch { /* بيئة بلا تخزين */ }
     try {
       const startRes = await fetch("/api/reviews/start", {
         method: "POST",
@@ -1314,6 +1344,8 @@ export default function ContentStudioPage() {
 
       // استجابة متأخرة لطلب سبقه طلب أحدث: تُهمل ولا تُطبَّق — لا تكتب فوق نتيجة أحدث
       if (requestId !== reviewRequestIdRef.current) return;
+      // وصلنا لنتيجة نهائية ضمن الجلسة — يُزال السجل المُسبق (إزالة آمنة مكررة)
+      try { window.localStorage.removeItem(scopedKey(PENDING_REVIEW_KEY)); } catch { /* تجاهل */ }
       if (!outcome.data) {
         setReviewError(outcome.error ?? "تعذر إكمال المراجعة.");
         return;
