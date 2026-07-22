@@ -15,6 +15,7 @@ import {
   CheckCircle2,
   ChevronDown,
   Edit3,
+  Eye,
   FileCheck2,
   FileText,
   Globe,
@@ -699,6 +700,10 @@ export default function ContentStudioPage() {
   const [generatedText, setGeneratedText] = useState("");
   // المصادر المعتمدة التي جلبها البحث الحي للمحتوى المُنشأ — تُعرض كأدلة مرئية
   const [generatedSources, setGeneratedSources] = useState<Source[]>([]);
+  // إشعار المصارحة: طُلب مرجع ولم يُعثر عليه — يُعرض صراحةً بدل الصمت (بقرار المالكة)
+  const [generatedSourceNote, setGeneratedSourceNote] = useState("");
+  // معاينة المحتوى المقترح بعرض قراءة نظيف بدل صندوق التحرير (بطلب مالكة المنصة)
+  const [previewGenerated, setPreviewGenerated] = useState(false);
   const [generating, setGenerating] = useState(false);
   // مسودة معروضة والفحص النهائي يجري — شارة غير معطلة فوق النص
   const [finalizing, setFinalizing] = useState(false);
@@ -728,6 +733,8 @@ export default function ContentStudioPage() {
   const [improvedSourceHint, setImprovedSourceHint] = useState("");
   // المصادر المعتمدة المجلوبة لإعادة الصياغة — تُعرض كأدلة مرئية
   const [improvedSources, setImprovedSources] = useState<Source[]>([]);
+  // إشعار المصارحة لمسار إعادة الصياغة — طُلب مرجع ولم يُعثر عليه
+  const [improvedSourceNote, setImprovedSourceNote] = useState("");
   // بوابة الإقرار قبل النشر المباشر (بقرار مالكة المنصة)
   const [publishAckOpen, setPublishAckOpen] = useState(false);
 
@@ -941,11 +948,12 @@ export default function ContentStudioPage() {
   // وعند العودة يُستأنف تتبع المهمة تلقائياً وتُعرض النتيجة.
   const PENDING_GENERATION_KEY = "lawyer-media:pending-generation";
 
-  function deliverGenerationOutcome(outcome: { text?: string; error?: string; truncated?: boolean; review?: ReviewResult; sources?: Source[] }) {
+  function deliverGenerationOutcome(outcome: { text?: string; error?: string; truncated?: boolean; review?: ReviewResult; sources?: Source[]; sourceNote?: string }) {
     setFinalizing(false);
     if (outcome.text) {
       setGeneratedText(outcome.text);
       setGeneratedSources(outcome.sources ?? []);
+      setGeneratedSourceNote(outcome.sourceNote ?? "");
       setGenerateError(outcome.truncated ? "النص طويل وقد لا يكون مكتملاً تماماً — راجع نهايته أو أعد الإنشاء." : "");
       setVtSvg("");
       setVtUrl("");
@@ -958,7 +966,7 @@ export default function ContentStudioPage() {
     }
   }
 
-  async function pollGenerationJob(jobId: string, onDraft?: (text: string) => void, startedAt?: number): Promise<{ text?: string; error?: string; truncated?: boolean; review?: ReviewResult; sources?: Source[] }> {
+  async function pollGenerationJob(jobId: string, onDraft?: (text: string) => void, startedAt?: number): Promise<{ text?: string; error?: string; truncated?: boolean; review?: ReviewResult; sources?: Source[]; sourceNote?: string }> {
     // الحدّ الزمني مطلق من بدء المهمة لا من كل استطلاع — فمهمة ماتت على الخادم لا
     // يُعاد استطلاعها بلا نهاية عند كل تحديث أو دخول (سبب تعليق الصفحة). حدّ الخادم
     // ٣٠٠ ثانية، فأي مهمة تجاوزت نحو ست دقائق ميتة قطعاً. وعند البلوغ نُحرّر المهمة
@@ -971,13 +979,13 @@ export default function ContentStudioPage() {
       }
       try {
         const res = await fetch(`/api/content-studio/generate-status?id=${encodeURIComponent(jobId)}`);
-        const data = (await res.json()) as { status?: string; text?: string; error?: string; truncated?: boolean; partial?: string; review?: ReviewResult; sources?: Source[] };
+        const data = (await res.json()) as { status?: string; text?: string; error?: string; truncated?: boolean; partial?: string; review?: ReviewResult; sources?: Source[]; sourceNote?: string };
         // بأمر مالكة المنصة: لا تُعرض مسودة قبل اجتياز كل المؤشرات — المسودات
         // الجزئية المعلقة (من نشرات سابقة) تُتجاهل ولا تُعرض
         if (data.status === "done") {
           void fetch(`/api/content-studio/generate-status?id=${encodeURIComponent(jobId)}&ack=1`).catch(() => {});
           try { window.localStorage.removeItem(scopedKey(PENDING_GENERATION_KEY)); } catch { /* بيئة بلا تخزين */ }
-          return { text: data.text ?? "", truncated: data.truncated, review: data.review, sources: data.sources };
+          return { text: data.text ?? "", truncated: data.truncated, review: data.review, sources: data.sources, sourceNote: data.sourceNote };
         }
         if (data.status === "error" || data.status === "missing") {
           try { window.localStorage.removeItem(scopedKey(PENDING_GENERATION_KEY)); } catch { /* بيئة بلا تخزين */ }
@@ -1043,6 +1051,8 @@ export default function ContentStudioPage() {
     setGenerating(true);
     setGenerateError("");
     setGeneratedSources([]);
+    setGeneratedSourceNote("");
+    setPreviewGenerated(false);
     try {
       const sourceLabel =
         source === "global-news" && globalSub
@@ -1079,10 +1089,10 @@ export default function ContentStudioPage() {
       });
       // الوضع الأساسي: الخادم يرد فوراً برقم مهمة خلفية — نحفظه ونستطلع حتى تكتمل،
       // ولو غادرتِ الصفحة تستمر المهمة في الخادم ويُستأنف التتبع عند العودة.
-      let data: { text?: string; error?: string; truncated?: boolean; review?: ReviewResult; sources?: Source[] } = {};
+      let data: { text?: string; error?: string; truncated?: boolean; review?: ReviewResult; sources?: Source[]; sourceNote?: string } = {};
       const contentType = res.headers.get("content-type") ?? "";
       if (contentType.includes("application/json")) {
-        const payload = (await res.json().catch(() => ({}))) as { jobId?: string; text?: string; error?: string; truncated?: boolean; review?: ReviewResult; sources?: Source[] };
+        const payload = (await res.json().catch(() => ({}))) as { jobId?: string; text?: string; error?: string; truncated?: boolean; review?: ReviewResult; sources?: Source[]; sourceNote?: string };
         if (payload.jobId) {
           try {
             window.localStorage.setItem(scopedKey(PENDING_GENERATION_KEY), JSON.stringify({ jobId: payload.jobId, at: Date.now() }));
@@ -1106,7 +1116,7 @@ export default function ContentStudioPage() {
             newline = buffer.indexOf("\n");
             if (!line) continue;
             try {
-              const event = JSON.parse(line) as { type?: string; text?: string; error?: string; truncated?: boolean; review?: ReviewResult; sources?: Source[] };
+              const event = JSON.parse(line) as { type?: string; text?: string; error?: string; truncated?: boolean; review?: ReviewResult; sources?: Source[]; sourceNote?: string };
               // لا عرض للمسودات الجزئية — التسليم حتمي: الناتج النهائي المستوفي فقط
               if (event.type === "result" || event.type === "error") data = event;
             } catch {
@@ -1398,6 +1408,7 @@ export default function ContentStudioPage() {
     setImprovedError("");
     setImprovedTextAI("");
     setImprovedSources([]);
+    setImprovedSourceNote("");
     try {
       const res = await fetch("/api/reformulate", {
         method: "POST",
@@ -1426,7 +1437,7 @@ export default function ContentStudioPage() {
           sourceHint: improvedHasSource ? (improvedSourceHint.trim() || undefined) : undefined,
         }),
       });
-      const payload = (await res.json().catch(() => null)) as { jobId?: string; data?: { suggestedText?: string; sources?: Source[] }; error?: string } | null;
+      const payload = (await res.json().catch(() => null)) as { jobId?: string; data?: { suggestedText?: string; sources?: Source[]; sourceNote?: string }; error?: string } | null;
       if (!res.ok || !payload) {
         setImprovedError(payload?.error ?? "تعذر إنشاء الصياغة المقترحة — حاول مرة أخرى.");
         return;
@@ -1434,15 +1445,18 @@ export default function ContentStudioPage() {
       // مهمة خلفية (كالإنشاء): نتابعها على نقطة الحالة نفسها فلا ينقطع الطلب على الجوال
       let suggested = payload.data?.suggestedText?.trim() ?? "";
       let srcs = payload.data?.sources ?? [];
+      let note = payload.data?.sourceNote ?? "";
       if (payload.jobId) {
         const outcome = await pollGenerationJob(payload.jobId);
         if (outcome.error) { setImprovedError(outcome.error); return; }
         suggested = (outcome.text ?? "").trim();
         srcs = outcome.sources ?? [];
+        note = outcome.sourceNote ?? "";
       }
       if (!suggested) { setImprovedError("تعذر إنشاء الصياغة المقترحة — حاول مرة أخرى."); return; }
       setImprovedTextAI(suggested);
       setImprovedSources(srcs);
+      setImprovedSourceNote(note);
     } catch {
       setImprovedError("تعذر الاتصال بخدمة الصياغة.");
     } finally {
@@ -3408,20 +3422,36 @@ export default function ContentStudioPage() {
           )}
           <div className="mb-4 flex items-center justify-between">
             <SectionTitle title="3. المحتوى المقترح" subtitle="راجع وعدّل قبل التحليل النظامي." />
-            <button
-              type="button"
-              onClick={() => { setGeneratedText(""); setTopic(""); setVtSvg(""); setVtUrl(""); setVtVisual(null); setVtError(""); setVtConfirming(false); setVtSuggestionReason(""); setVtSectionOpen(false); setVtOutputChoice(""); setVtPremiumUrl(""); setVtProvider(""); setVtProviderNote(""); setVtPremiumError(""); setVtVariants([]); setVtPlanTexts(null); setVtPlan(null); setVtPlanEditing(false); }}
-              className="text-xs text-ink/50 transition hover:text-ink"
-            >
-              أعد الإنشاء
-            </button>
+            <div className="flex items-center gap-3">
+              {/* معاينة القراءة النظيفة (بطلب مالكة المنصة) — تبديل بين التحرير والمعاينة */}
+              <button
+                type="button"
+                onClick={() => setPreviewGenerated((v) => !v)}
+                className={`inline-flex items-center gap-1 rounded-md border px-2.5 py-1 text-xs font-medium transition ${previewGenerated ? "border-palm bg-mint/30 text-palm" : "border-line text-ink/60 hover:border-palm hover:text-palm"}`}
+              >
+                <Eye size={13} aria-hidden="true" />
+                {previewGenerated ? "تحرير" : "معاينة"}
+              </button>
+              <button
+                type="button"
+                onClick={() => { setGeneratedText(""); setTopic(""); setPreviewGenerated(false); setVtSvg(""); setVtUrl(""); setVtVisual(null); setVtError(""); setVtConfirming(false); setVtSuggestionReason(""); setVtSectionOpen(false); setVtOutputChoice(""); setVtPremiumUrl(""); setVtProvider(""); setVtProviderNote(""); setVtPremiumError(""); setVtVariants([]); setVtPlanTexts(null); setVtPlan(null); setVtPlanEditing(false); }}
+                className="text-xs text-ink/50 transition hover:text-ink"
+              >
+                أعد الإنشاء
+              </button>
+            </div>
           </div>
 
           {/* توزيع رأسي: المحرّر أولاً، ثم ترجمة المحتوى بصرياً أسفله — بلا عمود جانبي
               يترك مساحة فارغة حين يقصر أحد القسمين عن الآخر (بقرار مالكة المنصة) */}
           <div>
           <div className="min-w-0">
-          {/* Text — always shown first */}
+          {/* Text — always shown first. وضع المعاينة: عرض قراءة نظيف بلا صندوق تحرير */}
+          {previewGenerated ? (
+            <div className="whitespace-pre-wrap rounded-xl border border-line bg-white p-5 text-[15px] leading-9 text-ink shadow-sm">
+              {generatedText}
+            </div>
+          ) : (
           <textarea
             value={generatedText}
             onChange={(e) => { setGeneratedText(e.target.value); setPendingGeneratedReview(null); }}
@@ -3433,7 +3463,8 @@ export default function ContentStudioPage() {
                 : "border-line"
             }`}
           />
-          {charLimit !== null && (
+          )}
+          {!previewGenerated && charLimit !== null && (
             <div className={`mt-1 text-left text-xs tabular-nums ${
               generatedText.length > charLimit
                 ? "font-bold text-red-500"
@@ -3445,6 +3476,13 @@ export default function ContentStudioPage() {
               {generatedText.length > charLimit && (
                 <span className="mr-2">(تجاوز بـ {generatedText.length - charLimit} حرف)</span>
               )}
+            </div>
+          )}
+          {/* إشعار المصارحة: طُلب مرجع ولم يُعثر عليه — يظهر صراحةً بدل الصمت */}
+          {generatedSourceNote && (
+            <div className="mt-3 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm leading-7 text-amber-800">
+              <AlertTriangle size={16} className="mt-1 shrink-0" aria-hidden="true" />
+              <span>{generatedSourceNote}</span>
             </div>
           )}
           <SourcesPanel
@@ -4352,6 +4390,12 @@ export default function ContentStudioPage() {
                 {improvedTextAI ? (
                   <>
                     <p className="whitespace-pre-wrap rounded-lg bg-white/70 p-4 text-sm leading-8 text-violetText">{improvedTextAI}</p>
+                    {improvedSourceNote && (
+                      <div className="mt-3 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm leading-7 text-amber-800">
+                        <AlertTriangle size={16} className="mt-1 shrink-0" aria-hidden="true" />
+                        <span>{improvedSourceNote}</span>
+                      </div>
+                    )}
                     <SourcesPanel
                       sources={improvedSources}
                       onInsert={(block) => setImprovedTextAI((prev) => prev + block)}

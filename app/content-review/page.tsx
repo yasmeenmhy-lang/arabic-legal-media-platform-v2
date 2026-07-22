@@ -255,6 +255,8 @@ export default function ContentReviewPage() {
   const [suggestionError, setSuggestionError] = useState<string | null>(null);
   // المصادر المعتمدة التي جلبها البحث الحي للصياغة المقترحة — تُعرض كأدلة مرئية
   const [rewriteSources, setRewriteSources] = useState<Source[]>([]);
+  // إشعار المصارحة: أقرّ المستخدم بمرجع ولم يُعثر على مطابق — يُعرض صراحةً لا صمتاً
+  const [rewriteSourceNote, setRewriteSourceNote] = useState("");
   // بوابة الإقرار قبل الاعتماد/النشر (بقرار مالكة المنصة)
   const [ackOpen, setAckOpen] = useState(false);
   // إقرار المستخدم بأن النص المُراد مراجعته يتضمن مرجعاً أو دراسة (بقرار مالكة المنصة):
@@ -1017,16 +1019,16 @@ export default function ContentReviewPage() {
 
   // متابعة مهمة الصياغة الخلفية (كمسار الإنشاء): طلب قصير ثم استطلاع، فلا ينقطع
   // طلب طويل على الجوال («Load failed»). النتيجة: نص الصياغة + مصادرها المعتمدة.
-  async function pollRewriteJob(jobId: string): Promise<{ text?: string; sources?: Source[]; error?: string }> {
+  async function pollRewriteJob(jobId: string): Promise<{ text?: string; sources?: Source[]; sourceNote?: string; error?: string }> {
     const deadline = Date.now() + 6 * 60 * 1000;
     for (;;) {
       if (Date.now() > deadline) return { error: "طالت المتابعة أكثر من المتوقع — أعد المحاولة." };
       try {
         const res = await fetch(`/api/content-studio/generate-status?id=${encodeURIComponent(jobId)}`);
-        const data = (await res.json()) as { status?: string; text?: string; sources?: Source[]; error?: string };
+        const data = (await res.json()) as { status?: string; text?: string; sources?: Source[]; sourceNote?: string; error?: string };
         if (data.status === "done") {
           void fetch(`/api/content-studio/generate-status?id=${encodeURIComponent(jobId)}&ack=1`).catch(() => {});
-          return { text: data.text ?? "", sources: data.sources };
+          return { text: data.text ?? "", sources: data.sources, sourceNote: data.sourceNote };
         }
         if (data.status === "error" || data.status === "missing") {
           return { error: data.status === "missing" ? "انتهت صلاحية هذه الصياغة — أعد المحاولة." : data.error ?? "تعذر إنشاء الصياغة المقترحة." };
@@ -1042,6 +1044,7 @@ export default function ContentReviewPage() {
     setAiSuggestion(null);
     setSuggestionError(null);
     setRewriteSources([]);
+    setRewriteSourceNote("");
     try {
       const response = await fetch("/api/reformulate", {
         method: "POST",
@@ -1071,22 +1074,25 @@ export default function ContentReviewPage() {
           sourceHint: reviewHasSource ? (reviewSourceHint.trim() || undefined) : undefined
         })
       });
-      const payload = await response.json().catch(() => null) as { jobId?: string; data?: { suggestedText?: string; sources?: Source[] }; error?: string } | null;
+      const payload = await response.json().catch(() => null) as { jobId?: string; data?: { suggestedText?: string; sources?: Source[]; sourceNote?: string }; error?: string } | null;
       if (!response.ok || !payload) {
         throw new Error(payload?.error ?? "تعذر إنشاء الصياغة المقترحة — حاول مرة أخرى.");
       }
       // مهمة خلفية: نتابعها بالاستطلاع بدل انتظار طلب طويل واحد
       let suggested = payload.data?.suggestedText?.trim() ?? "";
       let srcs = payload.data?.sources ?? [];
+      let note = payload.data?.sourceNote ?? "";
       if (payload.jobId) {
         const outcome = await pollRewriteJob(payload.jobId);
         if (outcome.error) throw new Error(outcome.error);
         suggested = (outcome.text ?? "").trim();
         srcs = outcome.sources ?? [];
+        note = outcome.sourceNote ?? "";
       }
       if (!suggested) throw new Error("أعاد النموذج نصًا فارغًا، حاول مرة أخرى.");
       setAiSuggestion(suggested);
       setRewriteSources(srcs);
+      setRewriteSourceNote(note);
     } catch (error) {
       setSuggestionError(error instanceof Error ? error.message : "تعذر إنشاء الصياغة المقترحة.");
     } finally {
@@ -2088,6 +2094,12 @@ export default function ContentReviewPage() {
                   <p className="text-xs leading-6 text-ink/55">
                     يمكنك تعديل الصياغة قبل تطبيقها. هذا المقترح استرشادي وتظل مسؤولية الاعتماد والنشر على المستخدم.
                   </p>
+                  {rewriteSourceNote && (
+                    <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm leading-7 text-amber-800">
+                      <AlertTriangle size={16} className="mt-1 shrink-0" aria-hidden="true" />
+                      <span>{rewriteSourceNote}</span>
+                    </div>
+                  )}
                   <SourcesPanel
                     sources={rewriteSources}
                     onInsert={(block) => setAiSuggestion((prev) => (prev ?? "") + block)}

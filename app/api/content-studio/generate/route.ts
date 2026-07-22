@@ -371,12 +371,15 @@ ${briefType
 
   // الدورة الكاملة: توليد ← بوابة الحاكم ← إعادة كتابة عند الملاحظات — تُرجع نتيجة أو خطأ
   async function runPipeline(onDraft?: (text: string) => void): Promise<
-    | { kind: "ok"; text: string; truncated: boolean; gov: GovernTextFullResult; sources: { title: string; url: string }[] }
+    | { kind: "ok"; text: string; truncated: boolean; gov: GovernTextFullResult; sources: { title: string; url: string }[]; sourceNote?: string }
     | { kind: "err"; error: string }
   > {
     // المصادر الموثوقة المجلوبة فعلاً — تُرفَع من كتلة البحث لتُعرض للمستخدم كأدلة
     // مرئية (لوحة «المصادر المعتمدة»)، بقرار مالكة المنصة. عرضٌ صرف لا يمسّ الفحص.
     let researchSources: { title: string; url: string }[] = [];
+    // إشعار المصارحة (بقرار مالكة المنصة): طُلب مصدر ولم يُعثر عليه — يُبلَّغ المستخدم
+    // في الواجهة صراحةً بدل صمتٍ يوحي بأن طلبه تُجوهل.
+    let sourceNote: string | undefined;
     let promptText = user;
     let text = "";
     let truncated = false;
@@ -416,6 +419,7 @@ ${briefType
         // المصارحة (بقرار المالكة): طلب المستخدم مصدراً ولم يُعثر على مطابق موثوق —
         // يُوجَّه الكاتب للأمانة (نسبة عامة صادقة، لا اختلاق)، ويُبلَّغ المستخدم بذلك.
         console.log("[generate:research] لا مصدر موثوق مطابق للطلب");
+        sourceNote = "طُلب تعزيز المحتوى بمرجع موثّق، ولم يُعثر على مصدر مطابق في المصادر المعتمدة — صيغ المحتوى بنسبة عامة صادقة دون اختلاق مرجع. يمكنك إعادة المحاولة بوصف أدق للمرجع.";
         promptText = `${user}\n\n★ طلب المستخدم دعم المحتوى بمصدر، ولم يُعثر على مصدر موثوق مطابق للمواصفات في المصادر المعتمدة. لا تختلق مصدراً ولا رقماً ولا دراسة إطلاقاً — اكتب المحتوى بنسبة عامة صادقة (اتجاهات معروفة، أحكام عامة دون رقم مخترع)، وأشر بإيجاز مهني إلى أن التفاصيل تُراجَع في مصادرها الرسمية.`;
       }
     }
@@ -491,7 +495,7 @@ ${briefType
       if (candidates.length === 0) return { kind: "err", error: "لم يُنشأ أي محتوى" };
 
       const winner = candidates.find((c) => c.deliverable);
-      if (winner) return { kind: "ok", text: winner.text, truncated: false, gov: winner.gov, sources: researchSources };
+      if (winner) return { kind: "ok", text: winner.text, truncated: false, gov: winner.gov, sources: researchSources, sourceNote };
 
       // لا مستوفي بعد: يُختار الأقرب (أقل تصحيحات) لجولة تصحيح موضعي
       const best = [...candidates].sort((a, b) => a.corrections.length - b.corrections.length)[0];
@@ -549,7 +553,7 @@ ${briefType
       console.log("[generate:style-residual]", JSON.stringify(lastGov?.corrections ?? []).slice(0, 900));
       return { kind: "err", error: "تعذّر إنشاء نص مستوفٍ لجميع مؤشرات الجودة (بقيت ملاحظة أسلوبية). أعد المحاولة." };
     }
-    return { kind: "ok", text, truncated, gov: lastGov!, sources: researchSources };
+    return { kind: "ok", text, truncated, gov: lastGov!, sources: researchSources, sourceNote };
   }
 
   // يبني تقرير المراجعة الكامل من حكم الإنشاء نفسه (بلا ذكاء ثانٍ مستقل) — يُستدعى فقط
@@ -596,6 +600,7 @@ ${briefType
             sql, jobId, result.text, result.truncated,
             review ? JSON.stringify(review) : undefined,
             result.sources.length ? JSON.stringify(result.sources) : undefined,
+            result.sourceNote,
           );
         } else {
           await failJob(sql, jobId, result.error);
@@ -635,7 +640,7 @@ ${briefType
         const result = await runPipeline((draft) => send({ type: "partial", text: draft }));
         if (result.kind === "ok") {
           const review = await buildUnifiedReview(result.text, result.gov);
-          send({ type: "result", text: result.text, truncated: result.truncated, review: review ?? undefined, sources: result.sources.length ? result.sources : undefined });
+          send({ type: "result", text: result.text, truncated: result.truncated, review: review ?? undefined, sources: result.sources.length ? result.sources : undefined, sourceNote: result.sourceNote });
         } else {
           send({ type: "error", error: result.error });
         }

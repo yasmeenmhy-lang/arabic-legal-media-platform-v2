@@ -117,7 +117,7 @@ async function verifySuggestion(
 }
 
 type ReformOutcome =
-  | { ok: true; suggestedText: string; sources: { title: string; url: string }[] }
+  | { ok: true; suggestedText: string; sources: { title: string; url: string }[]; sourceNote?: string }
   | { ok: false; status: number; error: string };
 
 // دورة إعادة الصياغة الكاملة (بحث + كتابة + تحقق + تصحيح) — تُشغَّل خلفياً كي لا
@@ -133,6 +133,8 @@ async function runReformulation(data: z.infer<typeof schema>, apiKey: string): P
   let researchBlock = "";
   // المصادر المعتمدة المجلوبة — تُعاد للواجهة لعرضها كأدلة مرئية (لوحة «المصادر المعتمدة»)
   let researchSources: { title: string; url: string }[] = [];
+  // إشعار المصارحة: أقرّ المستخدم بمرجع ولم يُعثر على مطابق — يُبلَّغ صراحةً لا صمتاً
+  let sourceNote: string | undefined;
   if (hasSource || mentionsSource(text)) {
     const hint = (sourceHint ?? "").trim();
     const research = await researchTrustedSources({
@@ -155,6 +157,8 @@ async function runReformulation(data: z.infer<typeof schema>, apiKey: string): P
         "قائمة الروابط للاستشهاد:",
         sourceLines,
       ].join("\n");
+    } else if (hasSource) {
+      sourceNote = "طُلب تعزيز الصياغة بمرجع موثّق، ولم يُعثر على مصدر مطابق في المصادر المعتمدة — صيغ النص بنسبة عامة صادقة دون اختلاق مرجع. يمكنك إعادة المحاولة بوصف أدق للمرجع أو رابطه.";
     }
   }
 
@@ -258,7 +262,7 @@ async function runReformulation(data: z.infer<typeof schema>, apiKey: string): P
     }
 
     // حارس نطاق المملكة الحتمي على النص النهائي المنشور
-    return { ok: true, suggestedText, sources: researchSources };
+    return { ok: true, suggestedText, sources: researchSources, sourceNote };
   } catch (error) {
     const raw = error instanceof Error ? error.message : "خطأ غير متوقع";
     // أخطاء المزود المعروفة (رصيد/مفتاح/ضغط) تُعرض بالعربية بسببها وإجرائها — لا بنصها الإنجليزي الخام
@@ -285,7 +289,7 @@ export async function POST(request: Request) {
       try {
         const r = await runReformulation(parsed.data, apiKey);
         if (r.ok) {
-          await completeJob(sql, jobId, r.suggestedText, false, undefined, r.sources.length ? JSON.stringify(r.sources) : undefined);
+          await completeJob(sql, jobId, r.suggestedText, false, undefined, r.sources.length ? JSON.stringify(r.sources) : undefined, r.sourceNote);
         } else {
           await failJob(sql, jobId, r.error);
         }
@@ -300,6 +304,6 @@ export async function POST(request: Request) {
 
   // احتياطي (تشغيل محلي بلا قاعدة بيانات): متزامن كالسابق
   const r = await runReformulation(parsed.data, apiKey);
-  if (r.ok) return ok({ suggestedText: r.suggestedText, sources: r.sources.length ? r.sources : undefined });
+  if (r.ok) return ok({ suggestedText: r.suggestedText, sources: r.sources.length ? r.sources : undefined, sourceNote: r.sourceNote });
   return NextResponse.json({ error: r.error }, { status: r.status });
 }
