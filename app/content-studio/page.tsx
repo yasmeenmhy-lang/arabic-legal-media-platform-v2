@@ -1559,18 +1559,31 @@ export default function ContentStudioPage() {
       flash("تعذر الاعتماد: عالج الملاحظات والحواجز الظاهرة أولاً من صفحة المراجعة.");
       return;
     }
-    // تسجيل واقعة الإقرار سنداً إثباتياً مع النسخة المعتمدة
+    // تسجيل واقعة الإقرار سنداً إثباتياً مع النسخة المعتمدة + سجلّ الخادم الدائم
+    const ackTier: AckTier = review.riskLevel === "متوسط" ? "medium" : "low";
+    const ackText = acknowledgmentTextFor(ackTier);
     if (approvedSave.version.analysis) {
-      const ackTier: AckTier = review.riskLevel === "متوسط" ? "medium" : "low";
       approvedSave.version.analysis = {
         ...approvedSave.version.analysis,
         approvalAcknowledgment: {
-          text: acknowledgmentTextFor(ackTier),
+          text: ackText,
           at: new Date().toISOString(),
           riskLevel: review.riskLevel,
         },
       };
     }
+    void fetch("/api/acknowledgments", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        contentId,
+        version: versionNumber,
+        riskLevel: review.riskLevel,
+        tier: ackTier,
+        affectedParties: review.riskScoreExplanation?.affectedParties ?? undefined,
+        ackText,
+      }),
+    }).catch(() => {});
     if (!markContentShared(contentId, versionNumber)) {
       flash("تعذر تجهيز النسخة للمشاركة — حاول مرة أخرى.");
       return;

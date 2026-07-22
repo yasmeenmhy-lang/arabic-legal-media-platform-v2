@@ -881,6 +881,19 @@ export default function ContentReviewPage() {
           riskLevel: review.riskLevel,
         },
       };
+      // سجلّ الإقرار على الخادم (سند دائم) — أفضل جهد؛ النسخة المحلية تبقى احتياطاً
+      void fetch("/api/acknowledgments", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contentId,
+          version: versionNumber,
+          riskLevel: review.riskLevel,
+          tier: ackTier,
+          affectedParties: review.riskScoreExplanation?.affectedParties ?? undefined,
+          ackText: approvedReview.approvalAcknowledgment!.text,
+        }),
+      }).catch(() => {});
       saved.version.analysis = approvedReview;
       setReview(approvedReview);
       saveLatestReviewSnapshot(approvedReview);
