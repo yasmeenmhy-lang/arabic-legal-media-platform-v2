@@ -6,6 +6,7 @@ import { runSemanticAnalysis } from "@/lib/services/semantic-analysis-service";
 import { evaluateContent } from "@/lib/services/content-evaluation-service";
 import { describeProviderError } from "@/lib/ai-provider-errors";
 import { mentionsSource, researchTrustedSources } from "@/lib/services/web-research-service";
+import { countHardLanguageErrors, HARD_LANGUAGE_CATEGORIES } from "@/lib/language-gate";
 import { completeJob, createJob, failJob, jobsDb } from "@/lib/content-jobs";
 import { waitUntil } from "@vercel/functions";
 
@@ -89,21 +90,24 @@ async function verifySuggestion(
     runSemanticAnalysis(text, context),
     evaluateContent(text, context)
   ]);
-  // ★ بأمر مالكة المنصة: كل المؤشرات بلا استثناء — المخالفة والخطأ اللغوي
-  // والملاحظة الأسلوبية والمخاطر؛ أي مؤشر غير مستوفٍ يمنع عرض الصياغة
+  // ★ بقرار مالكة المنصة: يحجب عرض الصياغة الخطأُ القطعي (إملاء/نحو/اتساق مصطلحات)
+  // والمخالفة والمخاطر؛ أما الملاحظة الأسلوبية (أسلوب/وضوح) فإرشادية لا تحجب — فلا
+  // تدخل الصياغة النظيفة حلقةً لا تنتهي بسبب تفضيل ذوقي متغيّر. الكشف كما هو.
+  const hardLangErrors = countHardLanguageErrors(evaluation.language.issues);
   const clean =
     semantic.findings.length === 0 &&
     evaluation.language.passed &&
-    evaluation.language.issues.length === 0 &&
+    hardLangErrors === 0 &&
     evaluation.risks.level === "منخفض";
 
+  // جولات التصحيح تُوجَّه للحواجز فقط (مخالفة/خطأ قطعي/مخاطر) — لا للأسلوبيات الذوقية
   const remainingNotes = [
     ...semantic.findings.map(
       (f) => `- مخالفة: ${f.issue} — العبارة: "${f.evidence}" — البديل الآمن: ${f.suggestedSaferWording}`
     ),
-    ...evaluation.language.issues.map(
-      (i) => `- ${i.category === "spelling" || i.category === "grammar" ? "خطأ لغوي" : "ملاحظة أسلوبية"}: "${i.excerpt ?? ""}" — ${i.message}${i.suggestion ? ` — التصحيح: ${i.suggestion}` : ""}`
-    ),
+    ...evaluation.language.issues
+      .filter((i) => (HARD_LANGUAGE_CATEGORIES as readonly string[]).includes(i.category ?? ""))
+      .map((i) => `- خطأ لغوي قطعي: "${i.excerpt ?? ""}" — ${i.message}${i.suggestion ? ` — التصحيح: ${i.suggestion}` : ""}`),
     ...(evaluation.risks.level !== "منخفض"
       ? [`- مخاطر مهنية (${evaluation.risks.level}): ${evaluation.risks.explanation}${evaluation.risks.fix ? ` — المعالجة: ${evaluation.risks.fix}` : ""}`]
       : [])

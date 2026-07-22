@@ -272,6 +272,7 @@ export function calculatePublishingReadiness({
   riskScore,
   professionalismScore,
   languageScore,
+  languageHardErrorCount = 0,
   context,
   reviewStatus
 }: {
@@ -279,6 +280,9 @@ export function calculatePublishingReadiness({
   riskScore: number;
   professionalismScore: number;
   languageScore: number;
+  // عدد الأخطاء اللغوية القطعية (إملاء/نحو/اتساق مصطلحات) — تُحجب؛ الأسلوبية إرشادية.
+  // توحيد مع بوابة الاعتماد فلا تظهر «اللغة سليمة» مع «تعذّر الاعتماد لغوياً».
+  languageHardErrorCount?: number;
   context: ReviewContext;
   reviewStatus: ReviewReadinessStatus;
   profile?: ScoringProfile;
@@ -317,12 +321,14 @@ export function calculatePublishingReadiness({
     {
       key: "language",
       label: "جودة اللغة",
-      passed: languageScore >= 75,
+      passed: languageScore >= 75 && languageHardErrorCount === 0,
       sourceValue: languageScore,
       threshold: "75%",
-      reason: languageScore >= 75
-        ? "اللغة سليمة ومناسبة للنشر."
-        : "يوجد أخطاء لغوية يجب تصحيحها."
+      reason: languageScore < 75
+        ? "يوجد أخطاء لغوية يجب تصحيحها."
+        : languageHardErrorCount > 0
+        ? "توجد أخطاء لغوية قطعية (إملاء/نحو) يجب تصحيحها."
+        : "اللغة سليمة ومناسبة للنشر."
     }
   ];
 

@@ -13,6 +13,7 @@ import type {
   RiskLevel
 } from "@/lib/types";
 import { advisoryDisclaimer } from "@/lib/governance";
+import { countHardLanguageErrors } from "@/lib/language-gate";
 import { createReviewedContentContext } from "@/lib/review-context";
 import { runPublishingReadinessReview } from "@/lib/services/approval-workflow-service";
 import { rebuildComplianceFromFindings } from "@/lib/services/legal-compliance-service";
@@ -185,6 +186,7 @@ export async function buildReviewResult(
     riskScore,
     professionalismScore,
     languageScore: languageQuality.score,
+    languageHardErrorCount: countHardLanguageErrors(languageQuality.issues),
     context,
     reviewStatus
   });
