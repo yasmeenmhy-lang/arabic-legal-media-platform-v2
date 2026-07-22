@@ -59,7 +59,9 @@ async function callModel(apiKey: string, systemPrompt: string, userPrompt: strin
         model: "claude-sonnet-5",
         max_tokens: 4096,
         thinking: { type: "disabled" },
-        system: systemPrompt,
+        // تخزين مؤقت للموجّه الثابت الضخم (الدستور + المدونة + القواعد) — يخفض تكلفة
+        // مدخلاته نحو ٩٠٪ في كل نداء تالٍ خلال الجولات (بقرار مالكة المنصة لضبط الاستهلاك)
+        system: [{ type: "text", text: systemPrompt, cache_control: { type: "ephemeral" } }],
         messages
       })
     });

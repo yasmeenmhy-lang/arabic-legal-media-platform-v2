@@ -161,7 +161,8 @@ async function requestAnthropicJson(input: AIProviderRequest) {
       max_tokens: input.maxTokens ?? 1600,
       // النماذج بعد Opus 4.6 (ومنها Sonnet 5) ترفض أي حرارة غير 1.0 بخطأ 400 — لا تُضبط
       thinking: { type: "disabled" },
-      system: input.system,
+      // تخزين مؤقت للموجّه الثابت — يخفض تكلفة مدخلاته على النداءات المتقاربة
+      system: [{ type: "text", text: input.system, cache_control: { type: "ephemeral" } }],
       messages: [{ role: "user", content: input.user }]
     })
   });
