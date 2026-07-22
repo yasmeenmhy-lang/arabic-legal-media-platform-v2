@@ -998,6 +998,45 @@ export default function ContentStudioPage() {
     }
   }
 
+  // مدخلات نموذج الإنشاء التي تُحفظ مع المهمة المعلّقة وتُستعاد عند الاستئناف —
+  // سدّ ثغرة رصدتها مالكة المنصة: الخروج فور «أنشئ» قبل وصول رقم المهمة كان يُضيع
+  // المدخلات، وحتى الاستئناف برقم مهمة كان يعيد النص بلا سياقه (فيفشل التحليل بعده).
+  type GenPendingInputs = {
+    kind?: ContentKind | null; channel?: string; audience?: string; purpose?: string; specialty?: string;
+    source?: string; globalSub?: string; topic?: string; charLimit?: number | null; wantSource?: boolean;
+    scriptDuration?: string; scriptStyle?: string; articleLength?: string; adCta?: string; adStyle?: string;
+    campaignName?: string; campaignDuration?: string; campaignGoal?: string; planFrequency?: string; planDateRange?: string;
+  };
+  function snapshotGenerationInputs(): GenPendingInputs {
+    return {
+      kind, channel, audience, purpose, specialty, source, globalSub, topic, charLimit, wantSource,
+      scriptDuration, scriptStyle, articleLength, adCta, adStyle,
+      campaignName, campaignDuration, campaignGoal, planFrequency, planDateRange,
+    };
+  }
+  function restoreGenerationInputs(inputs: GenPendingInputs) {
+    if (inputs.kind) setKind(inputs.kind);
+    setChannel(inputs.channel ?? "");
+    setAudience(inputs.audience ?? "");
+    setPurpose(inputs.purpose ?? "");
+    setSpecialty(inputs.specialty ?? "");
+    setSource(inputs.source ?? "");
+    setGlobalSub(inputs.globalSub ?? "");
+    setTopic(inputs.topic ?? "");
+    setCharLimit(inputs.charLimit ?? null);
+    setWantSource(Boolean(inputs.wantSource));
+    setScriptDuration(inputs.scriptDuration ?? "");
+    setScriptStyle(inputs.scriptStyle ?? "");
+    setArticleLength(inputs.articleLength ?? "");
+    setAdCta(inputs.adCta ?? "");
+    setAdStyle(inputs.adStyle ?? "");
+    setCampaignName(inputs.campaignName ?? "");
+    setCampaignDuration(inputs.campaignDuration ?? "");
+    setCampaignGoal(inputs.campaignGoal ?? "");
+    setPlanFrequency(inputs.planFrequency ?? "");
+    setPlanDateRange(inputs.planDateRange ?? "");
+  }
+
   // استئناف تلقائي عند فتح الصفحة: مهمة معلّقة محفوظة → نتابعها ونعرض نتيجتها
   useEffect(() => {
     let raw = "";
@@ -1005,19 +1044,41 @@ export default function ContentStudioPage() {
     if (!raw) return;
     let jobId = "";
     let startedAt = 0;
+    let inputs: GenPendingInputs | undefined;
     try {
-      const parsed = JSON.parse(raw) as { jobId?: string; at?: number };
+      const parsed = JSON.parse(raw) as { jobId?: string; at?: number; inputs?: GenPendingInputs };
       jobId = parsed.jobId ?? "";
       startedAt = parsed.at ?? 0;
+      inputs = parsed.inputs;
     } catch { /* قيمة تالفة */ }
-    // مهمة قديمة تجاوزت حدّ الخادم (نحو ٦ دقائق) ميتة قطعاً — لا تُستأنف، تُحرَّر فوراً
-    // كي لا تعلق الصفحة على «يُنشئ المحتوى» بلا نهاية (سبب التعليق المستمر بعد الدخول).
+    if (!jobId) {
+      // سجل مُسبق بلا رقم مهمة: خرجت المستخدمة قبل وصول الرد — تُستعاد المدخلات بدل
+      // أن تُرمى (نفس معالجة مسار التحليل)، بحدّ يوم كامل حفاظاً على النموذج النظيف.
+      const fresh = startedAt > 0 && Date.now() - startedAt < 24 * 60 * 60 * 1000;
+      if (inputs && fresh) {
+        setPath("create");
+        restoreGenerationInputs(inputs);
+        setGenerateError("استُعيدت مدخلاتك — انقطع بدء الإنشاء عند مغادرة الصفحة. اضغط «أنشئ المحتوى» للاستئناف.");
+      } else {
+        try { window.localStorage.removeItem(scopedKey(PENDING_GENERATION_KEY)); } catch { /* تجاهل */ }
+      }
+      return;
+    }
+    // مهمة قديمة تجاوزت حدّ الخادم (نحو ٦ دقائق) ميتة قطعاً — لا تُستأنف، لكن مدخلاتها
+    // تُستعاد إن كانت حديثة (بحدّ يوم) كي لا يضيع عمل المستخدمة مع موت المهمة.
     const stale = startedAt > 0 && Date.now() - startedAt > 6 * 60 * 1000;
-    if (!jobId || stale) {
+    if (stale) {
+      const fresh = startedAt > 0 && Date.now() - startedAt < 24 * 60 * 60 * 1000;
       try { window.localStorage.removeItem(scopedKey(PENDING_GENERATION_KEY)); } catch { /* تجاهل */ }
+      if (inputs && fresh) {
+        setPath("create");
+        restoreGenerationInputs(inputs);
+        setGenerateError("تعذّر إكمال الإنشاء السابق في وقته، واستُعيدت مدخلاتك — اضغط «أنشئ المحتوى» لإعادة المحاولة.");
+      }
       return;
     }
     setPath("create");
+    if (inputs) restoreGenerationInputs(inputs); // النص يعود بسياقه كاملاً لا وحيداً
     setGenerating(true);
     setGenerateError("");
     void (async () => {
@@ -1059,6 +1120,15 @@ export default function ContentStudioPage() {
           ? `أخبار قانونية عالمية — ${contentSources.find((s) => s.key === "global-news")?.subs?.find((sub) => sub.key === globalSub)?.label ?? globalSub}`
           : contentSources.find((s) => s.key === source)?.label ?? source;
 
+      // ★ حفظ مُسبق قبل الإرسال (سدّ ثغرة رصدتها مالكة المنصة): الجوال يجمّد التنفيذ
+      // لحظة المغادرة، فلو انتظرنا رقم المهمة لضاعت المدخلات إن خرجت قبل وصول الرد.
+      // تُكتب المدخلات الآن، ويُلحق رقم المهمة فور وصوله — فلا يضيع عمل مهما كانت
+      // لحظة الخروج.
+      const genInputs = snapshotGenerationInputs();
+      try {
+        window.localStorage.setItem(scopedKey(PENDING_GENERATION_KEY), JSON.stringify({ at: Date.now(), inputs: genInputs }));
+      } catch { /* بيئة بلا تخزين */ }
+
       const res = await fetch("/api/content-studio/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -1095,11 +1165,13 @@ export default function ContentStudioPage() {
         const payload = (await res.json().catch(() => ({}))) as { jobId?: string; text?: string; error?: string; truncated?: boolean; review?: ReviewResult; sources?: Source[]; sourceNote?: string };
         if (payload.jobId) {
           try {
-            window.localStorage.setItem(scopedKey(PENDING_GENERATION_KEY), JSON.stringify({ jobId: payload.jobId, at: Date.now() }));
+            // المدخلات تبقى مع رقم المهمة — فالاستئناف بعد إعادة التحميل يعيد النص بسياقه كاملاً
+            window.localStorage.setItem(scopedKey(PENDING_GENERATION_KEY), JSON.stringify({ jobId: payload.jobId, at: Date.now(), inputs: genInputs }));
           } catch { /* بيئة بلا تخزين — تبقى المتابعة داخل الجلسة فقط */ }
           data = await pollGenerationJob(payload.jobId, showDraft);
         } else {
           data = payload;
+          try { window.localStorage.removeItem(scopedKey(PENDING_GENERATION_KEY)); } catch { /* تجاهل */ }
         }
       } else if (contentType.includes("ndjson") && res.body) {
         const reader = res.body.getReader();
@@ -1127,6 +1199,9 @@ export default function ContentStudioPage() {
       } else {
         data = (await res.json().catch(() => ({}))) as typeof data;
       }
+      // وصلنا لنتيجة نهائية ضمن الجلسة — يُزال السجل المُسبق (مسار المهمة أزاله أصلاً؛
+      // الإزالة الثانية آمنة، وتغطي مسارات الرد المباشر والبث)
+      try { window.localStorage.removeItem(scopedKey(PENDING_GENERATION_KEY)); } catch { /* تجاهل */ }
       deliverGenerationOutcome(data);
     } finally {
       setGenerating(false);
