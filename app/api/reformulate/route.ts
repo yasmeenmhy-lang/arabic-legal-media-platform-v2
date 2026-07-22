@@ -218,8 +218,10 @@ async function runReformulation(data: z.infer<typeof schema>, apiKey: string): P
     // جولة تحقق أولى عبر محركي الامتثال واللغة
     let verification = await verifySuggestion(suggestedText, context);
 
-    // جولة تصحيحية واحدة إذا بقيت ملاحظات
-    if (!verification.clean && verification.remainingNotes.length > 0) {
+    // جولات تصحيحية متعددة حتى النظافة (بقرار مالكة المنصة: نرفع جهد الصياغة لا سقف
+    // الفحص). صار المسار خلفياً، فيحتمل عدة جولات كمسار الإنشاء بدل جولة واحدة تستسلم.
+    // نقبل نص الجولة فقط إن نظّف أو نقّص الملاحظات (لا نتراجع)، ونتوقف إن لم يتحسّن.
+    for (let round = 0; round < 3 && !verification.clean && verification.remainingNotes.length > 0; round++) {
       const fixPrompt = [
         "النص التالي اقترحته أنت، لكن التحقق الآلي رصد فيه الملاحظات المتبقية أدناه.",
         "أعد كتابته معالجاً كل ملاحظة نهائياً مع الالتزام الكامل بالقاعدة الدستورية ومعايير الجودة.",
@@ -233,12 +235,13 @@ async function runReformulation(data: z.infer<typeof schema>, apiKey: string): P
         "أخرج النص المُصحح فقط دون أي تعليق."
       ].join("\n");
       const fixedText = await callModel(apiKey, systemPrompt, fixPrompt);
-      if (fixedText) {
-        const secondVerification = await verifySuggestion(fixedText, context);
-        if (secondVerification.clean || secondVerification.remainingNotes.length < verification.remainingNotes.length) {
-          suggestedText = fixedText;
-          verification = secondVerification;
-        }
+      if (!fixedText) break;
+      const next = await verifySuggestion(fixedText, context);
+      if (next.clean || next.remainingNotes.length < verification.remainingNotes.length) {
+        suggestedText = fixedText;
+        verification = next;
+      } else {
+        break; // لم تتحسّن هذه الجولة — لا فائدة من جهد إضافي
       }
     }
 
