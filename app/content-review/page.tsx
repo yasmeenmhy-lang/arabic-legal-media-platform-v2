@@ -41,6 +41,7 @@ import {
 import { Button, ButtonLink, DgaSpinner, PageHeader, Panel, SectionTitle, StatusBadge } from "@/components/ui";
 import { FieldLabel } from "@/components/field-label";
 import { SourcesPanel, type Source } from "@/components/sources-panel";
+import { PreviewToggleButton, ReadingPreview } from "@/components/text-preview";
 import { PublishAcknowledgment, acknowledgmentTextFor, type AckTier } from "@/components/publish-acknowledgment";
 import { countHardLanguageErrors } from "@/lib/language-gate";
 import { MobileSelect } from "@/components/mobile-select";
@@ -257,6 +258,9 @@ export default function ContentReviewPage() {
   const [rewriteSources, setRewriteSources] = useState<Source[]>([]);
   // إشعار المصارحة: أقرّ المستخدم بمرجع ولم يُعثر على مطابق — يُعرض صراحةً لا صمتاً
   const [rewriteSourceNote, setRewriteSourceNote] = useState("");
+  // معاينة القراءة النظيفة (بطلب مالكة المنصة) — للنص محل المراجعة وللصياغة المقترحة
+  const [previewText, setPreviewText] = useState(false);
+  const [previewSuggestion, setPreviewSuggestion] = useState(false);
   // بوابة الإقرار قبل الاعتماد/النشر (بقرار مالكة المنصة)
   const [ackOpen, setAckOpen] = useState(false);
   // إقرار المستخدم بأن النص المُراد مراجعته يتضمن مرجعاً أو دراسة (بقرار مالكة المنصة):
@@ -1045,6 +1049,7 @@ export default function ContentReviewPage() {
     setSuggestionError(null);
     setRewriteSources([]);
     setRewriteSourceNote("");
+    setPreviewSuggestion(false);
     try {
       const response = await fetch("/api/reformulate", {
         method: "POST",
@@ -1213,8 +1218,14 @@ export default function ContentReviewPage() {
         <label className="mt-4 block text-sm">
           <span className="flex flex-wrap items-center justify-between gap-2">
             <span>النص محل المراجعة</span>
-            <Button size="sm" variant="secondary-gray" onClick={clearContentInput} disabled={loading || text.length === 0} leadingIcon={<XCircle size={14} aria-hidden="true" />}>مسح المحتوى</Button>
+            <span className="flex items-center gap-2">
+              <PreviewToggleButton preview={previewText} onToggle={() => setPreviewText((v) => !v)} />
+              <Button size="sm" variant="secondary-gray" onClick={clearContentInput} disabled={loading || text.length === 0} leadingIcon={<XCircle size={14} aria-hidden="true" />}>مسح المحتوى</Button>
+            </span>
           </span>
+          {previewText ? (
+            <div className="mt-2"><ReadingPreview text={text} /></div>
+          ) : (
           <textarea
             value={text}
             onFocus={enterEditingIfNeeded}
@@ -1225,6 +1236,7 @@ export default function ContentReviewPage() {
               charLimit !== null && text.length > charLimit ? "border-red-400 focus:border-red-400" : "border-line"
             }`}
           />
+          )}
         </label>
         {charLimit !== null && (
           <div className={`mt-1 text-left text-xs tabular-nums ${
@@ -2086,11 +2098,18 @@ export default function ContentReviewPage() {
                 </div>
               ) : aiSuggestion !== null ? (
                 <div className="mt-4 space-y-3">
+                  <div className="flex justify-end">
+                    <PreviewToggleButton preview={previewSuggestion} onToggle={() => setPreviewSuggestion((v) => !v)} />
+                  </div>
+                  {previewSuggestion ? (
+                    <ReadingPreview text={aiSuggestion} />
+                  ) : (
                   <textarea
                     value={aiSuggestion}
                     onChange={(e) => setAiSuggestion(e.target.value)}
                     className="min-h-36 w-full rounded-lg border border-line p-4 leading-8 text-sm"
                   />
+                  )}
                   <p className="text-xs leading-6 text-ink/55">
                     يمكنك تعديل الصياغة قبل تطبيقها. هذا المقترح استرشادي وتظل مسؤولية الاعتماد والنشر على المستخدم.
                   </p>

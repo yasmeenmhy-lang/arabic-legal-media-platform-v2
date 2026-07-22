@@ -54,6 +54,7 @@ import { isConditionalSource, isGlobalSubVisible, isSourceVisible, isSourceVisib
 import { FieldLabel } from "@/components/field-label";
 import { SourcesPanel, type Source } from "@/components/sources-panel";
 import { PublishAcknowledgment, acknowledgmentTextFor, type AckTier } from "@/components/publish-acknowledgment";
+import { PreviewToggleButton, ReadingPreview } from "@/components/text-preview";
 import { MobileSelect, ChannelGlyph } from "@/components/mobile-select";
 import { specialties } from "@/lib/specialties";
 import {
@@ -735,6 +736,9 @@ export default function ContentStudioPage() {
   const [improvedSources, setImprovedSources] = useState<Source[]>([]);
   // إشعار المصارحة لمسار إعادة الصياغة — طُلب مرجع ولم يُعثر عليه
   const [improvedSourceNote, setImprovedSourceNote] = useState("");
+  // معاينة القراءة النظيفة (بطلب مالكة المنصة) — للنص محل المراجعة وللصياغة التحسينية
+  const [previewStudioReview, setPreviewStudioReview] = useState(false);
+  const [previewImproved, setPreviewImproved] = useState(false);
   // بوابة الإقرار قبل النشر المباشر (بقرار مالكة المنصة)
   const [publishAckOpen, setPublishAckOpen] = useState(false);
 
@@ -1484,6 +1488,7 @@ export default function ContentStudioPage() {
     setImprovedTextAI("");
     setImprovedSources([]);
     setImprovedSourceNote("");
+    setPreviewImproved(false);
     try {
       const res = await fetch("/api/reformulate", {
         method: "POST",
@@ -3278,15 +3283,21 @@ export default function ContentStudioPage() {
         <Panel id="studio-text-editor">
           <div className="mb-4 flex items-center justify-between">
             <SectionTitle title="2. النص محل المراجعة" />
-            <button
-              type="button"
-              onClick={goBackOneStage}
-              className="text-xs text-ink/50 transition hover:text-ink"
-            >
-              رجوع
-            </button>
+            <div className="flex items-center gap-3">
+              <PreviewToggleButton preview={previewStudioReview} onToggle={() => setPreviewStudioReview((v) => !v)} />
+              <button
+                type="button"
+                onClick={goBackOneStage}
+                className="text-xs text-ink/50 transition hover:text-ink"
+              >
+                رجوع
+              </button>
+            </div>
           </div>
 
+          {previewStudioReview ? (
+            <ReadingPreview text={reviewText} />
+          ) : (
           <textarea
             value={reviewText}
             onChange={(e) => setReviewText(e.target.value)}
@@ -3299,6 +3310,7 @@ export default function ContentStudioPage() {
                 : "border-line"
             }`}
           />
+          )}
           {charLimit !== null && (
             <div className={`mt-1 text-left text-xs tabular-nums ${
               reviewText.length > charLimit
@@ -4464,7 +4476,14 @@ export default function ContentStudioPage() {
 
                 {improvedTextAI ? (
                   <>
-                    <p className="whitespace-pre-wrap rounded-lg bg-white/70 p-4 text-sm leading-8 text-violetText">{improvedTextAI}</p>
+                    <div className="mb-2 flex justify-end">
+                      <PreviewToggleButton preview={previewImproved} onToggle={() => setPreviewImproved((v) => !v)} />
+                    </div>
+                    {previewImproved ? (
+                      <ReadingPreview text={improvedTextAI} />
+                    ) : (
+                      <p className="whitespace-pre-wrap rounded-lg bg-white/70 p-4 text-sm leading-8 text-violetText">{improvedTextAI}</p>
+                    )}
                     {improvedSourceNote && (
                       <div className="mt-3 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm leading-7 text-amber-800">
                         <AlertTriangle size={16} className="mt-1 shrink-0" aria-hidden="true" />
