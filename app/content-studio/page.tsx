@@ -89,7 +89,7 @@ const VISUAL_ENGINE_LABELS: Record<string, string> = {
 
 // أنواع المرئيات موسومة «قريبًا» بقرار المالكة (جودتها تحتاج عملاً أكثر) — تُعرض معطّلة
 // غير مفعّلة الآن، وتُفعَّل لاحقاً عند اكتمال جودتها.
-const SOON_KINDS = new Set<ContentKind>(["visual_content", "infographic"]);
+const SOON_KINDS = new Set<ContentKind>(["visual_content", "infographic", "publishing_plan"]);
 
 const studioContentTypes = contentKindOptions
   .filter((item) =>
