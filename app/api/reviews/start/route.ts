@@ -28,6 +28,7 @@ const schema = z.object({
   channel: z.string().optional(),
   audience: z.string().optional(),
   purpose: z.string().optional(),
+  sourceHint: z.string().optional(),
   reviewStatus: z.enum(["DRAFT", "REVIEW_REQUIRED", "NEEDS_CORRECTION", "READY_FOR_PUBLISHING", "EXPORTED", "SHARED"]).optional()
 });
 
@@ -45,6 +46,7 @@ export async function POST(request: Request) {
     channel: parsed.data.channel,
     audience: parsed.data.audience,
     purpose: parsed.data.purpose,
+    sourceHint: parsed.data.sourceHint,
     reviewStatus: parsed.data.reviewStatus
   };
 

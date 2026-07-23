@@ -185,6 +185,8 @@ export type ReviewContext = {
   specialty?: string;
   source?: string;
   topic?: string;
+  // إسناد مرجعي اختياري يذكره المستخدم (رقم مادة/مصدر/رابط) — يُعين تحرّي المصادر ولا يُغني عنه
+  sourceHint?: string;
   reviewStatus?: ReviewReadinessStatus;
 };
 

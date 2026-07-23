@@ -709,6 +709,9 @@ export default function ContentStudioPage() {
   // تعزيز بمرجع موثّق (بقرار مالكة المنصة) — مفتاح المستخدم للمصادر غير المستندة
   // لواقعة (ابتكر من الذكاء، أخرى، مناسبات)؛ أما المستندة لواقعة فتوثيقها تلقائي.
   const [wantSource, setWantSource] = useState(false);
+  // إسناد مرجعي اختياري في المراجعة — يُعين تحرّي الذكاء (والقاعدة تتحرّى دائماً بلا اعتماد عليه)
+  const [reviewHasSource, setReviewHasSource] = useState(false);
+  const [reviewSourceHint, setReviewSourceHint] = useState("");
 
   // Path
   const [path, setPath] = useState<"review" | "create" | null>(null);
@@ -1445,7 +1448,7 @@ export default function ContentStudioPage() {
       const startRes = await fetch("/api/reviews/start", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ contentId, text: trimmed, kind, contentType: contentTypeLabel, channel, audience, purpose }),
+        body: JSON.stringify({ contentId, text: trimmed, kind, contentType: contentTypeLabel, channel, audience, purpose, sourceHint: (path === "review" && reviewHasSource && reviewSourceHint.trim()) ? reviewSourceHint.trim() : undefined }),
       });
       const startPayload = (await startRes.json().catch(() => ({}))) as { jobId?: string | null; error?: string };
       if (requestId !== reviewRequestIdRef.current) return;
@@ -1466,7 +1469,7 @@ export default function ContentStudioPage() {
         const res = await fetch("/api/reviews", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ text: trimmed, kind, contentType: contentTypeLabel, channel, audience, purpose }),
+          body: JSON.stringify({ text: trimmed, kind, contentType: contentTypeLabel, channel, audience, purpose, sourceHint: (path === "review" && reviewHasSource && reviewSourceHint.trim()) ? reviewSourceHint.trim() : undefined }),
         });
         if (!res.ok) {
           const payload = await res.json().catch(() => ({})) as { error?: string };
@@ -3431,6 +3434,23 @@ export default function ContentStudioPage() {
               )}
             </div>
           )}
+          {/* إسناد مرجعي اختياري — يُعين التحرّي، غير مانع؛ والقاعدة تتحرّى دائماً */}
+          <div className="mt-4 rounded-lg border border-line bg-paper/50 p-3">
+            <label className="flex cursor-pointer items-start gap-2.5">
+              <input type="checkbox" checked={reviewHasSource} onChange={(e) => setReviewHasSource(e.target.checked)} className="mt-0.5 h-4 w-4 accent-palm" />
+              <span className="text-sm text-ink/80">هل يستند نصك إلى مرجع أو مادة نظامية؟ <span className="text-ink/40">(اختياري — يُعين دقّة التحرّي)</span></span>
+            </label>
+            {reviewHasSource && (
+              <input
+                type="text"
+                value={reviewSourceHint}
+                onChange={(e) => setReviewSourceHint(e.target.value)}
+                placeholder="اذكر رقم المادة أو المصدر أو الصق الرابط"
+                className="mt-2.5 w-full rounded-lg border border-line bg-white px-3 py-2 text-sm focus:border-palm focus:outline-none"
+              />
+            )}
+            <p className="mt-2 text-xs leading-5 text-ink/45">يدقّق الذكاء صحّة المعلومات ومصداقيتها في كل الأحوال، حتى لو لم تُشِر إلى مرجع.</p>
+          </div>
           <div className="mt-4 flex gap-3">
             <Button onClick={runReview} disabled={reviewText.trim().length < 5} leadingIcon={<FileCheck2 size={16} aria-hidden="true" />}>
               مراجعة المحتوى

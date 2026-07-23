@@ -39,7 +39,8 @@ function buildContextSummary(context?: ReviewContext): string {
     context.purpose && `الهدف: ${context.purpose}`,
     context.specialty && `التخصص: ${context.specialty}`,
     context.source && `مصدر الفكرة: ${context.source}`,
-    context.topic && `الموضوع المدخل: ${context.topic}`
+    context.topic && `الموضوع المدخل: ${context.topic}`,
+    context.sourceHint && `مرجع أشار إليه المستخدم (وجّه تحرّيك للتحقق من دقّته ومصداقيته، ولا تكتفِ به): ${context.sourceHint}`
   ].filter(Boolean);
   return parts.length > 0 ? parts.join(" | ") : "غير محدد";
 }
