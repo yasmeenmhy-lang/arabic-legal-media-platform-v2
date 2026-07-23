@@ -510,7 +510,7 @@ export default function ContentReviewPage() {
 
   async function requestReview(reviewStatus?: "READY_FOR_PUBLISHING") {
     if (!kind || !audience || !purpose || (!isReanalysis && !specialty)) {
-      throw new Error("اختر نوع المحتوى والجمهور والهدف والتخصص قبل التحليل حتى ترتبط النتائج بالسياق الصحيح.");
+      throw new Error("اختر نوع المحتوى والجمهور والهدف والتخصص قبل التحليل حتى ترتبط النتائج بإطار المحتوى الصحيح.");
     }
     const response = await fetch("/api/reviews", {
       method: "POST",
@@ -651,7 +651,7 @@ export default function ContentReviewPage() {
 
   async function runReview() {
     if (!kind || !audience || !purpose || (!isReanalysis && !specialty)) {
-      setMessage("اختر نوع المحتوى والجمهور والهدف والتخصص قبل التحليل حتى ترتبط النتائج بالسياق الصحيح.");
+      setMessage("اختر نوع المحتوى والجمهور والهدف والتخصص قبل التحليل حتى ترتبط النتائج بإطار المحتوى الصحيح.");
       return;
     }
     const requestId = ++reviewRequestIdRef.current;
@@ -793,7 +793,7 @@ export default function ContentReviewPage() {
   function beginEditing() {
     setEditSnapshot({ text, kind, channel, audience, purpose });
     setIsEditing(true);
-    setMessage("يمكنك الآن تعديل المحتوى والسياق. احفظ المسودة أو أعد التحليل مباشرة.");
+    setMessage("يمكنك الآن تعديل المحتوى وإطاره. احفظ المسودة أو أعد التحليل مباشرة.");
     document.getElementById("input")?.scrollIntoView({ behavior: "smooth" });
   }
 
@@ -855,7 +855,7 @@ export default function ContentReviewPage() {
 
   function saveForLater() {
     if (!review || text.trim().length < 5 || !kind || !audience || !purpose) {
-      setSaveLaterMsg("تعذر الحفظ: بيانات المحتوى أو السياق غير مكتملة.");
+      setSaveLaterMsg("تعذر الحفظ: بيانات المحتوى أو إطاره غير مكتملة.");
       return;
     }
     // حماية من فشل التخزين (امتلاء ذاكرة المتصفح): لا ضغطة صامتة بلا أثر أبداً
@@ -1245,14 +1245,14 @@ export default function ContentReviewPage() {
         eyebrow="مساعد قرار النشر للمحامي"
         title="إدارة المحتوى الإعلامي والإعلاني للمحامين"
         description="ابدأ بما يحتاج إلى قرار: الملاحظات، الأدلة، الأثر، والإجراء الموصى به. الدرجات مؤشرات مساندة وليست النتيجة الأساسية."
-        action={<ButtonLink href="/content-studio?results=1" variant="secondary-gray"><ArrowRight size={16} />العودة إلى نتائج الاستديو</ButtonLink>}
+        action={<ButtonLink href="/content-studio?results=1" variant="secondary-gray"><ArrowRight size={16} />العودة إلى نتائج مركز المحتوى</ButtonLink>}
       />
 
       {/* النتائج بعرض الصفحة للحاسب والآيباد؛ الجوال يحتفظ بتسلسله العمودي. */}
       <div>
         <div className="min-w-0 space-y-6">
       <Panel id="input">
-        <SectionTitle title="1. إدخال المحتوى والسياق" subtitle="كلما اكتمل السياق ارتفعت موثوقية التوصية." />
+        <SectionTitle title="1. إدخال المحتوى وإطاره" />
 
         {/* عنوان المحتوى والنص محل المراجعة — بقرار مالكة المنصة: ظاهران دائماً خارج
             الأكورديون، حتى في عرض النتائج، فلا يحتاج المستخدم فتح السياق ليرى محتواه */}
@@ -1337,9 +1337,9 @@ export default function ContentReviewPage() {
 
         <details open={!review} className="mt-5 group">
           <summary className="flex cursor-pointer list-none items-center justify-between gap-3 rounded-lg border border-line bg-paper px-4 py-3 text-sm font-semibold text-ink focus-ring">
-            <span>{review ? "عرض السياق أو تعديله" : "إدخال السياق"}</span>
+            <span>{review ? "عرض إطار المحتوى أو تعديله" : "إدخال إطار المحتوى"}</span>
             <span className="flex items-center gap-2 text-xs font-normal text-ink/50">
-              {review ? "معبأ وجاهز من الاستديو" : "أكمل الحقول المطلوبة"}
+              {review ? "معبأ وجاهز من مركز المحتوى" : "أكمل الحقول المطلوبة"}
               <ChevronDown size={16} className="transition-transform group-open:rotate-180" aria-hidden="true" />
             </span>
           </summary>
@@ -1348,7 +1348,7 @@ export default function ContentReviewPage() {
         {/* شريط اكتمال السياق */}
         <div className="mb-5">
           <div className="mb-1.5 flex items-center justify-between text-xs">
-            <span className="text-ink/55">اكتمال السياق</span>
+            <span className="text-ink/55">اكتمال إطار المحتوى</span>
           </div>
           <div className="h-2 overflow-hidden rounded-full bg-paper" role="progressbar" aria-valuemin={0} aria-valuemax={4} aria-valuenow={contextScore}>
             <div className="h-full rounded-full bg-gradient-to-l from-mint via-palm/70 to-palm transition-all duration-500" style={{ width: `${contextScore * 25}%` }} />
@@ -1940,7 +1940,7 @@ export default function ContentReviewPage() {
         </div>
 
         {!hasReviewContext ? (
-          <p className="mt-2 text-xs leading-6 text-ink/60">اختر نوع المحتوى والجمهور والهدف والتخصص حتى يكون التحليل مرتبطًا بالسياق الصحيح.</p>
+          <p className="mt-2 text-xs leading-6 text-ink/60">اختر نوع المحتوى والجمهور والهدف والتخصص حتى يكون التحليل مرتبطًا بإطار المحتوى الصحيح.</p>
         ) : null}
         {/* توعوي بحت عند رصد اقتباس في النص الملصق — كشف عرضي حتمي، لا يمس المؤشرات ولا محرك التحليل */}
         {review ? (

@@ -12,7 +12,7 @@ export const platformTitle = "إدارة المحتوى الإعلامي وال�
 // user/role management are intentionally absent here; regular users must never
 // see platform-owner administration unless they access the protected /admin URL.
 export const navItems = [
-  { title: "استوديو المحتوى المهني", href: "/content-studio", icon: Sparkles, group: "الرئيسية" },
+  { title: "مركز المحتوى", href: "/content-studio", icon: Sparkles, group: "الرئيسية" },
   { title: "التحليل التفصيلي للمحتوى المهني", href: "/content-review", icon: FileCheck2, group: "الرئيسية" },
   { title: "مركز التخطيط الإعلامي والإعلاني", href: "/calendar-v2", icon: CalendarDays, group: "الرئيسية" },
   { title: "سجل المحتوى المهني", href: "/content-management", icon: FileClock, group: "الرئيسية" },

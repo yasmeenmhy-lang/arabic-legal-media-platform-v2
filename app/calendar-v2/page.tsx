@@ -1007,7 +1007,7 @@ function DayPanel({
                     />
                     {candidates.length === 0 ? (
                       <p className="rounded-lg bg-paper p-3 text-xs text-ink/45">
-                        {records.length === 0 ? "لا يوجد محتوى في السجل بعد — أنشئ محتوى من الاستوديو أولاً." : "لا نتائج مطابقة للبحث."}
+                        {records.length === 0 ? "لا يوجد محتوى في السجل بعد — أنشئ محتوى من مركز المحتوى أولاً." : "لا نتائج مطابقة للبحث."}
                       </p>
                     ) : (
                       <div className="max-h-64 space-y-1.5 overflow-y-auto">

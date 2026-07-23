@@ -569,7 +569,7 @@ function createDraftRecord(
       {
         id: `${id}-action-1`,
         action: "CREATED",
-        label: "تم الإنشاء من استوديو المحتوى",
+        label: "تم الإنشاء من مركز المحتوى",
         actor: DEMO_USER_NAME,
         at: timestamp,
         toStatus: "مسودة",
@@ -1343,7 +1343,7 @@ export default function ContentStudioPage() {
     const text = path === "create" ? generatedText : reviewText;
     if (text.trim().length < 5) return;
     if (!kind || !audience || !purpose || !specialty) {
-      setReviewError("اختر نوع المحتوى والجمهور والهدف والتخصص قبل التحليل حتى ترتبط النتائج بالسياق الصحيح.");
+      setReviewError("اختر نوع المحتوى والجمهور والهدف والتخصص قبل التحليل حتى ترتبط النتائج بإطار المحتوى الصحيح.");
       return;
     }
     const requestId = ++reviewRequestIdRef.current;
@@ -2429,24 +2429,22 @@ export default function ContentStudioPage() {
   return (
     <div className="content-review-window space-y-6">
       <PageHeader
-        eyebrow="الاستوديو"
+        eyebrow="مركز المحتوى"
         title="إعداد المحتوى المهني"
-        description="راجع محتوى جاهزاً أو أنشئ محتوى جديداً — كلاهما يمر عبر محرك التحليل النظامي."
         action={path ? <Button variant="secondary-gray" onClick={goBackOneStage} leadingIcon={<ArrowRight size={16} />}>رجوع</Button> : undefined}
       />
 
       {/* ── 1. Context selectors ── */}
       <Panel>
         <SectionTitle
-          title="1. السياق"
-          subtitle="كلما اكتمل السياق ارتفعت موثوقية التوصية."
+          title="1. إطار المحتوى"
         />
 
         {/* بقرار مالكة المنصة: السياق أكورديون يُطوى تلقائياً عند عرض النتائج (نص مُنشأ
             أو مراجعة جاهزة) فلا يشغل مساحة فوق المحتوى — ويبقى مفتوحاً أثناء الإدخال */}
         <details open={!review && !generatedText} className="group">
           <summary className="flex cursor-pointer list-none items-center justify-between gap-3 rounded-lg border border-line bg-paper px-4 py-3 text-sm font-semibold text-ink focus-ring">
-            <span>{review || generatedText ? "عرض السياق أو تعديله" : "إدخال السياق"}</span>
+            <span>{review || generatedText ? "عرض إطار المحتوى أو تعديله" : "إدخال إطار المحتوى"}</span>
             <span className="flex items-center gap-2 text-xs font-normal text-ink/50">
               {review || generatedText ? "معبأ وجاهز" : "أكمل الحقول المطلوبة"}
               <ChevronDown size={16} className="transition-transform group-open:rotate-180" aria-hidden="true" />
@@ -2457,7 +2455,7 @@ export default function ContentStudioPage() {
         {/* Progress */}
         <div className="mb-5">
           <div className="mb-1.5 flex items-center justify-between text-xs">
-            <span className="text-ink/55">اكتمال السياق</span>
+            <span className="text-ink/55">اكتمال إطار المحتوى</span>
           </div>
           <div className="h-2 overflow-hidden rounded-full bg-paper" role="progressbar" aria-valuemin={0} aria-valuemax={4} aria-valuenow={contextScore}>
             <div
@@ -3520,7 +3518,7 @@ export default function ContentStudioPage() {
             </p>
           )}
           <div className="mb-4 flex items-center justify-between">
-            <SectionTitle title="3. المحتوى المقترح" subtitle="راجع وعدّل قبل التحليل النظامي." />
+            <SectionTitle title="3. المحتوى المقترح" />
             <div className="flex items-center gap-3">
               {/* معاينة القراءة النظيفة (بطلب مالكة المنصة) — تبديل بين التحرير والمعاينة */}
               <button

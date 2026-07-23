@@ -12,7 +12,7 @@ import { navItems, platformTitle } from "@/lib/navigation";
 // بقرار مالكة المنصة: «المزيد» في أول الشريط (أقصى اليمين) و«السجل» في آخره
 const bottomTabs = [
   { title: "المراجعة", href: "/content-review", icon: FileCheck2, primary: false },
-  { title: "الاستوديو", href: "/content-studio", icon: Sparkles, primary: true },
+  { title: "مركز المحتوى", href: "/content-studio", icon: Sparkles, primary: true },
   { title: "التخطيط", href: "/calendar-v2", icon: CalendarDays, primary: false },
   { title: "السجل", href: "/content-management", icon: FileClock, primary: false },
 ];
