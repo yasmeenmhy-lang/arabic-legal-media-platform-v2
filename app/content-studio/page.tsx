@@ -3704,16 +3704,18 @@ export default function ContentStudioPage() {
             <div className="mt-5 rounded-xl border border-dashed border-palm/30 bg-mint/10 p-4">
               <button
                 type="button"
-                onClick={() => setVtSectionOpen(true)}
-                disabled={!generatedText.trim()}
-                className="flex items-center gap-1.5 rounded-lg border border-palm bg-white px-4 py-2 text-xs font-semibold text-palm transition hover:bg-mint disabled:cursor-not-allowed disabled:opacity-50"
+                disabled
+                title="قريبًا"
+                className="flex cursor-not-allowed items-center gap-1.5 rounded-lg border border-line bg-paper/60 px-4 py-2 text-xs font-semibold text-ink/40"
               >
                 <BarChart2 size={13} aria-hidden="true" />
                 {visualOutputs.optIn}
+                <span className="mr-1 opacity-40">·</span>
+                <span className="opacity-70">قريبًا</span>
               </button>
               <p className="mt-2 text-xs leading-5 text-ink/45">
                 {generatedText.trim()
-                  ? "المحتوى هو الأصل — المرئي مخرج داعم يوضّح النص ولا يحل محله."
+                  ? "المحتوى هو الأصل — المرئي مخرج داعم يوضّح النص."
                   : "أدخل المحتوى أو ولّد النص أولًا؛ لأن المرئي يجب أن يكون مبنيًا على النص."}
               </p>
             </div>
