@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BookOpen, CalendarDays, ExternalLink, FileCheck2, FileClock, Headphones, Menu, Sparkles, X } from "lucide-react";
+import { BookOpen, ExternalLink, FileCheck2, FileClock, Headphones, Menu, Sparkles, X } from "lucide-react";
 import { navItems, platformTitle } from "@/lib/navigation";
 
 // شريط تنقّل سفلي للجوال فقط (تجربة الجوال) — يعيد استخدام المسارات الفعلية،
@@ -13,7 +13,7 @@ import { navItems, platformTitle } from "@/lib/navigation";
 const bottomTabs = [
   { title: "المراجعة", href: "/content-review", icon: FileCheck2, primary: false },
   { title: "مركز المحتوى", href: "/content-studio", icon: Sparkles, primary: true },
-  { title: "التخطيط", href: "/calendar-v2", icon: CalendarDays, primary: false },
+  // «التخطيط» موسوم «قريبًا» ومعطّل في القائمة الجانبية، فأُزيل اختصاره من الشريط السفلي
   { title: "السجل", href: "/content-management", icon: FileClock, primary: false },
 ];
 import { SessionChip } from "@/components/session-chip";
@@ -105,6 +105,20 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           {visibleItems.filter((item) => item.href !== "/library").map((item) => {
             const Icon = item.icon;
             const active = pathname === item.href;
+            if (item.soon) {
+              return (
+                <div
+                  key={item.href}
+                  aria-disabled="true"
+                  title="قريبًا"
+                  className="mb-1.5 flex cursor-not-allowed items-center gap-3 rounded-lg border border-transparent px-3 py-2.5 text-sm text-ink/35"
+                >
+                  <Icon size={18} className="shrink-0" />
+                  <span className="min-w-0 leading-6">{item.title}</span>
+                  <span className="mr-auto rounded-full bg-mint px-2 py-0.5 text-[10px] font-bold text-palm">قريبًا</span>
+                </div>
+              );
+            }
             return (
               <Link
                 key={item.href}
