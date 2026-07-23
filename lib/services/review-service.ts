@@ -20,7 +20,7 @@ import { rebuildComplianceFromFindings } from "@/lib/services/legal-compliance-s
 import { runSemanticAnalysis } from "@/lib/services/semantic-analysis-service";
 import type { SemanticAnalysisResult } from "@/lib/services/semantic-analysis-service";
 import { evaluateContent } from "@/lib/services/content-evaluation-service";
-import { mentionsSource, verifyTextCitations } from "@/lib/services/web-research-service";
+import { verifyTextCitations } from "@/lib/services/web-research-service";
 import { buildGovernedRewriteSuggestions } from "@/lib/services/recommendation-service";
 import {
   calculateContentQualityScore,
@@ -293,21 +293,20 @@ export async function buildReviewResult(
 }
 
 export async function reviewContent(text: string, kind: ContentKind = "post", context: ReviewContext = {}): Promise<ReviewResult> {
-  // تحقّق حيّ من المصادر قبل التحليل — إنفاذٌ فعليٌّ لقاعدة تحرّي المصادر: إن أشار
-  // النص إلى إحالة نظامية/رقم/دراسة (أو أفصح المستخدم عن مرجع)، نبحث في المصادر
-  // الموثوقة ونحقن ما تحقّق منه في حكمَي الامتثال والمخاطر بدل الاعتماد على ذاكرة
-  // النموذج وحدها. فشل البحث لا يُسقط المراجعة — يعود الحكم لضوابطه (البند ٦).
+  // تحقّق حيّ من المصادر قبل التحليل — إنفاذٌ فعليٌّ لقاعدة تحرّي المصادر. يجري على
+  // كل مراجعة بلا استثناء (بقرار المالكة): لا يُشترط وجود إحالة ظاهرة ولا إفصاح
+  // المستخدم ولا أي خاصية (قناة/نوع)، لأن النص قد يحمل ادعاءً أو معلومة نظامية
+  // بلا لفظ مرجعي صريح فيجب تحرّيه. نبحث في المصادر الموثوقة ونحقن ما تحقّق منه في
+  // حكمَي الامتثال والمخاطر. فشل البحث لا يُسقط المراجعة — يعود الحكم لضوابطه.
   let ctx = context;
-  if (mentionsSource(text) || context.sourceHint) {
-    const verification = await verifyTextCitations({
-      text,
-      specialty: context.specialty,
-      sourceHint: context.sourceHint,
-      timeoutMs: 45_000
-    });
-    if (verification?.briefing) {
-      ctx = { ...context, verificationBriefing: verification.briefing, verificationSources: verification.sources };
-    }
+  const verification = await verifyTextCitations({
+    text,
+    specialty: context.specialty,
+    sourceHint: context.sourceHint,
+    timeoutMs: 45_000
+  });
+  if (verification?.briefing) {
+    ctx = { ...context, verificationBriefing: verification.briefing, verificationSources: verification.sources };
   }
   // Run compliance analysis and content evaluation (risk + professionalism + language) in parallel
   const [semanticResult, contentEval] = await Promise.all([
