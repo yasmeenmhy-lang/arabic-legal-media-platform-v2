@@ -40,7 +40,8 @@ function buildContextSummary(context?: ReviewContext): string {
     context.specialty && `التخصص: ${context.specialty}`,
     context.source && `مصدر الفكرة: ${context.source}`,
     context.topic && `الموضوع المدخل: ${context.topic}`,
-    context.sourceHint && `مرجع أشار إليه المستخدم (وجّه تحرّيك للتحقق من دقّته ومصداقيته، ولا تكتفِ به): ${context.sourceHint}`
+    context.sourceHint && `مرجع أشار إليه المستخدم (وجّه تحرّيك للتحقق من دقّته ومصداقيته، ولا تكتفِ به): ${context.sourceHint}`,
+    context.verificationBriefing && `نتائج تحقّق حيّ من مصادر موثوقة لإحالات هذا النص — اعتمدها في الحكم على دقّة الإحالات والأرقام: ما ورد فيها «مؤكَّد» لا يُرصد خطأً في الدقّة، وما ورد «غير مطابق» فهو خلل دقّة يُرصد، وما «تعذّر التحقّق» يُعامَل بمعايرة الإحالة (لا تصعيد لمجرّد تعذّر التحقّق):\n${context.verificationBriefing}`
   ].filter(Boolean);
   return parts.length > 0 ? parts.join(" | ") : "غير محدد";
 }

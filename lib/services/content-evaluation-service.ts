@@ -245,7 +245,14 @@ function buildContextLine(context?: ReviewContext): string {
     context.source ? `مصدر الفكرة: ${context.source}` : "",
     context.topic ? `الموضوع المدخل: ${context.topic}` : "",
   ].filter(Boolean);
-  return parts.length > 0 ? `سياق النص — ${parts.join("، ")}\n` : "";
+  const base = parts.length > 0 ? `سياق النص — ${parts.join("، ")}\n` : "";
+  // نتائج التحقّق الحيّ من المصادر الموثوقة — تُعتمد في تقدير المخاطر على دقّة
+  // الإحالات: «مؤكَّد» لا يُبنى عليه خطر دقّة، و«غير مطابق» خلل دقّة، و«تعذّر
+  // التحقّق» يُعامَل بمعايرة الإحالة (لا تصعيد مخاطر لمجرّد تعذّر التحقّق اللحظي).
+  const verification = context.verificationBriefing
+    ? `نتائج تحقّق حيّ من مصادر موثوقة لإحالات هذا النص (اعتمدها في الحكم على الدقّة):\n${context.verificationBriefing}\n`
+    : "";
+  return base + verification;
 }
 
 export async function evaluateContent(text: string, context?: ReviewContext): Promise<ContentEvaluation> {

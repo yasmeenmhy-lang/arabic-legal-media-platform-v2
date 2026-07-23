@@ -20,6 +20,7 @@ import { rebuildComplianceFromFindings } from "@/lib/services/legal-compliance-s
 import { runSemanticAnalysis } from "@/lib/services/semantic-analysis-service";
 import type { SemanticAnalysisResult } from "@/lib/services/semantic-analysis-service";
 import { evaluateContent } from "@/lib/services/content-evaluation-service";
+import { mentionsSource, verifyTextCitations } from "@/lib/services/web-research-service";
 import { buildGovernedRewriteSuggestions } from "@/lib/services/recommendation-service";
 import {
   calculateContentQualityScore,
@@ -292,12 +293,28 @@ export async function buildReviewResult(
 }
 
 export async function reviewContent(text: string, kind: ContentKind = "post", context: ReviewContext = {}): Promise<ReviewResult> {
+  // تحقّق حيّ من المصادر قبل التحليل — إنفاذٌ فعليٌّ لقاعدة تحرّي المصادر: إن أشار
+  // النص إلى إحالة نظامية/رقم/دراسة (أو أفصح المستخدم عن مرجع)، نبحث في المصادر
+  // الموثوقة ونحقن ما تحقّق منه في حكمَي الامتثال والمخاطر بدل الاعتماد على ذاكرة
+  // النموذج وحدها. فشل البحث لا يُسقط المراجعة — يعود الحكم لضوابطه (البند ٦).
+  let ctx = context;
+  if (mentionsSource(text) || context.sourceHint) {
+    const verification = await verifyTextCitations({
+      text,
+      specialty: context.specialty,
+      sourceHint: context.sourceHint,
+      timeoutMs: 45_000
+    });
+    if (verification?.briefing) {
+      ctx = { ...context, verificationBriefing: verification.briefing, verificationSources: verification.sources };
+    }
+  }
   // Run compliance analysis and content evaluation (risk + professionalism + language) in parallel
   const [semanticResult, contentEval] = await Promise.all([
-    runSemanticAnalysis(text, context, kind),
-    evaluateContent(text, context)
+    runSemanticAnalysis(text, ctx, kind),
+    evaluateContent(text, ctx)
   ]);
-  return buildReviewResult(text, kind, context, semanticResult, contentEval);
+  return buildReviewResult(text, kind, ctx, semanticResult, contentEval);
 }
 
 export async function assertContentCanExport(text: string, kind: ContentKind = "social_export") {

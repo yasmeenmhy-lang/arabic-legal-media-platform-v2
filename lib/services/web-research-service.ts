@@ -131,23 +131,15 @@ function extractText(content: unknown[]): string {
     .trim();
 }
 
-// البحث الحي عن مصادر موثوقة — يُستدعى مرة واحدة (مشترك) قبل الكتابة.
-// فشل البحث أو خدمته لا يُسقط التوليد: يرجع null فيكمل الكاتب بضوابطه الحالية
-// (النسبة العامة الصادقة) — البحث تحسين لجودة المصدر لا شرط لعمل المنصة.
-export async function researchTrustedSources(context: {
-  specialty?: string; source?: string; topic?: string; contentType?: string;
-  spec?: SourceSpec;
-  // سقف زمني للبحث (اختياري). المسار المتزامن (إعادة الصياغة) يمرّر سقفاً أقصر كي
-  // يبقى الطلب قصيراً فلا ينقطع اتصال الجوال؛ المسار الخلفي (الإنشاء) يحتمل الأطول.
-  timeoutMs?: number;
-}): Promise<ResearchResult | null> {
+// النواة المشتركة لنداء البحث الحي على المصادر الموثوقة — يخدم مسارين:
+// الإنشاء (جمع مصادر قبل الكتابة) والمراجعة (تدقيق إحالات نص قائم). فشل البحث أو
+// خدمته لا يُسقط العملية: يرجع null فتُكمل بضوابطها الحالية — البحث تحسين لا شرط.
+async function callWebSearch(instruction: string, timeoutMs?: number): Promise<ResearchResult | null> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) return null;
-  // سقف زمني صارم للبحث (بقرار مالكة المنصة لمنع تعليق الصفحة): البحث الحي مع
-  // الفلترة الديناميكية قد يطول، وتجاوزه حدَّ الخادم يقتل الطلب فتعلق الواجهة.
-  // إن تجاوز البحث السقف يُلغى ويكمل الكاتب بضوابطه — البحث تحسين لا شرط.
+  // سقف زمني صارم للبحث (بقرار مالكة المنصة لمنع تعليق الصفحة): إن تجاوزه يُلغى.
   const controller = new AbortController();
-  const abortTimer = setTimeout(() => controller.abort(), context.timeoutMs ?? 60_000);
+  const abortTimer = setTimeout(() => controller.abort(), timeoutMs ?? 60_000);
   try {
     const response = await fetch(
       `${process.env.ANTHROPIC_BASE_URL ?? "https://api.anthropic.com"}/v1/messages`,
@@ -171,7 +163,7 @@ export async function researchTrustedSources(context: {
               allowed_domains: TRUSTED_SOURCE_DOMAINS, // المصادر الموثوقة حصراً
             },
           ],
-          messages: [{ role: "user", content: buildResearchInstruction(context) }],
+          messages: [{ role: "user", content: instruction }],
         }),
       }
     );
@@ -179,10 +171,9 @@ export async function researchTrustedSources(context: {
     const payload = (await response.json()) as { content?: unknown[]; usage?: unknown };
     recordUsage(payload.usage); // عدّاد التكلفة الداخلي (يشمل عدد عمليات البحث)
     const content = payload.content ?? [];
-    // أفضل المصادر فقط (لا نُغرق الكاتب) — بحد أقصى معتمد من المالكة
     const sources = extractSources(content).slice(0, MAX_SOURCES_TO_WRITER);
     const briefing = extractText(content);
-    // لا مصادر مجلوبة أو تقرير فارغ ⇒ لا فائدة من الحقن — يكمل الكاتب بضوابطه
+    // لا مصادر مجلوبة أو تقرير فارغ ⇒ لا فائدة من الحقن
     if (sources.length === 0 || !briefing || briefing.includes("لا توجد مصادر موثوقة")) {
       return null;
     }
@@ -192,4 +183,43 @@ export async function researchTrustedSources(context: {
   } finally {
     clearTimeout(abortTimer);
   }
+}
+
+// مسار الإنشاء: يُستدعى مرة واحدة (مشترك) قبل الكتابة لجلب مصادر موثوقة يستند إليها الكاتب.
+export async function researchTrustedSources(context: {
+  specialty?: string; source?: string; topic?: string; contentType?: string;
+  spec?: SourceSpec;
+  // سقف زمني للبحث (اختياري). المسار المتزامن (إعادة الصياغة) يمرّر سقفاً أقصر كي
+  // يبقى الطلب قصيراً فلا ينقطع اتصال الجوال؛ المسار الخلفي (الإنشاء) يحتمل الأطول.
+  timeoutMs?: number;
+}): Promise<ResearchResult | null> {
+  return callWebSearch(buildResearchInstruction(context), context.timeoutMs);
+}
+
+// موجّه تدقيق الإحالات لمسار المراجعة — تحقّق فعلي من صحة ما في النص القائم، لا كتابة.
+function buildVerificationInstruction(context: { text: string; specialty?: string; sourceHint?: string }): string {
+  const spec = context.specialty ? `\nالتخصص القانوني: ${context.specialty}` : "";
+  const hint = context.sourceHint
+    ? `\nأشار كاتب النص إلى هذا المرجع (وجّه تحرّيك للتحقق منه، ولا تكتفِ به): ${context.sourceHint}`
+    : "";
+  return `أنت مدقّق مصادر قانوني موثوق. أمامك نصّ يريد محامٍ سعودي نشره، وقد يتضمّن إحالات نظامية (أرقام مواد أو أسماء أنظمة)، أو أرقاماً ونسباً، أو دراسات ووقائع منسوبة لجهات.${spec}${hint}
+
+مهمتك: ابحث في المصادر الموثوقة المتاحة فقط (بحدود ثلاث عمليات) للتحقّق من صحة كل إحالة أو رقم أو واقعة وردت في النص — حتى ما لم يُفصح عنه كاتب النص صراحةً. لا تكتب محتوى ولا تحكم على الامتثال؛ فقط دقّق الوقائع.
+
+أخرج تقريراً موجزاً بالعربية، كل بند في سطر مستقل:
+- «مؤكَّد»: الإحالة أو الرقم مطابق للمصدر الرسمي — انقل النص أو الرقم حرفياً من المصدر متبوعاً برابطه بين قوسين.
+- «غير مطابق»: الإحالة موجودة لكن مضمونها يخالف ما في النص — وضّح وجه المخالفة مع الرابط.
+- «تعذّر التحقّق»: لم يُعثر على مصدر موثوق لها.
+ممنوع منعاً باتاً تخمين أو استنتاج أي رقم أو مادة أو تاريخ لم يرد صراحةً في نتيجة بحث. إن لم تجد شيئاً موثوقاً البتة، اكتب «لا توجد مصادر موثوقة كافية».
+
+النص المراد تدقيق إحالاته:
+«${context.text}»`;
+}
+
+// مسار المراجعة: تحقّق حيّ من إحالات نص قائم في المصادر الموثوقة — إنفاذٌ فعليٌّ
+// لقاعدة تحرّي المصادر بأداة تحقّق حقيقية بدل الاكتفاء بذاكرة النموذج.
+export async function verifyTextCitations(context: {
+  text: string; specialty?: string; sourceHint?: string; timeoutMs?: number;
+}): Promise<ResearchResult | null> {
+  return callWebSearch(buildVerificationInstruction(context), context.timeoutMs);
 }

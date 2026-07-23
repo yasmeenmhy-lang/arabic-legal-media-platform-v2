@@ -187,6 +187,9 @@ export type ReviewContext = {
   topic?: string;
   // إسناد مرجعي اختياري يذكره المستخدم (رقم مادة/مصدر/رابط) — يُعين تحرّي المصادر ولا يُغني عنه
   sourceHint?: string;
+  // نتائج التحقّق الحيّ من المصادر الموثوقة لإحالات النص (تُحقن في حكم الامتثال والمخاطر) — تُملأ داخلياً في المراجعة
+  verificationBriefing?: string;
+  verificationSources?: { title: string; url: string }[];
   reviewStatus?: ReviewReadinessStatus;
 };
 
