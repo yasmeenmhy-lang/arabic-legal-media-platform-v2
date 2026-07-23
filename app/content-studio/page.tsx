@@ -2507,12 +2507,13 @@ export default function ContentStudioPage() {
 
         {/* مؤشّر المراحل — يوضّح كم أُنجز وكم بقي، والخطوات السابقة قابلة للنقر للرجوع */}
         <div className="mb-5">
-          <div className="mb-1.5 flex items-center justify-between text-xs">
+          <div className="mb-2 flex items-center justify-between text-xs">
             <span className="font-semibold text-ink">خطوة {frameStep} من {FRAME_TOTAL} · {frameLabels[frameStep - 1]}</span>
-            <span className="text-ink/45">{Math.round((frameStep / FRAME_TOTAL) * 100)}%</span>
           </div>
-          <div className="mb-3 h-1.5 overflow-hidden rounded-full bg-paper">
-            <div className="h-full rounded-full bg-gradient-to-l from-mint via-palm/70 to-palm transition-all duration-500" style={{ width: `${(frameStep / FRAME_TOTAL) * 100}%` }} />
+          <div className="mb-3 flex gap-1">
+            {frameLabels.map((_, i) => (
+              <div key={i} className={`h-1.5 flex-1 rounded-full transition-colors duration-300 ${i < frameStep ? "bg-palm" : "bg-paper"}`} />
+            ))}
           </div>
           <div className="flex flex-wrap gap-1.5">
             {frameLabels.map((lbl, i) => {
