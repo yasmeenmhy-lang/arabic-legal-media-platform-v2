@@ -749,8 +749,6 @@ export default function ContentStudioPage() {
   // Action feedback
   const [actionMsg, setActionMsg] = useState("");
 
-  const contextScore = [kind, audience, purpose, specialty].filter(Boolean).length;
-
   // بقرارها: المصادر تتبع التخصص ونوع المحتوى — مصدر لم يعد متاحاً يُلغى اختياره تلقائياً
   useEffect(() => {
     const typeLabel = kind ? contentKindLabels[kind] : "";
@@ -2429,15 +2427,16 @@ export default function ContentStudioPage() {
   return (
     <div className="content-review-window space-y-6">
       <PageHeader
-        eyebrow="مركز المحتوى"
+        eyebrow="مركز المحتوى الإعلامي والإعلاني"
         title="إعداد المحتوى المهني"
         action={path ? <Button variant="secondary-gray" onClick={goBackOneStage} leadingIcon={<ArrowRight size={16} />}>رجوع</Button> : undefined}
       />
 
       {/* ── 1. Context selectors ── */}
+      {path && (
       <Panel>
         <SectionTitle
-          title="1. إطار المحتوى"
+          title="إطار المحتوى"
         />
 
         {/* بقرار مالكة المنصة: السياق أكورديون يُطوى تلقائياً عند عرض النتائج (نص مُنشأ
@@ -2451,19 +2450,6 @@ export default function ContentStudioPage() {
             </span>
           </summary>
           <div className="pt-5">
-
-        {/* Progress */}
-        <div className="mb-5">
-          <div className="mb-1.5 flex items-center justify-between text-xs">
-            <span className="text-ink/55">اكتمال إطار المحتوى</span>
-          </div>
-          <div className="h-2 overflow-hidden rounded-full bg-paper" role="progressbar" aria-valuemin={0} aria-valuemax={4} aria-valuenow={contextScore}>
-            <div
-              className="h-full rounded-full bg-gradient-to-l from-mint via-palm/70 to-palm transition-all duration-500"
-              style={{ width: `${(contextScore / 4) * 100}%` }}
-            />
-          </div>
-        </div>
 
         {/* Content type */}
         <div ref={kindFieldRef} className={`mb-4 rounded-xl transition-all ${missingField === "kind" ? "bg-warningSoft/60 p-3 ring-2 ring-amber-400" : ""}`}>
@@ -3251,11 +3237,12 @@ export default function ContentStudioPage() {
           </div>
         </details>
       </Panel>
+      )}
 
       {/* ── 2. Path selection ── */}
       {!path && (
         <div>
-          <p className="mb-3 text-sm font-semibold text-ink">2. كيف تريد البدء؟</p>
+          <p className="mb-3 text-sm font-semibold text-ink">كيف تريد البدء؟</p>
           <div className="grid gap-4 md:grid-cols-2">
             <button
               type="button"
@@ -3292,7 +3279,7 @@ export default function ContentStudioPage() {
       {path === "review" && (!review || editingReviewedContent) && !reviewing && (
         <Panel id="studio-text-editor">
           <div className="mb-4 flex items-center justify-between">
-            <SectionTitle title="2. النص محل المراجعة" />
+            <SectionTitle title="النص محل المراجعة" />
             <div className="flex items-center gap-3">
               <PreviewToggleButton preview={previewStudioReview} onToggle={() => setPreviewStudioReview((v) => !v)} />
               <button
@@ -3348,7 +3335,7 @@ export default function ContentStudioPage() {
       {path === "create" && !generatedText && !generating && !review && (
         <Panel>
           <div className="mb-4 flex items-center justify-between">
-            <SectionTitle title="2. مصدر المحتوى" />
+            <SectionTitle title="مصدر المحتوى" />
             <button
               type="button"
               onClick={goBackOneStage}
@@ -3518,7 +3505,7 @@ export default function ContentStudioPage() {
             </p>
           )}
           <div className="mb-4 flex items-center justify-between">
-            <SectionTitle title="3. المحتوى المقترح" />
+            <SectionTitle title="المحتوى المقترح" />
             <div className="flex items-center gap-3">
               {/* معاينة القراءة النظيفة (بطلب مالكة المنصة) — تبديل بين التحرير والمعاينة */}
               <button
