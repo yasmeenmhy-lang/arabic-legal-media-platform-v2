@@ -167,6 +167,17 @@ export async function buildReviewResult(
     : 10;
   const riskLevel = effectiveRisks.level;
   const riskScoreExplanation = calculateRiskFromEvaluation(effectiveRisks, compliance.findings.length, profile);
+  // توحيد لوحة تقييم المخاطر القانونية على نفس نموذج الجهات المعروض — فلا يظهر في نصوص
+  // الإرشاد مستوى مخاطر ثانوي (محسوب بأرقام قديمة) يناقض المؤشر الرئيسي (متوسط ↔ منخفض).
+  const legalRiskAssessment = {
+    ...compliance.legalRiskAssessment,
+    level: riskLevel,
+    score: riskScore,
+    publishingReadinessScore: Math.max(0, 100 - riskScore),
+    reason: compliance.legalRiskAssessment.supportingArticle
+      ? `مستوى المخاطر ${riskLevel} بسبب الملاحظة المرتبطة بـ "${compliance.legalRiskAssessment.supportingArticle.articleTitle}" في ${compliance.legalRiskAssessment.supportingArticle.sourceDocument}.`
+      : compliance.legalRiskAssessment.reason
+  };
   const professionalismScore = contentEval.professionalWriting.score;
   const reviewStatus = deriveReviewStatus({
     languageScore: languageQuality.score,
@@ -254,7 +265,7 @@ export async function buildReviewResult(
     findings: compliance.findings,
     professionalConductCompliance: compliance.professionalConductCompliance,
     executiveRegulationCompliance: compliance.executiveRegulationCompliance,
-    legalRiskAssessment: compliance.legalRiskAssessment,
+    legalRiskAssessment,
     referencesPanel: compliance.referencesPanel,
     governedRewrites,
     traceability: {
