@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   AlertTriangle,
+  ArrowLeft,
   ArrowRight,
   Award,
   BarChart2,
@@ -680,6 +681,11 @@ export default function ContentStudioPage() {
 
   // Path
   const [path, setPath] = useState<"review" | "create" | null>(null);
+  // معالج الإدخال خطوة بخطوة: ١ النوع · ٢ الجمهور · ٣ الهدف · ٤ التخصص · ٥ المحتوى (المصدر/النص)
+  // القيمة ٥ تعني اكتمال الإطار وظهور خطوة المحتوى؛ الاسترجاع من السجل/المسودة يقفز إليها مباشرة.
+  const [frameStep, setFrameStep] = useState(1);
+  const FRAME_TOTAL = 5;
+  const frameLabels = ["النوع", "الجمهور", "الهدف", "التخصص", "المحتوى"];
 
   // Review path state
   const [reviewText, setReviewText] = useState("");
@@ -1731,6 +1737,14 @@ export default function ContentStudioPage() {
   // ── Reset ──
 
   // رجوع مرحلي يحافظ على المدخلات والنتيجة السابقة؛ لا يعيد ضبط عمل المستخدم.
+  function frameStepValid(s: number): boolean {
+    if (s === 1) return Boolean(kind);
+    if (s === 2) return Boolean(audience);
+    if (s === 3) return Boolean(purpose);
+    if (s === 4) return Boolean(specialty);
+    return true;
+  }
+
   function goBackOneStage() {
     if (editingReviewedContent) {
       setEditingReviewedContent(false);
@@ -2407,6 +2421,7 @@ export default function ContentStudioPage() {
     setReview(null);
     setContentId(undefined);
     setPath("create");
+    setFrameStep(1);
   }
 
   function handleKindChange(newKind: ContentKind) {
@@ -2423,6 +2438,14 @@ export default function ContentStudioPage() {
   }
 
   // ── Render ──
+
+  // الاسترجاع/ما بعد التوليد: وجود نتيجة أو نص محمَّل يعني اكتمال الإطار → اعرض خطوة المحتوى مباشرة
+  // (لا يتداخل مع التنقّل الطازج خطوة بخطوة لأن هذه القيم فارغة أثناء خطوات ١..٤)
+  useEffect(() => {
+    if (path && (review || generatedText || reviewText.trim())) {
+      setFrameStep((s) => (s < FRAME_TOTAL ? FRAME_TOTAL : s));
+    }
+  }, [path, review, generatedText, reviewText]);
 
   return (
     <div className="content-review-window space-y-6">
@@ -2451,7 +2474,37 @@ export default function ContentStudioPage() {
           </summary>
           <div className="pt-5">
 
+        {/* مؤشّر المراحل — يوضّح كم أُنجز وكم بقي، والخطوات السابقة قابلة للنقر للرجوع */}
+        <div className="mb-5">
+          <div className="mb-1.5 flex items-center justify-between text-xs">
+            <span className="font-semibold text-ink">خطوة {frameStep} من {FRAME_TOTAL} · {frameLabels[frameStep - 1]}</span>
+            <span className="text-ink/45">{Math.round((frameStep / FRAME_TOTAL) * 100)}%</span>
+          </div>
+          <div className="mb-3 h-1.5 overflow-hidden rounded-full bg-paper">
+            <div className="h-full rounded-full bg-gradient-to-l from-mint via-palm/70 to-palm transition-all duration-500" style={{ width: `${(frameStep / FRAME_TOTAL) * 100}%` }} />
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {frameLabels.map((lbl, i) => {
+              const n = i + 1;
+              const done = n < frameStep;
+              const current = n === frameStep;
+              return (
+                <button
+                  key={lbl}
+                  type="button"
+                  disabled={n > frameStep}
+                  onClick={() => { if (n < frameStep) setFrameStep(n); }}
+                  className={`rounded-full px-2.5 py-1 text-[11px] font-medium transition ${current ? "bg-palm text-white" : done ? "bg-mint text-palm hover:bg-mintDeep" : "bg-paper text-ink/35"}`}
+                >
+                  {n}. {lbl}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
         {/* Content type */}
+        <div className={frameStep === 1 ? "" : "hidden"}>
         <div ref={kindFieldRef} className={`mb-4 rounded-xl transition-all ${missingField === "kind" ? "bg-warningSoft/60 p-3 ring-2 ring-amber-400" : ""}`}>
           <FieldLabel label="نوع المحتوى" hint="— ماذا تريد أن تنشئ أولًا" required />
           <MobileSelect value={kind ?? ""} onChange={(v) => handleKindChange(v as ContentKind)} placeholder="اختر نوع المحتوى" options={studioContentTypes} />
@@ -3076,10 +3129,11 @@ export default function ContentStudioPage() {
           </div>
         )}
 
-        {/* الجمهور والهدف والتخصص — شبكة كثيفة على الحاسب فقط */}
-        <div className="lg:grid lg:grid-cols-3 lg:gap-4">
+        </div>
+        {/* الجمهور والهدف والتخصص — كل حقل خطوة مستقلة */}
+        <div>
         {/* Audience */}
-        <div ref={audienceFieldRef} className={`mb-4 lg:mb-0 rounded-xl transition-all ${missingField === "audience" ? "bg-warningSoft/60 p-3 ring-2 ring-amber-400" : ""}`}>
+        <div ref={audienceFieldRef} className={`mb-4 rounded-xl transition-all ${frameStep === 2 ? "" : "hidden"} ${missingField === "audience" ? "bg-warningSoft/60 p-3 ring-2 ring-amber-400" : ""}`}>
           <FieldLabel label="الجمهور" required />
           <MobileSelect value={audience} onChange={setAudience} placeholder="اختر الجمهور" options={audiences.map((a) => ({ value: a, label: a }))} />
           <DesktopSelect value={audience} onChange={setAudience} placeholder="اختر الجمهور" options={audiences.map((a) => ({ value: a, label: a }))} />
@@ -3099,7 +3153,7 @@ export default function ContentStudioPage() {
         </div>
 
         {/* Purpose */}
-        <div ref={purposeFieldRef} className={`mb-4 lg:mb-0 rounded-xl transition-all ${missingField === "purpose" ? "bg-warningSoft/60 p-3 ring-2 ring-amber-400" : ""}`}>
+        <div ref={purposeFieldRef} className={`mb-4 rounded-xl transition-all ${frameStep === 3 ? "" : "hidden"} ${missingField === "purpose" ? "bg-warningSoft/60 p-3 ring-2 ring-amber-400" : ""}`}>
           <FieldLabel label="الهدف" required />
           <MobileSelect value={purpose} onChange={setPurpose} placeholder="اختر الهدف" options={purposes.map((p) => ({ value: p, label: p }))} />
           <DesktopSelect value={purpose} onChange={setPurpose} placeholder="اختر الهدف" options={purposes.map((p) => ({ value: p, label: p }))} />
@@ -3119,7 +3173,7 @@ export default function ContentStudioPage() {
         </div>
 
         {/* Specialty — إجباري بقرارها: حقل خامس ظاهر دائماً ضمن السياق */}
-        <div ref={specialtyFieldRef} className={`mb-4 lg:mb-0 rounded-xl transition-all ${missingField === "specialty" ? "bg-warningSoft/60 p-3 ring-2 ring-amber-400" : ""}`}>
+        <div ref={specialtyFieldRef} className={`mb-4 rounded-xl transition-all ${frameStep === 4 ? "" : "hidden"} ${missingField === "specialty" ? "bg-warningSoft/60 p-3 ring-2 ring-amber-400" : ""}`}>
           <FieldLabel label="التخصص" required />
           <MobileSelect value={specialty} onChange={setSpecialty} placeholder="اختر التخصص" options={specialties.map((s) => ({ value: s, label: s }))} />
           <DesktopSelect value={specialty} onChange={setSpecialty} placeholder="اختر التخصص" options={specialties.map((s) => ({ value: s, label: s }))} />
@@ -3138,8 +3192,8 @@ export default function ContentStudioPage() {
         </div>
         </div>
 
-        {/* خيارات متقدمة (اختياري): حد الحروف — قسم قابل للطي، مطوي افتراضياً */}
-        <div className="border-t border-line pt-3">
+        {/* خيارات متقدمة (اختياري): حد الحروف — تظهر مع خطوة التخصص */}
+        <div className={`border-t border-line pt-3 ${frameStep === 4 ? "" : "hidden"}`}>
           <button
             type="button"
             onClick={() => setAdvancedOpen((open) => !open)}
@@ -3234,6 +3288,29 @@ export default function ContentStudioPage() {
 
           </div>
         </div>
+
+        {/* أزرار التنقّل بين المراحل — رجوع / التالي */}
+        <div className="mt-5 flex items-center justify-between gap-3 border-t border-line pt-4">
+          <button
+            type="button"
+            onClick={() => { if (frameStep > 1) setFrameStep(frameStep - 1); else goBackOneStage(); }}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-line px-4 py-2.5 text-sm font-medium text-ink/70 transition hover:border-palm hover:text-palm focus-ring"
+          >
+            <ArrowRight size={16} aria-hidden="true" />
+            {frameStep > 1 ? "السابق" : "تغيير (مراجعة/إنشاء)"}
+          </button>
+          {frameStep < FRAME_TOTAL && (
+            <button
+              type="button"
+              disabled={!frameStepValid(frameStep)}
+              onClick={() => { if (frameStepValid(frameStep)) setFrameStep(frameStep + 1); }}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-palm px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-palmDark focus-ring disabled:opacity-40"
+            >
+              التالي
+              <ArrowLeft size={16} aria-hidden="true" />
+            </button>
+          )}
+        </div>
           </div>
         </details>
       </Panel>
@@ -3246,7 +3323,7 @@ export default function ContentStudioPage() {
           <div className="grid gap-4 md:grid-cols-2">
             <button
               type="button"
-              onClick={() => { setReview(null); setContentId(undefined); setPath("review"); }}
+              onClick={() => { setReview(null); setContentId(undefined); setPath("review"); setFrameStep(1); }}
               className="flex flex-col items-start gap-3 rounded-xl border-2 border-line bg-white p-6 text-right transition hover:border-palm hover:shadow-md focus-ring"
             >
               <span className="rounded-lg bg-mint p-2.5 text-palm">
@@ -3276,7 +3353,7 @@ export default function ContentStudioPage() {
       )}
 
       {/* ── 3a. Review path — text input ── */}
-      {path === "review" && (!review || editingReviewedContent) && !reviewing && (
+      {path === "review" && frameStep >= FRAME_TOTAL && (!review || editingReviewedContent) && !reviewing && (
         <Panel id="studio-text-editor">
           <div className="mb-4 flex items-center justify-between">
             <SectionTitle title="النص محل المراجعة" />
@@ -3332,7 +3409,7 @@ export default function ContentStudioPage() {
       )}
 
       {/* ── 3b. Create path — source + topic ── */}
-      {path === "create" && !generatedText && !generating && !review && (
+      {path === "create" && frameStep >= FRAME_TOTAL && !generatedText && !generating && !review && (
         <Panel>
           <div className="mb-4 flex items-center justify-between">
             <SectionTitle title="مصدر المحتوى" />
