@@ -46,7 +46,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </div>
           <span className="shrink-0 rounded-full bg-mint px-2 py-0.5 text-[10px] font-bold text-palm">قريبًا</span>
         </div>
-        <p className="mt-1.5 text-xs leading-5 text-ink/55">تخطيط ونشر المحتوى الإعلامي والإعلاني — قيد التطوير، وسيتوفّر قريبًا.</p>
+        <p className="mt-1.5 text-xs leading-5 text-ink/55">منظومة تخطيط المحتوى الإعلامي والإعلاني وجدولة نشره.</p>
       </div>
       <Link
         href="/library"
@@ -60,7 +60,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </div>
           <ExternalLink size={13} className="text-ink/40" />
         </div>
-        <p className="mt-1.5 text-xs leading-5 text-ink/55">المراجع والمصادر الرسمية المعتمدة، ودليل استخدام النظام (قريبًا).</p>
+        <p className="mt-1.5 text-xs leading-5 text-ink/55">المراجع والمصادر الرسمية المعتمدة، ودليل استخدام المنصة.</p>
       </Link>
       <div className="rounded-xl border border-line p-3">
         <div className="flex items-center justify-between gap-2">
@@ -70,7 +70,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </div>
           <span className="rounded-full bg-mint px-2 py-0.5 text-[10px] font-bold text-palm">قريبًا</span>
         </div>
-        <p className="mt-1.5 text-xs leading-5 text-ink/55">خدمة الدعم والاستفسارات قيد التطوير، وستتوفّر قريبًا لخدمتكم.</p>
+        <p className="mt-1.5 text-xs leading-5 text-ink/55">قناة الدعم والرد على الاستفسارات المهنية.</p>
       </div>
     </div>
   );
