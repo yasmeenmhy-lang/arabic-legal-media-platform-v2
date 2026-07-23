@@ -9,7 +9,6 @@ import {
   Award,
   BarChart2,
   BookOpen,
-  Bot,
   Briefcase,
   Building2,
   CalendarDays,
@@ -107,6 +106,38 @@ const studioContentTypes = contentKindOptions.filter((item) =>
 );
 
 const channels = ["LinkedIn", "X", "Instagram", "TikTok", "Snapchat", "YouTube", "الموقع الإلكتروني"];
+
+// مؤشّر تقدّم دائري بنسبة مئوية — النسبة تقديرية زمنية (المحرك لا يُبلّغ نسبة دقيقة):
+// يرتفع بسرعة ثم يتباطأ ويتوقّف عند ٩٥٪ حتى يكتمل العمل فعلاً فتظهر النتيجة (نمط منتجات احترافية).
+function ProgressRing({ label, sub, color = "palm", estMs = 45000 }: { label: string; sub?: string; color?: "palm" | "violet"; estMs?: number }) {
+  const [pct, setPct] = useState(0);
+  useEffect(() => {
+    const start = Date.now();
+    const id = setInterval(() => {
+      const elapsed = Date.now() - start;
+      setPct(Math.min(95, Math.round(95 * (1 - Math.exp(-elapsed / (estMs / 2.5))))));
+    }, 350);
+    return () => clearInterval(id);
+  }, [estMs]);
+  const R = 42, C = 2 * Math.PI * R;
+  const stroke = color === "violet" ? "#80519F" : "#25935F";
+  const track = color === "violet" ? "#F9F5FA" : "#F3FCF6";
+  return (
+    <div className="flex flex-col items-center gap-3 py-8">
+      <div className="relative h-28 w-28">
+        <svg viewBox="0 0 100 100" className="h-full w-full -rotate-90">
+          <circle cx="50" cy="50" r={R} fill="none" stroke={track} strokeWidth="8" />
+          <circle cx="50" cy="50" r={R} fill="none" stroke={stroke} strokeWidth="8" strokeLinecap="round" strokeDasharray={C} strokeDashoffset={C * (1 - pct / 100)} style={{ transition: "stroke-dashoffset .35s ease" }} />
+        </svg>
+        <div className="absolute inset-0 flex items-center justify-center">
+          <span className="text-2xl font-bold tabular-nums text-ink">{pct}%</span>
+        </div>
+      </div>
+      <p className="text-sm font-medium text-ink/70">{label}</p>
+      {sub ? <p className="max-w-xs text-center text-xs leading-5 text-ink/45">{sub}</p> : null}
+    </div>
+  );
+}
 
 // ── خريطة المواءمة contentType → supportedVisualOutputs ──
 // نوع المحتوى في أعلى الصفحة هو مصدر الحقيقة: كل نوع يرى مخرجاته الداعمة المناسبة فقط.
@@ -3562,14 +3593,7 @@ export default function ContentStudioPage() {
       {/* Generating spinner */}
       {path === "create" && generating && (
         <Panel>
-          <div className="flex flex-col items-center gap-4 py-8">
-            <Bot size={32} className="animate-pulse text-violet" />
-            <p className="text-sm text-ink/65">الذكاء الاصطناعي يُنشئ المحتوى...</p>
-            <p className="text-center text-xs leading-5 text-ink/45">تستغرق دقيقتين أو ثلاثاً فقط.</p>
-            <div className="h-2 w-48 overflow-hidden rounded-full bg-paper">
-              <div className="h-full w-full rounded-full bg-gradient-to-r from-violetSoft via-violet/40 to-violetSoft bg-[length:200%] animate-[pulse_1.5s_ease-in-out_infinite]" />
-            </div>
-          </div>
+          <ProgressRing color="violet" estMs={150000} label="الذكاء الاصطناعي يُنشئ المحتوى…" sub="تستغرق دقيقتين أو ثلاثاً فقط — لا تُغلق الصفحة." />
         </Panel>
       )}
 
@@ -4196,10 +4220,7 @@ export default function ContentStudioPage() {
       {/* Reviewing spinner */}
       {path && reviewing && (
         <Panel>
-          <div className="flex flex-col items-center gap-3 py-8">
-            <FileCheck2 size={28} className="animate-pulse text-palm" />
-            <p className="text-sm text-ink/65">محرك التحليل النظامي يعمل...</p>
-          </div>
+          <ProgressRing color="palm" estMs={45000} label="محرك التحليل النظامي يعمل…" sub="يفحص الامتثال والمخاطر والمعايير المهنية وجودة اللغة." />
         </Panel>
       )}
 
