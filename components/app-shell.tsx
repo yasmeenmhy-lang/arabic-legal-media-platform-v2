@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BookOpen, ExternalLink, FileCheck2, FileClock, Headphones, Menu, Sparkles, X } from "lucide-react";
+import { BookOpen, CalendarDays, ExternalLink, FileCheck2, FileClock, Headphones, Menu, Sparkles, X } from "lucide-react";
 import { navItems, platformTitle } from "@/lib/navigation";
 
 // شريط تنقّل سفلي للجوال فقط (تجربة الجوال) — يعيد استخدام المسارات الفعلية،
@@ -11,10 +11,11 @@ import { navItems, platformTitle } from "@/lib/navigation";
 // الاستوديو في الوسط بزر بارز مرتفع (تجربة الجوال)
 // بقرار مالكة المنصة: «المزيد» في أول الشريط (أقصى اليمين) و«السجل» في آخره
 const bottomTabs = [
-  { title: "المراجعة", href: "/content-review", icon: FileCheck2, primary: false },
-  { title: "مركز المحتوى", href: "/content-studio", icon: Sparkles, primary: true },
-  // «التخطيط» موسوم «قريبًا» ومعطّل في القائمة الجانبية، فأُزيل اختصاره من الشريط السفلي
-  { title: "السجل", href: "/content-management", icon: FileClock, primary: false },
+  { title: "المراجعة", href: "/content-review", icon: FileCheck2, primary: false, soon: false },
+  { title: "مركز المحتوى", href: "/content-studio", icon: Sparkles, primary: true, soon: false },
+  // «التخطيط» تبقى ظاهرة لكن معطّلة (قريبًا) — لا تُحذف
+  { title: "التخطيط", href: "/calendar-v2", icon: CalendarDays, primary: false, soon: true },
+  { title: "السجل", href: "/content-management", icon: FileClock, primary: false, soon: false },
 ];
 import { SessionChip } from "@/components/session-chip";
 import { clsx } from "clsx";
@@ -36,6 +37,17 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   // «دليل الاستخدام» مدموج مع «الوصول السريع»: يفتح صفحة المراجع، والدليل نفسه «قريبًا».
   const helpCards = (
     <div className="flex flex-col gap-3">
+      {/* «مركز التخطيط» بطاقة «قريبًا» (مثل دعم المحامين) — قيد الدراسة، تُفعَّل لاحقاً */}
+      <div className="rounded-xl border border-line p-3">
+        <div className="flex items-start justify-between gap-2">
+          <div className="flex min-w-0 items-start gap-2 text-ink">
+            <CalendarDays size={15} className="mt-0.5 shrink-0 text-palm" />
+            <p className="text-sm font-semibold leading-6">مركز التخطيط الإعلامي والإعلاني</p>
+          </div>
+          <span className="shrink-0 rounded-full bg-mint px-2 py-0.5 text-[10px] font-bold text-palm">قريبًا</span>
+        </div>
+        <p className="mt-1.5 text-xs leading-5 text-ink/55">تخطيط ونشر المحتوى الإعلامي والإعلاني — قيد التطوير، وسيتوفّر قريبًا.</p>
+      </div>
       <Link
         href="/library"
         onClick={() => setNavOpen(false)}
@@ -105,20 +117,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           {visibleItems.filter((item) => item.href !== "/library").map((item) => {
             const Icon = item.icon;
             const active = pathname === item.href;
-            if (item.soon) {
-              return (
-                <div
-                  key={item.href}
-                  aria-disabled="true"
-                  title="قريبًا"
-                  className="mb-1.5 flex cursor-not-allowed items-center gap-3 rounded-lg border border-transparent px-3 py-2.5 text-sm text-ink/35"
-                >
-                  <Icon size={18} className="shrink-0" />
-                  <span className="min-w-0 leading-6">{item.title}</span>
-                  <span className="mr-auto rounded-full bg-mint px-2 py-0.5 text-[10px] font-bold text-palm">قريبًا</span>
-                </div>
-              );
-            }
             return (
               <Link
                 key={item.href}
@@ -185,6 +183,19 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           {bottomTabs.map((tab) => {
             const Icon = tab.icon;
             const active = pathname === tab.href;
+            if (tab.soon) {
+              return (
+                <div
+                  key={tab.href}
+                  aria-disabled="true"
+                  title="قريبًا"
+                  className="flex flex-1 cursor-not-allowed flex-col items-center gap-1 py-2 text-[11px] text-ink/30"
+                >
+                  <Icon size={20} aria-hidden="true" />
+                  <span>{tab.title}</span>
+                </div>
+              );
+            }
             if (tab.primary) {
               return (
                 <Link key={tab.href} href={tab.href} className="flex flex-1 flex-col items-center focus-ring">
