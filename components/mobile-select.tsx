@@ -11,7 +11,7 @@ export function MobileSelect({ value, onChange, placeholder, emptyLabel, options
   onChange: (v: string) => void;
   placeholder?: string;
   emptyLabel?: string;
-  options: { value: string; label: string }[];
+  options: { value: string; label: string; disabled?: boolean }[];
 }) {
   return (
     <div className="relative sm:hidden">
@@ -26,7 +26,7 @@ export function MobileSelect({ value, onChange, placeholder, emptyLabel, options
           <option value="" disabled>{placeholder ?? "اختر"}</option>
         )}
         {options.map((o) => (
-          <option key={o.value} value={o.value}>{o.label}</option>
+          <option key={o.value} value={o.value} disabled={o.disabled}>{o.label}</option>
         ))}
       </select>
       <ChevronDown size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink/40" />

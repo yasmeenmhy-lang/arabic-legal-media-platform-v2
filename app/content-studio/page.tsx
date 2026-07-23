@@ -87,23 +87,33 @@ const VISUAL_ENGINE_LABELS: Record<string, string> = {
   storyboard: "ستوري بورد", motion_script: "مخطط موشن جرافيك",
 };
 
-const studioContentTypes = contentKindOptions.filter((item) =>
-  (
-    [
-      "post",
-      "statement",
-      "diary",
-      "advertisement",
-      "campaign",
-      "article",
-      "script",
-      "caption",
-      "visual_content",
-      "infographic",
-      "publishing_plan",
-    ] as ContentKind[]
-  ).includes(item.value)
-);
+// أنواع المرئيات موسومة «قريبًا» بقرار المالكة (جودتها تحتاج عملاً أكثر) — تُعرض معطّلة
+// غير مفعّلة الآن، وتُفعَّل لاحقاً عند اكتمال جودتها.
+const SOON_KINDS = new Set<ContentKind>(["visual_content", "infographic"]);
+
+const studioContentTypes = contentKindOptions
+  .filter((item) =>
+    (
+      [
+        "post",
+        "statement",
+        "diary",
+        "advertisement",
+        "campaign",
+        "article",
+        "script",
+        "caption",
+        "visual_content",
+        "infographic",
+        "publishing_plan",
+      ] as ContentKind[]
+    ).includes(item.value)
+  )
+  .map((item) => ({
+    value: item.value,
+    label: SOON_KINDS.has(item.value) ? `${item.label} · قريبًا` : item.label,
+    disabled: SOON_KINDS.has(item.value),
+  }));
 
 const channels = ["LinkedIn", "X", "Instagram", "TikTok", "Snapchat", "YouTube", "الموقع الإلكتروني"];
 
@@ -390,7 +400,7 @@ function DesktopSelect({ value, onChange, placeholder, emptyLabel, options }: {
   onChange: (v: string) => void;
   placeholder?: string;
   emptyLabel?: string;
-  options: { value: string; label: string }[];
+  options: { value: string; label: string; disabled?: boolean }[];
 }) {
   return (
     <div className="relative hidden lg:block">
@@ -405,7 +415,7 @@ function DesktopSelect({ value, onChange, placeholder, emptyLabel, options }: {
           <option value="" disabled>{placeholder ?? "اختر"}</option>
         )}
         {options.map((o) => (
-          <option key={o.value} value={o.value}>{o.label}</option>
+          <option key={o.value} value={o.value} disabled={o.disabled}>{o.label}</option>
         ))}
       </select>
       <ChevronDown size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink/40" />
@@ -2549,8 +2559,9 @@ export default function ContentStudioPage() {
               <button
                 key={item.value}
                 type="button"
+                disabled={item.disabled}
                 onClick={() => handleKindChange(item.value as ContentKind)}
-                className={`${chipBase} ${kind === item.value ? chipSelected : chipIdle}`}
+                className={`${chipBase} ${item.disabled ? "cursor-not-allowed border-line bg-paper/60 text-ink/35" : kind === item.value ? chipSelected : chipIdle}`}
               >
                 {contentTypeIcons[item.value]}
                 {item.label}
