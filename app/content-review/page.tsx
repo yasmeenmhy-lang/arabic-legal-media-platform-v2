@@ -1939,7 +1939,7 @@ export default function ContentReviewPage() {
         </div>
 
         {!hasReviewContext ? (
-          <p className="mt-2 text-xs leading-6 text-ink/60">إكمال إطار المحتوى يجعل التحليل مرتبطاً بقناتك وجمهورك؛ ولا يلزم للمراجعة — يمكنك استخدام «المراجعة السريعة» أدناه بالفحوص نفسها كاملةً.</p>
+          <p className="mt-2 text-xs leading-6 text-ink/60">اختر نوع المحتوى والجمهور والهدف والتخصص حتى يكون التحليل مرتبطًا بإطار المحتوى الصحيح.</p>
         ) : null}
         </>)}
         {/* توعوي بحت عند رصد اقتباس في النص الملصق — كشف عرضي حتمي، لا يمس المؤشرات ولا محرك التحليل */}
@@ -1985,14 +1985,6 @@ export default function ContentReviewPage() {
         <div className="mt-4 flex flex-wrap gap-3">
           {/* زر التحليل ظاهر دائماً — بعد ظهور النتائج يصبح «إعادة التحليل» بلا حاجة لدخول وضع التعديل */}
           <Button size="lg" onClick={() => runReview(false)} disabled={loading || !canAnalyze} leadingIcon={loading ? <DgaSpinner size="sm" tone="violet" /> : <FileText size={17} />}>{loading ? "جار التحليل..." : review || contentId ? "إعادة التحليل" : "تحليل المحتوى"}</Button>
-          {/* مراجعة سريعة (بلون مميّز): الفحوص نفسها كاملةً دون إدخال إطار المحتوى — بسياق مهني عام */}
-          {!review ? (
-            <button type="button" onClick={() => runReview(true)} disabled={loading || !canAnalyze}
-              title="فحص كامل للنص دون إدخال إطار المحتوى — بسياق مهني عام"
-              className="inline-flex items-center gap-2 rounded-lg border border-infoBase bg-infoSoft px-5 py-3 text-base font-semibold text-infoDark shadow-xs transition hover:bg-infoBorder/50 disabled:cursor-not-allowed disabled:opacity-50 focus-ring">
-              <Sparkles size={17} aria-hidden="true" /> مراجعة سريعة
-            </button>
-          ) : null}
           {review && !isEditing ? <Button variant="secondary" onClick={beginEditing} leadingIcon={<Edit3 size={16} />}>تعديل</Button> : null}
           {isEditing && contentId ? <Button variant="secondary" onClick={saveEdits} disabled={loading || text.trim().length < 5} leadingIcon={<Save size={16} />}>حفظ التعديلات</Button> : null}
           {isEditing ? <Button variant="secondary-gray" onClick={cancelEditing} disabled={loading} leadingIcon={<AlertTriangle size={16} />}>إلغاء</Button> : null}

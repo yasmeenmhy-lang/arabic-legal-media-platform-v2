@@ -2502,6 +2502,34 @@ export default function ContentStudioPage() {
         action={path ? <Button variant="secondary-gray" onClick={goBackOneStage} leadingIcon={<ArrowRight size={16} />}>رجوع</Button> : undefined}
       />
 
+      {/* ── مراجعة سريعة (بلون مميّز) — تظهر فقط في بداية مسار «مراجعة محتوى» قبل إكمال الإطار.
+          تُهيّئ سياقاً مهنياً عامّاً وتقفز إلى إدخال النص مباشرةً دون خطوات الإطار الخمس؛ لا
+          تنتقل بك لمسار آخر ولا تظهر في مسار «إنشاء محتوى». الفحوص كاملةً كما هي (سياق عام). ── */}
+      {path === "review" && !review && !reviewing && frameStep < FRAME_TOTAL && (
+        <div className="flex flex-col gap-3 rounded-xl border border-infoBase/40 bg-infoSoft p-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-start gap-3">
+            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-infoBase text-white"><Sparkles size={20} aria-hidden="true" /></span>
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-infoDark">مراجعة سريعة</p>
+              <p className="mt-0.5 text-xs leading-6 text-ink/70">راجع نصك فوراً بكل فحوص المحرك دون إدخال إطار المحتوى — بسياق مهني عام.</p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              setKind("post");
+              setAudience("الجمهور العام");
+              setPurpose("تثقيف الجمهور حول موضوع نظامي");
+              setSpecialty("عام — لا يقتصر على تخصص محدد");
+              setFrameStep(FRAME_TOTAL);
+            }}
+            className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg bg-infoBase px-5 py-2.5 text-sm font-semibold text-white shadow-xs transition hover:bg-infoDark focus-ring"
+          >
+            <Sparkles size={16} aria-hidden="true" /> ابدأ المراجعة السريعة
+          </button>
+        </div>
+      )}
+
       {/* ── 1. Context selectors ── */}
       {path && (
       <Panel>
