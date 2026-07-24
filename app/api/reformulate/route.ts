@@ -8,6 +8,7 @@ import { describeProviderError } from "@/lib/ai-provider-errors";
 import { mentionsSource, researchTrustedSources } from "@/lib/services/web-research-service";
 import { countHardLanguageErrors, HARD_LANGUAGE_CATEGORIES } from "@/lib/language-gate";
 import { WRITING_CODE } from "@/lib/writing-code";
+import { NO_SUBSTANCE_MESSAGE, NON_COMPLIANT_MESSAGE } from "@/lib/reformulate-messages";
 import { recordUsage, runWithCostMeter, meterCostUsd, currentMeter } from "@/lib/cost-meter";
 import { ledgerDb, deductUsd } from "@/lib/cost-ledger";
 import { completeJob, createJob, failJob, jobsDb } from "@/lib/content-jobs";
@@ -136,10 +137,6 @@ function isNonSubstantiveOutput(output: string): boolean {
   const demandsInputs = /(أحتاج منك|يرجى تزويدي|بعد تزويدي|زوّدني بـ|حدّد لي المجال)/.test(t);
   return startsWithRefusal || leaksInternal || demandsInputs;
 }
-
-// رسالة مهنية مختصرة بلا مصطلحات داخلية — تُعرض حين لا يوجد مضمون يُعاد صياغته
-const NO_SUBSTANCE_MESSAGE =
-  "لا يتضمّن النص مضموناً تثقيفياً يُعاد صياغته — فهو عبارة تفضيل عامة. اكتب المسألة النظامية أو الفكرة التي تريد التوعية بها (مثل: مدة التقادم، أو شروط عقد العمل) ثم أعد المحاولة.";
 
 // دورة إعادة الصياغة الكاملة (بحث + كتابة + تحقق + تصحيح) — تُشغَّل خلفياً كي لا
 // يبقى المستخدم على طلب طويل متزامن ينقطع على الجوال. لا تمسّ منطق الفحص إطلاقاً.
@@ -290,7 +287,7 @@ async function runReformulation(data: z.infer<typeof schema>, apiKey: string): P
 
     // لا تُعرض صياغة غير ملتزمة — القاعدة الدستورية
     if (!verification.clean) {
-      return { ok: false, status: 422, error: "تعذر إنتاج صياغة ملتزمة بالكامل بقواعد السلوك المهني واللائحة التنفيذية — عدّل النص الأصلي ثم أعد المحاولة." };
+      return { ok: false, status: 422, error: NON_COMPLIANT_MESSAGE };
     }
 
     // حارس نطاق المملكة الحتمي على النص النهائي المنشور

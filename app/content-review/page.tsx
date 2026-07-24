@@ -60,6 +60,7 @@ import {
 import { OfficialLogo, officialEntityFromUrl } from "@/components/official-logos";
 import { contentKindOptions } from "@/lib/content-types";
 import { QUOTE_INTEGRITY_NOTICE } from "@/lib/quote-notice";
+import { isReformulateGuidance } from "@/lib/reformulate-messages";
 import {
   approvalBarriers,
   approveContentVersion,
@@ -256,6 +257,8 @@ export default function ContentReviewPage() {
   const [aiSuggestion, setAiSuggestion] = useState<string | null>(null);
   const [suggestingAI, setSuggestingAI] = useState(false);
   const [suggestionError, setSuggestionError] = useState<string | null>(null);
+  // رسالة توجيهية (تحذيرية) — نص بلا مضمون يُعاد صياغته ونحوه: تُعرض كبطاقة تحذير لا خطأ ولا صياغة
+  const [suggestionNotice, setSuggestionNotice] = useState<string | null>(null);
   // المصادر المعتمدة التي جلبها البحث الحي للصياغة المقترحة — تُعرض كأدلة مرئية
   const [rewriteSources, setRewriteSources] = useState<Source[]>([]);
   // إشعار المصارحة: أقرّ المستخدم بمرجع ولم يُعثر على مطابق — يُعرض صراحةً لا صمتاً
@@ -1086,6 +1089,7 @@ export default function ContentReviewPage() {
     setSuggestingAI(true);
     setAiSuggestion(null);
     setSuggestionError(null);
+    setSuggestionNotice(null);
     setRewriteSources([]);
     setRewriteSourceNote("");
     setPreviewSuggestion(false);
@@ -1151,7 +1155,10 @@ export default function ContentReviewPage() {
       setRewriteSources(srcs);
       setRewriteSourceNote(note);
     } catch (error) {
-      setSuggestionError(error instanceof Error ? error.message : "تعذر إنشاء الصياغة المقترحة.");
+      const msg = error instanceof Error ? error.message : "تعذر إنشاء الصياغة المقترحة.";
+      // رسالة توجيهية (نص بلا مضمون/غير قابل للصياغة الملتزمة) تُعرض كتحذير لا كخطأ تقني
+      if (isReformulateGuidance(msg)) setSuggestionNotice(msg);
+      else setSuggestionError(msg);
     } finally {
       // وصلنا لخاتمة ضمن الجلسة (نتيجة أو خطأ) — يُزال السجل؛ يبقى فقط إن قُتلت الصفحة
       try { window.localStorage.removeItem(scopedKey(PENDING_REWRITE_KEY)); } catch { /* تجاهل */ }
@@ -1187,7 +1194,9 @@ export default function ContentReviewPage() {
         removePending();
         const suggested = (outcome.text ?? "").trim();
         if (outcome.error || !suggested) {
-          setSuggestionError(outcome.error ?? "تعذر إكمال الصياغة المقترحة — أعد المحاولة.");
+          const msg = outcome.error ?? "تعذر إكمال الصياغة المقترحة — أعد المحاولة.";
+          if (isReformulateGuidance(msg)) setSuggestionNotice(msg);
+          else setSuggestionError(msg);
         } else {
           setAiSuggestion(suggested);
           setRewriteSources(outcome.sources ?? []);
@@ -2150,6 +2159,17 @@ export default function ContentReviewPage() {
                 <div className="mt-4 flex items-center gap-3 rounded-lg bg-white p-4 text-sm leading-7 text-ink/60">
                   <DgaSpinner size="sm" tone="violet" label="جار إنشاء الصياغة..." />
                   <span>جارٍ إنشاء الصياغة المقترحة…</span>
+                </div>
+              ) : suggestionNotice ? (
+                <div className="mt-4 flex items-start gap-3 rounded-lg border border-warningBorder bg-warningSoft p-4 text-sm leading-7 text-warningDark">
+                  <AlertTriangle size={18} className="mt-0.5 shrink-0" aria-hidden="true" />
+                  <div>
+                    <p className="font-semibold">لا يمكن اقتراح صياغة محسّنة لهذا النص</p>
+                    <p className="mt-1 text-ink/75">{suggestionNotice}</p>
+                    <button type="button" onClick={requestAISuggestion} className="mt-3 inline-flex items-center gap-2 rounded-md border border-warningDark/40 px-3 py-1.5 text-xs font-medium text-warningDark transition hover:bg-warningBorder/40">
+                      <Sparkles size={13} /> إعادة المحاولة
+                    </button>
+                  </div>
                 </div>
               ) : suggestionError ? (
                 <div className="mt-4 rounded-lg border border-red-200 bg-red-50 p-4 text-sm leading-7 text-red-700">
