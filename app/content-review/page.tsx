@@ -873,8 +873,10 @@ export default function ContentReviewPage() {
   }
 
   function saveForLater() {
-    if (!review || text.trim().length < 5 || !kind || !audience || !purpose) {
-      setSaveLaterMsg("تعذر الحفظ: بيانات المحتوى أو إطاره غير مكتملة.");
+    // حقول الإطار (الجمهور/الهدف) لم تعد تُدخَل في المراجعة — فلا يُشترط اكتمالها للحفظ.
+    // يكفي وجود نتيجة تحليل ونصّ؛ ويُشتقّ عنوان تلقائي من النص إن لم يُحدَّد.
+    if (!review || text.trim().length < 5 || !kind) {
+      setSaveLaterMsg("تعذر الحفظ: أدخل نص المحتوى وحلّله أولاً.");
       return;
     }
     // حماية من فشل التخزين (امتلاء ذاكرة المتصفح): لا ضغطة صامتة بلا أثر أبداً
@@ -1915,9 +1917,12 @@ export default function ContentReviewPage() {
         {/* توعوي بحت عند رصد اقتباس في النص الملصق — كشف عرضي حتمي، لا يمس المؤشرات ولا محرك التحليل */}
         {review ? (
           <details className="group mt-3 rounded-xl border border-infoBorder bg-infoSoft">
-            <summary className="flex cursor-pointer list-none items-center justify-between gap-2 p-4 text-sm font-semibold text-infoDark focus-ring">
-              <span>{QUOTE_INTEGRITY_NOTICE.title}</span>
-              <ChevronDown size={16} className="shrink-0 text-infoDark/60 transition-transform group-open:rotate-180" aria-hidden="true" />
+            {/* الـ flex على div داخلي لا على summary — لتفادي عطل فتح/إغلاق details في Safari (iOS) */}
+            <summary className="cursor-pointer list-none p-4 text-sm font-semibold text-infoDark focus-ring">
+              <div className="flex items-center justify-between gap-2">
+                <span>{QUOTE_INTEGRITY_NOTICE.title}</span>
+                <ChevronDown size={16} className="shrink-0 text-infoDark/60 transition-transform group-open:rotate-180" aria-hidden="true" />
+              </div>
             </summary>
             <div className="px-4 pb-4">
               <p className="text-xs leading-6 text-ink/70">{QUOTE_INTEGRITY_NOTICE.body}</p>

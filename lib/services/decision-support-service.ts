@@ -121,8 +121,10 @@ export function buildPublicationDecision({
   if (confidence.level === "Low" || riskLevel === "مرتفع") {
     return {
       outcome: "LEGAL_REVIEW_REQUIRED",
-      label: "يتطلب مراجعة قانونية إضافية",
-      reason: "الأدلة أو مستوى المخاطر لا يسمحان بتوصية نهائية آمنة دون مراجعة المحامي أو المستخدم وفق القواعد واللوائح ذات العلاقة.",
+      label: "غير موصى بالنشر",
+      reason: riskLevel === "مرتفع"
+        ? "مستوى المخاطر مرتفع — عالِج المخاطر المرصودة وأعد التقييم قبل النشر."
+        : "الأدلة الحالية غير كافية لتوصية آمنة — راجِع المحتوى واستكمل ما يلزم قبل النشر.",
       blockers: readiness.blockers,
       actions: readiness.actions,
       recommended: false

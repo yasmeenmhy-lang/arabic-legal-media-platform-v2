@@ -4294,9 +4294,12 @@ export default function ContentStudioPage() {
             <p className="whitespace-pre-wrap text-sm leading-8">{activeText}</p>
             {/* توعوي بحت عند رصد اقتباس — كشف عرضي حتمي، لا يمس المؤشرات ولا محرك التحليل */}
             <details className="group mt-3 rounded-xl border border-infoBorder bg-infoSoft">
-              <summary className="flex cursor-pointer list-none items-center justify-between gap-2 p-4 text-sm font-semibold text-infoDark focus-ring">
-                <span>{QUOTE_INTEGRITY_NOTICE.title}</span>
-                <ChevronDown size={16} className="shrink-0 text-infoDark/60 transition-transform group-open:rotate-180" aria-hidden="true" />
+              {/* الـ flex على div داخلي لا على summary — لتفادي عطل فتح/إغلاق details في Safari (iOS) */}
+              <summary className="cursor-pointer list-none p-4 text-sm font-semibold text-infoDark focus-ring">
+                <div className="flex items-center justify-between gap-2">
+                  <span>{QUOTE_INTEGRITY_NOTICE.title}</span>
+                  <ChevronDown size={16} className="shrink-0 text-infoDark/60 transition-transform group-open:rotate-180" aria-hidden="true" />
+                </div>
               </summary>
               <div className="px-4 pb-4">
                 <p className="text-xs leading-6 text-ink/70">{QUOTE_INTEGRITY_NOTICE.body}</p>
