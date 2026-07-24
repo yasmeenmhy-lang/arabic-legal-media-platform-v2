@@ -92,15 +92,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         )}
       >
         <div className="border-b border-line bg-paper p-4 sm:p-6 md:hidden">
-          <div className="flex items-start justify-between gap-3">
-            <div className="flex items-start gap-3">
-              <div>
-                <p className="text-base font-normal leading-7 text-palm [text-wrap:balance]">إدارة المحتوى الإعلامي والإعلاني للمحامين</p>
-                <p className="mt-1 max-w-48 text-xs leading-6 text-ink/65">
-                  تمكين الحضور الإعلامي والإعلاني وفق مراجعة مهنية استرشادية
-                </p>
-              </div>
-            </div>
+          <div className="flex items-center justify-end gap-3">
             <button
               type="button"
               onClick={() => setNavOpen(false)}
