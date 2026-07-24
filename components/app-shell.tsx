@@ -153,10 +153,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               );
             })}
           </nav>
-          {/* بطاقات الدليل والدعم تلي بنود التنقّل مباشرةً — لا تُثبَّت أسفل الدرج
-              كي لا يبقى فراغ بين القائمة والبطاقات (رصدته مالكة المنصة) */}
-          <div className="mt-4 border-t border-line pt-4">{helpCards}</div>
         </div>
+        {/* بطاقات الدليل والدعم — مثبّتة أسفل الدرج */}
+        <div className="border-t border-line p-4">{helpCards}</div>
       </aside>
 
       <div className="w-full max-w-full overflow-x-hidden">
