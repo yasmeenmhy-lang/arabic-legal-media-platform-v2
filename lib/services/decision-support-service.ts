@@ -104,15 +104,15 @@ export function buildPublicationDecision({
   // موصى بالنشر لنسخة يتعذر اعتمادها منطقياً
   languageIssuesCount?: number;
 }): PublicationDecision {
-  // أي مخالفة غير معالجة ⇒ غير موصى بالنشر — النشر غير مسموح قبل المعالجة
+  // أي مخالفة غير معالجة ⇒ غير موصى بالنشر — المنصة استرشادية لا تمنع، لكنها لا توصي قبل المعالجة
   const unresolved = findings.filter((finding) => !finding.resolved);
   if (unresolved.length > 0 || riskLevel === "بالغ" || riskLevel === "حرج") {
     return {
       outcome: "NOT_RECOMMENDED",
       label: "غير موصى بالنشر",
       reason: unresolved.length > 0
-        ? "المحتوى غير ملتزم بقواعد السلوك المهني للمحامين أو اللائحة التنفيذية لنظام المحاماة — النشر غير مسموح قبل معالجة المخالفات وإعادة التقييم."
-        : "مستوى المخاطر لا يسمح بالنشر قبل المعالجة وإعادة التقييم.",
+        ? "المحتوى غير ملتزم بقواعد السلوك المهني للمحامين أو اللائحة التنفيذية لنظام المحاماة — لا يُوصى بنشره قبل معالجة المخالفات وإعادة التقييم."
+        : "مستوى المخاطر مرتفع — لا يُوصى بالنشر قبل معالجة المخاطر وإعادة التقييم.",
       blockers: readiness.blockers,
       actions: readiness.actions,
       recommended: false
