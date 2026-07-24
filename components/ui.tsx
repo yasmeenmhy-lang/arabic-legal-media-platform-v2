@@ -142,7 +142,7 @@ export function PageHeader({
             <h2 className="text-lg font-semibold leading-8 text-ink sm:text-xl sm:leading-9">{title}</h2>
             {description ? <p className="mt-2 max-w-4xl text-sm leading-7 text-ink/65">{description}</p> : null}
           </div>
-          {illustration ? <div className="w-[88px] shrink-0 sm:w-[130px]">{illustration}</div> : null}
+          {illustration ? <div className="w-[140px] shrink-0 sm:w-[200px]">{illustration}</div> : null}
         </div>
         {action ? <div className="min-w-0 shrink-0">{action}</div> : null}
       </div>

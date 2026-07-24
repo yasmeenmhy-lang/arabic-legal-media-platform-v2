@@ -14,6 +14,7 @@ import {
   CalendarDays,
   CheckCircle2,
   ChevronDown,
+  ChevronLeft,
   Edit3,
   Eye,
   FileCheck2,
@@ -3405,29 +3406,35 @@ export default function ContentStudioPage() {
             <button
               type="button"
               onClick={() => { setReview(null); setContentId(undefined); setPath("review"); setFrameStep(1); }}
-              className="flex flex-col items-start gap-3 rounded-xl border-2 border-line bg-white p-6 text-right transition hover:border-palm hover:shadow-md focus-ring"
+              className="flex items-center gap-4 rounded-xl border border-line border-r-4 border-r-palm bg-white p-6 text-right shadow-sm transition hover:shadow-md focus-ring"
             >
-              <span className="rounded-lg bg-mint p-2.5 text-palm">
-                <FileCheck2 size={24} aria-hidden="true" />
+              <span className="flex min-w-0 flex-1 flex-col gap-2">
+                <span className="text-lg font-semibold text-ink">مراجعة محتوى</span>
+                <span className="text-sm leading-6 text-ink/60">
+                  أدخل نصاً جاهزاً وراجعه قانونياً عبر محرك التحليل.
+                </span>
               </span>
-              <span className="text-lg font-semibold text-ink">مراجعة محتوى</span>
-              <span className="text-sm leading-6 text-ink/60">
-                أدخل نصاً جاهزاً وراجعه قانونياً عبر محرك التحليل.
+              <span className="grid h-16 w-16 shrink-0 place-items-center rounded-full bg-mint text-palm">
+                <FileCheck2 size={30} aria-hidden="true" />
               </span>
+              <ChevronLeft size={20} className="shrink-0 text-palm" aria-hidden="true" />
             </button>
 
             <button
               type="button"
               onClick={startCreatePath}
-              className="flex flex-col items-start gap-3 rounded-xl border-2 border-line bg-white p-6 text-right transition hover:border-violet hover:shadow-md focus-ring"
+              className="flex items-center gap-4 rounded-xl border border-line border-r-4 border-r-violet bg-white p-6 text-right shadow-sm transition hover:shadow-md focus-ring"
             >
-              <span className="rounded-lg bg-violetSoft p-2.5 text-violet">
-                <Sparkles size={24} aria-hidden="true" />
+              <span className="flex min-w-0 flex-1 flex-col gap-2">
+                <span className="text-lg font-semibold text-ink">إنشاء محتوى</span>
+                <span className="text-sm leading-6 text-ink/60">
+                  الذكاء الاصطناعي يُنشئ المحتوى بناءً على المصدر وإطار المحتوى، ثم يراجعه قانونياً.
+                </span>
               </span>
-              <span className="text-lg font-semibold text-ink">إنشاء محتوى</span>
-              <span className="text-sm leading-6 text-ink/60">
-                الذكاء الاصطناعي يُنشئ المحتوى بناءً على المصدر وإطار المحتوى، ثم يراجعه قانونياً.
+              <span className="grid h-16 w-16 shrink-0 place-items-center rounded-full bg-violetSoft text-violet">
+                <Sparkles size={30} aria-hidden="true" />
               </span>
+              <ChevronLeft size={20} className="shrink-0 text-violet" aria-hidden="true" />
             </button>
           </div>
         </div>
