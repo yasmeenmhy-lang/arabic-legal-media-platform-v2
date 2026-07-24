@@ -3401,7 +3401,8 @@ export default function ContentStudioPage() {
       {!path && (
         <div>
           <p className="mb-3 text-sm font-semibold text-ink">كيف تريد البدء؟</p>
-          <div className="grid gap-4 md:grid-cols-2">
+          {/* auto-rows-fr يوحّد ارتفاع البطاقتين مهما اختلف طول الوصف */}
+          <div className="grid auto-rows-fr gap-4 md:grid-cols-2">
             <button
               type="button"
               onClick={() => { setReview(null); setContentId(undefined); setPath("review"); setFrameStep(1); }}
