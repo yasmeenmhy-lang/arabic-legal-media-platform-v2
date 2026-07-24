@@ -38,7 +38,7 @@ import {
   ChevronDown,
   X
 } from "lucide-react";
-import { AnalysisArt, Button, ButtonLink, DgaSpinner, PageHeader, Panel, SectionTitle, StatusBadge } from "@/components/ui";
+import { Button, ButtonLink, DgaSpinner, PageHeader, Panel, SectionTitle, StatusBadge } from "@/components/ui";
 import { FieldLabel } from "@/components/field-label";
 import { SourcesPanel, type Source } from "@/components/sources-panel";
 import { PreviewToggleButton, ReadingPreview } from "@/components/text-preview";
@@ -1307,7 +1307,6 @@ export default function ContentReviewPage() {
       <PageHeader
         eyebrow="مساعد النشر للمحتوى المهني"
         title="التحليل التفصيلي للمحتوى المهني"
-        illustration={<AnalysisArt />}
         action={<ButtonLink href={contentId ? "/content-studio?results=1" : "/content-studio"} variant="secondary-gray"><ArrowRight size={16} />العودة إلى مركز المحتوى</ButtonLink>}
       />
 
@@ -1322,7 +1321,7 @@ export default function ContentReviewPage() {
         className={
           hasSelectedContent
             ? "w-full max-w-full overflow-x-clip rounded-lg border border-line bg-white p-4 shadow-sm sm:p-5"
-            : "w-full max-w-full overflow-x-clip rounded-lg border border-line border-r-2 border-r-infoBase bg-white p-5 shadow-sm sm:p-6"
+            : "w-full max-w-full overflow-x-clip rounded-lg border border-line border-r-2 border-r-palm bg-white p-5 shadow-sm sm:p-6"
         }
       >
         {hasSelectedContent ? <SectionTitle title="1. إدخال المحتوى" /> : null}
@@ -1330,7 +1329,7 @@ export default function ContentReviewPage() {
         {hasSelectedContent ? null : (
           <div className="mb-5 flex items-center gap-4">
             <h2 className="min-w-0 flex-1 text-base font-semibold text-ink">اختر المحتوى</h2>
-            <span className="grid h-14 w-14 shrink-0 place-items-center rounded-full bg-infoSoft text-infoBase">
+            <span className="grid h-14 w-14 shrink-0 place-items-center rounded-full bg-mint text-palm">
               <Search size={24} />
             </span>
           </div>
@@ -1343,9 +1342,9 @@ export default function ContentReviewPage() {
         {savedRecords.length > 0 ? (
           <div className="relative" ref={recordSearchRef}>
             <div className={`flex items-center gap-2.5 rounded-lg border bg-white transition ${
-              hasSelectedContent ? "border-line px-3 py-2.5 focus-within:border-palm" : "border-infoBorder bg-infoSoft px-4 py-3.5 focus-within:border-infoBase"
+              hasSelectedContent ? "border-line px-3 py-2.5 focus-within:border-palm" : "border-line px-4 py-3.5 focus-within:border-palm"
             }`}>
-              <Search size={hasSelectedContent ? 15 : 18} className={`shrink-0 ${hasSelectedContent ? "text-palm" : "text-infoBase"}`} />
+              <Search size={hasSelectedContent ? 15 : 18} className="shrink-0 text-palm" />
               <input
                 type="text"
                 placeholder={hasSelectedContent ? "بحث" : "ابحث بموضوع المحتوى"}

@@ -38,7 +38,7 @@ import {
   XCircle,
   RefreshCw,
 } from "lucide-react";
-import { Button, ButtonLink, PageHeader, Panel, SectionTitle, StatusBadge, StudioArt } from "@/components/ui";
+import { Button, ButtonLink, PageHeader, Panel, SectionTitle, StatusBadge } from "@/components/ui";
 import {
   InstagramIcon,
   LinkedInIcon,
@@ -2500,7 +2500,6 @@ export default function ContentStudioPage() {
     <div className="content-review-window space-y-6">
       <PageHeader
         eyebrow="مركز المحتوى الإعلامي والإعلاني"
-        illustration={<StudioArt />}
         title={path === "review" ? "مراجعة المحتوى المهني" : path === "create" ? "إنشاء المحتوى المهني" : "إعداد المحتوى المهني"}
         action={path ? <Button variant="secondary-gray" onClick={goBackOneStage} leadingIcon={<ArrowRight size={16} />}>رجوع</Button> : undefined}
       />
