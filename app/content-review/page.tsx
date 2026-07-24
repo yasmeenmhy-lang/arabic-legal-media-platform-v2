@@ -14,7 +14,6 @@ import {
   CheckCircle2,
   Edit3,
   ExternalLink,
-  FileClock,
   FileDown,
   FileText,
   Globe,
@@ -39,7 +38,7 @@ import {
   ChevronDown,
   X
 } from "lucide-react";
-import { Button, ButtonLink, DgaSpinner, KpiCard, PageHeader, Panel, SectionTitle, StatusBadge } from "@/components/ui";
+import { Button, ButtonLink, DgaSpinner, PageHeader, Panel, SectionTitle, StatusBadge } from "@/components/ui";
 import { FieldLabel } from "@/components/field-label";
 import { SourcesPanel, type Source } from "@/components/sources-panel";
 import { PreviewToggleButton, ReadingPreview } from "@/components/text-preview";
@@ -2026,45 +2025,21 @@ export default function ContentReviewPage() {
         {message ? <p className="mt-3 text-sm text-palm">{message}</p> : null}
       </Panel>
 
-      {/* هذه الصفحة تعمل على محتوى قائم في السجل (الكتابة والإنشاء في مركز المحتوى)،
-          فاختيار المحتوى هو غرضها الأول — يُعرض السجل ظاهراً لا داخل قائمة منسدلة
-          وحدها. أرقام حقيقية من سجلّ المحامي، بلا حشو ولا نص تفسيري. */}
-      {!review && savedRecords.length > 0 ? (
-        <Panel>
-          <SectionTitle title="اختر محتوى من سجلّك" />
-          <div className="grid grid-cols-3 gap-3">
-            <KpiCard
-              label="مواد السجل"
-              value={String(savedRecords.length)}
-              hint="إجمالي المواد المحفوظة في سجلّك"
-              tone="neutral"
-              icon={<FileClock size={18} />}
-              href="/content-management"
-            />
-            <KpiCard
-              label="مسودات"
-              value={String(savedRecords.filter((r) => !r.approvedVersion).length)}
-              hint="مواد لم تُعتمد بعد"
-              tone="gold"
-              icon={<Edit3 size={18} />}
-              href="/content-management"
-            />
-            <KpiCard
-              label="معتمدة"
-              value={String(savedRecords.filter((r) => Boolean(r.approvedVersion)).length)}
-              hint="مواد اعتُمدت وجاهزة للنشر"
-              tone="good"
-              icon={<CheckCircle2 size={18} />}
-              href="/content-management"
-            />
-          </div>
-
-          <p className="mb-2 mt-5 text-sm font-medium text-ink">آخر ما عملت عليه</p>
-          <div className="flex flex-col gap-2">
-            {[...savedRecords]
-              .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
-              .slice(0, 6)
-              .map((r) => {
+      {/* ليست قائمة سجل — قائمة عملٍ تخصّ التحليل وحده: المواد التي لم تُحلَّل بعد.
+          سرد السجل وأرقامه وظيفة صفحة السجل، ولا تُكرَّر هنا. تختفي هذه البطاقة
+          تماماً حين لا يبقى شيء بانتظار التحليل. */}
+      {(() => {
+        if (review) return null;
+        const pending = savedRecords.filter((r) => {
+          const v = r.versions.find((x) => x.version === r.currentVersion) ?? r.versions.at(-1);
+          return v && !v.analysis;
+        });
+        if (!pending.length) return null;
+        return (
+          <Panel>
+            <SectionTitle title="بانتظار التحليل" />
+            <div className="flex flex-col gap-2">
+              {pending.slice(0, 6).map((r) => {
                 const v = r.versions.find((x) => x.version === r.currentVersion) ?? r.versions.at(-1);
                 return (
                   <button
@@ -2076,18 +2051,17 @@ export default function ContentReviewPage() {
                     <span className="min-w-0 flex-1 truncate text-sm text-ink">
                       {deriveContentTitle(v?.body ?? "") || r.title}
                     </span>
-                    <StatusBadge tone={r.approvedVersion ? "good" : "gold"}>{r.approvedVersion ? "معتمد" : "مسودة"}</StatusBadge>
+                    <StatusBadge tone="neutral">{v?.contentTypeLabel ?? "محتوى"}</StatusBadge>
                   </button>
                 );
               })}
-          </div>
-          {savedRecords.length > 6 ? (
-            <div className="mt-3">
-              <ButtonLink href="/content-management" variant="secondary-gray"><FileClock size={15} />السجل الكامل</ButtonLink>
             </div>
-          ) : null}
-        </Panel>
-      ) : null}
+            {pending.length > 6 ? (
+              <p className="mt-3 text-sm text-ink">و{pending.length - 6} مادة أخرى بانتظار التحليل.</p>
+            ) : null}
+          </Panel>
+        );
+      })()}
 
       {review ? (
         <>
