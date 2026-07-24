@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { ChevronDown, ChevronLeft, ExternalLink, FileClock, Filter, FolderOpen, History, RotateCcw, Search, Trash2, X } from "lucide-react";
-import { Button, ButtonLink, DgaSpinner, PageHeader, StatusBadge } from "@/components/ui";
+import { Button, DgaSpinner, PageHeader, StatusBadge } from "@/components/ui";
 import {
   exportContentRecords,
   importContentRecords,
@@ -307,10 +307,7 @@ export default function ContentManagementPage() {
   if (!loaded) {
     return (
       <div className="space-y-6">
-        <PageHeader
-          title="سجل المحتوى المهني"
-          action={<ButtonLink href="/content-studio">إعداد محتوى جديد</ButtonLink>}
-        />
+        <PageHeader title="سجل المحتوى المهني" />
 
         {/* رسالة طمأنة: السجل وسيلة وقائية داخلية — لا استخدام تأديبياً وسرية تامة */}
         <div className="rounded-xl border border-infoBorder bg-infoSoft p-4">
@@ -330,10 +327,7 @@ export default function ContentManagementPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        title="سجل المحتوى المهني"
-        action={<ButtonLink href="/content-studio">إعداد محتوى جديد</ButtonLink>}
-      />
+      <PageHeader title="سجل المحتوى المهني" />
 
 
       {/* رسالة طمأنة: السجل وسيلة وقائية داخلية — لا استخدام تأديبياً وسرية تامة */}
