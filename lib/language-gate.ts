@@ -15,3 +15,21 @@ export function countHardLanguageErrors(issues: ReadonlyArray<{ category?: strin
 export function hasHardLanguageError(issues: ReadonlyArray<{ category?: string }>): boolean {
   return countHardLanguageErrors(issues) > 0;
 }
+
+// الملاحظات الأسلوبية الإرشادية — تُعرض ولا تمنع النشر.
+export function countAdvisoryLanguageIssues(issues: ReadonlyArray<{ category?: string }>): number {
+  return issues.length - countHardLanguageErrors(issues);
+}
+
+// نصّ بوابة «جودة اللغة» — مصدر واحد يمنع تناقض البطاقة مع البوابة: حين تُرصد
+// ملاحظة أسلوبية إرشادية لا يصحّ أن تقول البوابة «اللغة سليمة» وكأن لا ملاحظة.
+export function languageGateReason(advisoryCount: number): string {
+  if (advisoryCount <= 0) return "اللغة سليمة ومناسبة للنشر.";
+  const note =
+    advisoryCount === 1
+      ? "ملاحظة أسلوبية إرشادية واحدة"
+      : advisoryCount === 2
+      ? "ملاحظتان أسلوبيتان إرشاديتان"
+      : `${advisoryCount} ملاحظات أسلوبية إرشادية`;
+  return `سليمة إملائياً ونحوياً — ${note} لا تمنع النشر.`;
+}

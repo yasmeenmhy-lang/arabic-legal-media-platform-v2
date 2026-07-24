@@ -13,7 +13,7 @@ import type {
   RiskLevel
 } from "@/lib/types";
 import { advisoryDisclaimer } from "@/lib/governance";
-import { countHardLanguageErrors } from "@/lib/language-gate";
+import { countAdvisoryLanguageIssues, countHardLanguageErrors } from "@/lib/language-gate";
 import { createReviewedContentContext } from "@/lib/review-context";
 import { runPublishingReadinessReview } from "@/lib/services/approval-workflow-service";
 import { rebuildComplianceFromFindings } from "@/lib/services/legal-compliance-service";
@@ -199,6 +199,7 @@ export async function buildReviewResult(
     professionalismScore,
     languageScore: languageQuality.score,
     languageHardErrorCount: countHardLanguageErrors(languageQuality.issues),
+    languageAdvisoryCount: countAdvisoryLanguageIssues(languageQuality.issues),
     context,
     reviewStatus
   });

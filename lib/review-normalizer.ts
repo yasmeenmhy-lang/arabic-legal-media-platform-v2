@@ -5,6 +5,7 @@ import {
   buildReadinessDecision
 } from "@/lib/services/decision-support-service";
 import { calculateContentQualityScore } from "@/lib/services/scoring-service";
+import { countAdvisoryLanguageIssues, languageGateReason } from "@/lib/language-gate";
 
 // تطبيع التحليلات المحفوظة وقت العرض: القواعد الحالية تُطبَّق على كل نسخة
 // محفوظة أو مشاركة — قديمة أو جديدة — بدل عرض قرارات محسوبة بقواعد قديمة.
@@ -114,7 +115,7 @@ export function normalizeReviewResult(review: ReviewResult): ReviewResult {
             passed: languagePassed,
             sourceValue: languageScore,
             reason: languagePassed
-              ? "اللغة سليمة ومناسبة للنشر."
+              ? languageGateReason(countAdvisoryLanguageIssues(review.languageQuality?.issues ?? []))
               : "يوجد أخطاء لغوية يجب تصحيحها."
           };
         }

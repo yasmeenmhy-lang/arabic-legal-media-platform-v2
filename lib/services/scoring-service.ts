@@ -16,6 +16,7 @@ import type {
 } from "@/lib/types";
 import type { ScoringProfile } from "@/lib/scoring-profiles";
 import { resolveScoringProfile } from "@/lib/scoring-profiles";
+import { languageGateReason } from "@/lib/language-gate";
 
 export const SCORING_MODEL_VERSION = "decision-support-v2";
 
@@ -273,6 +274,7 @@ export function calculatePublishingReadiness({
   professionalismScore,
   languageScore,
   languageHardErrorCount = 0,
+  languageAdvisoryCount = 0,
   context,
   reviewStatus
 }: {
@@ -283,6 +285,9 @@ export function calculatePublishingReadiness({
   // عدد الأخطاء اللغوية القطعية (إملاء/نحو/اتساق مصطلحات) — تُحجب؛ الأسلوبية إرشادية.
   // توحيد مع بوابة الاعتماد فلا تظهر «اللغة سليمة» مع «تعذّر الاعتماد لغوياً».
   languageHardErrorCount?: number;
+  // عدد الملاحظات الأسلوبية الإرشادية — لا تحجب، لكن تُذكر في نصّ البوابة
+  // فلا تقول البوابة «اللغة سليمة» بينما البطاقة أعلاها تعرض ملاحظة أسلوبية.
+  languageAdvisoryCount?: number;
   context: ReviewContext;
   reviewStatus: ReviewReadinessStatus;
   profile?: ScoringProfile;
@@ -328,7 +333,7 @@ export function calculatePublishingReadiness({
         ? "يوجد أخطاء لغوية يجب تصحيحها."
         : languageHardErrorCount > 0
         ? "توجد أخطاء لغوية قطعية (إملاء/نحو) يجب تصحيحها."
-        : "اللغة سليمة ومناسبة للنشر."
+        : languageGateReason(languageAdvisoryCount)
     }
   ];
 
