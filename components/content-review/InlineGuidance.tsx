@@ -162,7 +162,6 @@ export function InlineContentGuidance({
           </div>
           <StatusBadge tone="neutral">لا توجد نتائج</StatusBadge>
         </div>
-        <p className="mt-2">أدخل نصًا جديدًا لبدء التدقيق والتحليل. لن تظهر مؤشرات أو نتائج مرتبطة بمحتوى سابق بعد مسح النص.</p>
       </div>
     );
   }

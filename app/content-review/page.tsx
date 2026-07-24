@@ -1265,7 +1265,6 @@ export default function ContentReviewPage() {
       <PageHeader
         eyebrow="مساعد قرار النشر للمحامي"
         title="إدارة المحتوى الإعلامي والإعلاني للمحامين"
-        description="ابدأ بما يحتاج إلى قرار: الملاحظات، الأدلة، الأثر، والإجراء الموصى به. الدرجات مؤشرات مساندة وليست النتيجة الأساسية."
         action={<ButtonLink href="/content-studio?results=1" variant="secondary-gray"><ArrowRight size={16} />العودة إلى نتائج مركز المحتوى</ButtonLink>}
       />
 
@@ -1273,7 +1272,7 @@ export default function ContentReviewPage() {
       <div>
         <div className="min-w-0 space-y-6">
       <Panel id="input">
-        <SectionTitle title="1. إدخال المحتوى وإطاره" />
+        <SectionTitle title="1. إدخال المحتوى" />
 
         {/* عنوان المحتوى والنص محل المراجعة — بقرار مالكة المنصة: ظاهران دائماً خارج
             الأكورديون، حتى في عرض النتائج، فلا يحتاج المستخدم فتح السياق ليرى محتواه */}
