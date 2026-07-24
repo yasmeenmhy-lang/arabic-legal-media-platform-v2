@@ -55,25 +55,26 @@ export function SessionChip() {
   }
 
   return (
-    <div className="flex shrink-0 items-center gap-2 rounded-lg border border-line bg-paper px-2.5 py-2 sm:gap-3 sm:px-3">
-      <p className="max-w-[28vw] truncate text-sm font-normal sm:max-w-none">{state.username}</p>
+    <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
+      <span className="max-w-[20vw] truncate text-sm font-normal text-ink/75 sm:max-w-none">{state.username}</span>
       {state.role !== "admin" ? (
         <Link
           href="/account"
-          className="flex items-center gap-1.5 rounded-md border border-line px-2 py-1 text-xs text-ink/60 transition hover:border-palm hover:text-palm focus-ring"
+          title="تغيير الرمز"
+          aria-label="تغيير الرمز"
+          className="grid h-9 w-9 shrink-0 place-items-center rounded-md border border-line text-ink/60 transition hover:border-palm hover:text-palm focus-ring"
         >
-          <KeyRound size={12} />
-          <span className="hidden sm:inline">تغيير الرمز</span>
+          <KeyRound size={16} />
         </Link>
       ) : null}
       <button
         type="button"
         onClick={() => void logout()}
-        className="flex items-center gap-1.5 rounded-md border border-line px-2 py-1 text-xs text-ink/60 transition hover:border-palm hover:text-palm focus-ring"
+        title="تسجيل الخروج"
+        aria-label="تسجيل الخروج"
+        className="grid h-9 w-9 shrink-0 place-items-center rounded-md border border-red-200 text-red-500 transition hover:border-red-400 hover:bg-red-50 focus-ring"
       >
-        <LogOut size={12} />
-        <span className="hidden sm:inline">تسجيل الخروج</span>
-        <span className="sm:hidden">خروج</span>
+        <LogOut size={16} />
       </button>
     </div>
   );

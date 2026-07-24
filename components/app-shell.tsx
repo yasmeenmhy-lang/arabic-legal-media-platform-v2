@@ -153,7 +153,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 <Menu size={20} />
               </button>
               <div className="min-w-0">
-                <h1 className="max-w-4xl text-sm font-bold leading-6 text-ink sm:text-base [text-wrap:balance]">{platformTitle}</h1>
+                <h1 className="whitespace-nowrap text-[12px] font-bold leading-tight text-ink sm:max-w-4xl sm:whitespace-normal sm:text-base">{platformTitle}</h1>
                 <p className="hidden text-xs text-ink/50 sm:block">
                   مراجعة، امتثال، مخاطر، وتحسين جاهزية النشر للمحتوى المهني
                 </p>
