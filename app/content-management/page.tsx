@@ -2,8 +2,8 @@
 
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import Link from "next/link";
-import { CalendarDays, CheckCircle2, ChevronDown, ChevronLeft, ExternalLink, FileCheck2, FileClock, FileText, Filter, FolderOpen, History, PenLine, RotateCcw, Search, Send, Share2, ShieldCheck, Tag, Trash2, X } from "lucide-react";
-import { InstagramIcon, LinkedInIcon, SnapchatIcon, TikTokIcon, XIcon, YouTubeIcon } from "@/components/social-icons";
+import { CalendarDays, CheckCircle2, ChevronDown, ChevronLeft, ExternalLink, FileCheck2, FileClock, FileText, Filter, FolderOpen, History, RotateCcw, Search, Share2, Trash2, X } from "lucide-react";
+import { InstagramIcon, LinkedInIcon, SnapchatIcon, TikTokIcon, XIcon, YouTubeIcon, socialBrandStyles } from "@/components/social-icons";
 import { Button, DgaSpinner, PageHeader, StatusBadge } from "@/components/ui";
 import {
   deriveContentTitle,
@@ -70,67 +70,31 @@ function riskTone(level?: RiskLevel): "good" | "gold" | "danger" | "neutral" {
   return "danger";
 }
 
-// ── لوحة السجل (سنابشوت) — نمط عرض بألوان كود المنصات الرسمية (رموز التصميم المعرّفة في tailwind.config) ──
-// النغمات: SA أخضر، السماوي (Info)، النجاح، الذهبي، الخزامى (Lavender)، الورد (Error) — بأسمائها الدلالية لا ألوان عامة
-type DashTone = "sa" | "sky" | "success" | "gold" | "lavender" | "rose";
-const DASH: Record<DashTone, { grad: string; ring: string; icon: string; chip: string; num: string; bar: string }> = {
-  sa:       { grad: "from-mint to-white",       ring: "border-palm/15",          icon: "bg-palm text-white",        chip: "bg-mint text-palm",               num: "text-palmDeep",    bar: "bg-palm" },
-  sky:      { grad: "from-infoSoft to-white",   ring: "border-infoBorder/60",    icon: "bg-infoBase text-white",    chip: "bg-infoSoft text-infoDark",       num: "text-infoDark",    bar: "bg-infoBase" },
-  success:  { grad: "from-successSoft to-white",ring: "border-successBorder/70", icon: "bg-successBase text-white", chip: "bg-successSoft text-successDark", num: "text-successDark", bar: "bg-successBase" },
-  gold:     { grad: "from-goldSoft to-white",   ring: "border-goldBorder",       icon: "bg-gold text-white",        chip: "bg-goldSoft text-goldDark",       num: "text-goldDark",    bar: "bg-gold" },
-  lavender: { grad: "from-violetSoft to-white", ring: "border-violetBorder/70",  icon: "bg-violet text-white",      chip: "bg-violetSoft text-violetDark",   num: "text-violetDark",  bar: "bg-violet" },
-  rose:     { grad: "from-errorSoft to-white",  ring: "border-errorBorder",      icon: "bg-errorBase text-white",   chip: "bg-errorSoft text-errorDark",     num: "text-errorDark",   bar: "bg-errorBase" }
-};
+// ── لوحة السجل (سنابشوت موحّد) — قسم واحد متماسك بألوان كود المنصات الرسمية ──
 
-// بطاقة إحصائية: أيقونة مملوءة + رقم واضح مريح + تسمية ووصف خفيف + شريط نسبة. خطوط أخفّ (bold لا extrabold).
-function StatCard({ value, label, sub, icon, tone, pct }: {
-  value: number; label: string; sub: string; icon: ReactNode; tone: DashTone; pct: number;
-}) {
-  const s = DASH[tone];
+// مؤشّر فرعي مصغّر: أيقونة صغيرة + رقم + تسمية. أوزان خفيفة ومقاس صغير مريح.
+function MiniStat({ value, label, icon, color }: { value: number; label: string; icon: ReactNode; color: string }) {
   return (
-    <div className={`rounded-2xl border ${s.ring} bg-gradient-to-br ${s.grad} p-3.5`}>
-      <div className="flex items-center justify-between gap-2">
-        <span className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl shadow-xs ${s.icon}`}>{icon}</span>
-        <span className={`text-2xl font-bold leading-none tabular-nums ${s.num}`}>{value}</span>
+    <div className="rounded-xl border border-line bg-paper px-2 py-2 text-center">
+      <div className="flex items-center justify-center gap-1">
+        <span className={color}>{icon}</span>
+        <span className={`text-base font-bold leading-none tabular-nums ${color}`}>{value}</span>
       </div>
-      <p className="mt-2.5 truncate text-xs font-semibold text-ink">{label}</p>
-      <p className="mt-0.5 truncate text-[10px] font-normal text-ink/45">{sub}</p>
-      <div className="mt-2 h-1 overflow-hidden rounded-full bg-black/[.05]">
-        <div className={`h-full rounded-full ${s.bar}`} style={{ width: `${Math.max(4, Math.min(100, pct))}%` }} />
-      </div>
+      <p className="mt-1 truncate text-[10px] font-medium text-ink/55">{label}</p>
     </div>
   );
 }
 
-// رحلة المحتوى — مراحل بأيقونات وأعداد. خطوط أخفّ ومقاسات مريحة.
-function JourneyStepper({ steps }: { steps: Array<{ label: string; value: number; sub: string; icon: ReactNode; tone: DashTone }> }) {
-  return (
-    <div className="rounded-2xl border border-line bg-white p-4 shadow-xs">
-      <p className="mb-4 flex items-center gap-2 text-sm font-semibold text-ink"><FileClock size={16} className="text-palm" />رحلة المحتوى</p>
-      <div className="flex items-start gap-1 overflow-x-auto">
-        {steps.map((st) => (
-          <div key={st.label} className="flex min-w-[76px] flex-1 flex-col items-center text-center">
-            <span className={`grid h-11 w-11 place-items-center rounded-2xl ${DASH[st.tone].chip}`}>{st.icon}</span>
-            <span className="mt-2 text-[11px] font-medium text-ink">{st.label}</span>
-            <span className={`mt-0.5 text-lg font-bold tabular-nums ${DASH[st.tone].num}`}>{st.value}</span>
-            <span className="text-[9px] font-normal text-ink/45">{st.sub}</span>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-// أيقونة القناة بالعلامة التجارية إن عُرفت، وإلا أيقونة عامة.
-function channelBrandIcon(name: string): ReactNode {
+// القناة بلونها وأيقونتها الرسمية (من مكوّنات المنصّة)، وإلا أيقونة عامة بلون المنصّة.
+function channelBrand(name: string): { node: ReactNode; icon: string; surface: string } {
   const n = name.toLowerCase();
-  if (n.includes("linkedin")) return <LinkedInIcon size={18} />;
-  if (n === "x" || n.includes("twitter")) return <XIcon size={18} />;
-  if (n.includes("insta")) return <InstagramIcon size={18} />;
-  if (n.includes("tiktok")) return <TikTokIcon size={18} />;
-  if (n.includes("snap")) return <SnapchatIcon size={18} />;
-  if (n.includes("youtube")) return <YouTubeIcon size={18} />;
-  return <Share2 size={16} className="text-palm" />;
+  if (n.includes("linkedin") || name.includes("لينكد")) return { node: <LinkedInIcon size={15} />, ...socialBrandStyles.linkedin };
+  if (n === "x" || n.includes("twitter") || name.includes("إكس") || name.includes("اكس")) return { node: <XIcon size={15} />, ...socialBrandStyles.x };
+  if (n.includes("insta") || name.includes("انستقرام") || name.includes("إنستغرام")) return { node: <InstagramIcon size={15} />, ...socialBrandStyles.instagram };
+  if (n.includes("tiktok") || name.includes("تيك")) return { node: <TikTokIcon size={15} />, ...socialBrandStyles.tiktok };
+  if (n.includes("snap") || name.includes("سناب")) return { node: <SnapchatIcon size={15} />, ...socialBrandStyles.snapchat };
+  if (n.includes("youtube") || name.includes("يوتيوب")) return { node: <YouTubeIcon size={15} />, ...socialBrandStyles.youtube_shorts };
+  return { node: <Share2 size={14} />, icon: "text-palm", surface: "bg-mint" };
 }
 
 export default function ContentManagementPage() {
@@ -426,60 +390,74 @@ export default function ContentManagementPage() {
     <div className="space-y-6">
       <PageHeader eyebrow="أرشيف المحتوى واعتماداته" title="سجل المحتوى المهني" />
 
-      {/* لوحة السجل — سنابشوت متناسق: شبكة موحّدة من بطاقات أيقونة + رقم، بألوان كود المنصات الرسمية */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-        <StatCard value={counts.all} label="إجمالي المحتوى" sub="جميع المحتويات" icon={<FolderOpen size={18} />} tone="sa" pct={100} />
-        <StatCard value={snapshot.reviewed} label="المراجعة" sub="قيد التحليل" icon={<FileCheck2 size={18} />} tone="sky" pct={counts.all ? (snapshot.reviewed / counts.all) * 100 : 0} />
-        <StatCard value={counts.approved} label="المعتمدة" sub={`نسبة الاعتماد ${acceptance}%`} icon={<CheckCircle2 size={18} />} tone="success" pct={counts.all ? (counts.approved / counts.all) * 100 : 0} />
-        <StatCard value={counts.drafts} label="المسودات والحالية" sub="قيد الإنشاء" icon={<FileText size={18} />} tone="gold" pct={counts.all ? (counts.drafts / counts.all) * 100 : 0} />
-        <StatCard value={thisWeekCount} label="هذا الأسبوع" sub="منذ بداية الأسبوع" icon={<CalendarDays size={18} />} tone="lavender" pct={counts.all ? (thisWeekCount / counts.all) * 100 : 0} />
-        <StatCard value={snapshot.channelsUsed} label="القنوات المستخدمة" sub="قنوات نشطة" icon={<Share2 size={18} />} tone="rose" pct={snapshot.channelsUsed * 20} />
-      </div>
-
+      {/* لوحة السجل — سنابشوت موحّد في قسم واحد: الإجمالي مميّز بالوسط، ثم مؤشّرات مصغّرة، ثم القنوات والأنواع */}
       {records.length > 0 ? (
-        <>
-          <JourneyStepper steps={[
-            { label: "النشر", value: snapshot.channelsUsed, sub: "قنوات نشطة", icon: <Send size={18} />, tone: "lavender" },
-            { label: "الاعتماد", value: counts.approved, sub: "معتمد", icon: <ShieldCheck size={18} />, tone: "gold" },
-            { label: "المراجعة والتحليل", value: snapshot.reviewed, sub: "قيد التحليل", icon: <Search size={18} />, tone: "sky" },
-            { label: "إنشاء المحتوى", value: counts.drafts, sub: "مسودة", icon: <PenLine size={18} />, tone: "success" }
-          ]} />
+        <div className="rounded-2xl border border-line bg-white p-4 shadow-xs sm:p-5">
+          <div className="mb-4 flex items-center gap-2">
+            <span className="grid h-7 w-7 place-items-center rounded-lg bg-mint text-palm"><History size={15} /></span>
+            <p className="text-sm font-semibold text-ink">لوحة السجل</p>
+          </div>
 
-          {snapshot.byType.length ? (
-            <div className="rounded-2xl border border-line bg-white p-4 shadow-xs">
-              <p className="mb-3 flex items-center gap-2 text-sm font-semibold text-ink"><Tag size={15} className="text-palm" />حسب النوع</p>
-              <div className="flex gap-2.5 overflow-x-auto pb-1">
-                {snapshot.byType.map(([label, count]) => (
-                  <div key={label} className="min-w-[108px] shrink-0 rounded-xl border border-line bg-paper p-3">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xl font-bold tabular-nums text-palmDeep">{count}</span>
-                      <span className="grid h-7 w-7 place-items-center rounded-lg bg-mint text-palm"><Tag size={13} /></span>
-                    </div>
-                    <p className="mt-1.5 truncate text-[11px] font-medium text-ink">{label}</p>
-                    <p className="text-[9px] font-normal tabular-nums text-ink/45">{counts.all ? Math.round((count / counts.all) * 100) : 0}%</p>
-                  </div>
-                ))}
+          {/* الشبكة الرئيسة: الإجمالي بالوسط بحلقة الاعتماد، تحفّه المؤشّرات الفرعية */}
+          <div className="grid items-center gap-4 sm:grid-cols-[1fr_auto_1fr]">
+            {/* المؤشّرات اليمنى */}
+            <div className="grid grid-cols-2 gap-2">
+              <MiniStat value={snapshot.reviewed} label="المراجعة" icon={<FileCheck2 size={13} />} color="text-infoDark" />
+              <MiniStat value={counts.approved} label="المعتمدة" icon={<CheckCircle2 size={13} />} color="text-successDark" />
+            </div>
+
+            {/* الإجمالي — مميّز بالوسط */}
+            <div className="flex flex-col items-center">
+              <div className="relative grid h-24 w-24 place-items-center">
+                <svg viewBox="0 0 96 96" className="h-24 w-24 -rotate-90">
+                  <circle cx="48" cy="48" r="40" fill="none" stroke="#F3F4F6" strokeWidth="7" />
+                  <circle cx="48" cy="48" r="40" fill="none" stroke="#25935F" strokeWidth="7" strokeLinecap="round"
+                    strokeDasharray={251.33} strokeDashoffset={251.33 * (1 - acceptance / 100)} />
+                </svg>
+                <span className="absolute text-3xl font-bold tabular-nums text-palmDeep">{counts.all}</span>
               </div>
+              <p className="mt-2 text-xs font-semibold text-ink">إجمالي المحتوى</p>
+              <p className="text-[10px] font-normal text-ink/45">نسبة الاعتماد {acceptance}%</p>
+            </div>
+
+            {/* المؤشّرات اليسرى */}
+            <div className="grid grid-cols-2 gap-2">
+              <MiniStat value={counts.drafts} label="المسودات" icon={<FileText size={13} />} color="text-goldDark" />
+              <MiniStat value={thisWeekCount} label="هذا الأسبوع" icon={<CalendarDays size={13} />} color="text-violetDark" />
+            </div>
+          </div>
+
+          {/* القنوات — أيقونات ملوّنة صغيرة بأعدادها، والأنواع — شرائح صغيرة. الكل ظاهر بلا سحب أفقي */}
+          {(snapshot.byChannel.length || snapshot.byType.length) ? (
+            <div className="mt-4 space-y-2.5 border-t border-line pt-3">
+              {snapshot.byChannel.length ? (
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5">
+                  <span className="text-[11px] font-medium text-ink/45">القنوات</span>
+                  {snapshot.byChannel.map(([label, count]) => {
+                    const b = channelBrand(label);
+                    return (
+                      <span key={label} title={label} className={`inline-flex items-center gap-1 rounded-full px-2 py-1 ${b.surface}`}>
+                        <span className={b.icon}>{b.node}</span>
+                        <span className="text-[11px] font-bold tabular-nums text-ink">{count}</span>
+                      </span>
+                    );
+                  })}
+                </div>
+              ) : null}
+              {snapshot.byType.length ? (
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5">
+                  <span className="text-[11px] font-medium text-ink/45">الأنواع</span>
+                  {snapshot.byType.map(([label, count]) => (
+                    <span key={label} className="inline-flex items-center gap-1 rounded-full bg-mint px-2 py-0.5">
+                      <span className="text-[11px] font-medium text-palm">{label}</span>
+                      <span className="text-[11px] font-bold tabular-nums text-palmDeep">{count}</span>
+                    </span>
+                  ))}
+                </div>
+              ) : null}
             </div>
           ) : null}
-
-          {snapshot.byChannel.length ? (
-            <div className="rounded-2xl border border-line bg-white p-4 shadow-xs">
-              <p className="mb-3 flex items-center gap-2 text-sm font-semibold text-ink"><Share2 size={15} className="text-palm" />حسب القناة</p>
-              <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
-                {snapshot.byChannel.map(([label, count]) => (
-                  <div key={label} className="flex items-center gap-2.5 rounded-xl border border-line bg-paper p-3">
-                    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-white shadow-xs">{channelBrandIcon(label)}</span>
-                    <div className="min-w-0">
-                      <div className="text-xl font-bold tabular-nums text-ink">{count}</div>
-                      <div className="truncate text-[11px] font-normal text-ink/55">{label}</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ) : null}
-        </>
+        </div>
       ) : null}
 
       {/* رسالة طمأنة: السجل وسيلة وقائية داخلية — لا استخدام تأديبياً وسرية تامة */}
