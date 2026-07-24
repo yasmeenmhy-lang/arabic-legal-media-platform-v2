@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { CalendarDays, CheckCircle2, ChevronDown, ChevronLeft, ExternalLink, FileCheck2, FileClock, FileText, Filter, FolderOpen, History, Image as ImageIcon, Megaphone, MessageCircle, PenLine, RotateCcw, Search, Send, Share2, ShieldCheck, Tag, Trash2, Video, X } from "lucide-react";
 import { InstagramIcon, LinkedInIcon, SnapchatIcon, TikTokIcon, XIcon, YouTubeIcon, socialBrandStyles } from "@/components/social-icons";
@@ -117,14 +117,18 @@ function JourneyStepper({ steps }: { steps: Array<{ label: string; value: number
   return (
     <div className="rounded-2xl border border-line bg-white p-3.5 shadow-xs">
       <p className="mb-3 flex items-center gap-2 text-xs font-semibold text-ink"><FileClock size={14} className="text-palm" />رحلة المحتوى</p>
-      <div className="mx-auto flex max-w-[560px] items-start justify-between gap-1">
-        {steps.map((st) => (
-          <div key={st.label} className="flex flex-1 flex-col items-center text-center">
-            <span className={`grid h-9 w-9 place-items-center rounded-full ${TONE[st.tone].iconBg} ${TONE[st.tone].icon}`}>{st.icon}</span>
-            <span className="mt-1.5 text-[10px] font-medium text-ink">{st.label}</span>
-            <span className={`text-sm font-bold tabular-nums ${TONE[st.tone].num}`}>{st.value}</span>
-            <span className="text-[9px] font-normal text-ink/45">{st.sub}</span>
-          </div>
+      {/* الخطوات تملأ عرض الإطار، وسهم بينها (يسار = اتجاه التسلسل RTL) لإظهار تتابع الرحلة */}
+      <div className="flex items-start justify-between gap-1">
+        {steps.map((st, i) => (
+          <Fragment key={st.label}>
+            <div className="flex flex-1 flex-col items-center text-center">
+              <span className={`grid h-9 w-9 place-items-center rounded-full ${TONE[st.tone].iconBg} ${TONE[st.tone].icon}`}>{st.icon}</span>
+              <span className="mt-1.5 text-[10px] font-medium text-ink">{st.label}</span>
+              <span className={`text-sm font-bold tabular-nums ${TONE[st.tone].num}`}>{st.value}</span>
+              <span className="text-[9px] font-normal text-ink/45">{st.sub}</span>
+            </div>
+            {i < steps.length - 1 ? <ChevronLeft size={18} className="mt-2.5 shrink-0 text-ink/25" aria-hidden="true" /> : null}
+          </Fragment>
         ))}
       </div>
     </div>
@@ -495,17 +499,17 @@ export default function ContentManagementPage() {
           {snapshot.byType.length ? (
             <div className="rounded-2xl border border-line bg-white p-3.5 shadow-xs">
               <p className="mb-3 flex items-center gap-2 text-xs font-semibold text-ink"><Tag size={14} className="text-palm" />أنواع المحتوى</p>
-              {/* صناديق موحّدة المقاس بشبكة مرتّبة؛ العنصر الأخير المفرد يتمركز */}
-              <div className="flex flex-wrap justify-center gap-2">
+              {/* صناديق تتمدّد لملء عرض الإطار بلا فراغات (العنصر المفرد يتّسع لكامل الصف) */}
+              <div className="flex flex-wrap gap-2">
                 {snapshot.byType.map(([label, count], i) => {
                   const c = CALM[i % CALM.length];
                   return (
-                    <div key={label} className="flex w-[calc(50%-0.25rem)] items-center justify-between gap-1.5 rounded-xl border border-line bg-paper px-2.5 py-2 sm:w-[calc(33.333%-0.5rem)]">
+                    <div key={label} className="flex grow basis-[calc(50%-0.25rem)] items-center justify-between gap-1.5 rounded-xl border border-line bg-paper px-3 py-2.5 sm:basis-[calc(33.333%-0.5rem)]">
                       <div className="flex min-w-0 items-baseline gap-1.5">
-                        <span className="truncate text-[11px] font-medium text-ink/70">{label}</span>
-                        <span className={`text-sm font-bold tabular-nums ${c.fg}`}>{count}</span>
+                        <span className="truncate text-xs font-medium text-ink/70">{label}</span>
+                        <span className={`text-base font-bold tabular-nums ${c.fg}`}>{count}</span>
                       </div>
-                      <span className={`grid h-7 w-7 shrink-0 place-items-center rounded-lg ${c.bg} ${c.fg}`}>{typeIcon(label)}</span>
+                      <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-lg ${c.bg} ${c.fg}`}>{typeIcon(label)}</span>
                     </div>
                   );
                 })}
@@ -516,17 +520,17 @@ export default function ContentManagementPage() {
           {snapshot.byChannel.length ? (
             <div className="rounded-2xl border border-line bg-white p-3.5 shadow-xs">
               <p className="mb-3 flex items-center gap-2 text-xs font-semibold text-ink"><Share2 size={14} className="text-palm" />قنوات النشر</p>
-              <div className="flex flex-wrap justify-center gap-2">
+              <div className="flex flex-wrap gap-2">
                 {snapshot.byChannel.map(([label, count]) => {
                   const b = channelBrand(label);
                   const idle = count === 0; // قناة معتمدة بلا محتوى بعد — تُعرَض بصفر بهيئة هادئة
                   return (
-                    <div key={label} className={`flex w-[calc(50%-0.25rem)] items-center justify-between gap-1.5 rounded-xl border px-2.5 py-2 sm:w-[calc(33.333%-0.5rem)] ${idle ? "border-line/70 bg-paper/50" : "border-line bg-paper"}`}>
+                    <div key={label} className={`flex grow basis-[calc(50%-0.25rem)] items-center justify-between gap-1.5 rounded-xl border px-3 py-2.5 sm:basis-[calc(33.333%-0.5rem)] ${idle ? "border-line/70 bg-paper/50" : "border-line bg-paper"}`}>
                       <div className="flex min-w-0 items-baseline gap-1.5">
-                        <span className={`truncate text-[11px] font-medium ${idle ? "text-ink/40" : "text-ink/70"}`}>{label}</span>
-                        <span className={`text-sm font-bold tabular-nums ${idle ? "text-ink/35" : "text-ink"}`}>{count}</span>
+                        <span className={`truncate text-xs font-medium ${idle ? "text-ink/40" : "text-ink/70"}`}>{label}</span>
+                        <span className={`text-base font-bold tabular-nums ${idle ? "text-ink/35" : "text-ink"}`}>{count}</span>
                       </div>
-                      <span className={`grid h-7 w-7 shrink-0 place-items-center rounded-lg ${b.surface} ${b.icon} ${idle ? "opacity-45" : ""}`}>{b.node}</span>
+                      <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-lg ${b.surface} ${b.icon} ${idle ? "opacity-45" : ""}`}>{b.node}</span>
                     </div>
                   );
                 })}
