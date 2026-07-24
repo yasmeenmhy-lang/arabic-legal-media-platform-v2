@@ -1332,11 +1332,11 @@ export default function ContentReviewPage() {
             ) : null}
           </div>
         ) : null}
-        {/* مراجعة النص — أوكورديون مقفل افتراضياً؛ الـ flex على div داخلي لا على summary لتفادي عطل Safari */}
+        {/* مراجعة المحتوى — أوكورديون مقفل افتراضياً؛ الـ flex على div داخلي لا على summary لتفادي عطل Safari */}
         <details className="mt-4 group text-sm">
           <summary className="cursor-pointer list-none focus-ring">
             <div className="flex items-center justify-between gap-2 rounded-lg border border-line bg-paper px-3 py-2.5 font-medium text-ink">
-              <span>مراجعة النص</span>
+              <span>مراجعة المحتوى</span>
               <ChevronDown size={16} className="shrink-0 text-ink/40 transition-transform group-open:rotate-180" aria-hidden="true" />
             </div>
           </summary>
