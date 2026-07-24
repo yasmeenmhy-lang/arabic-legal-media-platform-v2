@@ -2025,44 +2025,6 @@ export default function ContentReviewPage() {
         {message ? <p className="mt-3 text-sm text-palm">{message}</p> : null}
       </Panel>
 
-      {/* ليست قائمة سجل — قائمة عملٍ تخصّ التحليل وحده: المواد التي لم تُحلَّل بعد.
-          سرد السجل وأرقامه وظيفة صفحة السجل، ولا تُكرَّر هنا. تختفي هذه البطاقة
-          تماماً حين لا يبقى شيء بانتظار التحليل. */}
-      {(() => {
-        if (review) return null;
-        const pending = savedRecords.filter((r) => {
-          const v = r.versions.find((x) => x.version === r.currentVersion) ?? r.versions.at(-1);
-          return v && !v.analysis;
-        });
-        if (!pending.length) return null;
-        return (
-          <Panel>
-            <SectionTitle title="بانتظار التحليل" />
-            <div className="flex flex-col gap-2">
-              {pending.slice(0, 6).map((r) => {
-                const v = r.versions.find((x) => x.version === r.currentVersion) ?? r.versions.at(-1);
-                return (
-                  <button
-                    key={r.id}
-                    type="button"
-                    onClick={() => loadRecordVersion(r, r.currentVersion)}
-                    className="flex w-full items-center gap-2.5 rounded-lg border border-line bg-white px-3 py-3 text-right transition hover:border-palm hover:bg-mint/20 focus-ring"
-                  >
-                    <span className="min-w-0 flex-1 truncate text-sm text-ink">
-                      {deriveContentTitle(v?.body ?? "") || r.title}
-                    </span>
-                    <StatusBadge tone="neutral">{v?.contentTypeLabel ?? "محتوى"}</StatusBadge>
-                  </button>
-                );
-              })}
-            </div>
-            {pending.length > 6 ? (
-              <p className="mt-3 text-sm text-ink">و{pending.length - 6} مادة أخرى بانتظار التحليل.</p>
-            ) : null}
-          </Panel>
-        );
-      })()}
-
       {review ? (
         <>
           {review.analysisMode === "pattern-only" ? (
