@@ -1265,7 +1265,7 @@ export default function ContentReviewPage() {
       <PageHeader
         eyebrow="مساعد قرار النشر للمحامي"
         title="إدارة المحتوى الإعلامي والإعلاني للمحامين"
-        action={<ButtonLink href="/content-studio?results=1" variant="secondary-gray"><ArrowRight size={16} />العودة إلى نتائج مركز المحتوى</ButtonLink>}
+        action={<ButtonLink href="/content-studio" variant="secondary-gray"><ArrowRight size={16} />العودة إلى مركز المحتوى</ButtonLink>}
       />
 
       {/* النتائج بعرض الصفحة للحاسب والآيباد؛ الجوال يحتفظ بتسلسله العمودي. */}
