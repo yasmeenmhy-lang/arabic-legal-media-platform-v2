@@ -472,7 +472,7 @@ export default function ContentReviewPage() {
     setIsEditing(false);
     setMessage(version.analysis
       ? ""
-      : "تم فتح محتوى محفوظ من إصدار سابق. أعد تحليل المحتوى لعرض قرار النشر والنتائج بصيغتها الحالية.");
+      : "تم فتح محتوى محفوظ من إصدار سابق. أعد تحليل المحتوى لعرض توصية النشر والنتائج بصيغتها الحالية.");
   }
 
   useEffect(() => {
@@ -678,7 +678,7 @@ export default function ContentReviewPage() {
         setApproved(false);
         setIsEditing(false);
         setEditSnapshot(null);
-        setMessage("اكتمل التحليل. ابدأ بقرار النشر ثم عالج الملاحظات حسب الأولوية.");
+        setMessage("اكتمل التحليل. ابدأ بتوصية النشر ثم عالج الملاحظات حسب الأولوية.");
       } else {
         setMessage(outcome.error ?? "تعذر إكمال المراجعة.");
       }
@@ -781,7 +781,7 @@ export default function ContentReviewPage() {
       setEditSnapshot(null);
       setAiSuggestion(null);
       setSuggestionError(null);
-      setMessage("اكتمل التحليل. ابدأ بقرار النشر ثم عالج الملاحظات حسب الأولوية.");
+      setMessage("اكتمل التحليل. ابدأ بتوصية النشر ثم عالج الملاحظات حسب الأولوية.");
     } catch (error) {
       if (requestId !== reviewRequestIdRef.current) return;
       setMessage(error instanceof Error ? error.message : "تعذر إكمال المراجعة.");
@@ -831,7 +831,7 @@ export default function ContentReviewPage() {
       });
       setVersionNumber(saved.version.version);
       setApproved(false);
-      setMessage("تم تطبيق الصياغة وإعادة تقييمها. راجع قرار النشر الجديد قبل الاعتماد.");
+      setMessage("تم تطبيق الصياغة وإعادة تقييمها. راجع توصية النشر الجديدة قبل الاعتماد.");
     } finally {
       if (requestId === reviewRequestIdRef.current) setLoading(false);
     }
@@ -897,7 +897,7 @@ export default function ContentReviewPage() {
     setApproved(false);
     setEditSnapshot(null);
     setIsEditing(false);
-    setMessage("تم حفظ التعديلات كمسودة. أعد التحليل لعرض قرار النشر المحدث.");
+    setMessage("تم حفظ التعديلات كمسودة. أعد التحليل لعرض توصية النشر المحدّثة.");
   }
 
   function saveForLater() {
@@ -1012,8 +1012,8 @@ export default function ContentReviewPage() {
   }
 
   const report = review ? {
-    "قرار النشر": review.publicationDecision.label,
-    "سبب القرار": review.publicationDecision.reason,
+    "توصية النشر": review.publicationDecision.label,
+    "سبب التوصية": review.publicationDecision.reason,
     "الملاحظات": sortedFindings.map((finding) => ({
       "الملاحظة": finding.issue,
       "الدليل": finding.evidence,
@@ -1046,8 +1046,8 @@ export default function ContentReviewPage() {
   function downloadWord() {
     if (!report) return;
     const findings = sortedFindings.map((item) => `<h3>${item.title}</h3><p><b>الدليل:</b> ${item.evidence}</p><p><b>المرجع:</b> ${item.sourceDocument} — ${item.legalReference}</p><p><b>الإجراء:</b> ${item.suggestedSaferWording}</p>`).join("");
-    const html = `<html dir="rtl"><meta charset="utf-8"><body><h1>تقرير قرار النشر</h1><h2>${review?.publicationDecision.label}</h2><p>${review?.publicationDecision.reason}</p>${findings}</body></html>`;
-    downloadBlob("تقرير-قرار-النشر.doc", "application/msword;charset=utf-8", html);
+    const html = `<html dir="rtl"><meta charset="utf-8"><body><h1>تقرير توصية النشر</h1><h2>${review?.publicationDecision.label}</h2><p>${review?.publicationDecision.reason}</p>${findings}</body></html>`;
+    downloadBlob("تقرير-توصية-النشر.doc", "application/msword;charset=utf-8", html);
     setMessage("تم تنزيل تقرير Word.");
   }
 
@@ -1297,7 +1297,7 @@ export default function ContentReviewPage() {
   return (
     <div className="content-review-window space-y-6">
       <PageHeader
-        eyebrow="مساعد قرار النشر للمحامي"
+        eyebrow="مساعد النشر للمحتوى المهني"
         title="التحليل التفصيلي للمحتوى المهني"
         action={<ButtonLink href={contentId ? "/content-studio?results=1" : "/content-studio"} variant="secondary-gray"><ArrowRight size={16} />العودة إلى مركز المحتوى</ButtonLink>}
       />
@@ -2032,7 +2032,7 @@ export default function ContentReviewPage() {
             {review.analysisMode === "pattern-only" || review.evaluationIncomplete ? (
               <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                 <div>
-                  <p className="text-xs font-bold uppercase tracking-wider text-slate-400">2. قرار النشر</p>
+                  <p className="text-xs font-bold uppercase tracking-wider text-slate-400">2. توصية النشر</p>
                   <h2 className="mt-2 text-xl font-bold">التحليل غير مكتمل — أعد التحليل</h2>
                   <p className="mt-3 max-w-4xl leading-8 text-ink/75">تعذر إكمال التحليل بسبب عطل، ولا تصدر أي توصية نشر قبل إعادة التحليل بنجاح.</p>
                 </div>
@@ -2049,7 +2049,7 @@ export default function ContentReviewPage() {
                   className="flex w-full flex-col gap-4 text-right focus-ring lg:flex-row lg:items-start lg:justify-between"
                 >
                   <div>
-                    <p className="text-xs font-bold uppercase tracking-wider text-slate-400">2. قرار النشر</p>
+                    <p className="text-xs font-bold uppercase tracking-wider text-slate-400">2. توصية النشر</p>
                     <h2 className="mt-2 text-xl font-bold">{review.publicationDecision.label}</h2>
                     <p className="mt-3 max-w-4xl leading-8 text-ink/75">{review.publicationDecision.reason}</p>
                   </div>
@@ -2340,7 +2340,7 @@ export default function ContentReviewPage() {
         </>
       ) : null}
         </div>
-        {/* العمود الأيمن (الحاسب فقط lg+): مساعد قرار النشر — القرار + المؤشرات + الاعتماد + المشاركة.
+        {/* العمود الأيمن (الحاسب فقط lg+): مساعد النشر — التوصية + المؤشرات + الاعتماد + المشاركة.
             على الجوال/اللوحي يبقى هذا كله ظاهراً في العمود الرئيسي كما هو تماماً دون تغيير. */}
         {review ? (
           <aside className="hidden">
@@ -2351,7 +2351,7 @@ export default function ContentReviewPage() {
                   ? "border-t-red-400"
                   : "border-t-slate-300"
             }`}>
-              <p className="text-xs font-bold uppercase tracking-wider text-slate-400">قرار النشر</p>
+              <p className="text-xs font-bold uppercase tracking-wider text-slate-400">توصية النشر</p>
               <div className="mt-2">
                 <StatusBadge tone={decisionTone(review)}>{review.publicationDecision.label}</StatusBadge>
               </div>
@@ -2385,7 +2385,7 @@ export default function ContentReviewPage() {
               </a>
             </Panel>
 
-            {/* المؤشرات المساندة — منقولة إلى الرَّيل على الحاسب: تحت «قرار النشر» وفوق «اعتماد النسخة».
+            {/* المؤشرات المساندة — منقولة إلى الرَّيل على الحاسب: تحت «توصية النشر» وفوق «اعتماد النسخة».
                 نفس البطاقات والقيم والتفاصيل المدخلة، بصيغة الملخّص الثابت بلا سهم طيّ. */}
             <div className="space-y-4">
               <SectionTitle title="المؤشرات المساندة للتوصية" />

@@ -60,7 +60,7 @@ export function StudioResultsDashboard({ review, text, visuals = [], onEdit, onS
   const complianceTone: Tone = unavailable ? "neutral" : review.findings.length === 0 ? "good" : "danger";
   const professionalTone: Tone = unavailable ? "neutral" : review.professionalismScore >= 80 ? "good" : "gold";
   const languageTone: Tone = unavailable ? "neutral" : hardLanguageIssues.length > 0 || !review.languageQuality.passed ? "danger" : softLanguageIssues.length > 0 ? "gold" : "good";
-  // مصدر لون «جاهزية النشر» هو نص الجاهزية نفسه — لا قرار النشر المنفصل — فلا يتناقض
+  // مصدر لون «جاهزية النشر» هو نص الجاهزية نفسه — لا توصية النشر المنفصلة — فلا يتناقض
   // اللون مع النص المعروض في نفس البطاقة (كانا مصدرين مختلفين فيتناقضان أحياناً).
   const readinessLevel = review.readinessDecision.level.trim();
   const readinessTone: Tone = unavailable
@@ -69,7 +69,7 @@ export function StudioResultsDashboard({ review, text, visuals = [], onEdit, onS
       ? "good"
       : "warning";
 
-  // رقائق مصغّرة (بلا «قرار النشر» — هو العنوان) — نظرة سريعة لا شاشة كاملة
+  // رقائق مصغّرة (بلا «توصية النشر» — هي العنوان) — نظرة سريعة لا شاشة كاملة
   const summaryChips: Array<{ label: string; value: string; tone: Tone }> = [
     { label: "الامتثال", value: unavailable ? "—" : review.findings.length === 0 ? "ملتزم" : "غير ملتزم", tone: complianceTone },
     { label: "المخاطر", value: unavailable ? "—" : riskDisplayLabel(review.riskLevel), tone: riskTone(review) },
@@ -133,7 +133,7 @@ export function StudioResultsDashboard({ review, text, visuals = [], onEdit, onS
           <div className="min-w-0">
             <p className="text-xs font-semibold text-ink/50">ملخّص المراجعة</p>
             <div className="mt-1.5 flex flex-wrap items-center gap-2">
-              <h2 id="studio-results-title" className="text-base font-bold text-ink">قرار النشر</h2>
+              <h2 id="studio-results-title" className="text-base font-bold text-ink">توصية النشر</h2>
               <StatusBadge tone={decisionTone}>{unavailable ? "تعذّر التحليل" : review.publicationDecision.label}</StatusBadge>
             </div>
           </div>

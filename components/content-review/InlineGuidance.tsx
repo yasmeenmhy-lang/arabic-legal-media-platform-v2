@@ -141,7 +141,7 @@ export function buildInternalAssistantSummary(review: ReviewResult, assistantIss
   }
 
   return review.publicationDecision.recommended
-    ? "لا توجد ملاحظات مهنية أو لغوية مانعة في النص الحالي. راجع النسخة النهائية وقرار النشر قبل الاعتماد."
+    ? "لا توجد ملاحظات مهنية أو لغوية مانعة في النص الحالي. راجع النسخة النهائية وتوصية النشر قبل الاعتماد."
     : review.publicationDecision.reason;
 }
 

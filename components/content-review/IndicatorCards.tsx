@@ -130,7 +130,7 @@ export function MetricExplanation({
   return (
     <Panel id={id} className="h-full scroll-mt-24">
       <div className="grid gap-5 sm:grid-cols-[132px_1fr] sm:items-center">
-        <CircularGauge value={value} label={inverse ? "كلما ارتفع المؤشر ارتفع الخطر" : "مؤشر مساند للقرار"} tone={tone} />
+        <CircularGauge value={value} label={inverse ? "كلما ارتفع المؤشر ارتفع الخطر" : "مؤشر مساند للتوصية"} tone={tone} />
         <div>
           <p className="text-xs text-ink/55">مؤشر مساند — لا يحل محل التفسير</p>
           <div className="mt-2 flex flex-wrap items-center justify-between gap-3">

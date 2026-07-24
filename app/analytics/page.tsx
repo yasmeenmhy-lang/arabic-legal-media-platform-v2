@@ -38,7 +38,7 @@ export default function AnalyticsPage() {
           <dl>
             <div><dt>حالة المحتوى</dt><dd>${record.status}</dd></div>
             <div><dt>النسخة المعتمدة</dt><dd>${record.approvedVersion ? `الإصدار ${record.approvedVersion}` : "لا توجد نسخة معتمدة"}</dd></div>
-            <div><dt>قرار النشر</dt><dd>${analysis?.publicationDecision.label ?? "لم يتم تحليل المحتوى بعد"}</dd></div>
+            <div><dt>توصية النشر</dt><dd>${analysis?.publicationDecision.label ?? "لم يتم تحليل المحتوى بعد"}</dd></div>
             <div><dt>جاهزية النشر</dt><dd>${analysis?.readinessDecision.level ?? "غير متاحة"}</dd></div>
           </dl>
           <div class="metrics">
@@ -102,7 +102,7 @@ export default function AnalyticsPage() {
       </Link>
 
       <KpiGrid items={[
-        { label: "المحتويات", value: `${records.length}`, hint: "مواد مستقلة محفوظة في السجل لاتخاذ قرار المتابعة", tone: "neutral", icon: <BarChart3 size={20} /> },
+        { label: "المحتويات", value: `${records.length}`, hint: "مواد مستقلة محفوظة في السجل للمتابعة والمراجعة", tone: "neutral", icon: <BarChart3 size={20} /> },
         { label: "الإصدارات المحللة", value: `${analyzed.length}`, hint: "مرتبطة بنتائج تحليل فعلية", tone: "neutral", icon: <FileCheck2 size={20} /> },
         { label: "الإصدارات المعتمدة", value: `${approved.length}`, hint: "محفوظة مع التحليل والمراجع", tone: "good", icon: <FileCheck2 size={20} /> },
         { label: "مرتفعة المخاطر", value: `${highRisk}`, hint: "من الإصدارات المحللة", tone: highRisk ? "gold" : "good", icon: <ShieldAlert size={20} /> }

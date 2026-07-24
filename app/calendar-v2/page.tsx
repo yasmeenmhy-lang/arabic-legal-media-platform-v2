@@ -741,7 +741,7 @@ function ContentPanel({
           {version?.analysis?.publicationDecision && (
             <div className="rounded-lg border border-line p-3">
               <div className="flex items-center justify-between gap-2">
-                <p className="text-xs font-semibold text-ink/70">قرار النشر</p>
+                <p className="text-xs font-semibold text-ink/70">توصية النشر</p>
                 <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${
                   version.analysis.publicationDecision.recommended ? "bg-mint text-palm" : "bg-goldSoft text-gold"
                 }`}>

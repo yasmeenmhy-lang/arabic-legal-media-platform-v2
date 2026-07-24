@@ -83,7 +83,7 @@ export default function CalendarPage() {
 
   const decisionSummary = useMemo(() => {
     if (!selected) return "يبدأ التخطيط بعد اختيار محتوى مرتبط بالخطة. لن تظهر بيانات أو مراحل مكتملة لمحتوى غير محدد.";
-    if (!review) return "ابدأ بمراجعة محتوى فعلي لربط الخطة بقرار نشر وأدلة.";
+    if (!review) return "ابدأ بمراجعة محتوى فعلي لربط الخطة بتوصية نشر وأدلة.";
     return review.publicationDecision.reason;
   }, [review, selected]);
 
@@ -141,27 +141,27 @@ export default function CalendarPage() {
       </Panel>
 
       <Panel className="p-2.5 sm:p-3">
-        <SectionTitle title="المحتوى المرتبط بالخطة" subtitle="اختيار المحتوى يحدّث قرار النشر والجمهور والقنوات المقترحة تلقائياً." />
+        <SectionTitle title="المحتوى المرتبط بالخطة" subtitle="اختيار المحتوى يحدّث توصية النشر والجمهور والقنوات المقترحة تلقائياً." />
         {records.length ? (
           <>
           <select value={selectedId} onChange={(event) => setSelectedId(event.target.value)} className="w-full rounded-md border border-line bg-white px-3 py-3">
             <option value="">اختر محتوى</option>
             {records.map((record) => <option key={record.id} value={record.id}>{record.title}</option>)}
           </select>
-          {!selected ? <p className="mt-3 rounded-lg bg-paper p-3 leading-7 text-ink/70">يبدأ التخطيط بعد اختيار محتوى. لن يتم عرض قرار نشر أو قنوات أو هدف أو جمهور أو جدول زمني مرتبط بمحتوى سابق.</p> : null}
+          {!selected ? <p className="mt-3 rounded-lg bg-paper p-3 leading-7 text-ink/70">يبدأ التخطيط بعد اختيار محتوى. لن تُعرض توصية نشر أو قنوات أو هدف أو جمهور أو جدول زمني مرتبط بمحتوى سابق.</p> : null}
           </>
         ) : <p className="rounded-lg bg-paper p-4">لا يوجد محتوى محفوظ. ابدأ من مراجعة المحتوى.</p>}
       </Panel>
 
       <div className="grid gap-3 xl:grid-cols-[1.2fr_0.8fr]">
         <Panel className="p-2.5 sm:p-3">
-          <SectionTitle title="الهدف والقرار" subtitle="هذه المعلومات تشرح القرار الذي تساعد الخطة على تنفيذه." />
+          <SectionTitle title="الهدف والتوصية" subtitle="هذه المعلومات تشرح التوصية التي تساعد الخطة على تنفيذها." />
           <div className="grid gap-3 md:grid-cols-2">
             <div className="rounded-lg bg-paper p-3"><div className="flex items-center gap-2 text-palm"><Target size={16} /><p className="text-xs">الهدف</p></div><p className="mt-1 leading-6">{selected ? version?.purpose ?? "غير محدد" : "لا يوجد محتوى محدد"}</p></div>
             <div className="rounded-lg bg-paper p-3"><div className="flex items-center gap-2 text-palm"><Users size={16} /><p className="text-xs">الجمهور</p></div><p className="mt-1 leading-6">{selected ? version?.audience ?? "غير محدد" : "لا يوجد محتوى محدد"}</p></div>
           </div>
           <div className="mt-3 rounded-lg border border-line p-3">
-            <div className="flex flex-wrap items-center justify-between gap-3"><p className="font-semibold">قرار النشر الحالي</p>{selected && review ? <StatusBadge tone={review.publicationDecision.recommended ? "good" : "gold"}>{review.publicationDecision.label}</StatusBadge> : null}</div>
+            <div className="flex flex-wrap items-center justify-between gap-3"><p className="font-semibold">توصية النشر الحالية</p>{selected && review ? <StatusBadge tone={review.publicationDecision.recommended ? "good" : "gold"}>{review.publicationDecision.label}</StatusBadge> : null}</div>
             <p className="mt-2 leading-6 text-ink/75">{decisionSummary}</p>
           </div>
           {/* بقرار مالكة المنصة: المرئيات تنتقل مع المحتوى إلى خطة التخطيط والنشر */}

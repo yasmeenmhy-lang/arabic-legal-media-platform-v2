@@ -4340,7 +4340,7 @@ export default function ContentStudioPage() {
             </button>
           </Panel>
 
-          {/* قرار النشر */}
+          {/* توصية النشر */}
           <Panel>
             <SectionTitle title="نتائج التحليل" />
             <CostNotice costUsd={opCostUsd} balanceUsd={opBalanceUsd} />
@@ -4546,7 +4546,7 @@ export default function ContentStudioPage() {
             );
           })()}
 
-          {/* بطاقة جاهزية النشر — الجوال في المنتصف كما هو؛ الحاسب تنتقل للعمود الجانبي تحت قرار النشر */}
+          {/* بطاقة جاهزية النشر — الجوال في المنتصف كما هو؛ الحاسب تنتقل للعمود الجانبي تحت توصية النشر */}
           <div className="lg:hidden">
           {(() => {
             if (review.analysisMode === "pattern-only" || review.evaluationIncomplete) return (
@@ -4712,7 +4712,7 @@ export default function ContentStudioPage() {
           </Panel>
           </div>
 
-          {/* الريل الأيسر — الحاسب فقط (lg+): ملخّص ثابت للقرار والمؤشرات بجانب المحتوى.
+          {/* الريل الأيسر — الحاسب فقط (lg+): ملخّص ثابت للتوصية والمؤشرات بجانب المحتوى.
               إضافة لا حذف؛ التفاصيل الكاملة تبقى في المنتصف، والجوال لا يظهر هذا الريل. */}
           <aside className="hidden space-y-4 lg:sticky lg:top-20 lg:block">
             <Panel className={`border-t-4 shadow-md ${
@@ -4722,7 +4722,7 @@ export default function ContentStudioPage() {
                   ? "border-t-red-400"
                   : "border-t-amber-400"
             }`}>
-              <p className="text-xs font-bold uppercase tracking-wider text-slate-400">قرار النشر</p>
+              <p className="text-xs font-bold uppercase tracking-wider text-slate-400">توصية النشر</p>
               <div className="mt-2">
                 {(() => {
                   const decTone: "good" | "gold" | "danger" = review.publicationDecision.outcome === "RECOMMENDED"
@@ -4757,7 +4757,7 @@ export default function ContentStudioPage() {
               </div>
             </Panel>
 
-            {/* جاهزية النشر — تحت قرار النشر في العمود الجانبي (حاسب) */}
+            {/* جاهزية النشر — تحت توصية النشر في العمود الجانبي (حاسب) */}
             {(() => {
               if (review.analysisMode === "pattern-only" || review.evaluationIncomplete) return (
                 <Panel className={`border-t-4 shadow-md ${toneBorder("neutral")}`}>
