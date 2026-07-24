@@ -89,15 +89,15 @@ const TONE: Record<DashTone, { card: string; iconBg: string; icon: string; num: 
 };
 
 // بطاقة إحصائية مصغّرة: أيقونة ناعمة + رقم + تسمية ووصف خفيف + شريط نسبة. خط صغير هادئ.
-function StatCard({ value, label, sub, icon, tone, pct, featured }: {
-  value: number; label: string; sub: string; icon: ReactNode; tone: DashTone; pct: number; featured?: boolean;
+function StatCard({ value, label, sub, icon, tone, pct, suffix }: {
+  value: number; label: string; sub: string; icon: ReactNode; tone: DashTone; pct: number; suffix?: string;
 }) {
   const t = TONE[tone];
   return (
     <div className={`rounded-xl border ${t.card} p-2.5`}>
       <div className="flex items-center justify-between gap-1">
         <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-lg ${t.iconBg} ${t.icon}`}>{icon}</span>
-        <span className={`${featured ? "text-xl" : "text-lg"} font-bold leading-none tabular-nums ${t.num}`}>{value}</span>
+        <span className={`text-lg font-bold leading-none tabular-nums ${t.num}`}>{value}{suffix ? <span className="text-xs font-semibold">{suffix}</span> : null}</span>
       </div>
       <p className="mt-1.5 truncate text-[11px] font-semibold text-ink">{label}</p>
       <p className="truncate text-[9px] font-normal text-ink/45">{sub}</p>
@@ -465,13 +465,20 @@ export default function ContentManagementPage() {
       {/* لوحة السجل — بطاقات مصغّرة هادئة: الإجمالي مميّز بالوسط، رحلة المحتوى، ثم حسب النوع والقناة */}
       {records.length > 0 ? (
         <div className="space-y-3">
-          <div className="grid grid-cols-3 gap-2">
-            <StatCard value={snapshot.reviewed} label="المراجعة" sub="قيد التحليل" icon={<FileCheck2 size={16} />} tone="sky" pct={counts.all ? (snapshot.reviewed / counts.all) * 100 : 0} />
-            <StatCard value={counts.all} label="إجمالي المحتوى" sub="جميع المحتويات" icon={<FolderOpen size={16} />} tone="sa" pct={100} featured />
-            <StatCard value={counts.approved} label="المعتمدة" sub={`نسبة الاعتماد ${acceptance}%`} icon={<CheckCircle2 size={16} />} tone="success" pct={counts.all ? (counts.approved / counts.all) * 100 : 0} />
-            <StatCard value={counts.drafts} label="المسودات والحالية" sub="قيد الإنشاء" icon={<FileText size={16} />} tone="gold" pct={counts.all ? (counts.drafts / counts.all) * 100 : 0} />
-            <StatCard value={snapshot.channelsUsed} label="القنوات المستخدمة" sub="قنوات نشطة" icon={<Share2 size={16} />} tone="rose" pct={snapshot.channelsUsed * 20} />
-            <StatCard value={thisWeekCount} label="هذا الأسبوع" sub="منذ بداية الأسبوع" icon={<CalendarDays size={16} />} tone="lavender" pct={counts.all ? (thisWeekCount / counts.all) * 100 : 0} />
+          {/* الإجمالي بارز أكبر وأوضح، ومعه مؤشّران موجزان لا يكرّران مراحل رحلة المحتوى */}
+          <div className="space-y-2">
+            <div className="rounded-2xl border border-palm/25 bg-mint/50 p-4">
+              <div className="flex items-center justify-between gap-2">
+                <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-white text-palm shadow-xs"><FolderOpen size={22} /></span>
+                <span className="text-4xl font-bold leading-none tabular-nums text-palmDeep">{counts.all}</span>
+              </div>
+              <p className="mt-2.5 text-sm font-semibold text-ink">إجمالي المحتوى</p>
+              <p className="text-[11px] font-normal text-ink/50">جميع المحتويات المحفوظة في السجل</p>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <StatCard value={acceptance} suffix="%" label="نسبة الاعتماد" sub="من إجمالي المحتوى" icon={<CheckCircle2 size={16} />} tone="success" pct={acceptance} />
+              <StatCard value={thisWeekCount} label="هذا الأسبوع" sub="منذ بداية الأسبوع" icon={<CalendarDays size={16} />} tone="lavender" pct={counts.all ? (thisWeekCount / counts.all) * 100 : 0} />
+            </div>
           </div>
 
           <JourneyStepper steps={[
@@ -536,18 +543,11 @@ export default function ContentManagementPage() {
         </p>
       </div>
 
-      {/* حالة المزامنة بالحساب — يعرف المستخدم أن سجله متاح على كل أجهزته */}
-      {syncState !== "unknown" && (
-        <div className={`flex items-center gap-2 rounded-xl border p-3 text-sm ${
-          syncState === "synced" ? "border-palm/30 bg-mint/50 text-palmDeep"
-          : syncState === "signedout" ? "border-goldBorder bg-goldSoft text-goldDark"
-          : "border-line bg-paper text-ink/60"}`}>
-          <span className={`inline-block h-2.5 w-2.5 rounded-full ${syncState === "synced" ? "bg-palm" : syncState === "signedout" ? "bg-gold" : "bg-warmGray"}`} />
-          {syncState === "synced"
-            ? "سجلك محفوظ بحسابك ويظهر على كل أجهزتك — يُزامَن تلقائياً."
-            : syncState === "signedout"
-              ? "سجّل الدخول بحسابك لتُزامَن سجلاتك عبر أجهزتك؛ وإلا تبقى على هذا الجهاز فقط."
-              : "المزامنة غير متاحة مؤقتاً — سجلك محفوظ على هذا الجهاز، وسيُزامَن تلقائياً عند عودة الاتصال."}
+      {/* تنبيه تسجيل الدخول فقط (إجراء مهم لحفظ السجل عبر الأجهزة) — أُزيلت رسائل الطمأنة المكرّرة */}
+      {syncState === "signedout" && (
+        <div className="flex items-center gap-2 rounded-xl border border-goldBorder bg-goldSoft p-3 text-sm text-goldDark">
+          <span className="inline-block h-2.5 w-2.5 rounded-full bg-gold" />
+          سجّل الدخول بحسابك لتُزامَن سجلاتك عبر أجهزتك؛ وإلا تبقى على هذا الجهاز فقط.
         </div>
       )}
 
