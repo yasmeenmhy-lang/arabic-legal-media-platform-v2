@@ -226,7 +226,6 @@ export default function ContentReviewPage() {
   const [text, setText] = useState("");
   const [decisionOpen, setDecisionOpen] = useState(false);
   const [contentTitle, setContentTitle] = useState("");
-  const [titleSuggesting, setTitleSuggesting] = useState(false);
   const [kind, setKind] = useState<ContentKind | "">("post");
   const [channel, setChannel] = useState("");
   const [audience, setAudience] = useState("");
@@ -495,7 +494,6 @@ export default function ContentReviewPage() {
     return reasons;
   }, [review, contentId, versionNumber]);
   const approveBlocked = approvalBlockReasons.length > 0;
-  const contextScore = [kind, audience, purpose, specialty].filter(Boolean).length;
   const contentTypeLabel = kind ? contentTypes.find((item) => item.value === kind)?.label ?? "محتوى مهني" : "";
   const sortedFindings = useMemo(() => {
     if (!review) return [];
@@ -1259,108 +1257,9 @@ export default function ContentReviewPage() {
 
         {/* عنوان المحتوى والنص محل المراجعة — بقرار مالكة المنصة: ظاهران دائماً خارج
             الأكورديون، حتى في عرض النتائج، فلا يحتاج المستخدم فتح السياق ليرى محتواه */}
-        <label className="block text-sm">
-          <span className="mb-2 flex flex-wrap items-center justify-between gap-2">
-            <FieldLabel as="span" label="عنوان المحتوى" className="mb-0" />
-            <Button
-              size="sm"
-              variant="secondary-gray"
-              disabled={text.trim().length < 20 || titleSuggesting || (Boolean(review) && !isEditing)}
-              onClick={async () => {
-                setTitleSuggesting(true);
-                try {
-                  const res = await fetch("/api/suggest-title", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ text }),
-                  });
-                  const data = (await res.json()) as { title?: string };
-                  if (res.ok && data.title) setContentTitle(data.title);
-                } catch { /* يبقى الحقل كما هو */ } finally {
-                  setTitleSuggesting(false);
-                }
-              }}
-              leadingIcon={<Sparkles size={14} aria-hidden="true" />}
-            >
-              {titleSuggesting ? "جارٍ الاقتراح..." : "اقتراح تلقائي"}
-            </Button>
-          </span>
-          <input
-            type="text"
-            value={contentTitle}
-            disabled={Boolean(review) && !isEditing}
-            onChange={(event) => setContentTitle(event.target.value)}
-            placeholder="مثال: توعية بحقوق العامل عند انتهاء العقد"
-            className="mt-2 w-full rounded-lg border border-line p-3 text-sm leading-7 transition disabled:bg-paper disabled:text-ink/65"
-            maxLength={90}
-          />
-        </label>
-        <label className="mt-4 block text-sm">
-          <span className="flex flex-wrap items-center justify-between gap-2">
-            <span>النص محل المراجعة</span>
-            <span className="flex items-center gap-2">
-              <PreviewToggleButton preview={previewText} onToggle={() => setPreviewText((v) => !v)} />
-              <Button size="sm" variant="secondary-gray" onClick={clearContentInput} disabled={loading || text.length === 0} leadingIcon={<XCircle size={14} aria-hidden="true" />}>مسح المحتوى</Button>
-            </span>
-          </span>
-          {previewText ? (
-            <div className="mt-2"><ReadingPreview text={text} /></div>
-          ) : (
-          <textarea
-            value={text}
-            onFocus={enterEditingIfNeeded}
-            onChange={(event) => { enterEditingIfNeeded(); setText(event.target.value); }}
-            // أثناء التحليل يُقفل النص — تعديل نص يجري تحليله يجعل النتيجة عن نص غير المعروض
-            disabled={loading}
-            className={`mt-2 min-h-44 w-full rounded-lg border p-4 leading-8 transition disabled:bg-paper disabled:text-ink/60 ${
-              charLimit !== null && text.length > charLimit ? "border-red-400 focus:border-red-400" : "border-line"
-            }`}
-          />
-          )}
-        </label>
-        {charLimit !== null && (
-          <div className={`mt-1 text-left text-xs tabular-nums ${
-            text.length > charLimit
-              ? "font-bold text-red-500"
-              : text.length > charLimit * 0.9
-              ? "text-amber-500"
-              : "text-ink/35"
-          }`}>
-            {text.length} / {charLimit}
-            {text.length > charLimit && (
-              <span className="mr-2">(تجاوز بـ {text.length - charLimit} حرف)</span>
-            )}
-          </div>
-        )}
-
-        <div className="mt-3">
-          <InlineContentGuidance review={review} draftText={text} onApplyRewrite={applyRewrite} loading={loading} />
-        </div>
-        <CostNotice costUsd={opCostUsd} balanceUsd={opBalanceUsd} />
-
-        <details open={!review} className="mt-5 group">
-          <summary className="flex cursor-pointer list-none items-center justify-between gap-3 rounded-lg border border-line bg-paper px-4 py-3 text-sm font-semibold text-ink focus-ring">
-            <span>فتح محتوى محفوظ</span>
-            <span className="flex items-center gap-2 text-xs font-normal text-ink/50">
-              اختياري
-              <ChevronDown size={16} className="transition-transform group-open:rotate-180" aria-hidden="true" />
-            </span>
-          </summary>
-          <div className="pt-5">
-
-        {/* شريط اكتمال السياق — مخفي بلا حقول إطار (الإطار في مركز المحتوى) */}
-        <div className={showFrameworkFields ? "mb-5" : "hidden"}>
-          <div className="mb-1.5 flex items-center justify-between text-xs">
-            <span className="text-ink/55">اكتمال إطار المحتوى</span>
-          </div>
-          <div className="h-2 overflow-hidden rounded-full bg-paper" role="progressbar" aria-valuemin={0} aria-valuemax={4} aria-valuenow={contextScore}>
-            <div className="h-full rounded-full bg-gradient-to-l from-mint via-palm/70 to-palm transition-all duration-500" style={{ width: `${contextScore * 25}%` }} />
-          </div>
-        </div>
-
-        {/* بحث منسدل لفتح محتوى محفوظ سابقاً وتحميله للمراجعة */}
+        {/* بحث لفتح محتوى محفوظ سابقاً وتحميله للمراجعة — في الأعلى مكان عنوان المحتوى */}
         {savedRecords.length > 0 ? (
-          <div className="relative mb-4">
+          <div className="relative">
             <div className="flex items-center gap-2 rounded-lg border border-line bg-white px-3 py-2.5">
               <Search size={15} className="shrink-0 text-ink/40" />
               <input
@@ -1403,6 +1302,48 @@ export default function ContentReviewPage() {
             ) : null}
           </div>
         ) : null}
+        <label className="mt-4 block text-sm">
+          <span className="flex flex-wrap items-center justify-between gap-2">
+            <span>النص محل المراجعة</span>
+            <span className="flex items-center gap-2">
+              <PreviewToggleButton preview={previewText} onToggle={() => setPreviewText((v) => !v)} />
+              <Button size="sm" variant="secondary-gray" onClick={clearContentInput} disabled={loading || text.length === 0} leadingIcon={<XCircle size={14} aria-hidden="true" />}>مسح المحتوى</Button>
+            </span>
+          </span>
+          {previewText ? (
+            <div className="mt-2"><ReadingPreview text={text} /></div>
+          ) : (
+          <textarea
+            value={text}
+            onFocus={enterEditingIfNeeded}
+            onChange={(event) => { enterEditingIfNeeded(); setText(event.target.value); }}
+            // أثناء التحليل يُقفل النص — تعديل نص يجري تحليله يجعل النتيجة عن نص غير المعروض
+            disabled={loading}
+            className={`mt-2 min-h-44 w-full rounded-lg border p-4 leading-8 transition disabled:bg-paper disabled:text-ink/60 ${
+              charLimit !== null && text.length > charLimit ? "border-red-400 focus:border-red-400" : "border-line"
+            }`}
+          />
+          )}
+        </label>
+        {charLimit !== null && (
+          <div className={`mt-1 text-left text-xs tabular-nums ${
+            text.length > charLimit
+              ? "font-bold text-red-500"
+              : text.length > charLimit * 0.9
+              ? "text-amber-500"
+              : "text-ink/35"
+          }`}>
+            {text.length} / {charLimit}
+            {text.length > charLimit && (
+              <span className="mr-2">(تجاوز بـ {text.length - charLimit} حرف)</span>
+            )}
+          </div>
+        )}
+
+        <div className="mt-3">
+          <InlineContentGuidance review={review} draftText={text} onApplyRewrite={applyRewrite} loading={loading} />
+        </div>
+        <CostNotice costUsd={opCostUsd} balanceUsd={opBalanceUsd} />
 
         {/* حقول الإطار مخفية في المراجعة — تُدخَل في مركز المحتوى (منع التكرار) */}
         {showFrameworkFields && (<>
@@ -1992,8 +1933,6 @@ export default function ContentReviewPage() {
           {isEditing ? <Button variant="secondary-gray" onClick={cancelEditing} disabled={loading} leadingIcon={<AlertTriangle size={16} />}>إلغاء</Button> : null}
         </div>
         {message ? <p className="mt-3 text-sm text-palm">{message}</p> : null}
-          </div>
-        </details>
       </Panel>
 
       {review ? (
