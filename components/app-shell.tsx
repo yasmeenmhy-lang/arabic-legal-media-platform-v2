@@ -11,7 +11,7 @@ import { navItems, platformTitle } from "@/lib/navigation";
 // الاستوديو في الوسط بزر بارز مرتفع (تجربة الجوال)
 // بقرار مالكة المنصة: «المزيد» في أول الشريط (أقصى اليمين) و«السجل» في آخره
 const bottomTabs = [
-  { title: "المراجعة", href: "/content-review", icon: FileCheck2, primary: false, soon: false },
+  { title: "التحليل", href: "/content-review", icon: FileCheck2, primary: false, soon: false },
   { title: "مركز المحتوى", href: "/content-studio", icon: Sparkles, primary: true, soon: false },
   // «التخطيط» تبقى ظاهرة لكن معطّلة (قريبًا) — لا تُحذف
   { title: "التخطيط", href: "/calendar-v2", icon: CalendarDays, primary: false, soon: true },
