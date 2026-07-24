@@ -3406,7 +3406,7 @@ export default function ContentStudioPage() {
             <button
               type="button"
               onClick={() => { setReview(null); setContentId(undefined); setPath("review"); setFrameStep(1); }}
-              className="flex items-center gap-4 rounded-xl border border-line border-r-4 border-r-palm bg-white p-6 text-right shadow-sm transition hover:shadow-md focus-ring"
+              className="flex items-center gap-4 rounded-xl border border-line border-r-2 border-r-palm bg-white p-6 text-right shadow-sm transition hover:shadow-md focus-ring"
             >
               <span className="flex min-w-0 flex-1 flex-col gap-2">
                 <span className="text-lg font-semibold text-ink">مراجعة محتوى</span>
@@ -3423,7 +3423,7 @@ export default function ContentStudioPage() {
             <button
               type="button"
               onClick={startCreatePath}
-              className="flex items-center gap-4 rounded-xl border border-line border-r-4 border-r-violet bg-white p-6 text-right shadow-sm transition hover:shadow-md focus-ring"
+              className="flex items-center gap-4 rounded-xl border border-line border-r-2 border-r-violet bg-white p-6 text-right shadow-sm transition hover:shadow-md focus-ring"
             >
               <span className="flex min-w-0 flex-1 flex-col gap-2">
                 <span className="text-lg font-semibold text-ink">إنشاء محتوى</span>
