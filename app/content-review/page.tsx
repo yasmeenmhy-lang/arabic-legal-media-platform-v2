@@ -38,7 +38,7 @@ import {
   ChevronDown,
   X
 } from "lucide-react";
-import { Button, ButtonLink, DgaSpinner, PageHeader, Panel, SectionTitle, StatusBadge } from "@/components/ui";
+import { AnalysisArt, Button, ButtonLink, DgaSpinner, PageHeader, Panel, SectionTitle, StatusBadge } from "@/components/ui";
 import { FieldLabel } from "@/components/field-label";
 import { SourcesPanel, type Source } from "@/components/sources-panel";
 import { PreviewToggleButton, ReadingPreview } from "@/components/text-preview";
@@ -1307,6 +1307,8 @@ export default function ContentReviewPage() {
       <PageHeader
         eyebrow="مساعد النشر للمحتوى المهني"
         title="التحليل التفصيلي للمحتوى المهني"
+        description="نساعدك على تحليل المحتوى وفق معايير قواعد السلوك المهني والأنظمة المعتمدة."
+        illustration={<AnalysisArt />}
         action={<ButtonLink href={contentId ? "/content-studio?results=1" : "/content-studio"} variant="secondary-gray"><ArrowRight size={16} />العودة إلى مركز المحتوى</ButtonLink>}
       />
 

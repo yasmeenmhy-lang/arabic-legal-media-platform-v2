@@ -1,5 +1,5 @@
 ﻿import Link from "next/link";
-import { ArrowLeft, CheckCircle2, Clock3, FileText, ShieldAlert } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Clock3, FileText, ShieldAlert, Sparkles } from "lucide-react";
 import { clsx } from "clsx";
 import React from "react";
 
@@ -117,24 +117,66 @@ export function PageHeader({
   title,
   description,
   action,
-  eyebrow
+  eyebrow,
+  illustration
 }: {
   title: string;
   description?: string;
   action?: React.ReactNode;
   eyebrow?: string;
+  // رسم مسطّح اختياري بألوان المنصة — يُعرض بجانب العنوان على الشاشات الواسعة
+  illustration?: React.ReactNode;
 }) {
   return (
-    <div className="mb-6 w-full max-w-full overflow-hidden rounded-lg border border-line bg-white p-4 shadow-sm sm:p-6">
+    <div className="mb-6 w-full max-w-full overflow-hidden rounded-lg border border-line bg-gradient-to-l from-mint via-white to-white p-4 shadow-sm sm:p-6">
       <div className="flex flex-col justify-between gap-5 lg:flex-row lg:items-center">
-        <div className="min-w-0 max-w-full">
-          {eyebrow ? <p className="mb-2 text-xs font-normal text-palm">{eyebrow}</p> : null}
-          <h2 className="text-lg font-semibold leading-8 text-ink sm:text-xl sm:leading-9">{title}</h2>
-          {description ? <p className="mt-2 max-w-4xl text-sm leading-7 text-ink/65">{description}</p> : null}
+        {/* الرسم بجانب العنوان في كل المقاسات (الجوال أصغر) — لا يُخفى على الجوال */}
+        <div className="flex min-w-0 flex-1 items-center gap-4">
+          <div className="min-w-0 max-w-full flex-1">
+            {eyebrow ? (
+              <p className="mb-2 flex items-center gap-1.5 text-xs font-normal text-palm">
+                <Sparkles size={13} aria-hidden="true" />
+                {eyebrow}
+              </p>
+            ) : null}
+            <h2 className="text-lg font-semibold leading-8 text-ink sm:text-xl sm:leading-9">{title}</h2>
+            {description ? <p className="mt-2 max-w-4xl text-sm leading-7 text-ink/65">{description}</p> : null}
+          </div>
+          {illustration ? <div className="w-[88px] shrink-0 sm:w-[130px]">{illustration}</div> : null}
         </div>
         {action ? <div className="min-w-0 shrink-0">{action}</div> : null}
       </div>
     </div>
+  );
+}
+
+// رسم مسطّح للتحليل: مستند بأسطره، عدسة فحص، وعلامة اعتماد — بألوان المنصة وحدها،
+// بلا أي أصل خارجي ولا محاكاة ثلاثية الأبعاد.
+export function AnalysisArt() {
+  return (
+    <svg viewBox="0 0 150 150" fill="none" aria-hidden="true" className="h-auto w-full">
+      <circle cx="75" cy="75" r="66" fill="#DFF6E7" />
+      <circle cx="75" cy="75" r="50" fill="#F3FCF6" />
+      {/* ورقة خلفية تعطي عمقاً بلا محاكاة ثلاثية الأبعاد */}
+      <rect x="46" y="24" width="58" height="80" rx="9" fill="#fff" opacity="0.65" transform="rotate(-7 75 64)" />
+      {/* المستند */}
+      <rect x="42" y="26" width="60" height="82" rx="9" fill="#fff" stroke="#25935F" strokeWidth="2.5" />
+      <rect x="53" y="41" width="38" height="5" rx="2.5" fill="#DFF6E7" />
+      <rect x="53" y="54" width="28" height="5" rx="2.5" fill="#DFF6E7" />
+      <rect x="53" y="67" width="33" height="5" rx="2.5" fill="#DFF6E7" />
+      <rect x="53" y="80" width="20" height="5" rx="2.5" fill="#DFF6E7" />
+      {/* عدسة الفحص */}
+      <circle cx="94" cy="88" r="21" fill="#fff" fillOpacity="0.95" stroke="#166A45" strokeWidth="4" />
+      <path d="M86 84a8 8 0 0 1 8-6" stroke="#25935F" strokeWidth="2.5" strokeLinecap="round" fill="none" opacity="0.5" />
+      <path d="M109 103 L124 118" stroke="#166A45" strokeWidth="6" strokeLinecap="round" />
+      {/* شارة الاعتماد */}
+      <circle cx="40" cy="100" r="16" fill="#25935F" />
+      <path d="M33 100 l5 5 l9 -10" stroke="#fff" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+      {/* لمعات خفيفة */}
+      <circle cx="118" cy="38" r="3.5" fill="#25935F" opacity="0.35" />
+      <circle cx="30" cy="46" r="2.5" fill="#25935F" opacity="0.3" />
+      <circle cx="126" cy="62" r="2" fill="#25935F" opacity="0.25" />
+    </svg>
   );
 }
 
