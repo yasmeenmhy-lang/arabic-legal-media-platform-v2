@@ -1950,11 +1950,16 @@ export default function ContentReviewPage() {
         </>)}
         {/* توعوي بحت عند رصد اقتباس في النص الملصق — كشف عرضي حتمي، لا يمس المؤشرات ولا محرك التحليل */}
         {review ? (
-          <div className="mt-3 rounded-xl border border-infoBorder bg-infoSoft p-4">
-            <p className="text-sm font-semibold text-infoDark">{QUOTE_INTEGRITY_NOTICE.title}</p>
-            <p className="mt-1.5 text-xs leading-6 text-ink/70">{QUOTE_INTEGRITY_NOTICE.body}</p>
-            <p className="mt-1.5 text-xs leading-6 text-ink/50">{QUOTE_INTEGRITY_NOTICE.disclaimer}</p>
-          </div>
+          <details className="group mt-3 rounded-xl border border-infoBorder bg-infoSoft">
+            <summary className="flex cursor-pointer list-none items-center justify-between gap-2 p-4 text-sm font-semibold text-infoDark focus-ring">
+              <span>{QUOTE_INTEGRITY_NOTICE.title}</span>
+              <ChevronDown size={16} className="shrink-0 text-infoDark/60 transition-transform group-open:rotate-180" aria-hidden="true" />
+            </summary>
+            <div className="px-4 pb-4">
+              <p className="text-xs leading-6 text-ink/70">{QUOTE_INTEGRITY_NOTICE.body}</p>
+              <p className="mt-1.5 text-xs leading-6 text-ink/50">{QUOTE_INTEGRITY_NOTICE.disclaimer}</p>
+            </div>
+          </details>
         ) : null}
         {/* بقرار مالكة المنصة: المرئيات المحفوظة تنتقل مع المحتوى وتظهر في المراجعة القانونية مع إصدارها */}
         {savedVisuals.length ? (
