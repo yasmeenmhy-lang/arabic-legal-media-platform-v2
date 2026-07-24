@@ -308,9 +308,7 @@ export default function ContentManagementPage() {
     return (
       <div className="space-y-6">
         <PageHeader
-          eyebrow="سجل المحتوى المهني"
           title="سجل المحتوى المهني"
-          description="السجل الدائم لكل محتوى وإصداراته وتحليلاته ومراجعه واعتماداته وتحركاته."
           action={<ButtonLink href="/content-review">إعداد محتوى جديد</ButtonLink>}
         />
 
@@ -333,9 +331,7 @@ export default function ContentManagementPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="سجل المحتوى المهني"
         title="سجل المحتوى المهني"
-        description="السجل الدائم لكل محتوى وإصداراته وتحليلاته ومراجعه واعتماداته وتحركاته."
         action={<ButtonLink href="/content-review">إعداد محتوى جديد</ButtonLink>}
       />
 
@@ -368,9 +364,7 @@ export default function ContentManagementPage() {
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-line bg-white p-4 shadow-sm">
         <div>
           <p className="text-sm font-semibold text-ink">نسخة احتياطية من السجل</p>
-          <p className="mt-1 text-xs leading-6 text-ink/60">
-            احتفظ بنسخة من سجلك عبر التصدير، واسترجعها متى شئت وعلى أي جهاز عبر الاستيراد، مع بقاء سجلك الحالي كما هو دون أي حذف.
-          </p>
+          <p className="mt-1 text-xs leading-6 text-ink/60">صدّر نسخة من سجلك أو استورد نسخة سابقة دون حذف الحالي.</p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Button variant="secondary" onClick={exportRecordsToFile} disabled={records.length === 0}
@@ -391,7 +385,7 @@ export default function ContentManagementPage() {
             <Search size={15} className="shrink-0 text-ink/40" />
             <input
               type="text"
-              placeholder="ابحث في السجل بالعنوان أو النص أو النوع..."
+              placeholder="بحث"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               onFocus={() => setSearchFocus(true)}
@@ -471,7 +465,7 @@ export default function ContentManagementPage() {
                       <span className="shrink-0 flex h-6 w-6 items-center justify-center rounded-full bg-mint text-xs font-bold text-palm">{serialById.get(record.id) ?? index + 1}</span>
                       <div className="min-w-0">
                         <p className="text-sm font-medium text-ink leading-6">{record.title}</p>
-                        <p className="mt-0.5 text-[11px] font-mono text-ink/45" dir="ltr">مرجع: {contentReference(record)}</p>
+                        <p className="mt-0.5 text-[11px] text-ink/45">مرجع <span dir="ltr" className="font-mono">{contentReference(record)}</span></p>
                         {current && <p className="mt-0.5 text-xs text-ink/50">{current.contentTypeLabel} · {current.channel}</p>}
                       </div>
                     </div>
@@ -571,7 +565,7 @@ export default function ContentManagementPage() {
                         <td className="whitespace-nowrap px-4 py-4 text-xs font-bold tabular-nums text-ink/40">{serialById.get(record.id) ?? index + 1}</td>
                         <td className="px-4 py-4">
                           <p className="font-medium text-ink">{record.title}</p>
-                          <p className="mt-0.5 text-[11px] font-mono text-ink/45" dir="ltr">مرجع: {contentReference(record)}</p>
+                          <p className="mt-0.5 text-[11px] text-ink/45">مرجع <span dir="ltr" className="font-mono">{contentReference(record)}</span></p>
                           {current && <p className="mt-0.5 text-xs text-ink/50">{current.contentTypeLabel} · {current.channel}</p>}
                         </td>
                         <td className="px-4 py-4">
