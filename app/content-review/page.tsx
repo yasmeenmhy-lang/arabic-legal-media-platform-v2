@@ -1313,10 +1313,20 @@ export default function ContentReviewPage() {
       {/* النتائج بعرض الصفحة للحاسب والآيباد؛ الجوال يحتفظ بتسلسله العمودي. */}
       <div>
         <div className="min-w-0 space-y-6">
-      {/* قبل الاختيار: بطاقة واحدة موجزة متمركزة والبحث هو بطلها — فالصفحة سؤال واحد
-          «أي محتوى؟». وبعد الاختيار تعود بطاقة الخطوة الأولى ضمن تسلسل التقرير المرقّم. */}
-      <Panel id="input" className={hasSelectedContent ? "" : "mx-auto max-w-xl"}>
-        <SectionTitle title={hasSelectedContent ? "1. إدخال المحتوى" : "اختر المحتوى"} />
+      {/* قبل الاختيار: بوكس واسع بلون الهوية الممتلئ و«اختر المحتوى» في وسطه — الصفحة
+          سؤال واحد «أي محتوى؟». وبعد الاختيار تعود بطاقة الخطوة الأولى ضمن التقرير المرقّم. */}
+      <Panel id="input" className={hasSelectedContent ? "" : "border-palm"}>
+        {hasSelectedContent ? <SectionTitle title="1. إدخال المحتوى" /> : null}
+        <div className={hasSelectedContent ? "" : "-m-4 rounded-lg bg-palm px-5 py-14 sm:-m-5 sm:py-20"}>
+        {hasSelectedContent ? null : (
+          <div className="mb-6 text-center">
+            <span className="mx-auto mb-4 grid h-16 w-16 place-items-center rounded-full bg-white/15 text-white ring-1 ring-white/40">
+              <Search size={26} />
+            </span>
+            <h2 className="text-lg font-semibold text-white">اختر المحتوى</h2>
+          </div>
+        )}
+        <div className={hasSelectedContent ? "" : "mx-auto max-w-md"}>
 
         {/* عنوان المحتوى والنص محل المراجعة — بقرار مالكة المنصة: ظاهران دائماً خارج
             الأكورديون، حتى في عرض النتائج، فلا يحتاج المستخدم فتح السياق ليرى محتواه */}
@@ -1379,6 +1389,8 @@ export default function ContentReviewPage() {
             ) : null}
           </div>
         ) : null}
+        </div>
+        </div>
         {/* مراجعة المحتوى — تظهر مع المحتوى المختار فقط، ومفتوحة عليه؛ الـ flex على div داخلي لا على summary لتفادي عطل Safari */}
         {hasSelectedContent ? (
         <details
