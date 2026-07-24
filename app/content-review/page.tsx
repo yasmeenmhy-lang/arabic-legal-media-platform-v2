@@ -1283,7 +1283,7 @@ export default function ContentReviewPage() {
               <Search size={15} className="shrink-0 text-ink/40" />
               <input
                 type="text"
-                placeholder="ابحث عن محتوى"
+                placeholder="بحث"
                 value={recordSearch}
                 onChange={(e) => { setRecordSearch(e.target.value); setRecordSearchFocus(true); }}
                 onFocus={() => setRecordSearchFocus(true)}

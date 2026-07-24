@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { KeyRound, LogIn, LogOut } from "lucide-react";
+import { LogIn, LogOut } from "lucide-react";
 import { setSessionUser } from "@/lib/user-scope";
 import { clearActiveContentSelection } from "@/lib/content-record-store";
 
@@ -56,17 +56,7 @@ export function SessionChip() {
 
   return (
     <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
-      {/* اسم المستخدم يُعرض في درج القائمة لا هنا — فلا يزاحم عنوان الشريط مهما طال */}
-      {state.role !== "admin" ? (
-        <Link
-          href="/account"
-          title="تغيير الرمز"
-          aria-label="تغيير الرمز"
-          className="grid h-9 w-9 shrink-0 place-items-center rounded-md border border-line text-ink/60 transition hover:border-palm hover:text-palm focus-ring"
-        >
-          <KeyRound size={16} />
-        </Link>
-      ) : null}
+      {/* الاسم و«تغيير الرمز» انتقلا إلى درج القائمة — يبقى هنا زر الخروج فقط */}
       <button
         type="button"
         onClick={() => void logout()}
