@@ -8,7 +8,12 @@ import {
   BookOpen,
   LogIn,
   CheckCircle2,
-  Search,
+  Eye,
+  ArrowLeft,
+  Sparkles,
+  Menu,
+  ChevronDown,
+  Plus,
 } from "lucide-react";
 import { getNafathConfiguration } from "@/lib/nafath-config";
 import { isAuthConfigured } from "@/lib/access-auth";
@@ -17,14 +22,15 @@ import Link from "next/link";
 
 export const dynamic = "force-dynamic";
 
-// مزايا المنصّة — محتوى صادق يعكس ما تقدّمه فعلاً (لا أرقام ولا شعارات ولا أسماء مُختلقة)
+// درجات كود المنصات الحكومية (DGA) — خلفية داكنة برمادي كحلي + الأخضر الخزامى.
+// المحتوى صادق: لا أرقام ولا شعارات جهات ولا أسماء مُختلقة.
 const FEATURES = [
-  { icon: ShieldCheck, tone: "text-[#3BB27C]", bg: "bg-[#3BB27C]/14", title: "مراجعة الامتثال", body: "وفق نظام المحاماة واللائحة التنفيذية." },
-  { icon: AlertTriangle, tone: "text-[#F87171]", bg: "bg-[#F87171]/14", title: "تقييم المخاطر", body: "قياس أثر النشر على الأطراف قبله." },
-  { icon: UserRound, tone: "text-[#B191D6]", bg: "bg-[#B191D6]/16", title: "الجوانب المهنية واللغة", body: "رصانة الصياغة ووقارها وسلامتها." },
-  { icon: PenTool, tone: "text-[#E6B84C]", bg: "bg-[#E6B84C]/13", title: "تحسين الصياغة", body: "إعادة صياغة محكومة قبل النشر." },
-  { icon: FileText, tone: "text-[#9DB0C6]", bg: "bg-white/7", title: "سجل موثّق", body: "إصداراتك واعتماداتك محفوظة." },
-  { icon: BookOpen, tone: "text-[#67B0FA]", bg: "bg-[#67B0FA]/14", title: "مصادر معتمدة", body: "رسمية سعودية · دولية · أكاديمية." },
+  { icon: ShieldCheck, tone: "text-[#17B26A]", bg: "bg-[#25935F]/18", title: "مراجعة الامتثال", body: "وفق نظام المحاماة واللائحة التنفيذية." },
+  { icon: AlertTriangle, tone: "text-[#F04438]", bg: "bg-[#F04438]/15", title: "تقييم المخاطر", body: "قياس أثر النشر على الأطراف قبله." },
+  { icon: UserRound, tone: "text-[#80519F]", bg: "bg-[#80519F]/20", title: "الجوانب المهنية واللغة", body: "رصانة الصياغة ووقارها وسلامتها." },
+  { icon: PenTool, tone: "text-[#DBA102]", bg: "bg-[#DBA102]/16", title: "تحسين الصياغة", body: "إعادة صياغة محكومة قبل النشر." },
+  { icon: FileText, tone: "text-white/65", bg: "bg-white/[0.07]", title: "سجل موثّق", body: "إصداراتك واعتماداتك محفوظة." },
+  { icon: BookOpen, tone: "text-[#2E90FA]", bg: "bg-[#2E90FA]/15", title: "مصادر معتمدة", body: "رسمية سعودية · دولية · أكاديمية." },
 ];
 
 const TRUST = [
@@ -33,66 +39,150 @@ const TRUST = [
   "وصول مُحكَم للمحامين المرخّصين في المملكة.",
 ];
 
+// بطاقات تطفو حول الجهاز (الحاسب فقط) — من القدرات الفعلية
+const FLOATERS: { pos: string; icon: typeof ShieldCheck; tone: string; bg: string; title: string; body: string }[] = [
+  { pos: "right-0 top-6", icon: Sparkles, tone: "text-[#80519F]", bg: "bg-[#80519F]/20", title: "إنشاء المحتوى", body: "متوافق مع الضوابط المهنية." },
+  { pos: "right-2 bottom-8", icon: ShieldCheck, tone: "text-[#17B26A]", bg: "bg-[#25935F]/18", title: "مراجعة الامتثال", body: "وفق نظام المحاماة واللائحة." },
+  { pos: "left-0 top-20", icon: FileText, tone: "text-white/65", bg: "bg-white/[0.07]", title: "سجل المحتوى", body: "إصداراتك محفوظة." },
+  { pos: "left-2 bottom-10", icon: AlertTriangle, tone: "text-[#F04438]", bg: "bg-[#F04438]/15", title: "تقييم المخاطر", body: "أثر النشر على الأطراف." },
+];
+
+function DeviceMock() {
+  return (
+    <div className="relative mx-auto hidden h-[560px] w-full max-w-[440px] place-items-center lg:grid">
+      {FLOATERS.map((f) => {
+        const Icon = f.icon;
+        return (
+          <div
+            key={f.title}
+            className={`absolute ${f.pos} z-10 w-[190px] rounded-2xl border border-white/[0.08] bg-gradient-to-b from-white/[0.06] to-white/[0.03] p-3.5 shadow-[0_20px_40px_-22px_rgba(0,0,0,0.7)]`}
+          >
+            <p className="flex items-center gap-2 text-[13px] font-extrabold">
+              <span className={`grid h-6 w-6 place-items-center rounded-lg ${f.bg} ${f.tone}`}>
+                <Icon size={14} />
+              </span>
+              {f.title}
+            </p>
+            <p className="mt-1.5 text-[11px] leading-relaxed text-white/45">{f.body}</p>
+          </div>
+        );
+      })}
+
+      {/* هيكل الجهاز */}
+      <div className="relative z-20 w-[272px] rounded-[42px] border-[10px] border-[#05261a] bg-[#0b1a12] p-2.5 shadow-[0_40px_80px_-30px_rgba(0,0,0,0.8)]">
+        <div className="overflow-hidden rounded-[32px] bg-white text-ink">
+          <div className="mx-auto h-[22px] w-[110px] rounded-b-[14px] bg-[#05261a]" />
+          <div className="px-3 pb-3.5 pt-3">
+            <div className="flex items-center justify-between text-[12px] font-extrabold">
+              <Menu size={14} className="text-ink/70" />
+              <span className="flex items-center gap-1.5 text-palmDeep">
+                استوديو المحتوى المهني <Sparkles size={12} />
+              </span>
+            </div>
+            <div className="mt-2.5 flex items-center gap-1.5 text-[12px] font-bold text-palmDeep">
+              <Plus size={13} /> إنشاء محتوى جديد
+            </div>
+            <p className="mt-2.5 text-[10.5px] text-ink/45">نوع المحتوى</p>
+            <div className="mt-1 flex items-center justify-between rounded-lg border border-line px-2.5 py-2 text-[11.5px] font-bold">
+              مقال قانوني <ChevronDown size={13} className="text-ink/40" />
+            </div>
+            <p className="mt-2.5 text-[10.5px] text-ink/45">المنصّة المستهدفة</p>
+            <div className="mt-1 flex items-center justify-between rounded-lg border border-line px-2.5 py-2 text-[11.5px] font-bold text-[#0A66C2]">
+              <span className="flex items-center gap-1.5">
+                <span className="grid h-4 w-4 place-items-center rounded bg-[#0A66C2] text-[8px] font-black text-white">in</span>
+                LinkedIn
+              </span>
+              <ChevronDown size={13} className="text-ink/40" />
+            </div>
+            <p className="mt-2.5 text-[10.5px] text-ink/45">وصف المحتوى</p>
+            <div className="mt-1 rounded-lg border border-line p-2 text-[10.5px] leading-[1.7] text-ink2">
+              يهدف هذا المقال إلى توضيح أبرز الالتزامات المهنية وفق نظام المحاماة واللائحة التنفيذية، مع التركيز على السرية المهنية وتجنّب تعارض المصالح.
+            </div>
+            <p dir="ltr" className="mt-1 text-right text-[9px] text-ink/40">194 / 3000</p>
+            <div className="mt-2.5 rounded-lg bg-palmDeep py-2 text-center text-[11.5px] font-extrabold text-white">✦ إنشاء المحتوى</div>
+            <div className="mt-2.5 flex items-center justify-between border-t border-line pt-2 text-[8px] text-ink/45">
+              <span>السجل</span><span>المراجعة</span>
+              <span className="-mt-3.5 grid h-8 w-8 place-items-center rounded-full bg-palm text-white"><Sparkles size={14} /></span>
+              <span>التخطيط</span><span>الرئيسية</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function LoginPage() {
   const nafath = getNafathConfiguration();
   const configured = isAuthConfigured();
 
   return (
-    <div className="min-h-screen bg-[#0A121E] text-[#F4F8FC]">
-      <div className="mx-auto max-w-md px-4 pb-10">
+    <div
+      className="min-h-screen bg-[#0D121C] text-[#FCFCFD]"
+      style={{ backgroundImage: "radial-gradient(1100px 460px at 82% -6%, rgba(37,147,95,0.14), transparent 60%)" }}
+    >
+      <div className="mx-auto max-w-6xl px-4 sm:px-8 lg:px-10">
         {/* شريط الهوية */}
-        <header className="flex items-center justify-between py-4">
+        <header className="flex items-center justify-between gap-3 py-5">
           <div className="flex items-center gap-2.5">
-            <span className="grid h-10 w-10 place-items-center rounded-xl bg-gradient-to-br from-[#3BB27C] to-[#1C6E4C] text-white">
-              <Scale size={20} />
+            <span className="grid h-11 w-11 place-items-center rounded-[13px] bg-gradient-to-br from-[#17B26A] to-[#166A45] text-white">
+              <Scale size={22} />
             </span>
             <div className="min-w-0">
-              <p className="max-w-[190px] text-[12.5px] font-extrabold leading-tight">إدارة المحتوى الإعلامي والإعلاني للمحامين</p>
-              <p className="text-[10px] text-[#6E819A]">الإدارة العامة للمحاماة</p>
+              <p className="max-w-[210px] text-[13px] font-extrabold leading-tight sm:max-w-none">إدارة المحتوى الإعلامي والإعلاني للمحامين</p>
+              <p className="text-[10.5px] text-white/45">الإدارة العامة للمحاماة</p>
             </div>
           </div>
+          <nav className="hidden items-center gap-7 text-sm text-white/65 lg:flex">
+            <span className="font-bold text-[#17B26A]">الرئيسية</span>
+            <span>مركز المحتوى</span>
+            <span>المراجعة</span>
+            <span>السجل</span>
+            <span>المصادر</span>
+          </nav>
           <a
             href="#login"
-            className="flex items-center gap-1.5 rounded-lg border border-white/15 px-3.5 py-2 text-xs font-bold text-[#F4F8FC] transition hover:border-[#3BB27C]/60 focus-ring"
+            className="flex items-center gap-2 rounded-xl border border-white/15 px-4 py-2.5 text-[13px] font-bold text-[#FCFCFD] transition hover:border-[#17B26A]/60 focus-ring"
           >
-            <LogIn size={14} />
-            دخول
+            <LogIn size={15} />
+            تسجيل الدخول
           </a>
         </header>
 
         {/* البطل */}
-        <section className="relative overflow-hidden pb-2 pt-2">
-          <div className="pointer-events-none absolute -right-16 -top-20 h-64 w-64 rounded-full bg-[radial-gradient(circle,rgba(59,178,124,0.22),transparent_70%)]" />
-          <span className="relative inline-flex items-center gap-2 rounded-full border border-[#3BB27C]/30 bg-[#3BB27C]/14 px-3 py-1.5 text-[11px] font-bold text-[#7FE0B4]">
-            <ShieldCheck size={12} />
-            خاص بالمحامين المرخّصين في المملكة
-          </span>
-          <h1 className="relative mt-3.5 text-[26px] font-extrabold leading-[1.5]">
-            راجع محتواك، وتأكّد من <span className="text-[#3BB27C]">امتثاله</span> قبل نشره.
-          </h1>
-          <p className="relative mt-3 text-[13px] leading-[1.9] text-[#9DB0C6]">
-            منصّة متخصّصة لإنشاء وإدارة المحتوى الإعلامي والإعلاني بما يتوافق مع الضوابط المهنية ونظام المحاماة ولائحته.
-          </p>
-          <div className="relative mt-5 flex gap-2.5">
-            <a
-              href="#login"
-              className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-[#3BB27C] px-4 py-3 text-sm font-extrabold text-[#04140C] shadow-[0_10px_24px_-10px_rgba(59,178,124,0.7)] transition hover:bg-[#43c489] focus-ring"
-            >
-              <LogIn size={17} />
-              تسجيل الدخول
-            </a>
-            <a
-              href="#features"
-              className="flex items-center justify-center gap-2 rounded-xl border border-white/15 px-4 py-3 text-[13px] font-bold text-[#F4F8FC] transition hover:border-white/30 focus-ring"
-            >
-              <Search size={16} />
-              تعرّف على المنصّة
-            </a>
+        <section className="grid items-center gap-8 pb-6 pt-4 lg:grid-cols-[1fr_440px] lg:gap-10 lg:pb-10">
+          <div>
+            <span className="inline-flex items-center gap-2 rounded-full border border-[#25935F]/35 bg-[#25935F]/16 px-3.5 py-1.5 text-[12px] font-bold text-[#17B26A]">
+              <ShieldCheck size={13} />
+              خاص بالمحامين المرخّصين في المملكة
+            </span>
+            <h1 className="mt-4 text-[34px] font-extrabold leading-[1.32] sm:text-[46px]">
+              إدارة المحتوى الإعلامي <span className="text-[#17B26A]">والإعلاني</span> للمحامين
+            </h1>
+            <p className="mt-5 max-w-[540px] text-[15px] leading-[2] text-white/65 sm:text-[16px]">
+              منصّة متخصّصة للمحامين لإنشاء وإدارة المحتوى الإعلامي والإعلاني بما يتوافق مع الضوابط المهنية ونظام المحاماة ولائحته التنفيذية في المملكة العربية السعودية.
+            </p>
+            <div className="mt-7 flex flex-wrap gap-3">
+              <a
+                href="#login"
+                className="flex items-center gap-2.5 rounded-[13px] bg-[#25935F] px-7 py-3.5 text-[15px] font-extrabold text-white shadow-[0_14px_30px_-12px_rgba(37,147,95,0.9)] transition hover:bg-[#1B8354] focus-ring"
+              >
+                ابدأ الآن <ArrowLeft size={18} />
+              </a>
+              <a
+                href="#features"
+                className="flex items-center gap-2.5 rounded-[13px] border border-white/15 px-6 py-3.5 text-[14px] font-bold text-[#FCFCFD] transition hover:border-white/30 focus-ring"
+              >
+                <Eye size={17} /> استعراض المنصّة
+              </a>
+            </div>
           </div>
+
+          <DeviceMock />
         </section>
 
         {/* بطاقة الدخول الفعلية */}
-        <section id="login" className="mt-6 scroll-mt-4 rounded-2xl bg-[#F4F8FC] p-5 text-ink shadow-[0_20px_45px_-20px_rgba(0,0,0,0.7)]">
+        <section id="login" className="mx-auto mt-2 max-w-md scroll-mt-4 rounded-2xl bg-[#F4F8FC] p-5 text-ink shadow-[0_24px_50px_-24px_rgba(0,0,0,0.75)]">
           <h2 className="flex items-center gap-2 text-[15px] font-extrabold text-ink">
             <LogIn size={18} className="text-palm" />
             تسجيل الدخول
@@ -154,22 +244,19 @@ export default function LoginPage() {
           ) : null}
         </section>
 
-        {/* المزايا */}
-        <section id="features" className="scroll-mt-4 pt-8">
-          <h3 className="mb-4 flex items-center gap-2 text-base font-extrabold">
-            <CheckCircle2 size={17} className="text-[#3BB27C]" />
-            ماذا تقدّم المنصّة
-          </h3>
-          <div className="grid grid-cols-2 gap-2.5">
+        {/* القدرات */}
+        <section id="features" className="scroll-mt-4 border-t border-white/[0.08] pt-10">
+          <h3 className="mb-6 text-center text-lg font-extrabold sm:text-xl">ماذا تقدّم المنصّة</h3>
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6">
             {FEATURES.map((f) => {
               const Icon = f.icon;
               return (
-                <div key={f.title} className="rounded-2xl border border-white/[0.09] bg-[#141F30] p-4">
-                  <span className={`mb-2.5 grid h-10 w-10 place-items-center rounded-xl ${f.bg} ${f.tone}`}>
-                    <Icon size={20} />
+                <div key={f.title} className="rounded-2xl border border-white/[0.08] bg-white/[0.05] p-4 text-center">
+                  <span className={`mx-auto mb-3 grid h-11 w-11 place-items-center rounded-xl ${f.bg} ${f.tone}`}>
+                    <Icon size={22} />
                   </span>
-                  <p className="text-[13px] font-bold">{f.title}</p>
-                  <p className="mt-1 text-[11px] leading-relaxed text-[#6E819A]">{f.body}</p>
+                  <p className="text-[13.5px] font-bold">{f.title}</p>
+                  <p className="mt-1.5 text-[11.5px] leading-relaxed text-white/45">{f.body}</p>
                 </div>
               );
             })}
@@ -177,16 +264,16 @@ export default function LoginPage() {
         </section>
 
         {/* الطمأنة */}
-        <section className="mt-5 rounded-2xl border border-white/[0.09] bg-gradient-to-b from-[#18253A] to-[#141F30] p-5">
-          <h4 className="flex items-center gap-2 text-[13.5px] font-extrabold text-[#7FE0B4]">
-            <ShieldCheck size={16} />
+        <section className="mt-6 rounded-2xl border border-white/[0.08] bg-gradient-to-b from-white/[0.06] to-white/[0.03] p-6">
+          <h4 className="flex items-center justify-center gap-2 text-[14px] font-extrabold text-[#17B26A]">
+            <ShieldCheck size={17} />
             مراجعة وقائية آمنة
           </h4>
-          <ul className="mt-3 flex flex-col gap-2.5">
+          <ul className="mt-4 flex flex-col items-center gap-3 sm:flex-row sm:justify-center sm:gap-8">
             {TRUST.map((t) => (
-              <li key={t} className="flex items-center gap-2.5 text-xs leading-relaxed text-[#9DB0C6]">
-                <span className="grid h-[17px] w-[17px] shrink-0 place-items-center rounded-md bg-[#3BB27C]/14 text-[#3BB27C]">
-                  <CheckCircle2 size={11} />
+              <li key={t} className="flex items-center gap-2.5 text-[12.5px] leading-relaxed text-white/65">
+                <span className="grid h-[18px] w-[18px] shrink-0 place-items-center rounded-md bg-[#25935F]/18 text-[#17B26A]">
+                  <CheckCircle2 size={12} />
                 </span>
                 {t}
               </li>
@@ -194,8 +281,8 @@ export default function LoginPage() {
           </ul>
         </section>
 
-        <footer className="px-2 pt-6 text-center text-[11px] leading-[1.9] text-[#6E819A]">
-          منصّة مهنية لمراجعة المحتوى الإعلامي والإعلاني ودعم الامتثال قبل النشر.
+        <footer className="px-2 py-8 text-center text-[11.5px] leading-[1.9] text-white/45">
+          جميع المراجعات وفق الضوابط المهنية ونظام المحاماة ولائحته التنفيذية في المملكة العربية السعودية — أداة وقائية لا رقابية.
         </footer>
       </div>
     </div>
