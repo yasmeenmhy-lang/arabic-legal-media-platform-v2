@@ -1315,16 +1315,20 @@ export default function ContentReviewPage() {
         <div className="min-w-0 space-y-6">
       {/* قبل الاختيار: بوكس واسع بلون الهوية الممتلئ و«اختر المحتوى» في وسطه — الصفحة
           سؤال واحد «أي محتوى؟». وبعد الاختيار تعود بطاقة الخطوة الأولى ضمن التقرير المرقّم. */}
-      <Panel id="input" className={hasSelectedContent ? "" : "border-palm"}>
+      {/* قبل الاختيار قسمٌ أخضر بحافة واحدة (لا بطاقة بيضاء تحته) — فلا يظهر خيط فاتح
+          عند الزوايا. وبعد الاختيار تعود البطاقة البيضاء بترقيمها ضمن التقرير. */}
+      <section
+        id="input"
+        className={
+          hasSelectedContent
+            ? "w-full max-w-full overflow-x-clip rounded-lg border border-line bg-white p-4 shadow-sm sm:p-5"
+            : "w-full max-w-full overflow-x-clip rounded-lg bg-palm px-5 py-12 shadow-sm"
+        }
+      >
         {hasSelectedContent ? <SectionTitle title="1. إدخال المحتوى" /> : null}
-        <div className={hasSelectedContent ? "" : "-m-4 rounded-lg bg-palm px-5 py-14 sm:-m-5 sm:py-20"}>
+        <div>
         {hasSelectedContent ? null : (
-          <div className="mb-6 text-center">
-            <span className="mx-auto mb-4 grid h-16 w-16 place-items-center rounded-full bg-white/15 text-white ring-1 ring-white/40">
-              <Search size={26} />
-            </span>
-            <h2 className="text-lg font-semibold text-white">اختر المحتوى</h2>
-          </div>
+          <h2 className="mb-5 text-center text-lg font-semibold text-white">اختر المحتوى</h2>
         )}
         <div className={hasSelectedContent ? "" : "mx-auto max-w-md"}>
 
@@ -2038,7 +2042,7 @@ export default function ContentReviewPage() {
           {isEditing ? <Button variant="secondary-gray" onClick={cancelEditing} disabled={loading} leadingIcon={<AlertTriangle size={16} />}>إلغاء</Button> : null}
         </div>
         {message ? <p className="mt-3 text-sm text-palm">{message}</p> : null}
-      </Panel>
+      </section>
 
       {review ? (
         <>
