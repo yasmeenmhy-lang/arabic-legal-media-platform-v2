@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import Link from "next/link";
-import { ChevronDown, ChevronLeft, ExternalLink, FileClock, Filter, FolderOpen, History, RotateCcw, Search, Trash2, X } from "lucide-react";
+import { CalendarDays, CheckCircle2, ChevronDown, ChevronLeft, ExternalLink, FileClock, FileText, Filter, FolderOpen, History, RotateCcw, Search, Trash2, X } from "lucide-react";
 import { Button, DgaSpinner, PageHeader, StatusBadge } from "@/components/ui";
 import {
   exportContentRecords,
@@ -49,6 +49,34 @@ function riskTone(level?: RiskLevel): "good" | "gold" | "danger" | "neutral" {
   if (level === "منخفض") return "good";
   if (level === "متوسط") return "gold";
   return "danger";
+}
+
+// بطاقة إحصائية في لوحة السجل — رقم كبير + وصف موجز، وزر «عرض الكل» يُصفّي القائمة.
+function StatCard({ label, value, unit, icon, tone, onView }: {
+  label: string; value: number; unit: string; icon: ReactNode;
+  tone: "palm" | "good" | "gold" | "info"; onView?: () => void;
+}) {
+  const toneCls = {
+    palm: "bg-mint text-palm",
+    good: "bg-green-50 text-green-600",
+    gold: "bg-amber-50 text-amber-600",
+    info: "bg-blue-50 text-blue-600"
+  }[tone];
+  return (
+    <div className="flex flex-col rounded-2xl border border-line bg-white p-4 shadow-sm">
+      <div className="mb-1.5 flex items-center justify-between gap-2">
+        <span className="text-xs font-semibold text-ink/60">{label}</span>
+        <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-lg ${toneCls}`}>{icon}</span>
+      </div>
+      <span className="text-2xl font-extrabold tabular-nums leading-none text-ink">{value}</span>
+      <span className="mt-1 text-[11px] text-ink/40">{unit}</span>
+      {onView ? (
+        <button type="button" onClick={onView} className="mt-2.5 inline-flex items-center gap-1 self-start text-xs font-bold text-palm transition hover:gap-1.5 focus-ring">
+          عرض الكل <ChevronLeft size={13} aria-hidden="true" />
+        </button>
+      ) : null}
+    </div>
+  );
 }
 
 export default function ContentManagementPage() {
@@ -110,6 +138,19 @@ export default function ContentManagementPage() {
     approved: records.filter((item) => item.approvedVersion).length,
     drafts: records.filter((item) => item.status !== "معتمد").length
   }), [records]);
+
+  // أُنشئت خلال آخر سبعة أيام — من تاريخ الإنشاء الفعلي لكل محتوى
+  const thisWeekCount = useMemo(() => {
+    const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+    return records.filter((item) => item.createdAt && new Date(item.createdAt).getTime() >= weekAgo).length;
+  }, [records]);
+
+  // نقر بطاقة «عرض الكل» يُصفّي القائمة ويُنزل المستخدم إليها مباشرةً
+  const filterNavRef = useRef<HTMLElement>(null);
+  const selectFilter = (next: "all" | "drafts" | "approved") => {
+    setFilter(next);
+    setTimeout(() => filterNavRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 60);
+  };
 
   const filteredRecords = useMemo(() => records.filter((record) => {
     if (filter === "approved" && !record.approvedVersion) return false;
@@ -319,6 +360,13 @@ export default function ContentManagementPage() {
     <div className="space-y-6">
       <PageHeader eyebrow="أرشيف المحتوى واعتماداته" title="سجل المحتوى المهني" />
 
+      {/* لوحة السجل — نظرة سريعة بمعطيات حقيقية، وكل بطاقة تُصفّي القائمة */}
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <StatCard label="إجمالي المحتوى" value={counts.all} unit="محتوى في السجل" icon={<FolderOpen size={17} />} tone="palm" onView={() => selectFilter("all")} />
+        <StatCard label="المعتمدة" value={counts.approved} unit="جاهزة ومعتمدة" icon={<CheckCircle2 size={17} />} tone="good" onView={() => selectFilter("approved")} />
+        <StatCard label="المسودات والحالية" value={counts.drafts} unit="قيد الإعداد" icon={<FileText size={17} />} tone="gold" onView={() => selectFilter("drafts")} />
+        <StatCard label="أُنشئت هذا الأسبوع" value={thisWeekCount} unit="خلال ٧ أيام" icon={<CalendarDays size={17} />} tone="info" />
+      </div>
 
       {/* رسالة طمأنة: السجل وسيلة وقائية داخلية — لا استخدام تأديبياً وسرية تامة */}
       <div className="rounded-xl border border-infoBorder bg-infoSoft p-4">
@@ -405,7 +453,7 @@ export default function ContentManagementPage() {
         </div>
       ) : null}
 
-      <nav aria-label="تصفية سجل المحتوى" className="flex w-full gap-2 overflow-x-auto rounded-lg border border-line bg-white p-2 shadow-sm">
+      <nav ref={filterNavRef} aria-label="تصفية سجل المحتوى" className="flex w-full gap-2 overflow-x-auto rounded-lg border border-line bg-white p-2 shadow-sm scroll-mt-20">
         {([
           ["all", `الكل (${counts.all})`],
           ["drafts", `المسودات والحالية (${counts.drafts})`],
