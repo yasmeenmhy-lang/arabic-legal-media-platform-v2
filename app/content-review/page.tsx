@@ -2070,7 +2070,7 @@ export default function ContentReviewPage() {
 
           {/* مؤشرات واسعة: عمود على الجوال، عمودان على الآيباد، وثلاثة ثم اثنان على الحاسب. */}
           <section id="analysis-summary" aria-labelledby="supporting-indicators-title" className="space-y-4 scroll-mt-24">
-            <SectionTitle title="المؤشرات المساندة للقرار" />
+            <SectionTitle title="المؤشرات المساندة للتوصية" />
             {/* شبكة صفوف متساوية الارتفاع بدل تدفق الأعمدة (masonry) — يمنع تفاوت ارتفاع
                 البطاقات وتذبذب بداياتها (يمين أعلى من يسار) على الحاسب. البطاقات في كل
                 صف تتساوى ارتفاعاً فتنتظم المحاذاة بلا فراغات مبعثرة. */}
@@ -2388,7 +2388,7 @@ export default function ContentReviewPage() {
             {/* المؤشرات المساندة — منقولة إلى الرَّيل على الحاسب: تحت «قرار النشر» وفوق «اعتماد النسخة».
                 نفس البطاقات والقيم والتفاصيل المدخلة، بصيغة الملخّص الثابت بلا سهم طيّ. */}
             <div className="space-y-4">
-              <SectionTitle title="المؤشرات المساندة للقرار" />
+              <SectionTitle title="المؤشرات المساندة للتوصية" />
               <ComplianceIndicatorCard review={review} staticSummary />
               <RiskIndicatorCard review={review} staticSummary />
               <ProfessionalismIndicatorCard review={review} staticSummary />
