@@ -193,7 +193,10 @@ export function Panel({
   className,
   ...props
 }: React.HTMLAttributes<HTMLElement> & { children: React.ReactNode }) {
-  return <section {...props} className={clsx("w-full max-w-full overflow-hidden rounded-lg border border-line bg-white p-4 shadow-sm sm:p-5", className)}>{children}</section>;
+  // القصّ أفقي فقط (overflow-x-clip): يمنع تجاوز المحتوى العريض عرض البطاقة كما كان،
+  // ويسمح في الوقت نفسه للقوائم المنسدلة بالظهور كاملةً خارج حدّ البطاقة بدل قصّها
+  // (كان overflow-hidden يقصّ قائمة البحث المنسدلة عند حافة البطاقة السفلية).
+  return <section {...props} className={clsx("w-full max-w-full overflow-x-clip rounded-lg border border-line bg-white p-4 shadow-sm sm:p-5", className)}>{children}</section>;
 }
 
 export function SectionTitle({ title, subtitle }: { title: string; subtitle?: string }) {
