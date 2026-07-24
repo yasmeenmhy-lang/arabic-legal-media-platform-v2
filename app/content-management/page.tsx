@@ -2,7 +2,8 @@
 
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import Link from "next/link";
-import { CalendarDays, CheckCircle2, ChevronDown, ChevronLeft, ExternalLink, FileCheck2, FileClock, FileText, Filter, FolderOpen, History, RotateCcw, Search, Share2, Trash2, X } from "lucide-react";
+import { CalendarDays, CheckCircle2, ChevronDown, ChevronLeft, ExternalLink, FileCheck2, FileClock, FileText, Filter, FolderOpen, History, PenLine, RotateCcw, Search, Send, Share2, ShieldCheck, Tag, Trash2, X } from "lucide-react";
+import { InstagramIcon, LinkedInIcon, SnapchatIcon, TikTokIcon, XIcon, YouTubeIcon } from "@/components/social-icons";
 import { Button, DgaSpinner, PageHeader, StatusBadge } from "@/components/ui";
 import {
   deriveContentTitle,
@@ -69,43 +70,90 @@ function riskTone(level?: RiskLevel): "good" | "gold" | "danger" | "neutral" {
   return "danger";
 }
 
-// بطاقة إحصائية مصغّرة (سنابشوت سريع) — أيقونة ملوّنة + رقم بارز + وصف موجز، بمقاس صغير موحّد.
-function StatCard({ label, value, icon, tone }: {
-  label: string; value: number; icon: ReactNode; tone: "palm" | "good" | "gold" | "info" | "violet";
+// ── لوحة السجل (سنابشوت) — نمط عرض غنيّ بألوان كود المنصات، بمعطيات ومصطلحات المنصّة كما هي ──
+type DashTone = "palm" | "info" | "good" | "gold" | "violet" | "teal";
+const DASH: Record<DashTone, { bg: string; ring: string; icon: string; soft: string; num: string; bar: string }> = {
+  palm:   { bg: "from-mint/70 to-white", ring: "border-palm/20", icon: "bg-palm text-white", soft: "bg-mint text-palm", num: "text-palm", bar: "bg-palm" },
+  info:   { bg: "from-blue-50 to-white", ring: "border-blue-200", icon: "bg-blue-500 text-white", soft: "bg-blue-50 text-blue-600", num: "text-blue-600", bar: "bg-blue-500" },
+  good:   { bg: "from-green-50 to-white", ring: "border-green-200", icon: "bg-green-500 text-white", soft: "bg-green-50 text-green-600", num: "text-green-600", bar: "bg-green-500" },
+  gold:   { bg: "from-amber-50 to-white", ring: "border-amber-200", icon: "bg-amber-500 text-white", soft: "bg-amber-50 text-amber-600", num: "text-amber-600", bar: "bg-amber-500" },
+  violet: { bg: "from-violet-50 to-white", ring: "border-violet-200", icon: "bg-violet-500 text-white", soft: "bg-violet-50 text-violet-600", num: "text-violet-600", bar: "bg-violet-500" },
+  teal:   { bg: "from-teal-50 to-white", ring: "border-teal-200", icon: "bg-teal-500 text-white", soft: "bg-teal-50 text-teal-600", num: "text-teal-600", bar: "bg-teal-500" }
+};
+
+// بطاقة إحصائية: أيقونة دائرية مملوءة + رقم كبير + تسمية ووصف + شريط نسبة.
+function StatCard({ value, label, sub, icon, tone, pct }: {
+  value: number; label: string; sub: string; icon: ReactNode; tone: DashTone; pct: number;
 }) {
-  const s = {
-    palm: { bg: "from-mint/70 to-white", ring: "border-palm/20", icon: "bg-palm text-white", num: "text-palm" },
-    good: { bg: "from-green-50 to-white", ring: "border-green-200", icon: "bg-green-500 text-white", num: "text-green-600" },
-    gold: { bg: "from-amber-50 to-white", ring: "border-amber-200", icon: "bg-amber-500 text-white", num: "text-amber-600" },
-    info: { bg: "from-blue-50 to-white", ring: "border-blue-200", icon: "bg-blue-500 text-white", num: "text-blue-600" },
-    violet: { bg: "from-violet-50 to-white", ring: "border-violet-200", icon: "bg-violet-500 text-white", num: "text-violet-600" }
-  }[tone];
+  const s = DASH[tone];
   return (
-    <div className={`flex items-center gap-2.5 rounded-xl border ${s.ring} bg-gradient-to-br ${s.bg} p-2.5`}>
-      <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-lg shadow-sm ${s.icon}`}>{icon}</span>
-      <div className="min-w-0">
-        <span className={`block text-lg font-extrabold leading-none tabular-nums ${s.num}`}>{value}</span>
-        <span className="mt-0.5 block truncate text-[10px] text-ink/55">{label}</span>
+    <div className={`rounded-2xl border ${s.ring} bg-gradient-to-br ${s.bg} p-3.5`}>
+      <div className="flex items-center gap-3">
+        <span className={`grid h-11 w-11 shrink-0 place-items-center rounded-full shadow-md ${s.icon}`}>{icon}</span>
+        <div className="min-w-0">
+          <span className={`block text-2xl font-extrabold leading-none tabular-nums ${s.num}`}>{value}</span>
+          <span className="mt-1 block text-[13px] font-bold text-ink">{label}</span>
+          <span className="block truncate text-[10px] text-ink/45">{sub}</span>
+        </div>
+      </div>
+      <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-black/[.06]">
+        <div className={`h-full rounded-full ${s.bar}`} style={{ width: `${Math.max(4, Math.min(100, pct))}%` }} />
       </div>
     </div>
   );
 }
 
-// توزيع مصغّر (حسب النوع/القناة) — رقائق «التسمية × العدد» لأبرز الفئات، لمحة عن مخرجات المنصة.
-function DistroCard({ title, items }: { title: string; items: Array<[string, number]> }) {
-  if (!items.length) return null;
+// حلقة «إجمالي المحتوى» — قوسها يمثّل نسبة الاعتماد.
+function RingTotal({ total, acceptance }: { total: number; acceptance: number }) {
+  const r = 52, c = 2 * Math.PI * r, dash = (c * Math.min(100, Math.max(0, acceptance))) / 100;
   return (
-    <div className="rounded-xl border border-line bg-white p-3">
-      <p className="mb-2 text-[11px] font-semibold text-ink/50">{title}</p>
-      <div className="flex flex-wrap gap-1.5">
-        {items.slice(0, 6).map(([label, count]) => (
-          <span key={label} className="inline-flex items-center gap-1.5 rounded-full border border-line bg-paper px-2.5 py-1 text-[11px] text-ink/70">
-            {label}<span className="font-bold text-palm tabular-nums">{count}</span>
-          </span>
+    <div className="flex flex-col items-center justify-center rounded-2xl border border-line bg-white p-4">
+      <div className="relative h-36 w-36">
+        <svg viewBox="0 0 120 120" className="h-full w-full -rotate-90">
+          <circle cx="60" cy="60" r={r} fill="none" stroke="#e8efeb" strokeWidth="10" />
+          <circle cx="60" cy="60" r={r} fill="none" stroke="#2d6a5a" strokeWidth="10" strokeLinecap="round" strokeDasharray={`${dash} ${c}`} />
+        </svg>
+        <div className="absolute inset-0 flex flex-col items-center justify-center">
+          <span className="text-3xl font-extrabold tabular-nums text-palm">{total}</span>
+          <span className="text-[11px] font-semibold text-ink/60">إجمالي المحتوى</span>
+        </div>
+      </div>
+      <div className="mt-3 flex items-center gap-2 rounded-full bg-mint px-3 py-1 text-xs">
+        <span className="text-ink/60">نسبة الاعتماد</span><span className="font-bold text-palm tabular-nums">{acceptance}%</span>
+      </div>
+    </div>
+  );
+}
+
+// رحلة المحتوى — مراحل بأيقونات وأعداد.
+function JourneyStepper({ steps }: { steps: Array<{ label: string; value: number; sub: string; icon: ReactNode; tone: DashTone }> }) {
+  return (
+    <div className="rounded-2xl border border-line bg-white p-4">
+      <p className="mb-4 flex items-center gap-2 text-sm font-bold text-ink"><FileClock size={16} className="text-palm" />رحلة المحتوى</p>
+      <div className="flex items-start gap-1 overflow-x-auto">
+        {steps.map((st) => (
+          <div key={st.label} className="flex min-w-[76px] flex-1 flex-col items-center text-center">
+            <span className={`grid h-11 w-11 place-items-center rounded-full ${DASH[st.tone].soft}`}>{st.icon}</span>
+            <span className="mt-2 text-[12px] font-semibold text-ink">{st.label}</span>
+            <span className={`mt-0.5 text-lg font-extrabold tabular-nums ${DASH[st.tone].num}`}>{st.value}</span>
+            <span className="text-[10px] text-ink/45">{st.sub}</span>
+          </div>
         ))}
       </div>
     </div>
   );
+}
+
+// أيقونة القناة بالعلامة التجارية إن عُرفت، وإلا أيقونة عامة.
+function channelBrandIcon(name: string): ReactNode {
+  const n = name.toLowerCase();
+  if (n.includes("linkedin")) return <LinkedInIcon size={18} />;
+  if (n === "x" || n.includes("twitter")) return <XIcon size={18} />;
+  if (n.includes("insta")) return <InstagramIcon size={18} />;
+  if (n.includes("tiktok")) return <TikTokIcon size={18} />;
+  if (n.includes("snap")) return <SnapchatIcon size={18} />;
+  if (n.includes("youtube")) return <YouTubeIcon size={18} />;
+  return <Share2 size={16} className="text-palm" />;
 }
 
 export default function ContentManagementPage() {
@@ -190,6 +238,7 @@ export default function ContentManagementPage() {
     const byChannel = tally((r) => cur(r)?.channel);
     return { reviewed, channelsUsed: byChannel.length, byType, byChannel };
   }, [records]);
+  const acceptance = counts.all ? Math.round((counts.approved / counts.all) * 100) : 0;
 
 
   const filteredRecords = useMemo(() => records.filter((record) => {
@@ -400,20 +449,64 @@ export default function ContentManagementPage() {
     <div className="space-y-6">
       <PageHeader eyebrow="أرشيف المحتوى واعتماداته" title="سجل المحتوى المهني" />
 
-      {/* سنابشوت سريع — مربعات مصغّرة بأرقام حقيقية عن عمليات المنصّة ومخرجاتها */}
-      <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-6">
-        <StatCard label="إجمالي المحتوى" value={counts.all} icon={<FolderOpen size={16} />} tone="palm" />
-        <StatCard label="المُراجَعة" value={snapshot.reviewed} icon={<FileCheck2 size={16} />} tone="info" />
-        <StatCard label="المعتمدة" value={counts.approved} icon={<CheckCircle2 size={16} />} tone="good" />
-        <StatCard label="المسودات والحالية" value={counts.drafts} icon={<FileText size={16} />} tone="gold" />
-        <StatCard label="هذا الأسبوع" value={thisWeekCount} icon={<CalendarDays size={16} />} tone="violet" />
-        <StatCard label="القنوات المستخدمة" value={snapshot.channelsUsed} icon={<Share2 size={16} />} tone="palm" />
-      </div>
-      {records.length > 0 ? (
-        <div className="grid gap-2.5 sm:grid-cols-2">
-          <DistroCard title="حسب النوع" items={snapshot.byType} />
-          <DistroCard title="حسب القناة" items={snapshot.byChannel} />
+      {/* لوحة السجل — سنابشوت بنمط عرض غنيّ بمعطيات ومصطلحات المنصّة وألوان كود المنصات */}
+      <div className="grid gap-2.5 lg:grid-cols-3">
+        <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-1">
+          <StatCard value={snapshot.reviewed} label="المراجعة" sub="قيد التحليل" icon={<FileCheck2 size={20} />} tone="info" pct={counts.all ? (snapshot.reviewed / counts.all) * 100 : 0} />
+          <StatCard value={counts.drafts} label="المسودات والحالية" sub="قيد الإنشاء" icon={<FileText size={20} />} tone="gold" pct={counts.all ? (counts.drafts / counts.all) * 100 : 0} />
+          <StatCard value={snapshot.channelsUsed} label="القنوات المستخدمة" sub="قنوات نشطة" icon={<Share2 size={20} />} tone="teal" pct={snapshot.channelsUsed * 20} />
         </div>
+        <RingTotal total={counts.all} acceptance={acceptance} />
+        <div className="grid grid-cols-2 gap-2.5 lg:grid-cols-1">
+          <StatCard value={counts.approved} label="المعتمدة" sub="جاهزة للنشر" icon={<CheckCircle2 size={20} />} tone="good" pct={counts.all ? (counts.approved / counts.all) * 100 : 0} />
+          <StatCard value={thisWeekCount} label="هذا الأسبوع" sub="منذ بداية الأسبوع" icon={<CalendarDays size={20} />} tone="violet" pct={counts.all ? (thisWeekCount / counts.all) * 100 : 0} />
+        </div>
+      </div>
+
+      {records.length > 0 ? (
+        <>
+          <JourneyStepper steps={[
+            { label: "النشر", value: snapshot.channelsUsed, sub: "قنوات نشطة", icon: <Send size={18} />, tone: "violet" },
+            { label: "الاعتماد", value: counts.approved, sub: "معتمد", icon: <ShieldCheck size={18} />, tone: "gold" },
+            { label: "المراجعة والتحليل", value: snapshot.reviewed, sub: "قيد التحليل", icon: <Search size={18} />, tone: "info" },
+            { label: "إنشاء المحتوى", value: counts.drafts, sub: "مسودة", icon: <PenLine size={18} />, tone: "good" }
+          ]} />
+
+          {snapshot.byType.length ? (
+            <div className="rounded-2xl border border-line bg-white p-4">
+              <p className="mb-3 flex items-center gap-2 text-sm font-bold text-ink"><Tag size={15} className="text-palm" />حسب النوع</p>
+              <div className="flex gap-2.5 overflow-x-auto pb-1">
+                {snapshot.byType.map(([label, count]) => (
+                  <div key={label} className="min-w-[120px] shrink-0 rounded-xl border border-line bg-paper p-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-lg font-extrabold tabular-nums text-palm">{count}</span>
+                      <span className="grid h-8 w-8 place-items-center rounded-lg bg-mint text-palm"><Tag size={14} /></span>
+                    </div>
+                    <p className="mt-1.5 truncate text-[11px] font-semibold text-ink">{label}</p>
+                    <p className="text-[10px] tabular-nums text-ink/45">{counts.all ? Math.round((count / counts.all) * 100) : 0}%</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : null}
+
+          {snapshot.byChannel.length ? (
+            <div className="rounded-2xl border border-line bg-white p-4">
+              <p className="mb-3 flex items-center gap-2 text-sm font-bold text-ink"><Share2 size={15} className="text-palm" />حسب القناة</p>
+              <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
+                {snapshot.byChannel.map(([label, count]) => (
+                  <div key={label} className="flex items-center gap-2.5 rounded-xl border border-line bg-paper p-3">
+                    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-white shadow-sm">{channelBrandIcon(label)}</span>
+                    <div className="min-w-0">
+                      <div className="text-lg font-extrabold tabular-nums text-ink">{count}</div>
+                      <div className="truncate text-[11px] text-ink/55">{label}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : null}
+        </>
       ) : null}
 
       {/* رسالة طمأنة: السجل وسيلة وقائية داخلية — لا استخدام تأديبياً وسرية تامة */}
