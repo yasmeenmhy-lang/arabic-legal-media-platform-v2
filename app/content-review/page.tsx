@@ -407,6 +407,24 @@ export default function ContentReviewPage() {
   const [savedRecords, setSavedRecords] = useState<StoredContentRecord[]>([]);
   const [recordSearch, setRecordSearch] = useState("");
   const [recordSearchFocus, setRecordSearchFocus] = useState(false);
+  const recordSearchRef = useRef<HTMLDivElement>(null);
+
+  // إغلاق القائمة المنسدلة عند الضغط خارجها فقط — لا عند إخفاء الكيبورد (Done)،
+  // حتى تبقى النتائج ظاهرة ويستطيع المستخدم تصفّحها بعد إغلاق لوحة المفاتيح.
+  useEffect(() => {
+    if (!recordSearchFocus) return;
+    function handlePointerDown(event: MouseEvent | TouchEvent) {
+      if (recordSearchRef.current && !recordSearchRef.current.contains(event.target as Node)) {
+        setRecordSearchFocus(false);
+      }
+    }
+    document.addEventListener("mousedown", handlePointerDown);
+    document.addEventListener("touchstart", handlePointerDown);
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+      document.removeEventListener("touchstart", handlePointerDown);
+    };
+  }, [recordSearchFocus]);
 
   // محمّل مشترك: يفتح إصداراً محدداً من السجل في نموذج المراجعة
   function loadRecordVersion(record: StoredContentRecord, versionNo: number) {
@@ -1259,16 +1277,15 @@ export default function ContentReviewPage() {
             الأكورديون، حتى في عرض النتائج، فلا يحتاج المستخدم فتح السياق ليرى محتواه */}
         {/* بحث لفتح محتوى محفوظ سابقاً وتحميله للمراجعة — في الأعلى مكان عنوان المحتوى */}
         {savedRecords.length > 0 ? (
-          <div className="relative">
+          <div className="relative" ref={recordSearchRef}>
             <div className="flex items-center gap-2 rounded-lg border border-line bg-white px-3 py-2.5">
               <Search size={15} className="shrink-0 text-ink/40" />
               <input
                 type="text"
                 placeholder="اختر أو ابحث في محتوى سابق لتحميله للمراجعة..."
                 value={recordSearch}
-                onChange={(e) => setRecordSearch(e.target.value)}
+                onChange={(e) => { setRecordSearch(e.target.value); setRecordSearchFocus(true); }}
                 onFocus={() => setRecordSearchFocus(true)}
-                onBlur={() => setTimeout(() => setRecordSearchFocus(false), 150)}
                 className="flex-1 bg-transparent text-sm outline-none placeholder:text-ink/35"
               />
               {recordSearch ? (
@@ -1276,7 +1293,14 @@ export default function ContentReviewPage() {
                   <X size={14} />
                 </button>
               ) : null}
-              <ChevronDown size={15} className={`shrink-0 text-ink/40 transition-transform ${recordSearchFocus ? "rotate-180" : ""}`} aria-hidden="true" />
+              <button
+                type="button"
+                onClick={() => setRecordSearchFocus((open) => !open)}
+                className="shrink-0 text-ink/40 transition hover:text-ink/70"
+                aria-label={recordSearchFocus ? "إغلاق القائمة" : "فتح القائمة"}
+              >
+                <ChevronDown size={15} className={`transition-transform ${recordSearchFocus ? "rotate-180" : ""}`} aria-hidden="true" />
+              </button>
             </div>
             {recordSearchFocus ? (
               <div className="absolute inset-x-0 top-full z-30 mt-1 max-h-72 overflow-y-auto rounded-lg border border-line bg-white shadow-lg">
