@@ -259,6 +259,17 @@ export default function ContentReviewPage() {
   const [suggestionError, setSuggestionError] = useState<string | null>(null);
   // رسالة توجيهية (تحذيرية) — نص بلا مضمون يُعاد صياغته ونحوه: تُعرض كبطاقة تحذير لا خطأ ولا صياغة
   const [suggestionNotice, setSuggestionNotice] = useState<string | null>(null);
+  // نسبة تقدّم إنشاء الصياغة التحسينية — تقديرية زمنياً (المهمة خلفية بلا تقدّم دقيق):
+  // تتصاعد تدريجياً وتتباطأ قرب النهاية فلا تبلغ ١٠٠٪ إلا باكتمال النتيجة فعلاً.
+  const [suggestProgress, setSuggestProgress] = useState(0);
+  useEffect(() => {
+    if (!suggestingAI) { setSuggestProgress(0); return; }
+    setSuggestProgress(8);
+    const t = setInterval(() => {
+      setSuggestProgress((p) => (p >= 94 ? 94 : p + Math.max(0.5, (94 - p) * 0.045)));
+    }, 500);
+    return () => clearInterval(t);
+  }, [suggestingAI]);
   // المصادر المعتمدة التي جلبها البحث الحي للصياغة المقترحة — تُعرض كأدلة مرئية
   const [rewriteSources, setRewriteSources] = useState<Source[]>([]);
   // إشعار المصارحة: أقرّ المستخدم بمرجع ولم يُعثر على مطابق — يُعرض صراحةً لا صمتاً
@@ -2165,9 +2176,15 @@ export default function ContentReviewPage() {
               </div>
 
               {suggestingAI ? (
-                <div className="mt-4 flex items-center gap-3 rounded-lg bg-white p-4 text-sm leading-7 text-ink/60">
-                  <DgaSpinner size="sm" tone="violet" label="جار إنشاء الصياغة..." />
-                  <span>جارٍ إنشاء الصياغة المقترحة…</span>
+                <div className="mt-4 rounded-lg border border-violetBorder bg-violetSoft p-4">
+                  <div className="flex items-center gap-3">
+                    <DgaSpinner size="sm" tone="violet" label="جار إنشاء الصياغة..." />
+                    <span className="text-sm font-medium text-violetText">جارٍ إنشاء الصياغة المقترحة…</span>
+                    <span className="mr-auto text-sm font-bold tabular-nums text-violetDark">{Math.round(suggestProgress)}%</span>
+                  </div>
+                  <div className="mt-3 h-2 overflow-hidden rounded-full bg-violet/15">
+                    <div className="h-full rounded-full bg-violet transition-all duration-500 ease-out" style={{ width: `${suggestProgress}%` }} />
+                  </div>
                 </div>
               ) : suggestionNotice ? (
                 <div className="mt-4 flex items-start gap-3 rounded-lg border border-warningBorder bg-warningSoft p-4 text-sm leading-7 text-warningDark">
