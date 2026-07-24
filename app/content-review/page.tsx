@@ -423,6 +423,8 @@ export default function ContentReviewPage() {
   const [savedRecords, setSavedRecords] = useState<StoredContentRecord[]>([]);
   const [recordSearch, setRecordSearch] = useState("");
   const [recordSearchFocus, setRecordSearchFocus] = useState(false);
+  // صندوق كتابة المحتوى مفتوح افتراضياً — هو الإجراء الأول في الصفحة
+  const [inputOpen, setInputOpen] = useState(true);
   const recordSearchRef = useRef<HTMLDivElement>(null);
 
   // إغلاق القائمة المنسدلة عند الضغط خارجها فقط — لا عند إخفاء الكيبورد (Done)،
@@ -1340,11 +1342,23 @@ export default function ContentReviewPage() {
             {recordSearchFocus ? (
               <div className="absolute inset-x-0 top-full z-30 mt-1 max-h-72 overflow-y-auto rounded-lg border border-line bg-white shadow-lg">
                 {(() => {
-                  const matches = savedRecords.filter((r) => {
-                    if (!recordSearch.trim()) return true;
-                    const v = r.versions.find((x) => x.version === r.currentVersion) ?? r.versions.at(-1);
-                    return smartMatch(recordSearch, [r.title, v?.body, v?.contentTypeLabel]);
-                  }).slice(0, 12);
+                  // السجل كاملاً بلا سقف — الصندوق نفسه يمرّر. والترتيب يجعل ما طابق
+                  // العنوان أولاً ثم ما طابق المتن، فيتحرّك أعلى القائمة مع أول حرف
+                  // بدل أن تبدو ثابتة (الحرف الواحد يطابق أغلب النصوص العربية).
+                  const query = recordSearch.trim();
+                  const titleOf = (r: typeof savedRecords[number]) =>
+                    deriveContentTitle((r.versions.find((x) => x.version === r.currentVersion) ?? r.versions.at(-1))?.body ?? "") || r.title;
+                  const matches = savedRecords
+                    .filter((r) => {
+                      if (!query) return true;
+                      const v = r.versions.find((x) => x.version === r.currentVersion) ?? r.versions.at(-1);
+                      return smartMatch(query, [r.title, v?.body, v?.contentTypeLabel]);
+                    })
+                    .sort((a, b) => {
+                      if (!query) return 0;
+                      const inTitle = (r: typeof a) => (smartMatch(query, [titleOf(r)]) ? 0 : 1);
+                      return inTitle(a) - inTitle(b);
+                    });
                   return matches.length ? matches.map((r) => (
                     <button
                       key={r.id}
@@ -1352,7 +1366,7 @@ export default function ContentReviewPage() {
                       onMouseDown={(e) => { e.preventDefault(); loadRecordVersion(r, r.currentVersion); setRecordSearchFocus(false); setRecordSearch(""); }}
                       className="flex w-full items-center gap-2.5 border-b border-line/50 px-3 py-2.5 text-right transition last:border-b-0 hover:bg-mint/30"
                     >
-                      <span className="min-w-0 flex-1 truncate text-sm text-ink">{deriveContentTitle((r.versions.find((x) => x.version === r.currentVersion) ?? r.versions.at(-1))?.body ?? "") || r.title}</span>
+                      <span className="min-w-0 flex-1 truncate text-sm text-ink">{titleOf(r)}</span>
                       <StatusBadge tone={r.approvedVersion ? "good" : "gold"}>{r.approvedVersion ? "معتمد" : "مسودة"}</StatusBadge>
                     </button>
                   )) : <p className="px-3 py-3 text-sm text-ink/50">لا نتائج مطابقة.</p>;
@@ -1361,8 +1375,14 @@ export default function ContentReviewPage() {
             ) : null}
           </div>
         ) : null}
-        {/* مراجعة المحتوى — أوكورديون مقفل افتراضياً؛ الـ flex على div داخلي لا على summary لتفادي عطل Safari */}
-        <details className="mt-4 group text-sm">
+        {/* مراجعة المحتوى — مفتوح افتراضياً: كتابة النص هي غرض الصفحة، وإخفاؤه خلف
+            أوكورديون مغلق يترك الصفحة فارغة ويخفي الإجراء الأول عن المستخدم.
+            الـ flex على div داخلي لا على summary لتفادي عطل Safari */}
+        <details
+          open={inputOpen}
+          onToggle={(e) => setInputOpen((e.currentTarget as HTMLDetailsElement).open)}
+          className="mt-4 group text-sm"
+        >
           <summary className="cursor-pointer list-none focus-ring">
             <div className="flex items-center justify-between gap-2 rounded-lg border border-line bg-paper px-3 py-2.5 font-medium text-ink">
               <span>مراجعة المحتوى</span>
