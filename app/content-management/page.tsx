@@ -467,9 +467,9 @@ export default function ContentManagementPage() {
       {/* لوحة السجل — بطاقات مصغّرة هادئة: الإجمالي مميّز بالوسط، رحلة المحتوى، ثم حسب النوع والقناة */}
       {records.length > 0 ? (
         <div className="space-y-3">
-          {/* الإجمالي بارز بلون كود المنصات Info 900، ومعه مؤشّران موجزان لا يكرّران مراحل رحلة المحتوى */}
+          {/* الإجمالي بارز بلون المنصّة الأخضر العميق، ومعه مؤشّران موجزان لا يكرّران مراحل رحلة المحتوى */}
           <div className="space-y-2">
-            <div className="rounded-2xl border border-[#194185] bg-[#194185] p-4 shadow-sm">
+            <div className="rounded-2xl border border-palmDeep bg-palmDeep p-4 shadow-sm">
               <div className="flex items-center justify-between gap-2">
                 <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-white/15 text-white"><FolderOpen size={22} /></span>
                 <span className="text-4xl font-bold leading-none tabular-nums text-white">{counts.all}</span>
@@ -479,7 +479,7 @@ export default function ContentManagementPage() {
             </div>
             <div className="grid grid-cols-2 gap-2">
               <StatCard value={acceptance} suffix="%" label="نسبة الاعتماد" sub="من إجمالي المحتوى" icon={<CheckCircle2 size={16} />} tone="success" pct={acceptance} />
-              <StatCard value={thisWeekCount} label="هذا الأسبوع" sub="منذ بداية الأسبوع" icon={<CalendarDays size={16} />} tone="lavender" pct={counts.all ? (thisWeekCount / counts.all) * 100 : 0} />
+              <StatCard value={thisWeekCount} label="هذا الأسبوع" sub={`أُنشئت من إجمالي المحتوى (${counts.all})`} icon={<CalendarDays size={16} />} tone="lavender" pct={counts.all ? (thisWeekCount / counts.all) * 100 : 0} />
             </div>
           </div>
 
