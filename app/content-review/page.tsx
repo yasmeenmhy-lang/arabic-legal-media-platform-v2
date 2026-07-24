@@ -1388,6 +1388,10 @@ export default function ContentReviewPage() {
               }`}
             />
             )}
+            {/* الإرشاد المباشر داخل الأوكورديون نفسه (بقرار مالكة المنصة) — لا صندوق منفصل تحته */}
+            <div className="mt-3">
+              <InlineContentGuidance review={review} draftText={text} onApplyRewrite={applyRewrite} loading={loading} />
+            </div>
           </div>
         </details>
         {charLimit !== null && (
@@ -1405,9 +1409,6 @@ export default function ContentReviewPage() {
           </div>
         )}
 
-        <div className="mt-3">
-          <InlineContentGuidance review={review} draftText={text} onApplyRewrite={applyRewrite} loading={loading} />
-        </div>
         <CostNotice costUsd={opCostUsd} balanceUsd={opBalanceUsd} />
 
         {/* حقول الإطار مخفية في المراجعة — تُدخَل في مركز المحتوى (منع التكرار) */}
