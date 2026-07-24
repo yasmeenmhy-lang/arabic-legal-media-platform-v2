@@ -59,6 +59,8 @@ export type StoredContentVersion = {
   audience: string;
   purpose: string;
   // بقية معلومات السياق المدخلة — تُحفظ وتُسترجع عند فتح المحتوى (اختيارية لتوافق السجلات القديمة)
+  // الموضوع: عنوان المادة الذي يكتبه المحامي عند الإنشاء — عليه يقوم البحث في السجل
+  topic?: string;
   specialty?: string;
   charLimit?: number | null;
   adCta?: string;
@@ -323,6 +325,7 @@ export function referencesFromReview(review: ReviewResult): ProfessionalOfficial
 }
 
 type StoredContextExtras = {
+  topic?: string;
   specialty?: string;
   charLimit?: number | null;
   adCta?: string;
@@ -334,6 +337,7 @@ type StoredContextExtras = {
 
 // يطبّق حقول السياق الإضافية على إصدار مخزَّن — مصدر واحد للحفظ يمنع نسيان أي حقل
 function applyContextExtras(version: StoredContentVersion, extras: StoredContextExtras) {
+  if (extras.topic !== undefined) version.topic = extras.topic;
   version.specialty = extras.specialty;
   version.charLimit = extras.charLimit ?? null;
   version.adCta = extras.adCta;

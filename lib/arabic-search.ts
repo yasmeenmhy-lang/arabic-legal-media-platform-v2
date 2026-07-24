@@ -20,3 +20,13 @@ export function smartMatch(query: string, fields: Array<string | undefined | nul
   const haystack = normalizeArabic(fields.filter(Boolean).join(" \n "));
   return tokens.every((token) => haystack.includes(token));
 }
+
+// مطابقة بداية الكلمة: «م» تُطابق «مراجعة» و«منشأة» ولا تُطابق «مما» داخل جملة.
+// يُستعمل في البحث بالموضوع حيث الحرف الأول يجب أن يبدأ منه الموضوع لا أن يرد في وسطه.
+export function prefixMatch(query: string, subject: string | undefined | null): boolean {
+  const tokens = normalizeArabic(query).split(/\s+/).filter(Boolean);
+  if (!tokens.length) return true;
+  const words = normalizeArabic(subject ?? "").split(/[^\p{L}\p{N}]+/u).filter(Boolean);
+  if (!words.length) return false;
+  return tokens.every((token) => words.some((word) => word.startsWith(token)));
+}

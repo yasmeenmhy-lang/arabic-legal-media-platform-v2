@@ -567,7 +567,7 @@ function createDraftRecord(
   ctx: {
     kind: ContentKind | null; channel: string; audience: string; purpose: string;
     // كل معلومات السياق المدخلة تُحفظ مع المسودة — فلا تختفي عند فتحها لاحقاً
-    specialty?: string; charLimit?: number | null; adCta?: string; adStyle?: string;
+    specialty?: string; topic?: string; charLimit?: number | null; adCta?: string; adStyle?: string;
     scriptDuration?: string; scriptStyle?: string; articleLength?: string;
   },
   // بقرار مالكة المنصة: المرئيات تنتقل مع المحتوى وتُحفظ في السجل فلا تختفي
@@ -592,6 +592,7 @@ function createDraftRecord(
     audience: ctx.audience || "الجمهور العام",
     purpose: ctx.purpose || "تثقيف الجمهور حول موضوع نظامي",
     specialty: ctx.specialty || undefined,
+    topic: ctx.topic || undefined,
     charLimit: ctx.charLimit ?? null,
     adCta: ctx.adCta || undefined,
     adStyle: ctx.adStyle || undefined,
@@ -1454,7 +1455,7 @@ export default function ContentStudioPage() {
     try {
       window.localStorage.setItem(scopedKey(PENDING_REVIEW_KEY), JSON.stringify({
         at: Date.now(), contentId, body: trimmed, contentType: kind, contentTypeLabel,
-        channel, audience, purpose, specialty, charLimit, adCta, adStyle, scriptDuration, scriptStyle, articleLength,
+        channel, audience, purpose, specialty, topic: topic.trim() || undefined, charLimit, adCta, adStyle, scriptDuration, scriptStyle, articleLength,
       }));
     } catch { /* بيئة بلا تخزين */ }
     try {
@@ -1471,7 +1472,7 @@ export default function ContentStudioPage() {
         try {
           window.localStorage.setItem(scopedKey(PENDING_REVIEW_KEY), JSON.stringify({
             jobId: startPayload.jobId, at: Date.now(), contentId, body: trimmed, contentType: kind, contentTypeLabel,
-            channel, audience, purpose, specialty, charLimit, adCta, adStyle, scriptDuration, scriptStyle, articleLength,
+            channel, audience, purpose, specialty, topic: topic.trim() || undefined, charLimit, adCta, adStyle, scriptDuration, scriptStyle, articleLength,
           }));
         } catch { /* بيئة بلا تخزين — تبقى المتابعة داخل الجلسة فقط */ }
         outcome = await pollReviewJob(startPayload.jobId);
@@ -1679,7 +1680,7 @@ export default function ContentStudioPage() {
           body: activeText,
           contentType: kind,
           contentTypeLabel: contentKindLabels[kind],
-          channel, audience, purpose, specialty, charLimit,
+          channel, audience, purpose, specialty, topic: topic.trim() || undefined, charLimit,
           adCta, adStyle, scriptDuration, scriptStyle, articleLength,
           review,
         });
@@ -1691,7 +1692,7 @@ export default function ContentStudioPage() {
       }
       createDraftRecord(
         activeText,
-        { kind, channel, audience, purpose, specialty, charLimit, adCta, adStyle, scriptDuration, scriptStyle, articleLength },
+        { kind, channel, audience, purpose, specialty, topic: topic.trim() || undefined, charLimit, adCta, adStyle, scriptDuration, scriptStyle, articleLength },
         visuals
       );
       router.push("/content-management");

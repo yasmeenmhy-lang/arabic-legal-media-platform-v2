@@ -75,7 +75,7 @@ import {
   type StoredContentRecord
 } from "@/lib/content-record-store";
 import { normalizeReviewResult } from "@/lib/review-normalizer";
-import { smartMatch } from "@/lib/arabic-search";
+import { prefixMatch } from "@/lib/arabic-search";
 import { scopedKey } from "@/lib/user-scope";
 import { Search } from "lucide-react";
 import { saveLatestReviewSnapshot } from "@/components/review-context-summary";
@@ -1350,23 +1350,15 @@ export default function ContentReviewPage() {
               // حافتها مهما قصُرت، وتعمل في كل المتصفحات بلا اعتماد على سلوك overflow.
               <div className="mt-1 max-h-72 overflow-y-auto rounded-lg border border-line bg-white shadow-sm">
                 {(() => {
-                  // السجل كاملاً بلا سقف — الصندوق نفسه يمرّر. والترتيب يجعل ما طابق
-                  // العنوان أولاً ثم ما طابق المتن، فيتحرّك أعلى القائمة مع أول حرف
-                  // بدل أن تبدو ثابتة (الحرف الواحد يطابق أغلب النصوص العربية).
+                  // البحث يقوم على «موضوع» المادة لا على متنها: الحرف الأول يجب أن
+                  // يبدأ منه الموضوع (م ← «مراجعة»، لا «مما» في وسط جملة) — فيدقّ
+                  // البحث ويقصر النتائج على ما يقصده المحامي. والسجل كاملاً بلا سقف.
                   const query = recordSearch.trim();
-                  const titleOf = (r: typeof savedRecords[number]) =>
-                    deriveContentTitle((r.versions.find((x) => x.version === r.currentVersion) ?? r.versions.at(-1))?.body ?? "") || r.title;
-                  const matches = savedRecords
-                    .filter((r) => {
-                      if (!query) return true;
-                      const v = r.versions.find((x) => x.version === r.currentVersion) ?? r.versions.at(-1);
-                      return smartMatch(query, [r.title, v?.body, v?.contentTypeLabel]);
-                    })
-                    .sort((a, b) => {
-                      if (!query) return 0;
-                      const inTitle = (r: typeof a) => (smartMatch(query, [titleOf(r)]) ? 0 : 1);
-                      return inTitle(a) - inTitle(b);
-                    });
+                  const titleOf = (r: typeof savedRecords[number]) => {
+                    const v = r.versions.find((x) => x.version === r.currentVersion) ?? r.versions.at(-1);
+                    return v?.topic?.trim() || deriveContentTitle(v?.body ?? "") || r.title;
+                  };
+                  const matches = savedRecords.filter((r) => !query || prefixMatch(query, titleOf(r)));
                   return matches.length ? matches.map((r) => (
                     <button
                       key={r.id}
