@@ -676,11 +676,20 @@ export default function ContentReviewPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  async function runReview() {
+  async function runReview(quick = false) {
     if (text.trim().length < 5) {
       setMessage("أدخل نصاً من خمسة أحرف على الأقل للتحليل.");
       return;
     }
+    // مراجعة سريعة (بقرار مالكة المنصة): تُطبَّق كل فحوص المحرك كاملةً على النص دون
+    // إدخال إطار المحتوى — بسياق مهني عام محايد. منطق الفحص وصرامته لا يتغيّران؛ ما
+    // يختلف فقط هو التخصيص حسب القناة/الجمهور، لا الامتثال والمخاطر واللغة.
+    const effKind = quick ? ("post" as ContentKind) : kind;
+    const effTypeLabel = quick ? "محتوى مهني" : contentTypeLabel;
+    const effChannel = quick ? "" : channel;
+    const effAudience = quick ? "الجمهور العام" : audience;
+    const effPurpose = quick ? "التثقيف والتوعية" : purpose;
+    const effSpecialty = quick ? "" : specialty;
     const requestId = ++reviewRequestIdRef.current;
     setLoading(true);
     setMessage("");
@@ -690,8 +699,8 @@ export default function ContentReviewPage() {
     // ويُزال عند اكتمال النتيجة — فلا يضيع محتوى مهما كانت لحظة الخروج.
     try {
       window.localStorage.setItem(scopedKey(PENDING_REVIEW_KEY), JSON.stringify({
-        at: Date.now(), contentId, title: contentTitle, body: text, contentType: kind,
-        contentTypeLabel, channel: channel || "غير محددة", audience, purpose, specialty, charLimit, adCta, adStyle,
+        at: Date.now(), contentId, title: contentTitle, body: text, contentType: effKind,
+        contentTypeLabel: effTypeLabel, channel: effChannel || "غير محددة", audience: effAudience, purpose: effPurpose, specialty: effSpecialty, charLimit, adCta, adStyle,
         scriptDuration, scriptStyle, articleLength,
       }));
     } catch { /* بيئة بلا تخزين */ }
@@ -699,7 +708,7 @@ export default function ContentReviewPage() {
       const startRes = await fetch("/api/reviews/start", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ contentId, text, kind, contentType: contentTypeLabel, channel: channel || "غير محددة", audience, purpose }),
+        body: JSON.stringify({ contentId, text, kind: effKind, contentType: effTypeLabel, channel: effChannel || "غير محددة", audience: effAudience, purpose: effPurpose }),
       });
       const startPayload = (await startRes.json().catch(() => ({}))) as { jobId?: string | null; error?: string };
       if (requestId !== reviewRequestIdRef.current) return;
@@ -708,8 +717,8 @@ export default function ContentReviewPage() {
       if (startPayload.jobId) {
         try {
           window.localStorage.setItem(scopedKey(PENDING_REVIEW_KEY), JSON.stringify({
-            jobId: startPayload.jobId, at: Date.now(), contentId, title: contentTitle, body: text, contentType: kind,
-            contentTypeLabel, channel: channel || "غير محددة", audience, purpose, specialty, charLimit, adCta, adStyle,
+            jobId: startPayload.jobId, at: Date.now(), contentId, title: contentTitle, body: text, contentType: effKind,
+            contentTypeLabel: effTypeLabel, channel: effChannel || "غير محددة", audience: effAudience, purpose: effPurpose, specialty: effSpecialty, charLimit, adCta, adStyle,
             scriptDuration, scriptStyle, articleLength,
           }));
         } catch { /* بيئة بلا تخزين — تبقى المتابعة داخل الجلسة فقط */ }
@@ -740,12 +749,12 @@ export default function ContentReviewPage() {
         contentId,
         title: contentTitle,
         body: text,
-        contentType: kind || "post",
-        contentTypeLabel,
-        channel,
-        audience,
-        purpose,
-        specialty,
+        contentType: effKind || "post",
+        contentTypeLabel: effTypeLabel,
+        channel: effChannel,
+        audience: effAudience,
+        purpose: effPurpose,
+        specialty: effSpecialty,
         charLimit,
         adCta,
         adStyle,
@@ -1930,7 +1939,7 @@ export default function ContentReviewPage() {
         </div>
 
         {!hasReviewContext ? (
-          <p className="mt-2 text-xs leading-6 text-ink/60">اختر نوع المحتوى والجمهور والهدف والتخصص حتى يكون التحليل مرتبطًا بإطار المحتوى الصحيح.</p>
+          <p className="mt-2 text-xs leading-6 text-ink/60">إكمال إطار المحتوى يجعل التحليل مرتبطاً بقناتك وجمهورك؛ ولا يلزم للمراجعة — يمكنك استخدام «المراجعة السريعة» أدناه بالفحوص نفسها كاملةً.</p>
         ) : null}
         </>)}
         {/* توعوي بحت عند رصد اقتباس في النص الملصق — كشف عرضي حتمي، لا يمس المؤشرات ولا محرك التحليل */}
@@ -1975,7 +1984,15 @@ export default function ContentReviewPage() {
         ) : null}
         <div className="mt-4 flex flex-wrap gap-3">
           {/* زر التحليل ظاهر دائماً — بعد ظهور النتائج يصبح «إعادة التحليل» بلا حاجة لدخول وضع التعديل */}
-          <Button size="lg" onClick={runReview} disabled={loading || !canAnalyze} leadingIcon={loading ? <DgaSpinner size="sm" tone="violet" /> : <FileText size={17} />}>{loading ? "جار التحليل..." : review || contentId ? "إعادة التحليل" : "تحليل المحتوى"}</Button>
+          <Button size="lg" onClick={() => runReview(false)} disabled={loading || !canAnalyze} leadingIcon={loading ? <DgaSpinner size="sm" tone="violet" /> : <FileText size={17} />}>{loading ? "جار التحليل..." : review || contentId ? "إعادة التحليل" : "تحليل المحتوى"}</Button>
+          {/* مراجعة سريعة (بلون مميّز): الفحوص نفسها كاملةً دون إدخال إطار المحتوى — بسياق مهني عام */}
+          {!review ? (
+            <button type="button" onClick={() => runReview(true)} disabled={loading || !canAnalyze}
+              title="فحص كامل للنص دون إدخال إطار المحتوى — بسياق مهني عام"
+              className="inline-flex items-center gap-2 rounded-lg border border-infoBase bg-infoSoft px-5 py-3 text-base font-semibold text-infoDark shadow-xs transition hover:bg-infoBorder/50 disabled:cursor-not-allowed disabled:opacity-50 focus-ring">
+              <Sparkles size={17} aria-hidden="true" /> مراجعة سريعة
+            </button>
+          ) : null}
           {review && !isEditing ? <Button variant="secondary" onClick={beginEditing} leadingIcon={<Edit3 size={16} />}>تعديل</Button> : null}
           {isEditing && contentId ? <Button variant="secondary" onClick={saveEdits} disabled={loading || text.trim().length < 5} leadingIcon={<Save size={16} />}>حفظ التعديلات</Button> : null}
           {isEditing ? <Button variant="secondary-gray" onClick={cancelEditing} disabled={loading} leadingIcon={<AlertTriangle size={16} />}>إلغاء</Button> : null}
