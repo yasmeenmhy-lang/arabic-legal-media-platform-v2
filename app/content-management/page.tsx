@@ -469,25 +469,25 @@ export default function ContentManagementPage() {
         <div className="space-y-3">
           {/* الإجمالي بارز بلون المنصّة الأخضر العميق، ومعه مؤشّران موجزان لا يكرّران مراحل رحلة المحتوى */}
           <div className="space-y-2">
-            <div className="rounded-2xl border border-palmDeep bg-palmDeep p-4 shadow-sm">
+            <div className="rounded-2xl bg-gradient-to-br from-palm to-palmDeep p-4 shadow-sm">
               <div className="flex items-center justify-between gap-2">
                 <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-white/15 text-white"><FolderOpen size={22} /></span>
                 <span className="text-4xl font-bold leading-none tabular-nums text-white">{counts.all}</span>
               </div>
               <p className="mt-2.5 text-sm font-semibold text-white">إجمالي المحتوى</p>
-              <p className="text-[11px] font-normal text-white/60">جميع المحتويات المحفوظة في السجل</p>
+              <p className="text-[11px] font-normal text-white/70">جميع المحتويات المحفوظة في السجل</p>
             </div>
             <div className="grid grid-cols-2 gap-2">
               <StatCard value={acceptance} suffix="%" label="نسبة الاعتماد" sub="من إجمالي المحتوى" icon={<CheckCircle2 size={16} />} tone="success" pct={acceptance} />
-              <StatCard value={thisWeekCount} label="هذا الأسبوع" sub={`أُنشئت من إجمالي المحتوى (${counts.all})`} icon={<CalendarDays size={16} />} tone="lavender" pct={counts.all ? (thisWeekCount / counts.all) * 100 : 0} />
+              <StatCard value={thisWeekCount} label="هذا الأسبوع" sub={`أُنشئت من إجمالي المحتوى (${counts.all})`} icon={<CalendarDays size={16} />} tone="sky" pct={counts.all ? (thisWeekCount / counts.all) * 100 : 0} />
             </div>
           </div>
 
           <JourneyStepper steps={[
-            { label: "إنشاء المحتوى", value: counts.drafts, sub: "مسودة", icon: <PenLine size={16} />, tone: "warn" },
+            { label: "إنشاء المحتوى", value: counts.drafts, sub: "مسودة", icon: <PenLine size={16} />, tone: "lavender" },
             { label: "المراجعة والتحليل", value: snapshot.reviewed, sub: "قيد التحليل", icon: <Search size={16} />, tone: "sky" },
             { label: "الاعتماد", value: counts.approved, sub: "معتمد", icon: <ShieldCheck size={16} />, tone: "success" },
-            { label: "النشر", value: snapshot.channelsUsed, sub: "قنوات نشطة", icon: <Send size={16} />, tone: "lavender" }
+            { label: "النشر", value: snapshot.channelsUsed, sub: "قنوات نشطة", icon: <Send size={16} />, tone: "gold" }
           ]} />
 
           {snapshot.byType.length ? (
