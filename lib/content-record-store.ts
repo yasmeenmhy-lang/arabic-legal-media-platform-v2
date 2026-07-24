@@ -66,7 +66,7 @@ export type StoredContentVersion = {
   scriptDuration?: string;
   scriptStyle?: string;
   articleLength?: string;
-  status: "مسودة" | "قيد التحليل" | "يحتاج إلى تعديل" | "جاهز للاعتماد" | "معتمد";
+  status: "مسودة" | "قيد التحليل" | "بحاجة إلى معالجة" | "جاهز للاعتماد" | "معتمد";
   createdAt: string;
   updatedAt: string;
   analysis?: ReviewResult;
@@ -506,7 +506,7 @@ export function upsertAnalyzedVersion(input: {
   version.status =
     (input.review.findings.length === 0 && input.review.languageQuality.passed && onlyApprovalRemains) || input.review.exportAllowed
       ? "جاهز للاعتماد"
-      : "يحتاج إلى تعديل";
+      : "بحاجة إلى معالجة";
   version.updatedAt = timestamp;
   record.status = version.status;
   record.title = input.title?.trim() || deriveContentTitle(input.body) || record.title;

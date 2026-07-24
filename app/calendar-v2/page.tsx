@@ -78,7 +78,8 @@ function removeTargetDate(id: string) {
 function getDisplayStatus(record: StoredContentRecord, targetDate: string): DisplayStatus {
   if (record.sharingStatus === "تمت المشاركة") return "منشورة";
   if (record.status === "معتمد" && targetDate) return "مجدولة";
-  if (record.status === "يحتاج إلى تعديل" || record.status === "قيد التحليل") return "تحتاج مراجعة";
+  // نقبل المسمّى القديم أيضاً لسجلات محفوظة قبل تغيير التسمية
+  if (record.status === "بحاجة إلى معالجة" || (record.status as string) === "يحتاج إلى تعديل" || record.status === "قيد التحليل") return "تحتاج مراجعة";
   return "مسودة";
 }
 

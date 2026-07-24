@@ -56,11 +56,16 @@ function complianceTone(findings?: { resolved?: boolean }[]): "good" | "danger" 
   return findings.length === 0 ? "good" : "danger";
 }
 
+// توحيد نص الحالة المعروض — يعالج السجلات القديمة المخزّنة بالمسمّى السابق
+function statusLabel(status: string): string {
+  return status === "يحتاج إلى تعديل" ? "بحاجة إلى معالجة" : status;
+}
+
 function displayStatus(storedStatus: string, analysis?: ReviewResult): { label: string; tone: "good" | "danger" | "neutral" } {
   if (!analysis) return { label: "مسودة", tone: "neutral" }; // لا جاهزية ولا اعتماد بلا تحليل
   const unresolved = analysis.findings.filter((f) => !f.resolved).length;
-  if (unresolved > 0) return { label: "يحتاج إلى تعديل", tone: "danger" };
-  return { label: storedStatus, tone: storedStatus === "معتمد" ? "good" : "neutral" };
+  if (unresolved > 0) return { label: "بحاجة إلى معالجة", tone: "danger" };
+  return { label: statusLabel(storedStatus), tone: storedStatus === "معتمد" ? "good" : "neutral" };
 }
 
 function riskTone(level?: RiskLevel): "good" | "gold" | "danger" | "neutral" {
@@ -326,7 +331,7 @@ export default function ContentManagementPage() {
                 </div>
                 <p className="mt-3 whitespace-pre-wrap text-sm leading-7 text-ink/80">{version.body}</p>
                 <div className="mt-3 grid gap-2 text-xs sm:grid-cols-4">
-                  <div className="rounded bg-paper p-2">الحالة: {version.status}</div>
+                  <div className="rounded bg-paper p-2">الحالة: {statusLabel(version.status)}</div>
                   <div className="rounded bg-paper p-2">
                     الامتثال: {cLabel
                       ? <span className={cTone === "good" ? "text-green-700" : "text-red-600"}>{cLabel}</span>
@@ -468,7 +473,7 @@ export default function ContentManagementPage() {
 
           {snapshot.byType.length ? (
             <div className="rounded-2xl border border-line bg-white p-3.5 shadow-xs">
-              <p className="mb-3 flex items-center gap-2 text-xs font-semibold text-ink"><Tag size={14} className="text-palm" />حسب النوع</p>
+              <p className="mb-3 flex items-center gap-2 text-xs font-semibold text-ink"><Tag size={14} className="text-palm" />أنواع المحتوى</p>
               <div className="flex flex-wrap gap-2">
                 {snapshot.byType.map(([label, count], i) => {
                   const c = CALM[i % CALM.length];
@@ -491,7 +496,7 @@ export default function ContentManagementPage() {
 
           {snapshot.byChannel.length ? (
             <div className="rounded-2xl border border-line bg-white p-3.5 shadow-xs">
-              <p className="mb-3 flex items-center gap-2 text-xs font-semibold text-ink"><Share2 size={14} className="text-palm" />حسب القناة</p>
+              <p className="mb-3 flex items-center gap-2 text-xs font-semibold text-ink"><Share2 size={14} className="text-palm" />قنوات النشر</p>
               <div className="flex flex-wrap gap-2">
                 {snapshot.byChannel.map(([label, count]) => {
                   const b = channelBrand(label);

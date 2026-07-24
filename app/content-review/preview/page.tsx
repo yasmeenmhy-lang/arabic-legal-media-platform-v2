@@ -306,7 +306,7 @@ export default function PreviewSeed() {
       id: contentId,
       title: MOCK_BODY.slice(0, 72),
       currentVersion: 1,
-      status: "يحتاج إلى تعديل",
+      status: "بحاجة إلى معالجة",
       versions: [
         {
           id: `${contentId}-v1`,
@@ -318,7 +318,7 @@ export default function PreviewSeed() {
           channel: "X",
           audience: "الجمهور العام",
           purpose: "رفع الوعي بالخدمات المهنية",
-          status: "يحتاج إلى تعديل",
+          status: "بحاجة إلى معالجة",
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
           analysis: MOCK_REVIEW,
