@@ -2507,12 +2507,9 @@ export default function ContentStudioPage() {
           تنتقل بك لمسار آخر ولا تظهر في مسار «إنشاء محتوى». الفحوص كاملةً كما هي (سياق عام). ── */}
       {path === "review" && !review && !reviewing && frameStep < FRAME_TOTAL && (
         <div className="flex flex-col gap-3 rounded-xl border border-infoBase/40 bg-infoSoft p-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-start gap-3">
+          <div className="flex items-center gap-3">
             <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-infoBase text-white"><Sparkles size={20} aria-hidden="true" /></span>
-            <div className="min-w-0">
-              <p className="text-sm font-semibold text-infoDark">مراجعة سريعة</p>
-              <p className="mt-0.5 text-xs leading-6 text-ink/70">راجع نصك فوراً بكل فحوص المحرك دون إدخال إطار المحتوى — بسياق مهني عام.</p>
-            </div>
+            <p className="text-sm font-semibold text-infoDark">مراجعة سريعة</p>
           </div>
           <button
             type="button"
