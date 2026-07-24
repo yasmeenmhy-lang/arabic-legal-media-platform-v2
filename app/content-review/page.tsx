@@ -2041,14 +2041,14 @@ export default function ContentReviewPage() {
           {/* مؤشرات واسعة: عمود على الجوال، عمودان على الآيباد، وثلاثة ثم اثنان على الحاسب. */}
           <section id="analysis-summary" aria-labelledby="supporting-indicators-title" className="space-y-4 scroll-mt-24">
             <SectionTitle title="المؤشرات المساندة للقرار" />
-            {/* تدفق أعمدة CSS بدل شبكة صفوف: كل بطاقة تتكيف على حجم نتيجتها فعلاً، والبطاقة
-                القصيرة لا تترك فراغاً فارغاً أسفلها قبل الصف التالي — لأن التدفق عمودي
-                متواصل لا صفوف متزامنة يجب أن تتساوى أو يفصلها فراغ */}
-            <div className="md:columns-2 md:gap-4">
-              <div className="mb-4 min-w-0 break-inside-avoid"><ComplianceIndicatorCard review={review} staticSummary /></div>
-              <div className="mb-4 min-w-0 break-inside-avoid"><RiskIndicatorCard review={review} staticSummary /></div>
-              <div className="mb-4 min-w-0 break-inside-avoid"><ProfessionalismIndicatorCard review={review} staticSummary /></div>
-              <div className="mb-4 min-w-0 break-inside-avoid"><LanguageIndicatorCard review={review} staticSummary /></div>
+            {/* شبكة صفوف متساوية الارتفاع بدل تدفق الأعمدة (masonry) — يمنع تفاوت ارتفاع
+                البطاقات وتذبذب بداياتها (يمين أعلى من يسار) على الحاسب. البطاقات في كل
+                صف تتساوى ارتفاعاً فتنتظم المحاذاة بلا فراغات مبعثرة. */}
+            <div className="grid gap-4 md:grid-cols-2 md:items-stretch">
+              <div className="min-w-0 [&>*]:h-full"><ComplianceIndicatorCard review={review} staticSummary /></div>
+              <div className="min-w-0 [&>*]:h-full"><RiskIndicatorCard review={review} staticSummary /></div>
+              <div className="min-w-0 [&>*]:h-full"><ProfessionalismIndicatorCard review={review} staticSummary /></div>
+              <div className="min-w-0 [&>*]:h-full"><LanguageIndicatorCard review={review} staticSummary /></div>
             </div>
           </section>
 
