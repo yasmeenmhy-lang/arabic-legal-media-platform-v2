@@ -95,7 +95,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <div className="flex items-start justify-between gap-3">
             <div className="flex items-start gap-3">
               <div>
-                <p className="text-base font-normal text-palm">إدارة المحتوى الإعلامي والإعلاني للمحامين</p>
+                <p className="text-base font-normal leading-7 text-palm [text-wrap:balance]">إدارة المحتوى الإعلامي والإعلاني للمحامين</p>
                 <p className="mt-1 max-w-48 text-xs leading-6 text-ink/65">
                   تمكين الحضور الإعلامي والإعلاني وفق مراجعة مهنية استرشادية
                 </p>
@@ -153,7 +153,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 <Menu size={20} />
               </button>
               <div className="min-w-0">
-                <h1 className="max-w-4xl text-sm font-bold leading-6 text-ink sm:text-base">{platformTitle}</h1>
+                <h1 className="max-w-4xl text-sm font-bold leading-6 text-ink sm:text-base [text-wrap:balance]">{platformTitle}</h1>
                 <p className="hidden text-xs text-ink/50 sm:block">
                   مراجعة، امتثال، مخاطر، وتحسين جاهزية النشر للمحتوى المهني
                 </p>
