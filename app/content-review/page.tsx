@@ -2030,10 +2030,7 @@ export default function ContentReviewPage() {
 
           {/* مؤشرات واسعة: عمود على الجوال، عمودان على الآيباد، وثلاثة ثم اثنان على الحاسب. */}
           <section id="analysis-summary" aria-labelledby="supporting-indicators-title" className="space-y-4 scroll-mt-24">
-            <SectionTitle
-              title="المؤشرات المساندة للقرار"
-              subtitle="توضح الرسوم مستوى كل جانب، بينما تبقى الملاحظات والأدلة والأثر والإجراء الموصى به هي أساس القرار."
-            />
+            <SectionTitle title="المؤشرات المساندة للقرار" />
             {/* تدفق أعمدة CSS بدل شبكة صفوف: كل بطاقة تتكيف على حجم نتيجتها فعلاً، والبطاقة
                 القصيرة لا تترك فراغاً فارغاً أسفلها قبل الصف التالي — لأن التدفق عمودي
                 متواصل لا صفوف متزامنة يجب أن تتساوى أو يفصلها فراغ */}
@@ -2222,7 +2219,7 @@ export default function ContentReviewPage() {
           </section>
 
           <section id="readiness" className="space-y-4 scroll-mt-24">
-            <SectionTitle title="5. جاهزية النشر" subtitle="توضح الحالة الحالية وما يلزم استكماله قبل اعتماد النسخة أو نشرها." />
+            <SectionTitle title="5. جاهزية النشر" />
             <ReadinessIndicatorCard review={review} staticSummary title="حالة الجاهزية ومتطلبات ما قبل النشر" />
           </section>
 
@@ -2334,10 +2331,7 @@ export default function ContentReviewPage() {
             {/* المؤشرات المساندة — منقولة إلى الرَّيل على الحاسب: تحت «قرار النشر» وفوق «اعتماد النسخة».
                 نفس البطاقات والقيم والتفاصيل المدخلة، بصيغة الملخّص الثابت بلا سهم طيّ. */}
             <div className="space-y-4">
-              <SectionTitle
-                title="المؤشرات المساندة للقرار"
-                subtitle="توضح الرسوم مستوى كل جانب، بينما تبقى الملاحظات والأدلة والأثر والإجراء الموصى به هي أساس القرار."
-              />
+              <SectionTitle title="المؤشرات المساندة للقرار" />
               <ComplianceIndicatorCard review={review} staticSummary />
               <RiskIndicatorCard review={review} staticSummary />
               <ProfessionalismIndicatorCard review={review} staticSummary />
