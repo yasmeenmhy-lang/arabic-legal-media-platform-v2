@@ -2500,6 +2500,7 @@ export default function ContentStudioPage() {
       <PageHeader
         eyebrow="مركز المحتوى الإعلامي والإعلاني"
         title={path === "review" ? "مراجعة المحتوى المهني" : path === "create" ? "إنشاء المحتوى المهني" : "إعداد المحتوى المهني"}
+        illustration={<p className="text-center text-xl font-semibold leading-9 text-palm">مرحباً بك</p>}
         action={path ? <Button variant="secondary-gray" onClick={goBackOneStage} leadingIcon={<ArrowRight size={16} />}>رجوع</Button> : undefined}
       />
 
