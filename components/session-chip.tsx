@@ -56,7 +56,7 @@ export function SessionChip() {
 
   return (
     <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
-      <span className="max-w-[20vw] truncate text-sm font-normal text-ink/75 sm:max-w-none">{state.username}</span>
+      {/* اسم المستخدم يُعرض في درج القائمة لا هنا — فلا يزاحم عنوان الشريط مهما طال */}
       {state.role !== "admin" ? (
         <Link
           href="/account"

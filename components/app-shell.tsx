@@ -23,6 +23,7 @@ import { clsx } from "clsx";
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [navOpen, setNavOpen] = useState(false);
+  const [username, setUsername] = useState<string | null>(null);
   const visibleItems = navItems;
 
   useEffect(() => {
@@ -31,6 +32,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     }
     window.addEventListener("keydown", handleKeydown);
     return () => window.removeEventListener("keydown", handleKeydown);
+  }, []);
+
+  // اسم المستخدم يُعرض في رأس الدرج (نُقل من الشريط العلوي كي لا يزاحم العنوان مهما طال)
+  useEffect(() => {
+    fetch("/api/auth/me")
+      .then((r) => r.json())
+      .then((d: { authenticated?: boolean; username?: string }) => {
+        if (d?.authenticated && d.username) setUsername(d.username);
+      })
+      .catch(() => undefined);
   }, []);
 
   // بوكسا «دليل الاستخدام» و«دعم المحامين» أسفل القائمة (الحاسب والجوال — درج واحد).
@@ -94,6 +105,18 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       >
         {/* حاوية تمرير واحدة: التنقّل ثم بطاقات الدليل والدعم تتدفّق من الأعلى بلا فجوة وسطى */}
         <div className="min-h-0 flex-1 overflow-y-auto p-4">
+          {/* حساب المستخدم — الاسم الكامل يظهر هنا مهما طال دون أن يمسّ الشريط العلوي */}
+          {username ? (
+            <div className="mb-4 flex items-center gap-2.5 rounded-lg border border-line bg-paper px-3 py-2.5">
+              <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-mint text-sm font-bold text-palm">
+                {username.charAt(0).toUpperCase()}
+              </span>
+              <div className="min-w-0">
+                <p className="text-[11px] leading-4 text-ink/45">الحساب</p>
+                <p className="truncate text-sm font-semibold text-ink">{username}</p>
+              </div>
+            </div>
+          ) : null}
           <nav>
             {/* «الوصول السريع» مدموجة في بطاقة «دليل الاستخدام» أدناه، فتُخفى كبند مكرّر */}
             {visibleItems.filter((item) => item.href !== "/library").map((item) => {
