@@ -3500,35 +3500,28 @@ export default function ContentStudioPage() {
           {/* Source grid — عمود على الجوال، عمودان على المتوسطة، ثلاثة على الكبيرة، بارتفاع موحد.
               المصادر المشروطة بالتخصص (خريطة lib/source-specialty-map) تنطوي بحركة fade+collapse دون قفز */}
           <div className="mb-4 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
-            {orderedSources.map((s) => {
-              const visible = isSourceVisible(s.key, specialty)
-                && isSourceVisibleForContentType(s.key, kind ? contentKindLabels[kind] : "");
-              return (
-                <div
+            {orderedSources
+              .filter((s) => isSourceVisible(s.key, specialty)
+                && isSourceVisibleForContentType(s.key, kind ? contentKindLabels[kind] : ""))
+              .map((s) => (
+                <button
                   key={s.key}
-                  aria-hidden={!visible}
-                  className={`overflow-hidden transition-all duration-300 ease-out ${visible ? "max-h-16 opacity-100" : "pointer-events-none max-h-0 opacity-0"}`}
+                  type="button"
+                  onClick={() => {
+                    setSource(s.key);
+                    if (s.key !== "global-news") setGlobalSub("");
+                  }}
+                  className={`flex h-12 w-full items-center gap-2.5 rounded-lg border px-3 text-sm transition focus-ring ${
+                    source === s.key
+                      ? "border-palm bg-mint text-palm shadow-[0_0_0_1px_theme(colors.palm)]"
+                      : "border-line bg-white text-ink/70 hover:border-palm hover:bg-mint hover:text-palm"
+                  }`}
                 >
-                  <button
-                    type="button"
-                    tabIndex={visible ? 0 : -1}
-                    onClick={() => {
-                      setSource(s.key);
-                      if (s.key !== "global-news") setGlobalSub("");
-                    }}
-                    className={`flex h-12 w-full items-center gap-2.5 rounded-lg border px-3 text-sm transition focus-ring ${
-                      source === s.key
-                        ? "border-palm bg-mint text-palm shadow-[0_0_0_1px_theme(colors.palm)]"
-                        : "border-line bg-white text-ink/70 hover:border-palm hover:bg-mint hover:text-palm"
-                    }`}
-                  >
-                    <span className="text-base">{s.icon}</span>
-                    <span className="flex-1 truncate text-right">{s.label}</span>
-                    {s.subs && <ChevronDown size={13} className="shrink-0 opacity-40" />}
-                  </button>
-                </div>
-              );
-            })}
+                  <span className="text-base">{s.icon}</span>
+                  <span className="flex-1 truncate text-right">{s.label}</span>
+                  {s.subs && <ChevronDown size={13} className="shrink-0 opacity-40" />}
+                </button>
+              ))}
           </div>
 
           {/* تنبيه غير معيق عند تحديث المصادر تبعاً للتخصص */}
