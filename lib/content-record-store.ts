@@ -3,6 +3,24 @@
 import type { ContentKind, ProfessionalOfficialReference, ReviewResult } from "@/lib/types";
 import { adoptLegacyKey, scopedKey } from "@/lib/user-scope";
 
+// عنوان موجز لكل محتوى — موضوع قصير كامل مشتقّ من مطلع النص، لا مقطعٌ مقصوص في منتصف
+// كلمة. يُؤخذ أول جملة كاملة، فإن طالت فأول كلماتها دون قطع كلمة ولا نقاط معلّقة.
+export function deriveContentTitle(body: string): string {
+  const clean = (body || "").replace(/\s+/g, " ").trim();
+  if (!clean) return "محتوى دون عنوان";
+  // نهاية أول جملة (نقطة/تعجب/سؤال/سطر جديد)
+  let cut = clean.length;
+  for (const mark of [".", "!", "؟", "\n", "؛"]) {
+    const i = clean.indexOf(mark);
+    if (i > 2 && i < cut) cut = i;
+  }
+  let title = clean.slice(0, cut).trim();
+  const words = title.split(" ");
+  if (words.length > 8) title = words.slice(0, 8).join(" ");
+  title = title.replace(/[،:؛\-–—.\s]+$/u, "").trim();
+  return title || "محتوى دون عنوان";
+}
+
 export const CONTENT_RECORDS_KEY = "lawyer-media:content-records:v2";
 export const ACTIVE_CONTENT_KEY = "lawyer-media:active-content";
 export const DEMO_USER_NAME = "ياسمين";
@@ -378,7 +396,7 @@ export function saveContentDraft(input: {
   }
 
   applyContextExtras(version, input);
-  record.title = input.title?.trim() || input.body.trim().slice(0, 72) || record.title;
+  record.title = input.title?.trim() || deriveContentTitle(input.body) || record.title;
   record.status = "مسودة";
   if (!record.approvedVersion) record.sharingStatus = "غير متاح";
   record.updatedAt = timestamp;
@@ -416,7 +434,7 @@ export function upsertAnalyzedVersion(input: {
   if (!record) {
     record = {
       id: contentId,
-      title: input.title?.trim() || input.body.trim().slice(0, 72) || "محتوى دون عنوان",
+      title: input.title?.trim() || deriveContentTitle(input.body),
       currentVersion: 1,
       status: "قيد التحليل",
       versions: [],
@@ -491,7 +509,7 @@ export function upsertAnalyzedVersion(input: {
       : "يحتاج إلى تعديل";
   version.updatedAt = timestamp;
   record.status = version.status;
-  record.title = input.title?.trim() || input.body.trim().slice(0, 72) || record.title;
+  record.title = input.title?.trim() || deriveContentTitle(input.body) || record.title;
   record.updatedAt = timestamp;
   record.actions.unshift({
     id: makeId("action"),

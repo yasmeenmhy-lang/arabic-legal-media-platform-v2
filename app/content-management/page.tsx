@@ -5,6 +5,7 @@ import Link from "next/link";
 import { CalendarDays, CheckCircle2, ChevronDown, ChevronLeft, ExternalLink, FileClock, FileText, Filter, FolderOpen, History, RotateCcw, Search, Trash2, X } from "lucide-react";
 import { Button, DgaSpinner, PageHeader, StatusBadge } from "@/components/ui";
 import {
+  deriveContentTitle,
   exportContentRecords,
   importContentRecords,
   loadContentRecords,
@@ -27,12 +28,21 @@ function formatDate(value?: string) {
   return `${hijri} / ${gregorian}`;
 }
 
-// تاريخ موجز لصفوف السجل (يوم/شهر/سنة) — أخفّ من التاريخ الكامل الهجري والميلادي
+// تاريخ موجز لصفوف السجل (يوم شهر سنة) بلا فاصلة — أخفّ وأنظف من التاريخ الكامل
 function formatShortDate(value?: string) {
   if (!value) return "";
   const d = new Date(value);
   if (Number.isNaN(d.getTime())) return "";
-  return new Intl.DateTimeFormat("ar-EG", { day: "numeric", month: "short", year: "numeric" }).format(d);
+  const day = new Intl.DateTimeFormat("ar-EG", { day: "numeric" }).format(d);
+  const month = new Intl.DateTimeFormat("ar-EG", { month: "long" }).format(d);
+  const year = new Intl.DateTimeFormat("ar-EG", { year: "numeric" }).format(d);
+  return `${day} ${month} ${year}`;
+}
+
+// عنوان الصفّ = موضوع قصير كامل مشتقّ من نص الإصدار الحالي (يصلح المحتوى القديم المخزّن بعنوان مقصوص)
+function recordDisplayTitle(record: StoredContentRecord): string {
+  const v = record.versions.find((x) => x.version === record.currentVersion) ?? record.versions.at(-1);
+  return deriveContentTitle(v?.body ?? "") || record.title;
 }
 
 function complianceLabel(findings?: { resolved?: boolean }[]): "ملتزم" | "غير ملتزم" | null {
@@ -437,7 +447,7 @@ export default function ContentManagementPage() {
                     onMouseDown={(e) => { e.preventDefault(); setExpanded(record.id); setSearchFocus(false); setSearch(""); }}
                     className="flex w-full items-center gap-2.5 border-b border-line/50 px-3 py-2.5 text-right transition last:border-b-0 hover:bg-mint/30"
                   >
-                    <span className="min-w-0 flex-1 truncate text-sm text-ink">{record.title}</span>
+                    <span className="min-w-0 flex-1 truncate text-sm text-ink">{recordDisplayTitle(record)}</span>
                     <StatusBadge tone={record.approvedVersion ? "good" : "gold"}>{record.approvedVersion ? "معتمد" : "مسودة"}</StatusBadge>
                   </button>
                 ))
@@ -491,13 +501,10 @@ export default function ContentManagementPage() {
                   >
                     <span className="shrink-0 grid h-7 w-7 place-items-center rounded-full bg-mint text-[11px] font-bold text-palm tabular-nums">{serialById.get(record.id) ?? index + 1}</span>
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm font-medium text-ink leading-6 line-clamp-2">{record.title}</p>
-                      {current && <p className="mt-0.5 truncate text-[11px] text-ink/45">{current.contentTypeLabel}{current.channel ? ` · ${current.channel}` : ""}</p>}
+                      <p className="text-sm font-medium text-ink leading-6 line-clamp-2">{recordDisplayTitle(record)}</p>
+                      {current && <p className="mt-1 truncate text-[11px] text-ink/45">{current.contentTypeLabel}{current.channel ? ` · ${current.channel}` : ""}{record.createdAt ? ` · ${formatShortDate(record.createdAt)}` : ""}</p>}
                     </div>
-                    <div className="shrink-0 flex flex-col items-end gap-1.5">
-                      <StatusBadge tone={st.tone}>{st.label}</StatusBadge>
-                      {record.createdAt ? <span className="whitespace-nowrap text-[10px] tabular-nums text-ink/40">{formatShortDate(record.createdAt)}</span> : null}
-                    </div>
+                    <div className="shrink-0"><StatusBadge tone={st.tone}>{st.label}</StatusBadge></div>
                     <ChevronDown size={16} className={`shrink-0 text-ink/35 transition-transform ${isOpen ? "rotate-180" : ""}`} aria-hidden="true" />
                   </button>
 
@@ -593,7 +600,7 @@ export default function ContentManagementPage() {
                       <tr key={record.id} className="border-b border-line/60 transition hover:bg-paper last:border-none">
                         <td className="whitespace-nowrap px-4 py-4 text-xs font-bold tabular-nums text-ink/40">{serialById.get(record.id) ?? index + 1}</td>
                         <td className="px-4 py-4">
-                          <p className="font-medium text-ink">{record.title}</p>
+                          <p className="font-medium text-ink line-clamp-2">{recordDisplayTitle(record)}</p>
                           {current && <p className="mt-0.5 text-xs text-ink/50">{current.contentTypeLabel} · {current.channel}</p>}
                         </td>
                         <td className="px-4 py-4">

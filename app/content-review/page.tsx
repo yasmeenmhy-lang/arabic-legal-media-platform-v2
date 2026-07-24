@@ -65,6 +65,7 @@ import {
   approveContentVersion,
   getActiveContentSelection,
   setActiveContentSelection,
+  deriveContentTitle,
   loadContentRecords,
   markContentShared,
   saveContentDraft,
@@ -1322,7 +1323,7 @@ export default function ContentReviewPage() {
                       onMouseDown={(e) => { e.preventDefault(); loadRecordVersion(r, r.currentVersion); setRecordSearchFocus(false); setRecordSearch(""); }}
                       className="flex w-full items-center gap-2.5 border-b border-line/50 px-3 py-2.5 text-right transition last:border-b-0 hover:bg-mint/30"
                     >
-                      <span className="min-w-0 flex-1 truncate text-sm text-ink">{r.title}</span>
+                      <span className="min-w-0 flex-1 truncate text-sm text-ink">{deriveContentTitle((r.versions.find((x) => x.version === r.currentVersion) ?? r.versions.at(-1))?.body ?? "") || r.title}</span>
                       <StatusBadge tone={r.approvedVersion ? "good" : "gold"}>{r.approvedVersion ? "معتمد" : "مسودة"}</StatusBadge>
                     </button>
                   )) : <p className="px-3 py-3 text-sm text-ink/50">لا نتائج مطابقة.</p>;
