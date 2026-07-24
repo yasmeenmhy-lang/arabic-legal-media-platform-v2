@@ -59,30 +59,24 @@ function riskTone(level?: RiskLevel): "good" | "gold" | "danger" | "neutral" {
   return "danger";
 }
 
-// بطاقة إحصائية في لوحة السجل — رقم كبير + وصف موجز، وزر «عرض الكل» يُصفّي القائمة.
-function StatCard({ label, value, unit, icon, tone, onView }: {
-  label: string; value: number; unit: string; icon: ReactNode;
-  tone: "palm" | "good" | "gold" | "info"; onView?: () => void;
+// بطاقة إحصائية في لوحة السجل — خلفية متدرّجة وأيقونة ملوّنة مملوءة ورقم ملوّن (حياة وألوان).
+function StatCard({ label, value, unit, icon, tone }: {
+  label: string; value: number; unit: string; icon: ReactNode; tone: "palm" | "good" | "gold" | "info";
 }) {
-  const toneCls = {
-    palm: "bg-mint text-palm",
-    good: "bg-green-50 text-green-600",
-    gold: "bg-amber-50 text-amber-600",
-    info: "bg-blue-50 text-blue-600"
+  const s = {
+    palm: { bg: "from-mint/80 to-white", ring: "border-palm/20", icon: "bg-palm text-white", num: "text-palm" },
+    good: { bg: "from-green-50 to-white", ring: "border-green-200", icon: "bg-green-500 text-white", num: "text-green-600" },
+    gold: { bg: "from-amber-50 to-white", ring: "border-amber-200", icon: "bg-amber-500 text-white", num: "text-amber-600" },
+    info: { bg: "from-blue-50 to-white", ring: "border-blue-200", icon: "bg-blue-500 text-white", num: "text-blue-600" }
   }[tone];
   return (
-    <div className="flex flex-col rounded-2xl border border-line bg-white p-4 shadow-sm">
-      <div className="mb-1.5 flex items-center justify-between gap-2">
-        <span className="text-xs font-semibold text-ink/60">{label}</span>
-        <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-lg ${toneCls}`}>{icon}</span>
+    <div className={`flex flex-col rounded-2xl border ${s.ring} bg-gradient-to-br ${s.bg} p-4 shadow-sm`}>
+      <div className="mb-2 flex items-center justify-between gap-2">
+        <span className="text-xs font-semibold text-ink/70">{label}</span>
+        <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-xl shadow-sm ${s.icon}`}>{icon}</span>
       </div>
-      <span className="text-2xl font-extrabold tabular-nums leading-none text-ink">{value}</span>
-      <span className="mt-1 text-[11px] text-ink/40">{unit}</span>
-      {onView ? (
-        <button type="button" onClick={onView} className="mt-2.5 inline-flex items-center gap-1 self-start text-xs font-bold text-palm transition hover:gap-1.5 focus-ring">
-          عرض الكل <ChevronLeft size={13} aria-hidden="true" />
-        </button>
-      ) : null}
+      <span className={`text-3xl font-extrabold leading-none tabular-nums ${s.num}`}>{value}</span>
+      <span className="mt-1.5 text-[11px] text-ink/50">{unit}</span>
     </div>
   );
 }
@@ -153,12 +147,6 @@ export default function ContentManagementPage() {
     return records.filter((item) => item.createdAt && new Date(item.createdAt).getTime() >= weekAgo).length;
   }, [records]);
 
-  // نقر بطاقة «عرض الكل» يُصفّي القائمة ويُنزل المستخدم إليها مباشرةً
-  const filterNavRef = useRef<HTMLElement>(null);
-  const selectFilter = (next: "all" | "drafts" | "approved") => {
-    setFilter(next);
-    setTimeout(() => filterNavRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 60);
-  };
 
   const filteredRecords = useMemo(() => records.filter((record) => {
     if (filter === "approved" && !record.approvedVersion) return false;
@@ -370,10 +358,10 @@ export default function ContentManagementPage() {
 
       {/* لوحة السجل — نظرة سريعة بمعطيات حقيقية، وكل بطاقة تُصفّي القائمة */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <StatCard label="إجمالي المحتوى" value={counts.all} unit="محتوى في السجل" icon={<FolderOpen size={17} />} tone="palm" onView={() => selectFilter("all")} />
-        <StatCard label="المعتمدة" value={counts.approved} unit="جاهزة ومعتمدة" icon={<CheckCircle2 size={17} />} tone="good" onView={() => selectFilter("approved")} />
-        <StatCard label="المسودات والحالية" value={counts.drafts} unit="قيد الإعداد" icon={<FileText size={17} />} tone="gold" onView={() => selectFilter("drafts")} />
-        <StatCard label="أُنشئت هذا الأسبوع" value={thisWeekCount} unit="خلال ٧ أيام" icon={<CalendarDays size={17} />} tone="info" />
+        <StatCard label="إجمالي المحتوى" value={counts.all} unit="محتوى في السجل" icon={<FolderOpen size={18} />} tone="palm" />
+        <StatCard label="المعتمدة" value={counts.approved} unit="جاهزة ومعتمدة" icon={<CheckCircle2 size={18} />} tone="good" />
+        <StatCard label="المسودات والحالية" value={counts.drafts} unit="قيد الإعداد" icon={<FileText size={18} />} tone="gold" />
+        <StatCard label="أُنشئت هذا الأسبوع" value={thisWeekCount} unit="خلال ٧ أيام" icon={<CalendarDays size={18} />} tone="info" />
       </div>
 
       {/* رسالة طمأنة: السجل وسيلة وقائية داخلية — لا استخدام تأديبياً وسرية تامة */}
@@ -461,7 +449,7 @@ export default function ContentManagementPage() {
         </div>
       ) : null}
 
-      <nav ref={filterNavRef} aria-label="تصفية سجل المحتوى" className="flex w-full gap-2 overflow-x-auto rounded-lg border border-line bg-white p-2 shadow-sm scroll-mt-20">
+      <nav aria-label="تصفية سجل المحتوى" className="flex w-full gap-2 overflow-x-auto rounded-lg border border-line bg-white p-2 shadow-sm">
         {([
           ["all", `الكل (${counts.all})`],
           ["drafts", `المسودات والحالية (${counts.drafts})`],
