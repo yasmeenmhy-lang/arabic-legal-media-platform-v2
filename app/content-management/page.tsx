@@ -494,16 +494,19 @@ export default function ContentManagementPage() {
 
           {snapshot.byType.length ? (
             <div className="rounded-2xl border border-line bg-white p-3.5 shadow-xs">
-              <p className="mb-2.5 flex items-center gap-2 text-xs font-semibold text-ink"><Tag size={14} className="text-palm" />أنواع المحتوى</p>
-              <div className="flex flex-wrap gap-1.5">
+              <p className="mb-3 flex items-center gap-2 text-xs font-semibold text-ink"><Tag size={14} className="text-palm" />أنواع المحتوى</p>
+              {/* صناديق موحّدة المقاس بشبكة مرتّبة؛ العنصر الأخير المفرد يتمركز */}
+              <div className="flex flex-wrap justify-center gap-2">
                 {snapshot.byType.map(([label, count], i) => {
                   const c = CALM[i % CALM.length];
                   return (
-                    <span key={label} className="inline-flex items-center gap-1.5 rounded-full border border-line bg-paper py-0.5 pl-2.5 pr-0.5">
-                      <span className={`grid h-6 w-6 shrink-0 place-items-center rounded-full ${c.bg} ${c.fg}`}>{typeIcon(label)}</span>
-                      <span className={`text-xs font-bold tabular-nums ${c.fg}`}>{count}</span>
-                      <span className="text-[10px] font-medium text-ink/60">{label}</span>
-                    </span>
+                    <div key={label} className="flex w-[calc(50%-0.25rem)] items-center justify-between gap-1.5 rounded-xl border border-line bg-paper px-2.5 py-2 sm:w-[calc(33.333%-0.5rem)]">
+                      <div className="flex min-w-0 items-baseline gap-1.5">
+                        <span className="truncate text-[11px] font-medium text-ink/70">{label}</span>
+                        <span className={`text-sm font-bold tabular-nums ${c.fg}`}>{count}</span>
+                      </div>
+                      <span className={`grid h-7 w-7 shrink-0 place-items-center rounded-lg ${c.bg} ${c.fg}`}>{typeIcon(label)}</span>
+                    </div>
                   );
                 })}
               </div>
@@ -512,17 +515,19 @@ export default function ContentManagementPage() {
 
           {snapshot.byChannel.length ? (
             <div className="rounded-2xl border border-line bg-white p-3.5 shadow-xs">
-              <p className="mb-2.5 flex items-center gap-2 text-xs font-semibold text-ink"><Share2 size={14} className="text-palm" />قنوات النشر</p>
-              <div className="flex flex-wrap gap-1.5">
+              <p className="mb-3 flex items-center gap-2 text-xs font-semibold text-ink"><Share2 size={14} className="text-palm" />قنوات النشر</p>
+              <div className="flex flex-wrap justify-center gap-2">
                 {snapshot.byChannel.map(([label, count]) => {
                   const b = channelBrand(label);
                   const idle = count === 0; // قناة معتمدة بلا محتوى بعد — تُعرَض بصفر بهيئة هادئة
                   return (
-                    <span key={label} className={`inline-flex items-center gap-1.5 rounded-full border py-0.5 pl-2.5 pr-0.5 ${idle ? "border-line/70 bg-paper/50" : "border-line bg-paper"}`}>
-                      <span className={`grid h-6 w-6 shrink-0 place-items-center rounded-full ${b.surface} ${b.icon} ${idle ? "opacity-45" : ""}`}>{b.node}</span>
-                      <span className={`text-xs font-bold tabular-nums ${idle ? "text-ink/35" : "text-ink"}`}>{count}</span>
-                      <span className={`text-[10px] font-medium ${idle ? "text-ink/40" : "text-ink/60"}`}>{label}</span>
-                    </span>
+                    <div key={label} className={`flex w-[calc(50%-0.25rem)] items-center justify-between gap-1.5 rounded-xl border px-2.5 py-2 sm:w-[calc(33.333%-0.5rem)] ${idle ? "border-line/70 bg-paper/50" : "border-line bg-paper"}`}>
+                      <div className="flex min-w-0 items-baseline gap-1.5">
+                        <span className={`truncate text-[11px] font-medium ${idle ? "text-ink/40" : "text-ink/70"}`}>{label}</span>
+                        <span className={`text-sm font-bold tabular-nums ${idle ? "text-ink/35" : "text-ink"}`}>{count}</span>
+                      </div>
+                      <span className={`grid h-7 w-7 shrink-0 place-items-center rounded-lg ${b.surface} ${b.icon} ${idle ? "opacity-45" : ""}`}>{b.node}</span>
+                    </div>
                   );
                 })}
               </div>
