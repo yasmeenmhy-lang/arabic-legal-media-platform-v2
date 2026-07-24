@@ -309,7 +309,7 @@ export default function ContentManagementPage() {
       <div className="space-y-6">
         <PageHeader
           title="سجل المحتوى المهني"
-          action={<ButtonLink href="/content-review">إعداد محتوى جديد</ButtonLink>}
+          action={<ButtonLink href="/content-studio">إعداد محتوى جديد</ButtonLink>}
         />
 
         {/* رسالة طمأنة: السجل وسيلة وقائية داخلية — لا استخدام تأديبياً وسرية تامة */}
@@ -332,7 +332,7 @@ export default function ContentManagementPage() {
     <div className="space-y-6">
       <PageHeader
         title="سجل المحتوى المهني"
-        action={<ButtonLink href="/content-review">إعداد محتوى جديد</ButtonLink>}
+        action={<ButtonLink href="/content-studio">إعداد محتوى جديد</ButtonLink>}
       />
 
 
