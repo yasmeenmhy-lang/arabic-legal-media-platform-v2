@@ -76,7 +76,7 @@ function riskTone(level?: RiskLevel): "good" | "gold" | "danger" | "neutral" {
 }
 
 // ── لوحة السجل (سنابشوت) — بطاقات مصغّرة بدرجات هادئة من كود المنصات (أيقونات ناعمة لا مملوءة صارخة) ──
-type DashTone = "sa" | "sky" | "success" | "gold" | "lavender" | "rose";
+type DashTone = "sa" | "sky" | "success" | "gold" | "lavender" | "rose" | "warn";
 const TONE: Record<DashTone, { card: string; iconBg: string; icon: string; num: string; bar: string; track: string }> = {
   // الأخضر السعودي — بطاقة الإجمالي المميّزة بالوسط
   sa:       { card: "border-palm/25 bg-mint/50",  iconBg: "bg-white",       icon: "text-palm",       num: "text-palmDeep",    bar: "bg-palm",       track: "bg-palm/15" },
@@ -85,7 +85,9 @@ const TONE: Record<DashTone, { card: string; iconBg: string; icon: string; num: 
   gold:     { card: "border-line bg-white",       iconBg: "bg-goldSoft",    icon: "text-gold",       num: "text-goldDark",    bar: "bg-gold",       track: "bg-gold/15" },
   lavender: { card: "border-line bg-white",       iconBg: "bg-violetSoft",  icon: "text-violet",     num: "text-violetDark",  bar: "bg-violet",     track: "bg-violet/12" },
   // الورد المخفّف — الدرجة الهادئة (300/400) لا الأحمر الصارخ
-  rose:     { card: "border-line bg-white",       iconBg: "bg-errorSoft",   icon: "text-[#F97066]",  num: "text-[#B42318]",   bar: "bg-[#FDA29B]",  track: "bg-errorBorder" }
+  rose:     { card: "border-line bg-white",       iconBg: "bg-errorSoft",   icon: "text-[#F97066]",  num: "text-[#B42318]",   bar: "bg-[#FDA29B]",  track: "bg-errorBorder" },
+  // تحذيري — المسودة حالة تحذيرية (كود المنصات: Warning 100/200)
+  warn:     { card: "border-line bg-white",       iconBg: "bg-[#FEF0C7]",   icon: "text-[#B54708]",  num: "text-[#B54708]",   bar: "bg-[#FEDF89]",  track: "bg-[#FEF0C7]" }
 };
 
 // بطاقة إحصائية مصغّرة: أيقونة ناعمة + رقم + تسمية ووصف خفيف + شريط نسبة. خط صغير هادئ.
@@ -465,15 +467,15 @@ export default function ContentManagementPage() {
       {/* لوحة السجل — بطاقات مصغّرة هادئة: الإجمالي مميّز بالوسط، رحلة المحتوى، ثم حسب النوع والقناة */}
       {records.length > 0 ? (
         <div className="space-y-3">
-          {/* الإجمالي بارز أكبر وأوضح، ومعه مؤشّران موجزان لا يكرّران مراحل رحلة المحتوى */}
+          {/* الإجمالي بارز بلون كود المنصات Info 900، ومعه مؤشّران موجزان لا يكرّران مراحل رحلة المحتوى */}
           <div className="space-y-2">
-            <div className="rounded-2xl border border-palm/25 bg-mint/50 p-4">
+            <div className="rounded-2xl border border-[#194185] bg-[#194185] p-4 shadow-sm">
               <div className="flex items-center justify-between gap-2">
-                <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-white text-palm shadow-xs"><FolderOpen size={22} /></span>
-                <span className="text-4xl font-bold leading-none tabular-nums text-palmDeep">{counts.all}</span>
+                <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-white/15 text-white"><FolderOpen size={22} /></span>
+                <span className="text-4xl font-bold leading-none tabular-nums text-white">{counts.all}</span>
               </div>
-              <p className="mt-2.5 text-sm font-semibold text-ink">إجمالي المحتوى</p>
-              <p className="text-[11px] font-normal text-ink/50">جميع المحتويات المحفوظة في السجل</p>
+              <p className="mt-2.5 text-sm font-semibold text-white">إجمالي المحتوى</p>
+              <p className="text-[11px] font-normal text-white/60">جميع المحتويات المحفوظة في السجل</p>
             </div>
             <div className="grid grid-cols-2 gap-2">
               <StatCard value={acceptance} suffix="%" label="نسبة الاعتماد" sub="من إجمالي المحتوى" icon={<CheckCircle2 size={16} />} tone="success" pct={acceptance} />
@@ -482,29 +484,24 @@ export default function ContentManagementPage() {
           </div>
 
           <JourneyStepper steps={[
-            { label: "إنشاء المحتوى", value: counts.drafts, sub: "مسودة", icon: <PenLine size={16} />, tone: "success" },
+            { label: "إنشاء المحتوى", value: counts.drafts, sub: "مسودة", icon: <PenLine size={16} />, tone: "warn" },
             { label: "المراجعة والتحليل", value: snapshot.reviewed, sub: "قيد التحليل", icon: <Search size={16} />, tone: "sky" },
-            { label: "الاعتماد", value: counts.approved, sub: "معتمد", icon: <ShieldCheck size={16} />, tone: "gold" },
+            { label: "الاعتماد", value: counts.approved, sub: "معتمد", icon: <ShieldCheck size={16} />, tone: "success" },
             { label: "النشر", value: snapshot.channelsUsed, sub: "قنوات نشطة", icon: <Send size={16} />, tone: "lavender" }
           ]} />
 
           {snapshot.byType.length ? (
             <div className="rounded-2xl border border-line bg-white p-3.5 shadow-xs">
-              <p className="mb-3 flex items-center gap-2 text-xs font-semibold text-ink"><Tag size={14} className="text-palm" />أنواع المحتوى</p>
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+              <p className="mb-2.5 flex items-center gap-2 text-xs font-semibold text-ink"><Tag size={14} className="text-palm" />أنواع المحتوى</p>
+              <div className="flex flex-wrap gap-1.5">
                 {snapshot.byType.map(([label, count], i) => {
                   const c = CALM[i % CALM.length];
                   return (
-                    <div key={label} className="flex items-center gap-2 rounded-xl border border-line bg-paper px-2.5 py-2">
-                      <span className={`grid h-7 w-7 shrink-0 place-items-center rounded-lg ${c.bg} ${c.fg}`}>{typeIcon(label)}</span>
-                      <div className="min-w-0">
-                        <div className="flex items-baseline gap-1">
-                          <span className={`text-sm font-bold tabular-nums ${c.fg}`}>{count}</span>
-                          <span className="text-[9px] tabular-nums text-ink/40">{counts.all ? Math.round((count / counts.all) * 100) : 0}%</span>
-                        </div>
-                        <div className="truncate text-[10px] font-medium text-ink/70">{label}</div>
-                      </div>
-                    </div>
+                    <span key={label} className="inline-flex items-center gap-1.5 rounded-full border border-line bg-paper py-0.5 pl-2.5 pr-0.5">
+                      <span className={`grid h-6 w-6 shrink-0 place-items-center rounded-full ${c.bg} ${c.fg}`}>{typeIcon(label)}</span>
+                      <span className={`text-xs font-bold tabular-nums ${c.fg}`}>{count}</span>
+                      <span className="text-[10px] font-medium text-ink/60">{label}</span>
+                    </span>
                   );
                 })}
               </div>
@@ -513,19 +510,17 @@ export default function ContentManagementPage() {
 
           {snapshot.byChannel.length ? (
             <div className="rounded-2xl border border-line bg-white p-3.5 shadow-xs">
-              <p className="mb-3 flex items-center gap-2 text-xs font-semibold text-ink"><Share2 size={14} className="text-palm" />قنوات النشر</p>
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+              <p className="mb-2.5 flex items-center gap-2 text-xs font-semibold text-ink"><Share2 size={14} className="text-palm" />قنوات النشر</p>
+              <div className="flex flex-wrap gap-1.5">
                 {snapshot.byChannel.map(([label, count]) => {
                   const b = channelBrand(label);
                   const idle = count === 0; // قناة معتمدة بلا محتوى بعد — تُعرَض بصفر بهيئة هادئة
                   return (
-                    <div key={label} className={`flex items-center gap-2 rounded-xl border px-2.5 py-2 ${idle ? "border-line/70 bg-paper/50" : "border-line bg-paper"}`}>
-                      <span className={`grid h-7 w-7 shrink-0 place-items-center rounded-lg ${b.surface} ${b.icon} ${idle ? "opacity-45" : ""}`}>{b.node}</span>
-                      <div className="min-w-0">
-                        <div className={`text-sm font-bold tabular-nums ${idle ? "text-ink/35" : "text-ink"}`}>{count}</div>
-                        <div className={`truncate text-[10px] font-medium ${idle ? "text-ink/45" : "text-ink/70"}`}>{label}</div>
-                      </div>
-                    </div>
+                    <span key={label} className={`inline-flex items-center gap-1.5 rounded-full border py-0.5 pl-2.5 pr-0.5 ${idle ? "border-line/70 bg-paper/50" : "border-line bg-paper"}`}>
+                      <span className={`grid h-6 w-6 shrink-0 place-items-center rounded-full ${b.surface} ${b.icon} ${idle ? "opacity-45" : ""}`}>{b.node}</span>
+                      <span className={`text-xs font-bold tabular-nums ${idle ? "text-ink/35" : "text-ink"}`}>{count}</span>
+                      <span className={`text-[10px] font-medium ${idle ? "text-ink/40" : "text-ink/60"}`}>{label}</span>
+                    </span>
                   );
                 })}
               </div>
