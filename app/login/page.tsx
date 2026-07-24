@@ -57,7 +57,7 @@ function DeviceMock() {
             key={f.title}
             className={`absolute ${f.pos} z-10 w-[190px] rounded-2xl border border-white/[0.08] bg-gradient-to-b from-white/[0.06] to-white/[0.03] p-3.5 shadow-[0_20px_40px_-22px_rgba(0,0,0,0.7)]`}
           >
-            <p className="flex items-center gap-2 text-[13px] font-extrabold">
+            <p className="flex items-center gap-2 text-[13px] font-bold">
               <span className={`grid h-6 w-6 place-items-center rounded-lg ${f.bg} ${f.tone}`}>
                 <Icon size={14} />
               </span>
@@ -73,7 +73,7 @@ function DeviceMock() {
         <div className="overflow-hidden rounded-[32px] bg-white text-ink">
           <div className="mx-auto h-[22px] w-[110px] rounded-b-[14px] bg-[#05261a]" />
           <div className="px-3 pb-3.5 pt-3">
-            <div className="flex items-center justify-between text-[12px] font-extrabold">
+            <div className="flex items-center justify-between text-[12px] font-bold">
               <Menu size={14} className="text-ink/70" />
               <span className="flex items-center gap-1.5 text-palmDeep">
                 استوديو المحتوى المهني <Sparkles size={12} />
@@ -99,7 +99,7 @@ function DeviceMock() {
               يهدف هذا المقال إلى توضيح أبرز الالتزامات المهنية وفق نظام المحاماة واللائحة التنفيذية، مع التركيز على السرية المهنية وتجنّب تعارض المصالح.
             </div>
             <p dir="ltr" className="mt-1 text-right text-[9px] text-ink/40">194 / 3000</p>
-            <div className="mt-2.5 rounded-lg bg-palmDeep py-2 text-center text-[11.5px] font-extrabold text-white">✦ إنشاء المحتوى</div>
+            <div className="mt-2.5 rounded-lg bg-palmDeep py-2 text-center text-[11.5px] font-bold text-white">✦ إنشاء المحتوى</div>
             <div className="mt-2.5 flex items-center justify-between border-t border-line pt-2 text-[8px] text-ink/45">
               <span>السجل</span><span>المراجعة</span>
               <span className="-mt-3.5 grid h-8 w-8 place-items-center rounded-full bg-palm text-white"><Sparkles size={14} /></span>
@@ -129,7 +129,7 @@ export default function LoginPage() {
               <Scale size={22} />
             </span>
             <div className="min-w-0">
-              <p className="max-w-[210px] text-[13px] font-extrabold leading-tight sm:max-w-none">إدارة المحتوى الإعلامي والإعلاني للمحامين</p>
+              <p className="max-w-[210px] text-[13px] font-bold leading-tight sm:max-w-none">إدارة المحتوى الإعلامي والإعلاني للمحامين</p>
               <p className="text-[10.5px] text-white/45">الإدارة العامة للمحاماة</p>
             </div>
           </div>
@@ -156,7 +156,7 @@ export default function LoginPage() {
               <ShieldCheck size={13} />
               خاص بالمحامين المرخّصين في المملكة
             </span>
-            <h1 className="mt-4 text-[34px] font-extrabold leading-[1.32] sm:text-[46px]">
+            <h1 className="mt-4 text-[34px] font-bold leading-[1.32] sm:text-[46px]">
               إدارة المحتوى الإعلامي <span className="text-[#17B26A]">والإعلاني</span> للمحامين
             </h1>
             <p className="mt-5 max-w-[540px] text-[15px] leading-[2] text-white/65 sm:text-[16px]">
@@ -165,7 +165,7 @@ export default function LoginPage() {
             <div className="mt-7 flex flex-wrap gap-3">
               <a
                 href="#login"
-                className="flex items-center gap-2.5 rounded-[13px] bg-[#25935F] px-7 py-3.5 text-[15px] font-extrabold text-white shadow-[0_14px_30px_-12px_rgba(37,147,95,0.9)] transition hover:bg-[#1B8354] focus-ring"
+                className="flex items-center gap-2.5 rounded-[13px] bg-[#25935F] px-7 py-3.5 text-[15px] font-bold text-white shadow-[0_14px_30px_-12px_rgba(37,147,95,0.9)] transition hover:bg-[#1B8354] focus-ring"
               >
                 ابدأ الآن <ArrowLeft size={18} />
               </a>
@@ -183,7 +183,7 @@ export default function LoginPage() {
 
         {/* بطاقة الدخول الفعلية */}
         <section id="login" className="mx-auto mt-2 max-w-md scroll-mt-4 rounded-2xl bg-[#F4F8FC] p-5 text-ink shadow-[0_24px_50px_-24px_rgba(0,0,0,0.75)]">
-          <h2 className="flex items-center gap-2 text-[15px] font-extrabold text-ink">
+          <h2 className="flex items-center gap-2 text-[15px] font-bold text-ink">
             <LogIn size={18} className="text-palm" />
             تسجيل الدخول
           </h2>
@@ -246,7 +246,7 @@ export default function LoginPage() {
 
         {/* القدرات */}
         <section id="features" className="scroll-mt-4 border-t border-white/[0.08] pt-10">
-          <h3 className="mb-6 text-center text-lg font-extrabold sm:text-xl">ماذا تقدّم المنصّة</h3>
+          <h3 className="mb-6 text-center text-lg font-bold sm:text-xl">ماذا تقدّم المنصّة</h3>
           <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6">
             {FEATURES.map((f) => {
               const Icon = f.icon;
@@ -265,7 +265,7 @@ export default function LoginPage() {
 
         {/* الطمأنة */}
         <section className="mt-6 rounded-2xl border border-white/[0.08] bg-gradient-to-b from-white/[0.06] to-white/[0.03] p-6">
-          <h4 className="flex items-center justify-center gap-2 text-[14px] font-extrabold text-[#17B26A]">
+          <h4 className="flex items-center justify-center gap-2 text-[14px] font-bold text-[#17B26A]">
             <ShieldCheck size={17} />
             مراجعة وقائية آمنة
           </h4>
