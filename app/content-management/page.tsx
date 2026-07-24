@@ -127,7 +127,10 @@ function JourneyStepper({ steps }: { steps: Array<{ label: string; value: number
   );
 }
 
-// درجات هادئة متناوبة لبطاقات «حسب النوع»
+// قنوات النشر المعتمدة في المنصّة (مطابقة لقائمة مركز المحتوى) — تُعرَض كلها ولو بلا محتوى (صفر)
+const PUBLISH_CHANNELS = ["LinkedIn", "X", "Instagram", "TikTok", "Snapchat", "YouTube", "الموقع الإلكتروني"];
+
+// درجات هادئة متناوبة لبطاقات «أنواع المحتوى»
 const CALM = [
   { bg: "bg-infoSoft", fg: "text-infoDark" },
   { bg: "bg-violetSoft", fg: "text-violetDark" },
@@ -238,8 +241,15 @@ export default function ContentManagementPage() {
       return [...map.entries()].sort((a, b) => b[1] - a[1]);
     };
     const byType = tally((r) => cur(r)?.contentTypeLabel);
-    const byChannel = tally((r) => cur(r)?.channel);
-    return { reviewed, channelsUsed: byChannel.length, byType, byChannel };
+    const usedByChannel = tally((r) => cur(r)?.channel);
+    // نعرض كل قنوات المنصّة — المستخدمة بأعدادها، وغير المستخدمة بصفر — بترتيب الأكثر أولاً
+    const usedMap = new Map(usedByChannel);
+    const allChannelNames = [...PUBLISH_CHANNELS];
+    for (const [label] of usedByChannel) if (!allChannelNames.includes(label)) allChannelNames.push(label);
+    const byChannel = allChannelNames
+      .map((label) => [label, usedMap.get(label) ?? 0] as [string, number])
+      .sort((a, b) => b[1] - a[1]);
+    return { reviewed, channelsUsed: usedByChannel.length, byType, byChannel };
   }, [records]);
   const acceptance = counts.all ? Math.round((counts.approved / counts.all) * 100) : 0;
 
@@ -474,11 +484,11 @@ export default function ContentManagementPage() {
           {snapshot.byType.length ? (
             <div className="rounded-2xl border border-line bg-white p-3.5 shadow-xs">
               <p className="mb-3 flex items-center gap-2 text-xs font-semibold text-ink"><Tag size={14} className="text-palm" />أنواع المحتوى</p>
-              <div className="flex flex-wrap gap-2">
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
                 {snapshot.byType.map(([label, count], i) => {
                   const c = CALM[i % CALM.length];
                   return (
-                    <div key={label} className="flex items-center gap-2 rounded-xl border border-line bg-paper px-2.5 py-1.5">
+                    <div key={label} className="flex items-center gap-2 rounded-xl border border-line bg-paper px-2.5 py-2">
                       <span className={`grid h-7 w-7 shrink-0 place-items-center rounded-lg ${c.bg} ${c.fg}`}>{typeIcon(label)}</span>
                       <div className="min-w-0">
                         <div className="flex items-baseline gap-1">
@@ -497,15 +507,16 @@ export default function ContentManagementPage() {
           {snapshot.byChannel.length ? (
             <div className="rounded-2xl border border-line bg-white p-3.5 shadow-xs">
               <p className="mb-3 flex items-center gap-2 text-xs font-semibold text-ink"><Share2 size={14} className="text-palm" />قنوات النشر</p>
-              <div className="flex flex-wrap gap-2">
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
                 {snapshot.byChannel.map(([label, count]) => {
                   const b = channelBrand(label);
+                  const idle = count === 0; // قناة معتمدة بلا محتوى بعد — تُعرَض بصفر بهيئة هادئة
                   return (
-                    <div key={label} className="flex items-center gap-2 rounded-xl border border-line bg-paper px-2.5 py-1.5">
-                      <span className={`grid h-7 w-7 shrink-0 place-items-center rounded-lg ${b.surface} ${b.icon}`}>{b.node}</span>
+                    <div key={label} className={`flex items-center gap-2 rounded-xl border px-2.5 py-2 ${idle ? "border-line/70 bg-paper/50" : "border-line bg-paper"}`}>
+                      <span className={`grid h-7 w-7 shrink-0 place-items-center rounded-lg ${b.surface} ${b.icon} ${idle ? "opacity-45" : ""}`}>{b.node}</span>
                       <div className="min-w-0">
-                        <div className="text-sm font-bold tabular-nums text-ink">{count}</div>
-                        <div className="truncate text-[10px] font-medium text-ink/70">{label}</div>
+                        <div className={`text-sm font-bold tabular-nums ${idle ? "text-ink/35" : "text-ink"}`}>{count}</div>
+                        <div className={`truncate text-[10px] font-medium ${idle ? "text-ink/45" : "text-ink/70"}`}>{label}</div>
                       </div>
                     </div>
                   );
