@@ -128,7 +128,7 @@ export function PageHeader({
   illustration?: React.ReactNode;
 }) {
   return (
-    <div className="mb-6 w-full max-w-full overflow-hidden rounded-lg border border-line bg-gradient-to-l from-mint via-white to-white p-4 shadow-sm sm:p-6">
+    <div className="mb-6 w-full max-w-full overflow-hidden rounded-lg border border-line bg-gradient-to-l from-mint via-white to-white px-4 py-6 shadow-sm sm:px-6 sm:py-8">
       <div className="flex flex-col justify-between gap-5 lg:flex-row lg:items-center">
         {/* الرسم بجانب العنوان في كل المقاسات (الجوال أصغر) — لا يُخفى على الجوال */}
         <div className="flex min-w-0 flex-1 items-center gap-4">
@@ -142,7 +142,7 @@ export function PageHeader({
             <h2 className="text-lg font-semibold leading-8 text-ink sm:text-xl sm:leading-9">{title}</h2>
             {description ? <p className="mt-2 max-w-4xl text-sm leading-7 text-ink/65">{description}</p> : null}
           </div>
-          {illustration ? <div className="w-[140px] shrink-0 sm:w-[200px]">{illustration}</div> : null}
+          {illustration ? <div className="w-[160px] shrink-0 sm:w-[220px]">{illustration}</div> : null}
         </div>
         {action ? <div className="min-w-0 shrink-0">{action}</div> : null}
       </div>
