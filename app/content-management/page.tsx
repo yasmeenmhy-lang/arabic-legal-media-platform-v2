@@ -307,7 +307,7 @@ export default function ContentManagementPage() {
   if (!loaded) {
     return (
       <div className="space-y-6">
-        <PageHeader title="سجل المحتوى المهني" />
+        <PageHeader eyebrow="أرشيف المحتوى واعتماداته" title="سجل المحتوى المهني" />
 
         {/* رسالة طمأنة: السجل وسيلة وقائية داخلية — لا استخدام تأديبياً وسرية تامة */}
         <div className="rounded-xl border border-infoBorder bg-infoSoft p-4">
@@ -327,7 +327,7 @@ export default function ContentManagementPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="سجل المحتوى المهني" />
+      <PageHeader eyebrow="أرشيف المحتوى واعتماداته" title="سجل المحتوى المهني" />
 
 
       {/* رسالة طمأنة: السجل وسيلة وقائية داخلية — لا استخدام تأديبياً وسرية تامة */}

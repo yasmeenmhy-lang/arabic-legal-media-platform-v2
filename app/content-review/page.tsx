@@ -1268,7 +1268,7 @@ export default function ContentReviewPage() {
     <div className="content-review-window space-y-6">
       <PageHeader
         eyebrow="مساعد قرار النشر للمحامي"
-        title="إدارة المحتوى الإعلامي والإعلاني للمحامين"
+        title="التحليل التفصيلي للمحتوى المهني"
         action={<ButtonLink href={contentId ? "/content-studio?results=1" : "/content-studio"} variant="secondary-gray"><ArrowRight size={16} />العودة إلى مركز المحتوى</ButtonLink>}
       />
 
