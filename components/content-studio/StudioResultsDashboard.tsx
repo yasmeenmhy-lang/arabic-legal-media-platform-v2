@@ -1,6 +1,6 @@
 "use client";
 
-import { BookMarked, FileText, Image as ImageIcon } from "lucide-react";
+import { BookMarked, ChevronDown, FileText, Image as ImageIcon } from "lucide-react";
 import { Button, ButtonLink, Panel, StatusBadge } from "@/components/ui";
 import { QUOTE_INTEGRITY_NOTICE } from "@/lib/quote-notice";
 import { riskDisplayLabel, type ReviewResult } from "@/lib/types";
@@ -79,10 +79,18 @@ export function StudioResultsDashboard({ review, text, visuals = [], onEdit, onS
     <section aria-labelledby="studio-results-title" className="space-y-5">
       <div className={`grid items-stretch gap-4 ${visuals.length ? "lg:grid-cols-2" : ""}`}>
         <Panel>
-          <p className="mb-3 flex items-center gap-2 text-sm font-semibold text-ink"><FileText size={16} aria-hidden="true" />النص محل المراجعة</p>
-          <div className="max-h-40 overflow-y-auto rounded-xl border border-line bg-paper p-4 text-sm leading-8 text-ink/80">
-            <p className="whitespace-pre-wrap">{text}</p>
-          </div>
+          {/* نص المحتوى أوكورديون مغلق — هذه شاشة استعراض، فالمؤشرات هي المقدَّمة */}
+          <details className="group">
+            <summary className="cursor-pointer list-none focus-ring">
+              <div className="flex items-center justify-between gap-2 text-sm font-semibold text-ink">
+                <span className="flex items-center gap-2"><FileText size={16} aria-hidden="true" />نص المحتوى</span>
+                <ChevronDown size={16} className="shrink-0 text-ink/40 transition-transform group-open:rotate-180" aria-hidden="true" />
+              </div>
+            </summary>
+            <div className="mt-3 max-h-40 overflow-y-auto rounded-xl border border-line bg-paper p-4 text-sm leading-8 text-ink/80">
+              <p className="whitespace-pre-wrap">{text}</p>
+            </div>
+          </details>
           <details className="mt-3 border-t border-line pt-3">
             <summary className="flex cursor-pointer list-none flex-wrap items-center gap-2 text-sm font-semibold text-infoDark focus-ring">
               <BookMarked size={16} aria-hidden="true" /><span>{QUOTE_INTEGRITY_NOTICE.title}</span><span className="text-xs font-normal text-ink/50">عرض الملاحظة كاملة</span>
@@ -120,9 +128,9 @@ export function StudioResultsDashboard({ review, text, visuals = [], onEdit, onS
           <Button variant="secondary-gray" onClick={onEdit}>تعديل النص</Button>
         </div>
 
-        <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3">
-          {summaryChips.map((chip) => (
-            <div key={chip.label} className="rounded-lg border border-line bg-paper px-3 py-2">
+        <div className="mt-4 grid grid-cols-2 gap-2">
+          {summaryChips.map((chip, idx) => (
+            <div key={chip.label} className={`rounded-lg border border-line bg-paper px-3 py-2 ${idx === summaryChips.length - 1 ? "col-span-2" : ""}`}>
               <p className="text-[10px] text-ink/50">{chip.label}</p>
               <p className={`mt-0.5 text-xs font-bold ${chipText[chip.tone]}`}>{chip.value}</p>
             </div>
