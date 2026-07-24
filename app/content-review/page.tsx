@@ -14,6 +14,7 @@ import {
   CheckCircle2,
   Edit3,
   ExternalLink,
+  FileClock,
   FileDown,
   FileText,
   Globe,
@@ -38,7 +39,7 @@ import {
   ChevronDown,
   X
 } from "lucide-react";
-import { Button, ButtonLink, DgaSpinner, PageHeader, Panel, SectionTitle, StatusBadge } from "@/components/ui";
+import { Button, ButtonLink, DgaSpinner, KpiCard, PageHeader, Panel, SectionTitle, StatusBadge } from "@/components/ui";
 import { FieldLabel } from "@/components/field-label";
 import { SourcesPanel, type Source } from "@/components/sources-panel";
 import { PreviewToggleButton, ReadingPreview } from "@/components/text-preview";
@@ -423,8 +424,9 @@ export default function ContentReviewPage() {
   const [savedRecords, setSavedRecords] = useState<StoredContentRecord[]>([]);
   const [recordSearch, setRecordSearch] = useState("");
   const [recordSearchFocus, setRecordSearchFocus] = useState(false);
-  // صندوق كتابة المحتوى مفتوح افتراضياً — هو الإجراء الأول في الصفحة
-  const [inputOpen, setInputOpen] = useState(true);
+  // صندوق المحتوى مرتبط بالمحتوى المختار: يُفتح فور اختيار مادة من السجل ليُرى نصّها،
+  // ويبقى مغلقاً ما لم يُختر شيء (هذه الصفحة تعمل على محتوى قائم لا على كتابة جديدة).
+  const [inputOpen, setInputOpen] = useState(false);
   const recordSearchRef = useRef<HTMLDivElement>(null);
 
   // إغلاق القائمة المنسدلة عند الضغط خارجها فقط — لا عند إخفاء الكيبورد (Done)،
@@ -457,6 +459,8 @@ export default function ContentReviewPage() {
     setActiveContentSelection(record.id, version.version);
     setContentTitle(record.title === "محتوى دون عنوان" ? "" : record.title);
     setText(version.body);
+    // الصندوق مرتبط بالمحتوى المختار — يُفتح ليرى المحامي نصّ المادة التي فتحها
+    setInputOpen(true);
     setKind(version.contentType);
     setChannel(version.channel);
     setAudience(version.audience);
@@ -1375,9 +1379,7 @@ export default function ContentReviewPage() {
             ) : null}
           </div>
         ) : null}
-        {/* مراجعة المحتوى — مفتوح افتراضياً: كتابة النص هي غرض الصفحة، وإخفاؤه خلف
-            أوكورديون مغلق يترك الصفحة فارغة ويخفي الإجراء الأول عن المستخدم.
-            الـ flex على div داخلي لا على summary لتفادي عطل Safari */}
+        {/* مراجعة المحتوى — يُفتح بمجرد اختيار محتوى من السجل؛ الـ flex على div داخلي لا على summary لتفادي عطل Safari */}
         <details
           open={inputOpen}
           onToggle={(e) => setInputOpen((e.currentTarget as HTMLDetailsElement).open)}
@@ -2023,6 +2025,69 @@ export default function ContentReviewPage() {
         </div>
         {message ? <p className="mt-3 text-sm text-palm">{message}</p> : null}
       </Panel>
+
+      {/* هذه الصفحة تعمل على محتوى قائم في السجل (الكتابة والإنشاء في مركز المحتوى)،
+          فاختيار المحتوى هو غرضها الأول — يُعرض السجل ظاهراً لا داخل قائمة منسدلة
+          وحدها. أرقام حقيقية من سجلّ المحامي، بلا حشو ولا نص تفسيري. */}
+      {!review && savedRecords.length > 0 ? (
+        <Panel>
+          <SectionTitle title="اختر محتوى من سجلّك" />
+          <div className="grid grid-cols-3 gap-3">
+            <KpiCard
+              label="مواد السجل"
+              value={String(savedRecords.length)}
+              hint="إجمالي المواد المحفوظة في سجلّك"
+              tone="neutral"
+              icon={<FileClock size={18} />}
+              href="/content-management"
+            />
+            <KpiCard
+              label="مسودات"
+              value={String(savedRecords.filter((r) => !r.approvedVersion).length)}
+              hint="مواد لم تُعتمد بعد"
+              tone="gold"
+              icon={<Edit3 size={18} />}
+              href="/content-management"
+            />
+            <KpiCard
+              label="معتمدة"
+              value={String(savedRecords.filter((r) => Boolean(r.approvedVersion)).length)}
+              hint="مواد اعتُمدت وجاهزة للنشر"
+              tone="good"
+              icon={<CheckCircle2 size={18} />}
+              href="/content-management"
+            />
+          </div>
+
+          <p className="mb-2 mt-5 text-sm font-medium text-ink">آخر ما عملت عليه</p>
+          <div className="flex flex-col gap-2">
+            {[...savedRecords]
+              .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
+              .slice(0, 6)
+              .map((r) => {
+                const v = r.versions.find((x) => x.version === r.currentVersion) ?? r.versions.at(-1);
+                return (
+                  <button
+                    key={r.id}
+                    type="button"
+                    onClick={() => loadRecordVersion(r, r.currentVersion)}
+                    className="flex w-full items-center gap-2.5 rounded-lg border border-line bg-white px-3 py-3 text-right transition hover:border-palm hover:bg-mint/20 focus-ring"
+                  >
+                    <span className="min-w-0 flex-1 truncate text-sm text-ink">
+                      {deriveContentTitle(v?.body ?? "") || r.title}
+                    </span>
+                    <StatusBadge tone={r.approvedVersion ? "good" : "gold"}>{r.approvedVersion ? "معتمد" : "مسودة"}</StatusBadge>
+                  </button>
+                );
+              })}
+          </div>
+          {savedRecords.length > 6 ? (
+            <div className="mt-3">
+              <ButtonLink href="/content-management" variant="secondary-gray"><FileClock size={15} />السجل الكامل</ButtonLink>
+            </div>
+          ) : null}
+        </Panel>
+      ) : null}
 
       {review ? (
         <>
