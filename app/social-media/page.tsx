@@ -230,7 +230,6 @@ export default function SocialMediaPage() {
       <PageHeader
         eyebrow="المشاركة والتصدير"
         title="تجهيز مخرجات النشر المعتمدة"
-        description="اختر نسخة معتمدة، ثم انسخها أو عدّلها أو نزّل حزمها أو افتح قناة المشاركة."
       />
       <Link href="/content-review?open=1" className="inline-flex rounded-md border border-line px-4 py-2 text-sm text-palm transition hover:border-palm hover:bg-mint focus-ring">
         عودة إلى نتائج المراجعة
@@ -239,7 +238,7 @@ export default function SocialMediaPage() {
       {approvedItems.length ? (
         <>
           <Panel>
-            <SectionTitle title="المحتوى المعتمد" subtitle="تعرض القائمة النسخ المعتمدة فقط." />
+            <SectionTitle title="المحتوى المعتمد" />
             <select value={selected?.record.id} onChange={(event) => setSelectedId(event.target.value)} className="w-full rounded-md border border-line bg-white px-3 py-3">
               {approvedItems.map(({ record, version }) => <option key={record.id} value={record.id}>{record.title} — الإصدار {version.version}</option>)}
             </select>
@@ -260,7 +259,7 @@ export default function SocialMediaPage() {
           </Panel>
 
           <Panel>
-            <SectionTitle title="تجهيز القنوات" subtitle="كل إجراء يعمل: القنوات ذات رابط مشاركة تفتح مباشرة، والبقية تنسخ النص مع إرشاد واضح للإكمال اليدوي." />
+            <SectionTitle title="تجهيز القنوات" />
             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
               {platforms.map((platform) => {
                 const Icon = socialBrandIcons[platform.key];

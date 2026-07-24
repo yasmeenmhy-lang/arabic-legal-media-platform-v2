@@ -2043,7 +2043,7 @@ export default function ContentReviewPage() {
 
           <>
           <section id="findings" className="space-y-4 scroll-mt-24">
-            <SectionTitle title="3. الملاحظات" subtitle="جميع الملاحظات واجبة المعالجة قبل النشر." />
+            <SectionTitle title="3. الملاحظات" />
             {sortedFindings.length ? <FindingsList findings={sortedFindings} /> : (() => {
               const hasOtherIssues = review.publicationDecision.outcome === "NOT_RECOMMENDED"
                 || ["بالغ", "حرج", "مرتفع"].includes(review.riskLevel)
@@ -2076,7 +2076,7 @@ export default function ContentReviewPage() {
 
           <section id="improvements" className="space-y-5 scroll-mt-24">
           <Panel id="rewrite" className="scroll-mt-24">
-            <SectionTitle title="4. معالجة الملاحظات وإعادة الصياغة" subtitle="صياغة تعالج الملاحظات الامتثالية واللغوية، وتُعاد المراجعة بعد التطبيق." />
+            <SectionTitle title="4. معالجة الملاحظات وإعادة الصياغة" />
 
             {/* كتلة الصياغة الذكية */}
             <div className="mb-5 rounded-xl border border-violetBorder bg-violetSoft p-5">
@@ -2225,7 +2225,7 @@ export default function ContentReviewPage() {
 <>
           <div className="grid items-stretch gap-6 lg:grid-cols-[1.1fr_1fr_1fr]">
           <Panel id="channels" className="h-full scroll-mt-24">
-            <SectionTitle title="6. القنوات المقترحة" subtitle="كل توصية مبنية على نوع المحتوى والجمهور والهدف ونتائج المراجعة." />
+            <SectionTitle title="6. القنوات المقترحة" />
             <div className="flex flex-wrap gap-3">
               {review.channelRecommendations.map((item) => {
                 const Icon = socialBrandIcons[item.key];
@@ -2239,7 +2239,7 @@ export default function ContentReviewPage() {
           </Panel>
 
           <Panel id="approval" className="h-full scroll-mt-24">
-            <SectionTitle title="7. اعتماد النسخة" subtitle="لا تتاح المشاركة أو التصدير إلا للنسخة النهائية التي تمت مراجعتها واعتمادها." />
+            <SectionTitle title="7. اعتماد النسخة" />
             <div className="flex flex-wrap gap-3">
               <button type="button" onClick={requestApproval} disabled={approved || approving || approveBlocked} className="inline-flex items-center gap-2 rounded-md bg-palm px-5 py-2.5 text-white disabled:cursor-not-allowed disabled:opacity-50"><Save size={16} />{approved ? "تم اعتماد النسخة" : approving ? "جار الاعتماد..." : "اعتماد النسخة الحالية"}</button>
               <button type="button" onClick={saveForLater} className="inline-flex items-center gap-2 rounded-md border border-palm px-5 py-2.5 font-medium text-palm transition hover:bg-mint focus-ring"><Save size={16} />حفظ ومتابعة لاحقًا</button>
@@ -2262,7 +2262,7 @@ export default function ContentReviewPage() {
           </Panel>
 
           <Panel id="sharing" className="h-full scroll-mt-24">
-            <SectionTitle title="8. المشاركة والتصدير" subtitle="احفظ النسخ ونزّلها وشاركها من مكان واحد." />
+            <SectionTitle title="8. المشاركة والتصدير" />
             <div className="flex flex-wrap gap-3">
               <button type="button" onClick={downloadWord} disabled={!approved} className="inline-flex items-center gap-2 rounded-md border border-line px-4 py-2.5 disabled:opacity-40"><FileDown size={16} />تقرير Word</button>
               <button type="button" onClick={prepareSharing} disabled={!approved} className="inline-flex items-center gap-2 rounded-md bg-palm px-4 py-2.5 text-white disabled:opacity-40"><Share2 size={16} />المشاركة</button>
@@ -2340,7 +2340,7 @@ export default function ContentReviewPage() {
 
             {/* اعتماد النسخة — في الرَّيل على الحاسب (نفس الزر والمنطق والأسباب) */}
             <Panel>
-              <SectionTitle title="7. اعتماد النسخة" subtitle="لا تتاح المشاركة أو التصدير إلا للنسخة النهائية التي تمت مراجعتها واعتمادها." />
+              <SectionTitle title="7. اعتماد النسخة" />
               <button type="button" onClick={requestApproval} disabled={approved || approving || approveBlocked} className="inline-flex items-center gap-2 rounded-md bg-palm px-5 py-2.5 text-white disabled:cursor-not-allowed disabled:opacity-50"><Save size={16} />{approved ? "تم اعتماد النسخة" : approving ? "جار الاعتماد..." : "اعتماد النسخة الحالية"}</button>
               {approveMsg ? <p className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-sm leading-6 text-red-700">{approveMsg}</p> : null}
               {!approved ? (() => {
@@ -2359,7 +2359,7 @@ export default function ContentReviewPage() {
 
             {/* المشاركة والتصدير — في الرَّيل على الحاسب (نفس الأزرار والوظائف) */}
             <Panel>
-              <SectionTitle title="8. المشاركة والتصدير" subtitle="احفظ النسخ ونزّلها وشاركها من مكان واحد." />
+              <SectionTitle title="8. المشاركة والتصدير" />
               <div className="flex flex-wrap gap-3">
                 <button type="button" onClick={downloadWord} disabled={!approved} className="inline-flex items-center gap-2 rounded-md border border-line px-4 py-2.5 disabled:opacity-40"><FileDown size={16} />تقرير Word</button>
                 <button type="button" onClick={prepareSharing} disabled={!approved} className="inline-flex items-center gap-2 rounded-md bg-palm px-4 py-2.5 text-white disabled:opacity-40"><Share2 size={16} />المشاركة</button>

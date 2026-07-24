@@ -7,7 +7,6 @@ export default function LegalCompliancePage() {
       <PageHeader
         eyebrow="ملاحظات الامتثال"
         title="ملاحظات الامتثال المهني"
-        description="عرض مستقل لملاحظات الامتثال المستندة إلى قاعدة المعرفة القانونية، مع بقاء نتيجة الامتثال جزءاً من تجربة مراجعة المحتوى الموحدة."
         action={<ButtonLink href="/content-review">مراجعة محتوى</ButtonLink>}
       />
 

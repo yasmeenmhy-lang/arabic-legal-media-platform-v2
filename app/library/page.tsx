@@ -64,7 +64,6 @@ export default function LibraryPage() {
       <PageHeader
         eyebrow="الوصول السريع والمراجع"
         title="المراجع المهنية والرسمية"
-        description="روابط مباشرة إلى الجهات والمصادر الرسمية المعتمدة في التحليل والمراجعة."
         action={<ButtonLink href="/content-review">مراجعة محتوى</ButtonLink>}
       />
 
@@ -85,7 +84,6 @@ export default function LibraryPage() {
       <Panel>
         <SectionTitle
           title="الوصول السريع"
-          subtitle="روابط مباشرة إلى المراجع والجهات ذات الصلة."
         />
 
         <div className="grid gap-3 sm:grid-cols-2">

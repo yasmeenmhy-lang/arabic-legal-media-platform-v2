@@ -1479,7 +1479,6 @@ export default function CalendarV2Page() {
       <PageHeader
         eyebrow="التخطيط والنشر"
         title="مركز التخطيط"
-        description="إدارة المحتوى وجدولته ومتابعة مراحل تنفيذه في مكان واحد."
       />
 
       {/* 1. Summary cards */}
