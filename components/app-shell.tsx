@@ -88,6 +88,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     </div>
   );
 
+  // الرئيسية (صفحة الدخول) تعرض كامل الشاشة بلا رأس/تنقّل الشل — تتحكّم بتخطيطها بنفسها
+  if (pathname === "/login") {
+    return <>{children}</>;
+  }
+
   return (
     <div className="min-h-screen w-full max-w-full overflow-x-hidden bg-paper">
       {navOpen ? (
