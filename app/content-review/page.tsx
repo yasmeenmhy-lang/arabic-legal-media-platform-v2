@@ -1307,7 +1307,6 @@ export default function ContentReviewPage() {
       <PageHeader
         eyebrow="مساعد النشر للمحتوى المهني"
         title="التحليل التفصيلي للمحتوى المهني"
-        description="نساعدك على تحليل المحتوى وفق معايير قواعد السلوك المهني والأنظمة المعتمدة."
         illustration={<AnalysisArt />}
         action={<ButtonLink href={contentId ? "/content-studio?results=1" : "/content-studio"} variant="secondary-gray"><ArrowRight size={16} />العودة إلى مركز المحتوى</ButtonLink>}
       />
