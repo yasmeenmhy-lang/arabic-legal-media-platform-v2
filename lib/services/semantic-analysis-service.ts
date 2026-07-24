@@ -8,7 +8,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import type { ContentKind, FindingCategory, FindingDomain, ReviewContext, ReviewFinding, RiskLevel } from "@/lib/types";
 import { legalKnowledgeEntries } from "@/lib/legal-knowledge-base";
 import { OFFICIAL_CORPUS, type OfficialCorpusItem } from "@/lib/legal-official-corpus";
-import { AUTHORITIES_RULE, PLATFORM_SUPREME_RULE } from "@/lib/governance";
+import { AUTHORITIES_RULE, KINGDOM_STYLE_RULE, PLATFORM_SUPREME_RULE } from "@/lib/governance";
 import {
   arabicSeverity,
   businessSeverityForFinding,
@@ -110,6 +110,7 @@ function buildHolisticSystem(entries: typeof legalKnowledgeEntries): string {
 لا توجد طبقة أخرى تسندك أو تكمّل نقصك: أنت وحدك تغطّي كل النواحي بالمعنى. أي مخالفة تفوتك تُنشر فعلاً، فكن شاملاً ودقيقاً كخبير مسؤول.
 
 ${AUTHORITIES_RULE}
+${KINGDOM_STYLE_RULE}
 
 ## السياق الثابت
 هذه المنصة مخصصة للمحامين المرخصين حصراً. النص الذي سيصلك في رسالة المستخدم كتبه محامٍ ويريد نشره على وسائل التواصل الاجتماعي — سواء كان منشوراً، تغريدة، تعليقاً، رداً، أو إعلاناً.
