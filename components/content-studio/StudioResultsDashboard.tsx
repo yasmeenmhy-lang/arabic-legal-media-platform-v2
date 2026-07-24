@@ -1,7 +1,9 @@
 "use client";
 
+import { useState } from "react";
 import { BookMarked, ChevronDown, FileText, Image as ImageIcon } from "lucide-react";
 import { Button, ButtonLink, Panel, StatusBadge } from "@/components/ui";
+import { PreviewToggleButton, ReadingPreview } from "@/components/text-preview";
 import { QUOTE_INTEGRITY_NOTICE } from "@/lib/quote-notice";
 import { riskDisplayLabel, type ReviewResult } from "@/lib/types";
 
@@ -48,6 +50,7 @@ function riskTone(review: ReviewResult): Tone {
 }
 
 export function StudioResultsDashboard({ review, text, visuals = [], onEdit, onSaveDraft, onPublish, actionMessage, detailedAnalysisAvailable = true }: Props) {
+  const [preview, setPreview] = useState(true); // معاينة القراءة النظيفة بجانب الصندوق دائماً
   const unavailable = review.analysisMode === "pattern-only" || review.evaluationIncomplete;
   const languageIssues = review.languageQuality.issues;
   const hardLanguageIssues = languageIssues.filter((issue) => issue.category === "spelling" || issue.category === "grammar");
@@ -87,8 +90,17 @@ export function StudioResultsDashboard({ review, text, visuals = [], onEdit, onS
                 <ChevronDown size={16} className="shrink-0 text-ink/40 transition-transform group-open:rotate-180" aria-hidden="true" />
               </div>
             </summary>
-            <div className="mt-3 max-h-40 overflow-y-auto rounded-xl border border-line bg-paper p-4 text-sm leading-8 text-ink/80">
-              <p className="whitespace-pre-wrap">{text}</p>
+            <div className="mt-3">
+              <div className="mb-2 flex justify-end">
+                <PreviewToggleButton preview={preview} onToggle={() => setPreview((v) => !v)} />
+              </div>
+              {preview ? (
+                <ReadingPreview text={text} />
+              ) : (
+                <div className="max-h-40 overflow-y-auto rounded-xl border border-line bg-paper p-4 text-sm leading-8 text-ink/80">
+                  <p className="whitespace-pre-wrap">{text}</p>
+                </div>
+              )}
             </div>
           </details>
           <details className="mt-3 border-t border-line pt-3">
