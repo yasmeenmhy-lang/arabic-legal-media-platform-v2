@@ -19,8 +19,6 @@ import {
   FileCheck2,
   FileText,
   Globe,
-  Mail,
-  Newspaper,
   GraduationCap,
   HeartHandshake,
   Image as ImageIcon,
@@ -117,10 +115,10 @@ const studioContentTypes = contentKindOptions
     disabled: SOON_KINDS.has(item.value),
   }));
 
-const channels = ["LinkedIn", "X", "Instagram", "TikTok", "Snapchat", "YouTube", "موقع المكتب", "صحيفة إلكترونية", "نشرة بريدية"];
+const channels = ["LinkedIn", "X", "Instagram", "TikTok", "Snapchat", "YouTube", "الموقع الإلكتروني"];
 
 // وجهات طويلة مفتوحة الطول (لا حدّ حروف) — الطول يقرّره الذكاء أو يُترك اختيارياً
-const OPEN_LENGTH_CHANNELS = new Set(["موقع المكتب", "صحيفة إلكترونية", "نشرة بريدية"]);
+const OPEN_LENGTH_CHANNELS = new Set(["الموقع الإلكتروني"]);
 
 // مؤشّر تقدّم دائري بنسبة مئوية — النسبة تقديرية زمنية (المحرك لا يُبلّغ نسبة دقيقة):
 // يرتفع بسرعة ثم يتباطأ ويتوقّف عند ٩٥٪ حتى يكتمل العمل فعلاً فتظهر النتيجة (نمط منتجات احترافية).
@@ -449,9 +447,7 @@ const channelIcons: Record<string, React.ReactNode> = {
   TikTok: <TikTokIcon size={13} className="text-black" />,
   Snapchat: <SnapchatIcon size={13} className="text-[#E5CF00]" />,
   YouTube: <YouTubeIcon size={13} className="text-[#FF0000]" />,
-  "موقع المكتب": <Globe size={13} className="text-palm" />,
-  "صحيفة إلكترونية": <Newspaper size={13} className="text-palm" />,
-  "نشرة بريدية": <Mail size={13} className="text-palm" />,
+  "الموقع الإلكتروني": <Globe size={13} className="text-palm" />,
 };
 
 const audienceIcons: Record<string, React.ReactNode> = {
@@ -3277,7 +3273,7 @@ export default function ContentStudioPage() {
                   // ملء حدّ الحروف تلقائياً حسب القناة — الوجهات المفتوحة بلا حدّ (مفتوحة الطول)
                   setCharLimit(next && CHANNEL_CHAR_LIMITS[next] ? CHANNEL_CHAR_LIMITS[next]! : null);
                 }}
-                className={`${chipBase} justify-center ${channel === item ? chipSelected : chipIdle}`}
+                className={`${chipBase} justify-center ${OPEN_LENGTH_CHANNELS.has(item) ? "col-span-2 sm:col-span-3" : ""} ${channel === item ? chipSelected : chipIdle}`}
               >
                 {channelIcons[item]}
                 {item}
