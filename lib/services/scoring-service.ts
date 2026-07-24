@@ -244,7 +244,7 @@ export function calculateContentQualityScore({
     },
     {
       key: "professionalism",
-      label: "الالتزام بمعايير الجوانب المهنية",
+      label: "الالتزام بالمعايير المهنية",
       sourceScore: professionalismScore,
       weight: 20,
       weightedScore: professionalismScore * 0.2
@@ -310,7 +310,7 @@ export function calculatePublishingReadiness({
     },
     {
       key: "professionalism",
-      label: "الالتزام بمعايير الجوانب المهنية",
+      label: "الالتزام بالمعايير المهنية",
       passed: professionalismScore >= 80,
       sourceValue: professionalismScore,
       threshold: "80%",

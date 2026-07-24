@@ -61,7 +61,7 @@ export function buildReadinessDecision({
   // (مهما كانت شدتها) تمنع «جاهز للنشر» مباشرة، لا عبر عتبة درجة مئوية.
   if (findings.some((finding) => !finding.resolved)) blockers.push("معالجة كل المخالفات القانونية والتنظيمية القائمة قبل اعتبار المحتوى جاهزاً للنشر");
   if (riskScore >= 20) blockers.push("خفض مستوى المخاطر قبل النشر");
-  if (professionalismScore < 80) blockers.push("تحسين الالتزام بمعايير الجوانب المهنية");
+  if (professionalismScore < 80) blockers.push("تحسين الالتزام بالمعايير المهنية");
 
   const actions = [...new Set([
     ...findings.filter((finding) => !finding.resolved).map((finding) => finding.suggestedSaferWording),
