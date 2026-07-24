@@ -125,6 +125,22 @@ type ReformOutcome =
   | { ok: true; suggestedText: string; sources: { title: string; url: string }[]; sourceNote?: string }
   | { ok: false; status: number; error: string };
 
+// يكشف مخرجاً ليس صياغةً فعلية: رمز «بلا مضمون» الذي يُخرجه النموذج عند نصٍّ بلا مضمون
+// قابل لإعادة الصياغة، أو اعتذارٌ/طلب معلومات، أو تسرّبٌ للغة داخلية. عندئذٍ نعرض رسالة
+// مهنية مختصرة بدل عرض اعتذار النموذج الطويل كأنه «صياغة محسّنة». لا يمسّ منطق الفحص.
+function isNonSubstantiveOutput(output: string): boolean {
+  const t = output.trim();
+  if (t.includes("__NO_SUBSTANCE__")) return true;
+  const startsWithRefusal = /^(لا يمكنني|لا أستطيع|يتعذّر|يتعذر|عذرًا|عذراً|للأسف|أعتذر)/.test(t);
+  const leaksInternal = /(القواعد الحاكمة|المدونة المذكورة|حظر التخمين|الاستكمال بالافتراض|القواعد المذكورة أعلاه|وفق القواعد أعلاه|تعليماتي)/.test(t);
+  const demandsInputs = /(أحتاج منك|يرجى تزويدي|بعد تزويدي|زوّدني بـ|حدّد لي المجال)/.test(t);
+  return startsWithRefusal || leaksInternal || demandsInputs;
+}
+
+// رسالة مهنية مختصرة بلا مصطلحات داخلية — تُعرض حين لا يوجد مضمون يُعاد صياغته
+const NO_SUBSTANCE_MESSAGE =
+  "لا يتضمّن النص مضموناً تثقيفياً يُعاد صياغته — فهو عبارة تفضيل عامة. اكتب المسألة النظامية أو الفكرة التي تريد التوعية بها (مثل: مدة التقادم، أو شروط عقد العمل) ثم أعد المحاولة.";
+
 // دورة إعادة الصياغة الكاملة (بحث + كتابة + تحقق + تصحيح) — تُشغَّل خلفياً كي لا
 // يبقى المستخدم على طلب طويل متزامن ينقطع على الجوال. لا تمسّ منطق الفحص إطلاقاً.
 async function runReformulation(data: z.infer<typeof schema>, apiKey: string): Promise<ReformOutcome> {
@@ -206,6 +222,11 @@ async function runReformulation(data: z.infer<typeof schema>, apiKey: string): P
     "",
     WRITING_CODE,
     "",
+    "ضوابط المُخرَج (إلزامية):",
+    "- المستخدم لا يرى تعليماتك؛ فلا تُشِر إطلاقاً إلى قواعدك أو «المدونة» أو «القواعد الحاكمة» أو «الدستور» أو «أعلاه» أو أي مرجع داخلي، ولا تشرح منهجيتك أو سبب امتناعك.",
+    "- مخرجك هو النص المُعاد صياغته فقط: لا اعتذار، ولا مقدمة، ولا تعليق، ولا مطالبة المستخدم بمعلومات، ولا قائمة متطلبات.",
+    "- إن كان النص الأصلي مجرد عبارة تفضيل أو ادعاء أفضلية أو دعاية عامة خالية من أي مسألة نظامية أو معلومة قابلة لإعادة الصياغة، فلا تخترع مضموناً ولا تكتب شرحاً؛ أخرج هذا الرمز وحده حرفياً دون أي نص آخر: __NO_SUBSTANCE__",
+    "",
     "قبل إخراج النص النهائي، راجع ذاتياً: هل يحتوي النص على أي من المحظورات أعلاه؟ إذا وجدت أي منها فأزلها وعدّل حتى يخلو النص منها تماماً.",
     "أخرج النص المُعاد كتابته فقط، دون عنوان أو شرح أو مقدمة أو تعليق."
   ].join("\n");
@@ -231,6 +252,12 @@ async function runReformulation(data: z.infer<typeof schema>, apiKey: string): P
     let suggestedText = await callModel(apiKey, systemPrompt, userPrompt);
     if (!suggestedText) return { ok: false, status: 503, error: "لم يُنتج النموذج صياغة صالحة" };
 
+    // النص بلا مضمون قابل لإعادة الصياغة (تفضيل/دعاية عامة)، أو ردّ النموذج باعتذار أو
+    // طلب معلومات أو تسرّبٍ للغة داخلية — نعرض رسالة مهنية مختصرة بدل عرض ذلك كأنه صياغة.
+    if (isNonSubstantiveOutput(suggestedText)) {
+      return { ok: false, status: 422, error: NO_SUBSTANCE_MESSAGE };
+    }
+
     // جولة تحقق أولى عبر محركي الامتثال واللغة
     let verification = await verifySuggestion(suggestedText, context);
 
@@ -251,7 +278,7 @@ async function runReformulation(data: z.infer<typeof schema>, apiKey: string): P
         "أخرج النص المُصحح فقط دون أي تعليق."
       ].join("\n");
       const fixedText = await callModel(apiKey, systemPrompt, fixPrompt);
-      if (!fixedText) break;
+      if (!fixedText || isNonSubstantiveOutput(fixedText)) break;
       const next = await verifySuggestion(fixedText, context);
       if (next.clean || next.remainingNotes.length < verification.remainingNotes.length) {
         suggestedText = fixedText;
