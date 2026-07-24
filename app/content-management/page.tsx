@@ -87,16 +87,16 @@ function StatCard({ value, label, sub, icon, tone, pct }: {
 }) {
   const s = DASH[tone];
   return (
-    <div className={`rounded-2xl border ${s.ring} bg-gradient-to-br ${s.bg} p-3.5`}>
-      <div className="flex items-center gap-3">
-        <span className={`grid h-11 w-11 shrink-0 place-items-center rounded-full shadow-md ${s.icon}`}>{icon}</span>
+    <div className={`rounded-2xl border ${s.ring} bg-gradient-to-br ${s.bg} p-4`}>
+      <div className="flex items-center gap-3.5">
+        <span className={`grid h-14 w-14 shrink-0 place-items-center rounded-full shadow-md ${s.icon}`}>{icon}</span>
         <div className="min-w-0">
-          <span className={`block text-2xl font-extrabold leading-none tabular-nums ${s.num}`}>{value}</span>
-          <span className="mt-1 block text-[13px] font-bold text-ink">{label}</span>
-          <span className="block truncate text-[10px] text-ink/45">{sub}</span>
+          <span className={`block text-4xl font-extrabold leading-none tabular-nums ${s.num}`}>{value}</span>
+          <span className="mt-1.5 block text-base font-bold text-ink">{label}</span>
+          <span className="block truncate text-xs text-ink/50">{sub}</span>
         </div>
       </div>
-      <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-black/[.06]">
+      <div className="mt-3.5 h-2 overflow-hidden rounded-full bg-black/[.06]">
         <div className={`h-full rounded-full ${s.bar}`} style={{ width: `${Math.max(4, Math.min(100, pct))}%` }} />
       </div>
     </div>
@@ -108,17 +108,17 @@ function RingTotal({ total, acceptance }: { total: number; acceptance: number })
   const r = 52, c = 2 * Math.PI * r, dash = (c * Math.min(100, Math.max(0, acceptance))) / 100;
   return (
     <div className="flex flex-col items-center justify-center rounded-2xl border border-line bg-white p-4">
-      <div className="relative h-36 w-36">
+      <div className="relative h-48 w-48">
         <svg viewBox="0 0 120 120" className="h-full w-full -rotate-90">
           <circle cx="60" cy="60" r={r} fill="none" stroke="#e8efeb" strokeWidth="10" />
           <circle cx="60" cy="60" r={r} fill="none" stroke="#2d6a5a" strokeWidth="10" strokeLinecap="round" strokeDasharray={`${dash} ${c}`} />
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className="text-3xl font-extrabold tabular-nums text-palm">{total}</span>
-          <span className="text-[11px] font-semibold text-ink/60">إجمالي المحتوى</span>
+          <span className="text-5xl font-extrabold tabular-nums text-palm">{total}</span>
+          <span className="text-sm font-semibold text-ink/60">إجمالي المحتوى</span>
         </div>
       </div>
-      <div className="mt-3 flex items-center gap-2 rounded-full bg-mint px-3 py-1 text-xs">
+      <div className="mt-4 flex items-center gap-2 rounded-full bg-mint px-4 py-1.5 text-sm">
         <span className="text-ink/60">نسبة الاعتماد</span><span className="font-bold text-palm tabular-nums">{acceptance}%</span>
       </div>
     </div>
@@ -130,13 +130,13 @@ function JourneyStepper({ steps }: { steps: Array<{ label: string; value: number
   return (
     <div className="rounded-2xl border border-line bg-white p-4">
       <p className="mb-4 flex items-center gap-2 text-sm font-bold text-ink"><FileClock size={16} className="text-palm" />رحلة المحتوى</p>
-      <div className="flex items-start gap-1 overflow-x-auto">
+      <div className="flex items-start gap-2 overflow-x-auto">
         {steps.map((st) => (
-          <div key={st.label} className="flex min-w-[76px] flex-1 flex-col items-center text-center">
-            <span className={`grid h-11 w-11 place-items-center rounded-full ${DASH[st.tone].soft}`}>{st.icon}</span>
-            <span className="mt-2 text-[12px] font-semibold text-ink">{st.label}</span>
-            <span className={`mt-0.5 text-lg font-extrabold tabular-nums ${DASH[st.tone].num}`}>{st.value}</span>
-            <span className="text-[10px] text-ink/45">{st.sub}</span>
+          <div key={st.label} className="flex min-w-[84px] flex-1 flex-col items-center text-center">
+            <span className={`grid h-14 w-14 place-items-center rounded-full ${DASH[st.tone].soft}`}>{st.icon}</span>
+            <span className="mt-2 text-[13px] font-semibold text-ink">{st.label}</span>
+            <span className={`mt-1 text-2xl font-extrabold tabular-nums ${DASH[st.tone].num}`}>{st.value}</span>
+            <span className="text-[11px] text-ink/45">{st.sub}</span>
           </div>
         ))}
       </div>
@@ -466,10 +466,10 @@ export default function ContentManagementPage() {
       {records.length > 0 ? (
         <>
           <JourneyStepper steps={[
-            { label: "النشر", value: snapshot.channelsUsed, sub: "قنوات نشطة", icon: <Send size={18} />, tone: "violet" },
-            { label: "الاعتماد", value: counts.approved, sub: "معتمد", icon: <ShieldCheck size={18} />, tone: "gold" },
-            { label: "المراجعة والتحليل", value: snapshot.reviewed, sub: "قيد التحليل", icon: <Search size={18} />, tone: "info" },
-            { label: "إنشاء المحتوى", value: counts.drafts, sub: "مسودة", icon: <PenLine size={18} />, tone: "good" }
+            { label: "النشر", value: snapshot.channelsUsed, sub: "قنوات نشطة", icon: <Send size={22} />, tone: "violet" },
+            { label: "الاعتماد", value: counts.approved, sub: "معتمد", icon: <ShieldCheck size={22} />, tone: "gold" },
+            { label: "المراجعة والتحليل", value: snapshot.reviewed, sub: "قيد التحليل", icon: <Search size={22} />, tone: "info" },
+            { label: "إنشاء المحتوى", value: counts.drafts, sub: "مسودة", icon: <PenLine size={22} />, tone: "good" }
           ]} />
 
           {snapshot.byType.length ? (
@@ -477,13 +477,13 @@ export default function ContentManagementPage() {
               <p className="mb-3 flex items-center gap-2 text-sm font-bold text-ink"><Tag size={15} className="text-palm" />حسب النوع</p>
               <div className="flex gap-2.5 overflow-x-auto pb-1">
                 {snapshot.byType.map(([label, count]) => (
-                  <div key={label} className="min-w-[120px] shrink-0 rounded-xl border border-line bg-paper p-3">
+                  <div key={label} className="min-w-[132px] shrink-0 rounded-xl border border-line bg-paper p-3.5">
                     <div className="flex items-center justify-between">
-                      <span className="text-lg font-extrabold tabular-nums text-palm">{count}</span>
-                      <span className="grid h-8 w-8 place-items-center rounded-lg bg-mint text-palm"><Tag size={14} /></span>
+                      <span className="text-2xl font-extrabold tabular-nums text-palm">{count}</span>
+                      <span className="grid h-9 w-9 place-items-center rounded-lg bg-mint text-palm"><Tag size={16} /></span>
                     </div>
-                    <p className="mt-1.5 truncate text-[11px] font-semibold text-ink">{label}</p>
-                    <p className="text-[10px] tabular-nums text-ink/45">{counts.all ? Math.round((count / counts.all) * 100) : 0}%</p>
+                    <p className="mt-2 truncate text-xs font-semibold text-ink">{label}</p>
+                    <p className="text-[11px] tabular-nums text-ink/45">{counts.all ? Math.round((count / counts.all) * 100) : 0}%</p>
                   </div>
                 ))}
               </div>
@@ -495,11 +495,11 @@ export default function ContentManagementPage() {
               <p className="mb-3 flex items-center gap-2 text-sm font-bold text-ink"><Share2 size={15} className="text-palm" />حسب القناة</p>
               <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
                 {snapshot.byChannel.map(([label, count]) => (
-                  <div key={label} className="flex items-center gap-2.5 rounded-xl border border-line bg-paper p-3">
-                    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-white shadow-sm">{channelBrandIcon(label)}</span>
+                  <div key={label} className="flex items-center gap-3 rounded-xl border border-line bg-paper p-3.5">
+                    <span className="grid h-11 w-11 shrink-0 place-items-center rounded-lg bg-white shadow-sm">{channelBrandIcon(label)}</span>
                     <div className="min-w-0">
-                      <div className="text-lg font-extrabold tabular-nums text-ink">{count}</div>
-                      <div className="truncate text-[11px] text-ink/55">{label}</div>
+                      <div className="text-2xl font-extrabold tabular-nums text-ink">{count}</div>
+                      <div className="truncate text-xs text-ink/55">{label}</div>
                     </div>
                   </div>
                 ))}
