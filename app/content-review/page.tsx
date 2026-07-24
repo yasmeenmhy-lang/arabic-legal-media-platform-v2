@@ -1314,34 +1314,38 @@ export default function ContentReviewPage() {
       {/* النتائج بعرض الصفحة للحاسب والآيباد؛ الجوال يحتفظ بتسلسله العمودي. */}
       <div>
         <div className="min-w-0 space-y-6">
-      {/* قبل الاختيار: بوكس واسع بلون الهوية الممتلئ و«اختر المحتوى» في وسطه — الصفحة
-          سؤال واحد «أي محتوى؟». وبعد الاختيار تعود بطاقة الخطوة الأولى ضمن التقرير المرقّم. */}
-      {/* قبل الاختيار قسمٌ أخضر بحافة واحدة (لا بطاقة بيضاء تحته) — فلا يظهر خيط فاتح
-          عند الزوايا. وبعد الاختيار تعود البطاقة البيضاء بترقيمها ضمن التقرير. */}
+      {/* قبل الاختيار: بطاقة بيضاء بحافة زرقاء وأيقونة في دائرة — نمط بطاقات المسارات
+          نفسه، واللون الأزرق (info) يميّز البحث عن الأخضر (المراجعة) والبنفسجي (الإنشاء).
+          وبعد الاختيار تعود بطاقة الخطوة الأولى ضمن التقرير المرقّم. */}
       <section
         id="input"
         className={
           hasSelectedContent
             ? "w-full max-w-full overflow-x-clip rounded-lg border border-line bg-white p-4 shadow-sm sm:p-5"
-            : "w-full max-w-full overflow-x-clip rounded-lg bg-palm px-5 py-12 shadow-sm"
+            : "w-full max-w-full overflow-x-clip rounded-lg border border-line border-r-4 border-r-infoBase bg-white p-5 shadow-sm sm:p-6"
         }
       >
         {hasSelectedContent ? <SectionTitle title="1. إدخال المحتوى" /> : null}
         <div>
         {hasSelectedContent ? null : (
-          <h2 className="mb-5 text-center text-lg font-semibold text-white">اختر المحتوى</h2>
+          <div className="mb-5 flex items-center gap-4">
+            <h2 className="min-w-0 flex-1 text-base font-semibold text-ink">اختر المحتوى</h2>
+            <span className="grid h-14 w-14 shrink-0 place-items-center rounded-full bg-infoSoft text-infoBase">
+              <Search size={24} />
+            </span>
+          </div>
         )}
-        <div className={hasSelectedContent ? "" : "mx-auto max-w-md"}>
+        <div>
 
         {/* عنوان المحتوى والنص محل المراجعة — بقرار مالكة المنصة: ظاهران دائماً خارج
             الأكورديون، حتى في عرض النتائج، فلا يحتاج المستخدم فتح السياق ليرى محتواه */}
         {/* بحث لفتح محتوى محفوظ سابقاً وتحميله للمراجعة — في الأعلى مكان عنوان المحتوى */}
         {savedRecords.length > 0 ? (
           <div className="relative" ref={recordSearchRef}>
-            <div className={`flex items-center gap-2.5 rounded-lg border bg-white transition focus-within:border-palm ${
-              hasSelectedContent ? "border-line px-3 py-2.5" : "border-line px-4 py-3.5 shadow-sm"
+            <div className={`flex items-center gap-2.5 rounded-lg border bg-white transition ${
+              hasSelectedContent ? "border-line px-3 py-2.5 focus-within:border-palm" : "border-infoBorder bg-infoSoft px-4 py-3.5 focus-within:border-infoBase"
             }`}>
-              <Search size={hasSelectedContent ? 15 : 18} className="shrink-0 text-palm" />
+              <Search size={hasSelectedContent ? 15 : 18} className={`shrink-0 ${hasSelectedContent ? "text-palm" : "text-infoBase"}`} />
               <input
                 type="text"
                 placeholder={hasSelectedContent ? "بحث" : "ابحث بموضوع المحتوى"}

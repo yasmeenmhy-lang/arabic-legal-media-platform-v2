@@ -180,6 +180,34 @@ export function AnalysisArt() {
   );
 }
 
+// رسم مسطّح لمركز المحتوى: مستند ولمعة الإنشاء — بلوني المنصة الأخضر والبنفسجي،
+// إذ يجمع المركز مسارَي المراجعة والإنشاء.
+export function StudioArt() {
+  return (
+    <svg viewBox="0 0 150 150" fill="none" aria-hidden="true" className="h-auto w-full">
+      <circle cx="75" cy="75" r="66" fill="#DFF6E7" />
+      <circle cx="75" cy="75" r="50" fill="#F3FCF6" />
+      <rect x="46" y="24" width="58" height="80" rx="9" fill="#fff" opacity="0.65" transform="rotate(-7 75 64)" />
+      <rect x="42" y="26" width="60" height="82" rx="9" fill="#fff" stroke="#25935F" strokeWidth="2.5" />
+      <rect x="53" y="41" width="38" height="5" rx="2.5" fill="#DFF6E7" />
+      <rect x="53" y="54" width="28" height="5" rx="2.5" fill="#DFF6E7" />
+      <rect x="53" y="67" width="33" height="5" rx="2.5" fill="#DFF6E7" />
+      <rect x="53" y="80" width="20" height="5" rx="2.5" fill="#DFF6E7" />
+      {/* لمعة الإنشاء بالبنفسجي — لون مسار الإنشاء في المنصة */}
+      <circle cx="99" cy="94" r="21" fill="#80519F" />
+      <path
+        d="M99 83 l3.2 6.6 l6.8 3.4 l-6.8 3.4 l-3.2 6.6 l-3.2 -6.6 l-6.8 -3.4 l6.8 -3.4 z"
+        fill="#fff"
+      />
+      <circle cx="40" cy="100" r="16" fill="#25935F" />
+      <path d="M33 100 l5 5 l9 -10" stroke="#fff" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+      <circle cx="118" cy="38" r="3.5" fill="#25935F" opacity="0.35" />
+      <circle cx="30" cy="46" r="2.5" fill="#80519F" opacity="0.3" />
+      <circle cx="126" cy="62" r="2" fill="#25935F" opacity="0.25" />
+    </svg>
+  );
+}
+
 export function ButtonLink({
   href,
   children,
