@@ -88,11 +88,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     </div>
   );
 
-  // صفحة الدخول/الرئيسية العامة تُعرض مجرّدة دون شريط علوي أو تنقّل — بوابة مستقلّة
-  if (pathname === "/login") {
-    return <div className="min-h-screen w-full max-w-full overflow-x-hidden bg-paper">{children}</div>;
-  }
-
   return (
     <div className="min-h-screen w-full max-w-full overflow-x-hidden bg-paper">
       {navOpen ? (
