@@ -147,16 +147,6 @@ export default function ContentManagementPage() {
     return map;
   }, [records]);
 
-  // رقم مرجعي دائم لكل محتوى — يُحسب من تاريخ الإنشاء + لاحقة معرّفه الفريد وقت العرض.
-  // بلا أي تخزين أو تهجير أو حِمل على المنصة: ثابت، فريد، نفسه على كل الأجهزة، ولا يتغيّر بالحذف.
-  const contentReference = (record: { id: string; createdAt?: string }) => {
-    const t = record.createdAt ? new Date(record.createdAt) : null;
-    const datePart = t && !Number.isNaN(t.getTime())
-      ? `${String(t.getFullYear()).slice(2)}${String(t.getMonth() + 1).padStart(2, "0")}${String(t.getDate()).padStart(2, "0")}`
-      : "000000";
-    const suffix = (record.id.replace(/[^A-Za-z0-9]/g, "").slice(-4) || "0000").toUpperCase();
-    return `${datePart}-${suffix}`;
-  };
 
   function deleteRecord(id: string) {
     const next = records.filter((item) => item.id !== id);
@@ -459,7 +449,6 @@ export default function ContentManagementPage() {
                       <span className="shrink-0 flex h-6 w-6 items-center justify-center rounded-full bg-mint text-xs font-bold text-palm">{serialById.get(record.id) ?? index + 1}</span>
                       <div className="min-w-0">
                         <p className="text-sm font-medium text-ink leading-6">{record.title}</p>
-                        <p className="mt-0.5 text-[11px] text-ink/45">مرجع <span dir="ltr" className="font-mono">{contentReference(record)}</span></p>
                         {current && <p className="mt-0.5 text-xs text-ink/50">{current.contentTypeLabel} · {current.channel}</p>}
                       </div>
                     </div>
@@ -559,7 +548,6 @@ export default function ContentManagementPage() {
                         <td className="whitespace-nowrap px-4 py-4 text-xs font-bold tabular-nums text-ink/40">{serialById.get(record.id) ?? index + 1}</td>
                         <td className="px-4 py-4">
                           <p className="font-medium text-ink">{record.title}</p>
-                          <p className="mt-0.5 text-[11px] text-ink/45">مرجع <span dir="ltr" className="font-mono">{contentReference(record)}</span></p>
                           {current && <p className="mt-0.5 text-xs text-ink/50">{current.contentTypeLabel} · {current.channel}</p>}
                         </td>
                         <td className="px-4 py-4">
