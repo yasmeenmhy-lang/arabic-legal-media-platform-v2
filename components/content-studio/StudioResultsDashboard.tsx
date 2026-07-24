@@ -83,7 +83,7 @@ export function StudioResultsDashboard({ review, text, visuals = [], onEdit, onS
           <details className="group">
             <summary className="cursor-pointer list-none focus-ring">
               <div className="flex items-center justify-between gap-2 text-sm font-semibold text-ink">
-                <span className="flex items-center gap-2"><FileText size={16} aria-hidden="true" />نص المحتوى</span>
+                <span className="flex items-center gap-2"><FileText size={16} aria-hidden="true" />مراجعة النص</span>
                 <ChevronDown size={16} className="shrink-0 text-ink/40 transition-transform group-open:rotate-180" aria-hidden="true" />
               </div>
             </summary>

@@ -3410,7 +3410,7 @@ export default function ContentStudioPage() {
       {path === "review" && frameStep >= FRAME_TOTAL && (!review || editingReviewedContent) && !reviewing && (
         <Panel id="studio-text-editor">
           <div className="mb-4 flex items-center justify-between">
-            <SectionTitle title="نص المحتوى" />
+            <SectionTitle title="مراجعة النص" />
             <div className="flex items-center gap-3">
               <PreviewToggleButton preview={previewStudioReview} onToggle={() => setPreviewStudioReview((v) => !v)} />
               <button
