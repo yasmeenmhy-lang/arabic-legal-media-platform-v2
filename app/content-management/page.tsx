@@ -70,51 +70,50 @@ function riskTone(level?: RiskLevel): "good" | "gold" | "danger" | "neutral" {
   return "danger";
 }
 
-// ── لوحة السجل (سنابشوت) — نمط عرض غنيّ بألوان كود المنصات، بمعطيات ومصطلحات المنصّة كما هي ──
-type DashTone = "palm" | "info" | "good" | "gold" | "violet" | "teal";
-const DASH: Record<DashTone, { bg: string; ring: string; icon: string; soft: string; num: string; bar: string }> = {
-  palm:   { bg: "from-mint/70 to-white", ring: "border-palm/20", icon: "bg-palm text-white", soft: "bg-mint text-palm", num: "text-palm", bar: "bg-palm" },
-  info:   { bg: "from-blue-50 to-white", ring: "border-blue-200", icon: "bg-blue-500 text-white", soft: "bg-blue-50 text-blue-600", num: "text-blue-600", bar: "bg-blue-500" },
-  good:   { bg: "from-green-50 to-white", ring: "border-green-200", icon: "bg-green-500 text-white", soft: "bg-green-50 text-green-600", num: "text-green-600", bar: "bg-green-500" },
-  gold:   { bg: "from-amber-50 to-white", ring: "border-amber-200", icon: "bg-amber-500 text-white", soft: "bg-amber-50 text-amber-600", num: "text-amber-600", bar: "bg-amber-500" },
-  violet: { bg: "from-violet-50 to-white", ring: "border-violet-200", icon: "bg-violet-500 text-white", soft: "bg-violet-50 text-violet-600", num: "text-violet-600", bar: "bg-violet-500" },
-  teal:   { bg: "from-teal-50 to-white", ring: "border-teal-200", icon: "bg-teal-500 text-white", soft: "bg-teal-50 text-teal-600", num: "text-teal-600", bar: "bg-teal-500" }
+// ── لوحة السجل (سنابشوت) — نمط عرض بألوان كود المنصات الرسمية (رموز التصميم المعرّفة في tailwind.config) ──
+// النغمات: SA أخضر، السماوي (Info)، النجاح، الذهبي، الخزامى (Lavender)، الورد (Error) — بأسمائها الدلالية لا ألوان عامة
+type DashTone = "sa" | "sky" | "success" | "gold" | "lavender" | "rose";
+const DASH: Record<DashTone, { grad: string; ring: string; icon: string; chip: string; num: string; bar: string }> = {
+  sa:       { grad: "from-mint to-white",       ring: "border-palm/15",          icon: "bg-palm text-white",        chip: "bg-mint text-palm",               num: "text-palmDeep",    bar: "bg-palm" },
+  sky:      { grad: "from-infoSoft to-white",   ring: "border-infoBorder/60",    icon: "bg-infoBase text-white",    chip: "bg-infoSoft text-infoDark",       num: "text-infoDark",    bar: "bg-infoBase" },
+  success:  { grad: "from-successSoft to-white",ring: "border-successBorder/70", icon: "bg-successBase text-white", chip: "bg-successSoft text-successDark", num: "text-successDark", bar: "bg-successBase" },
+  gold:     { grad: "from-goldSoft to-white",   ring: "border-goldBorder",       icon: "bg-gold text-white",        chip: "bg-goldSoft text-goldDark",       num: "text-goldDark",    bar: "bg-gold" },
+  lavender: { grad: "from-violetSoft to-white", ring: "border-violetBorder/70",  icon: "bg-violet text-white",      chip: "bg-violetSoft text-violetDark",   num: "text-violetDark",  bar: "bg-violet" },
+  rose:     { grad: "from-errorSoft to-white",  ring: "border-errorBorder",      icon: "bg-errorBase text-white",   chip: "bg-errorSoft text-errorDark",     num: "text-errorDark",   bar: "bg-errorBase" }
 };
 
-// بطاقة إحصائية: أيقونة دائرية مملوءة + رقم كبير + تسمية ووصف + شريط نسبة.
+// بطاقة إحصائية: أيقونة مملوءة + رقم واضح مريح + تسمية ووصف خفيف + شريط نسبة. خطوط أخفّ (bold لا extrabold).
 function StatCard({ value, label, sub, icon, tone, pct }: {
   value: number; label: string; sub: string; icon: ReactNode; tone: DashTone; pct: number;
 }) {
   const s = DASH[tone];
   return (
-    <div className={`rounded-xl border ${s.ring} bg-gradient-to-br ${s.bg} p-3`}>
-      <div className="flex items-center gap-2.5">
-        <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-full shadow-sm ${s.icon}`}>{icon}</span>
-        <div className="min-w-0">
-          <span className={`block text-xl font-extrabold leading-none tabular-nums ${s.num}`}>{value}</span>
-          <span className="mt-0.5 block truncate text-[11px] font-bold text-ink">{label}</span>
-        </div>
+    <div className={`rounded-2xl border ${s.ring} bg-gradient-to-br ${s.grad} p-3.5`}>
+      <div className="flex items-center justify-between gap-2">
+        <span className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl shadow-xs ${s.icon}`}>{icon}</span>
+        <span className={`text-2xl font-bold leading-none tabular-nums ${s.num}`}>{value}</span>
       </div>
-      <div className="mt-1 truncate text-[9px] text-ink/45">{sub}</div>
-      <div className="mt-1.5 h-1 overflow-hidden rounded-full bg-black/[.06]">
+      <p className="mt-2.5 truncate text-xs font-semibold text-ink">{label}</p>
+      <p className="mt-0.5 truncate text-[10px] font-normal text-ink/45">{sub}</p>
+      <div className="mt-2 h-1 overflow-hidden rounded-full bg-black/[.05]">
         <div className={`h-full rounded-full ${s.bar}`} style={{ width: `${Math.max(4, Math.min(100, pct))}%` }} />
       </div>
     </div>
   );
 }
 
-// رحلة المحتوى — مراحل بأيقونات وأعداد.
+// رحلة المحتوى — مراحل بأيقونات وأعداد. خطوط أخفّ ومقاسات مريحة.
 function JourneyStepper({ steps }: { steps: Array<{ label: string; value: number; sub: string; icon: ReactNode; tone: DashTone }> }) {
   return (
-    <div className="rounded-2xl border border-line bg-white p-4">
-      <p className="mb-4 flex items-center gap-2 text-sm font-bold text-ink"><FileClock size={16} className="text-palm" />رحلة المحتوى</p>
+    <div className="rounded-2xl border border-line bg-white p-4 shadow-xs">
+      <p className="mb-4 flex items-center gap-2 text-sm font-semibold text-ink"><FileClock size={16} className="text-palm" />رحلة المحتوى</p>
       <div className="flex items-start gap-1 overflow-x-auto">
         {steps.map((st) => (
-          <div key={st.label} className="flex min-w-[74px] flex-1 flex-col items-center text-center">
-            <span className={`grid h-10 w-10 place-items-center rounded-full ${DASH[st.tone].soft}`}>{st.icon}</span>
-            <span className="mt-1.5 text-[11px] font-semibold text-ink">{st.label}</span>
-            <span className={`mt-0.5 text-base font-extrabold tabular-nums ${DASH[st.tone].num}`}>{st.value}</span>
-            <span className="text-[9px] text-ink/45">{st.sub}</span>
+          <div key={st.label} className="flex min-w-[76px] flex-1 flex-col items-center text-center">
+            <span className={`grid h-11 w-11 place-items-center rounded-2xl ${DASH[st.tone].chip}`}>{st.icon}</span>
+            <span className="mt-2 text-[11px] font-medium text-ink">{st.label}</span>
+            <span className={`mt-0.5 text-lg font-bold tabular-nums ${DASH[st.tone].num}`}>{st.value}</span>
+            <span className="text-[9px] font-normal text-ink/45">{st.sub}</span>
           </div>
         ))}
       </div>
@@ -427,37 +426,37 @@ export default function ContentManagementPage() {
     <div className="space-y-6">
       <PageHeader eyebrow="أرشيف المحتوى واعتماداته" title="سجل المحتوى المهني" />
 
-      {/* لوحة السجل — سنابشوت مصغّر متناسق: شبكة موحّدة من بطاقات أيقونة + رقم، بألوان كود المنصات */}
-      <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-6">
-        <StatCard value={counts.all} label="إجمالي المحتوى" sub="جميع المحتويات" icon={<FolderOpen size={17} />} tone="palm" pct={100} />
-        <StatCard value={snapshot.reviewed} label="المراجعة" sub="قيد التحليل" icon={<FileCheck2 size={17} />} tone="info" pct={counts.all ? (snapshot.reviewed / counts.all) * 100 : 0} />
-        <StatCard value={counts.approved} label="المعتمدة" sub={`نسبة الاعتماد ${acceptance}%`} icon={<CheckCircle2 size={17} />} tone="good" pct={counts.all ? (counts.approved / counts.all) * 100 : 0} />
-        <StatCard value={counts.drafts} label="المسودات والحالية" sub="قيد الإنشاء" icon={<FileText size={17} />} tone="gold" pct={counts.all ? (counts.drafts / counts.all) * 100 : 0} />
-        <StatCard value={thisWeekCount} label="هذا الأسبوع" sub="منذ بداية الأسبوع" icon={<CalendarDays size={17} />} tone="violet" pct={counts.all ? (thisWeekCount / counts.all) * 100 : 0} />
-        <StatCard value={snapshot.channelsUsed} label="القنوات المستخدمة" sub="قنوات نشطة" icon={<Share2 size={17} />} tone="teal" pct={snapshot.channelsUsed * 20} />
+      {/* لوحة السجل — سنابشوت متناسق: شبكة موحّدة من بطاقات أيقونة + رقم، بألوان كود المنصات الرسمية */}
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+        <StatCard value={counts.all} label="إجمالي المحتوى" sub="جميع المحتويات" icon={<FolderOpen size={18} />} tone="sa" pct={100} />
+        <StatCard value={snapshot.reviewed} label="المراجعة" sub="قيد التحليل" icon={<FileCheck2 size={18} />} tone="sky" pct={counts.all ? (snapshot.reviewed / counts.all) * 100 : 0} />
+        <StatCard value={counts.approved} label="المعتمدة" sub={`نسبة الاعتماد ${acceptance}%`} icon={<CheckCircle2 size={18} />} tone="success" pct={counts.all ? (counts.approved / counts.all) * 100 : 0} />
+        <StatCard value={counts.drafts} label="المسودات والحالية" sub="قيد الإنشاء" icon={<FileText size={18} />} tone="gold" pct={counts.all ? (counts.drafts / counts.all) * 100 : 0} />
+        <StatCard value={thisWeekCount} label="هذا الأسبوع" sub="منذ بداية الأسبوع" icon={<CalendarDays size={18} />} tone="lavender" pct={counts.all ? (thisWeekCount / counts.all) * 100 : 0} />
+        <StatCard value={snapshot.channelsUsed} label="القنوات المستخدمة" sub="قنوات نشطة" icon={<Share2 size={18} />} tone="rose" pct={snapshot.channelsUsed * 20} />
       </div>
 
       {records.length > 0 ? (
         <>
           <JourneyStepper steps={[
-            { label: "النشر", value: snapshot.channelsUsed, sub: "قنوات نشطة", icon: <Send size={17} />, tone: "violet" },
-            { label: "الاعتماد", value: counts.approved, sub: "معتمد", icon: <ShieldCheck size={17} />, tone: "gold" },
-            { label: "المراجعة والتحليل", value: snapshot.reviewed, sub: "قيد التحليل", icon: <Search size={17} />, tone: "info" },
-            { label: "إنشاء المحتوى", value: counts.drafts, sub: "مسودة", icon: <PenLine size={17} />, tone: "good" }
+            { label: "النشر", value: snapshot.channelsUsed, sub: "قنوات نشطة", icon: <Send size={18} />, tone: "lavender" },
+            { label: "الاعتماد", value: counts.approved, sub: "معتمد", icon: <ShieldCheck size={18} />, tone: "gold" },
+            { label: "المراجعة والتحليل", value: snapshot.reviewed, sub: "قيد التحليل", icon: <Search size={18} />, tone: "sky" },
+            { label: "إنشاء المحتوى", value: counts.drafts, sub: "مسودة", icon: <PenLine size={18} />, tone: "success" }
           ]} />
 
           {snapshot.byType.length ? (
-            <div className="rounded-2xl border border-line bg-white p-4">
-              <p className="mb-3 flex items-center gap-2 text-sm font-bold text-ink"><Tag size={15} className="text-palm" />حسب النوع</p>
+            <div className="rounded-2xl border border-line bg-white p-4 shadow-xs">
+              <p className="mb-3 flex items-center gap-2 text-sm font-semibold text-ink"><Tag size={15} className="text-palm" />حسب النوع</p>
               <div className="flex gap-2.5 overflow-x-auto pb-1">
                 {snapshot.byType.map(([label, count]) => (
-                  <div key={label} className="min-w-[104px] shrink-0 rounded-xl border border-line bg-paper p-2.5">
+                  <div key={label} className="min-w-[108px] shrink-0 rounded-xl border border-line bg-paper p-3">
                     <div className="flex items-center justify-between">
-                      <span className="text-lg font-extrabold tabular-nums text-palm">{count}</span>
+                      <span className="text-xl font-bold tabular-nums text-palmDeep">{count}</span>
                       <span className="grid h-7 w-7 place-items-center rounded-lg bg-mint text-palm"><Tag size={13} /></span>
                     </div>
-                    <p className="mt-1 truncate text-[11px] font-semibold text-ink">{label}</p>
-                    <p className="text-[9px] tabular-nums text-ink/45">{counts.all ? Math.round((count / counts.all) * 100) : 0}%</p>
+                    <p className="mt-1.5 truncate text-[11px] font-medium text-ink">{label}</p>
+                    <p className="text-[9px] font-normal tabular-nums text-ink/45">{counts.all ? Math.round((count / counts.all) * 100) : 0}%</p>
                   </div>
                 ))}
               </div>
@@ -465,15 +464,15 @@ export default function ContentManagementPage() {
           ) : null}
 
           {snapshot.byChannel.length ? (
-            <div className="rounded-2xl border border-line bg-white p-4">
-              <p className="mb-3 flex items-center gap-2 text-sm font-bold text-ink"><Share2 size={15} className="text-palm" />حسب القناة</p>
+            <div className="rounded-2xl border border-line bg-white p-4 shadow-xs">
+              <p className="mb-3 flex items-center gap-2 text-sm font-semibold text-ink"><Share2 size={15} className="text-palm" />حسب القناة</p>
               <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
                 {snapshot.byChannel.map(([label, count]) => (
-                  <div key={label} className="flex items-center gap-2.5 rounded-xl border border-line bg-paper p-2.5">
-                    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-white shadow-sm">{channelBrandIcon(label)}</span>
+                  <div key={label} className="flex items-center gap-2.5 rounded-xl border border-line bg-paper p-3">
+                    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-white shadow-xs">{channelBrandIcon(label)}</span>
                     <div className="min-w-0">
-                      <div className="text-lg font-extrabold tabular-nums text-ink">{count}</div>
-                      <div className="truncate text-[11px] text-ink/55">{label}</div>
+                      <div className="text-xl font-bold tabular-nums text-ink">{count}</div>
+                      <div className="truncate text-[11px] font-normal text-ink/55">{label}</div>
                     </div>
                   </div>
                 ))}
