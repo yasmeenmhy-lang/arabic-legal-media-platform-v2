@@ -504,7 +504,7 @@ export default function ContentManagementPage() {
                 {snapshot.byType.map(([label, count], i) => {
                   const c = CALM[i % CALM.length];
                   return (
-                    <div key={label} className="flex grow basis-[calc(50%-0.25rem)] items-center justify-between gap-1.5 rounded-xl border border-line bg-paper px-3 py-2.5 sm:basis-[calc(33.333%-0.5rem)]">
+                    <div key={label} className="flex grow basis-[calc(50%-0.25rem)] items-center justify-between gap-1.5 rounded-xl border border-line bg-paper px-3 py-2.5 sm:basis-[calc(33.333%-0.5rem)] lg:basis-0">
                       <div className="flex min-w-0 items-baseline gap-1.5">
                         <span className="truncate text-xs font-medium text-ink/70">{label}</span>
                         <span className={`text-base font-bold tabular-nums ${c.fg}`}>{count}</span>
@@ -525,7 +525,7 @@ export default function ContentManagementPage() {
                   const b = channelBrand(label);
                   const idle = count === 0; // قناة معتمدة بلا محتوى بعد — تُعرَض بصفر بهيئة هادئة
                   return (
-                    <div key={label} className={`flex grow basis-[calc(50%-0.25rem)] items-center justify-between gap-1.5 rounded-xl border px-3 py-2.5 sm:basis-[calc(33.333%-0.5rem)] ${idle ? "border-line/70 bg-paper/50" : "border-line bg-paper"}`}>
+                    <div key={label} className={`flex grow basis-[calc(50%-0.25rem)] items-center justify-between gap-1.5 rounded-xl border px-3 py-2.5 sm:basis-[calc(33.333%-0.5rem)] lg:basis-0 ${idle ? "border-line/70 bg-paper/50" : "border-line bg-paper"}`}>
                       <div className="flex min-w-0 items-baseline gap-1.5">
                         <span className={`truncate text-xs font-medium ${idle ? "text-ink/40" : "text-ink/70"}`}>{label}</span>
                         <span className={`text-base font-bold tabular-nums ${idle ? "text-ink/35" : "text-ink"}`}>{count}</span>
