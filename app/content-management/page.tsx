@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import Link from "next/link";
-import { CalendarDays, CheckCircle2, ChevronDown, ChevronLeft, ExternalLink, FileClock, FileText, Filter, FolderOpen, History, RotateCcw, Search, Trash2, X } from "lucide-react";
+import { CalendarDays, CheckCircle2, ChevronDown, ChevronLeft, ExternalLink, FileCheck2, FileClock, FileText, Filter, FolderOpen, History, RotateCcw, Search, Share2, Trash2, X } from "lucide-react";
 import { Button, DgaSpinner, PageHeader, StatusBadge } from "@/components/ui";
 import {
   deriveContentTitle,
@@ -69,24 +69,41 @@ function riskTone(level?: RiskLevel): "good" | "gold" | "danger" | "neutral" {
   return "danger";
 }
 
-// بطاقة إحصائية في لوحة السجل — خلفية متدرّجة وأيقونة ملوّنة مملوءة ورقم ملوّن (حياة وألوان).
-function StatCard({ label, value, unit, icon, tone }: {
-  label: string; value: number; unit: string; icon: ReactNode; tone: "palm" | "good" | "gold" | "info";
+// بطاقة إحصائية مصغّرة (سنابشوت سريع) — أيقونة ملوّنة + رقم بارز + وصف موجز، بمقاس صغير موحّد.
+function StatCard({ label, value, icon, tone }: {
+  label: string; value: number; icon: ReactNode; tone: "palm" | "good" | "gold" | "info" | "violet";
 }) {
   const s = {
-    palm: { bg: "from-mint/80 to-white", ring: "border-palm/20", icon: "bg-palm text-white", num: "text-palm" },
+    palm: { bg: "from-mint/70 to-white", ring: "border-palm/20", icon: "bg-palm text-white", num: "text-palm" },
     good: { bg: "from-green-50 to-white", ring: "border-green-200", icon: "bg-green-500 text-white", num: "text-green-600" },
     gold: { bg: "from-amber-50 to-white", ring: "border-amber-200", icon: "bg-amber-500 text-white", num: "text-amber-600" },
-    info: { bg: "from-blue-50 to-white", ring: "border-blue-200", icon: "bg-blue-500 text-white", num: "text-blue-600" }
+    info: { bg: "from-blue-50 to-white", ring: "border-blue-200", icon: "bg-blue-500 text-white", num: "text-blue-600" },
+    violet: { bg: "from-violet-50 to-white", ring: "border-violet-200", icon: "bg-violet-500 text-white", num: "text-violet-600" }
   }[tone];
   return (
-    <div className={`flex flex-col rounded-2xl border ${s.ring} bg-gradient-to-br ${s.bg} p-4 shadow-sm`}>
-      <div className="mb-2 flex items-center justify-between gap-2">
-        <span className="text-xs font-semibold text-ink/70">{label}</span>
-        <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-xl shadow-sm ${s.icon}`}>{icon}</span>
+    <div className={`flex items-center gap-2.5 rounded-xl border ${s.ring} bg-gradient-to-br ${s.bg} p-2.5`}>
+      <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-lg shadow-sm ${s.icon}`}>{icon}</span>
+      <div className="min-w-0">
+        <span className={`block text-lg font-extrabold leading-none tabular-nums ${s.num}`}>{value}</span>
+        <span className="mt-0.5 block truncate text-[10px] text-ink/55">{label}</span>
       </div>
-      <span className={`text-3xl font-extrabold leading-none tabular-nums ${s.num}`}>{value}</span>
-      <span className="mt-1.5 text-[11px] text-ink/50">{unit}</span>
+    </div>
+  );
+}
+
+// توزيع مصغّر (حسب النوع/القناة) — رقائق «التسمية × العدد» لأبرز الفئات، لمحة عن مخرجات المنصة.
+function DistroCard({ title, items }: { title: string; items: Array<[string, number]> }) {
+  if (!items.length) return null;
+  return (
+    <div className="rounded-xl border border-line bg-white p-3">
+      <p className="mb-2 text-[11px] font-semibold text-ink/50">{title}</p>
+      <div className="flex flex-wrap gap-1.5">
+        {items.slice(0, 6).map(([label, count]) => (
+          <span key={label} className="inline-flex items-center gap-1.5 rounded-full border border-line bg-paper px-2.5 py-1 text-[11px] text-ink/70">
+            {label}<span className="font-bold text-palm tabular-nums">{count}</span>
+          </span>
+        ))}
+      </div>
     </div>
   );
 }
@@ -155,6 +172,23 @@ export default function ContentManagementPage() {
   const thisWeekCount = useMemo(() => {
     const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
     return records.filter((item) => item.createdAt && new Date(item.createdAt).getTime() >= weekAgo).length;
+  }, [records]);
+
+  // سنابشوت أوسع: عدد المُراجَع (له تحليل)، وتوزيع المحتوى حسب النوع وحسب القناة
+  const snapshot = useMemo(() => {
+    const cur = (r: StoredContentRecord) => r.versions.find((v) => v.version === r.currentVersion) ?? r.versions.at(-1);
+    const reviewed = records.filter((r) => cur(r)?.analysis).length;
+    const tally = (pick: (r: StoredContentRecord) => string | undefined) => {
+      const map = new Map<string, number>();
+      for (const r of records) {
+        const key = (pick(r) ?? "").trim();
+        if (key) map.set(key, (map.get(key) ?? 0) + 1);
+      }
+      return [...map.entries()].sort((a, b) => b[1] - a[1]);
+    };
+    const byType = tally((r) => cur(r)?.contentTypeLabel);
+    const byChannel = tally((r) => cur(r)?.channel);
+    return { reviewed, channelsUsed: byChannel.length, byType, byChannel };
   }, [records]);
 
 
@@ -366,13 +400,21 @@ export default function ContentManagementPage() {
     <div className="space-y-6">
       <PageHeader eyebrow="أرشيف المحتوى واعتماداته" title="سجل المحتوى المهني" />
 
-      {/* لوحة السجل — نظرة سريعة بمعطيات حقيقية، وكل بطاقة تُصفّي القائمة */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <StatCard label="إجمالي المحتوى" value={counts.all} unit="محتوى في السجل" icon={<FolderOpen size={18} />} tone="palm" />
-        <StatCard label="المعتمدة" value={counts.approved} unit="جاهزة ومعتمدة" icon={<CheckCircle2 size={18} />} tone="good" />
-        <StatCard label="المسودات والحالية" value={counts.drafts} unit="قيد الإعداد" icon={<FileText size={18} />} tone="gold" />
-        <StatCard label="أُنشئت هذا الأسبوع" value={thisWeekCount} unit="خلال ٧ أيام" icon={<CalendarDays size={18} />} tone="info" />
+      {/* سنابشوت سريع — مربعات مصغّرة بأرقام حقيقية عن عمليات المنصّة ومخرجاتها */}
+      <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-6">
+        <StatCard label="إجمالي المحتوى" value={counts.all} icon={<FolderOpen size={16} />} tone="palm" />
+        <StatCard label="المُراجَعة" value={snapshot.reviewed} icon={<FileCheck2 size={16} />} tone="info" />
+        <StatCard label="المعتمدة" value={counts.approved} icon={<CheckCircle2 size={16} />} tone="good" />
+        <StatCard label="المسودات والحالية" value={counts.drafts} icon={<FileText size={16} />} tone="gold" />
+        <StatCard label="هذا الأسبوع" value={thisWeekCount} icon={<CalendarDays size={16} />} tone="violet" />
+        <StatCard label="القنوات المستخدمة" value={snapshot.channelsUsed} icon={<Share2 size={16} />} tone="palm" />
       </div>
+      {records.length > 0 ? (
+        <div className="grid gap-2.5 sm:grid-cols-2">
+          <DistroCard title="حسب النوع" items={snapshot.byType} />
+          <DistroCard title="حسب القناة" items={snapshot.byChannel} />
+        </div>
+      ) : null}
 
       {/* رسالة طمأنة: السجل وسيلة وقائية داخلية — لا استخدام تأديبياً وسرية تامة */}
       <div className="rounded-xl border border-infoBorder bg-infoSoft p-4">

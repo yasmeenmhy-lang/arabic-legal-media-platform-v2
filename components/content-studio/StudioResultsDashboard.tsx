@@ -30,13 +30,13 @@ const toneCardStyles: Record<Tone, { border: string; bar: string; value: string 
   neutral: { border: "border-warmGrayBorder", bar: "bg-warmGray", value: "text-warmGrayText" },
 };
 
-// ألوان الرقائق المصغّرة في ملخّص المركز (نظرة سريعة لا تكرار للشاشة الكاملة)
-const chipTone: Record<Tone, string> = {
-  good: "bg-green-50 text-green-700",
-  gold: "bg-amber-50 text-amber-700",
-  warning: "bg-orange-50 text-orange-800",
-  danger: "bg-red-50 text-red-700",
-  neutral: "bg-slate-100 text-slate-600",
+// ألوان قيم المؤشرات المصغّرة في ملخّص المركز (شبكة مرتّبة موحّدة المقاس)
+const chipText: Record<Tone, string> = {
+  good: "text-green-600",
+  gold: "text-amber-600",
+  warning: "text-orange-700",
+  danger: "text-red-600",
+  neutral: "text-slate-600",
 };
 
 function riskTone(review: ReviewResult): Tone {
@@ -120,20 +120,20 @@ export function StudioResultsDashboard({ review, text, visuals = [], onEdit, onS
           <Button variant="secondary-gray" onClick={onEdit}>تعديل النص</Button>
         </div>
 
-        <div className="mt-4 flex flex-wrap gap-2">
+        <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3">
           {summaryChips.map((chip) => (
-            <span key={chip.label} className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold ${chipTone[chip.tone]}`}>
-              <span className="font-normal opacity-70">{chip.label}</span>{chip.value}
-            </span>
+            <div key={chip.label} className="rounded-lg border border-line bg-paper px-3 py-2">
+              <p className="text-[10px] text-ink/50">{chip.label}</p>
+              <p className={`mt-0.5 text-xs font-bold ${chipText[chip.tone]}`}>{chip.value}</p>
+            </div>
           ))}
         </div>
 
-        <div className="mt-5 flex flex-col gap-2.5 border-t border-line pt-4 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-xs leading-6 text-ink/55">التفاصيل الكاملة — الملاحظات والأدلة والأثر والإجراء الموصى به — في شاشة التحليل التفصيلي.</p>
+        <div className="mt-5 border-t border-line pt-4">
           {detailedAnalysisAvailable ? (
-            <ButtonLink href="/content-review?open=1" className="w-full justify-center sm:w-auto">افتح التحليل التفصيلي ←</ButtonLink>
+            <ButtonLink href="/content-review?open=1" className="w-full justify-center">افتح التحليل التفصيلي ←</ButtonLink>
           ) : (
-            <Button variant="secondary-gray" disabled className="cursor-not-allowed opacity-60">التحليل التفصيلي غير متاح</Button>
+            <Button variant="secondary-gray" disabled className="w-full cursor-not-allowed opacity-60">التحليل التفصيلي غير متاح</Button>
           )}
         </div>
       </Panel>

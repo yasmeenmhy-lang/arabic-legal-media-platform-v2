@@ -1332,29 +1332,35 @@ export default function ContentReviewPage() {
             ) : null}
           </div>
         ) : null}
-        <label className="mt-4 block text-sm">
-          <span className="flex flex-wrap items-center justify-between gap-2">
-            <span>النص محل المراجعة</span>
-            <span className="flex items-center gap-2">
+        {/* نص المحتوى — أوكورديون (مفتوح افتراضياً)؛ الـ flex على div داخلي لا على summary لتفادي عطل Safari */}
+        <details open className="mt-4 group text-sm">
+          <summary className="cursor-pointer list-none focus-ring">
+            <div className="flex items-center justify-between gap-2 rounded-lg border border-line bg-paper px-3 py-2.5 font-medium text-ink">
+              <span>نص المحتوى</span>
+              <ChevronDown size={16} className="shrink-0 text-ink/40 transition-transform group-open:rotate-180" aria-hidden="true" />
+            </div>
+          </summary>
+          <div className="pt-3">
+            <div className="mb-2 flex items-center justify-end gap-2">
               <PreviewToggleButton preview={previewText} onToggle={() => setPreviewText((v) => !v)} />
               <Button size="sm" variant="secondary-gray" onClick={clearContentInput} disabled={loading || text.length === 0} leadingIcon={<XCircle size={14} aria-hidden="true" />}>مسح المحتوى</Button>
-            </span>
-          </span>
-          {previewText ? (
-            <div className="mt-2"><ReadingPreview text={text} /></div>
-          ) : (
-          <textarea
-            value={text}
-            onFocus={enterEditingIfNeeded}
-            onChange={(event) => { enterEditingIfNeeded(); setText(event.target.value); }}
-            // أثناء التحليل يُقفل النص — تعديل نص يجري تحليله يجعل النتيجة عن نص غير المعروض
-            disabled={loading}
-            className={`mt-2 min-h-44 w-full rounded-lg border p-4 leading-8 transition disabled:bg-paper disabled:text-ink/60 ${
-              charLimit !== null && text.length > charLimit ? "border-red-400 focus:border-red-400" : "border-line"
-            }`}
-          />
-          )}
-        </label>
+            </div>
+            {previewText ? (
+              <ReadingPreview text={text} />
+            ) : (
+            <textarea
+              value={text}
+              onFocus={enterEditingIfNeeded}
+              onChange={(event) => { enterEditingIfNeeded(); setText(event.target.value); }}
+              // أثناء التحليل يُقفل النص — تعديل نص يجري تحليله يجعل النتيجة عن نص غير المعروض
+              disabled={loading}
+              className={`min-h-44 w-full rounded-lg border p-4 leading-8 transition disabled:bg-paper disabled:text-ink/60 ${
+                charLimit !== null && text.length > charLimit ? "border-red-400 focus:border-red-400" : "border-line"
+              }`}
+            />
+            )}
+          </div>
+        </details>
         {charLimit !== null && (
           <div className={`mt-1 text-left text-xs tabular-nums ${
             text.length > charLimit
