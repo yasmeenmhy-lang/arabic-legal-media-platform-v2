@@ -2102,9 +2102,9 @@ export default function ContentReviewPage() {
                       ? <AlertTriangle className="mt-1 shrink-0 text-amber-500" size={20} />
                       : <CheckCircle2 className="mt-1 shrink-0 text-palm" size={20} />}
                     <div>
-                      <h3 className="font-semibold">لم ترصد مخالفة قانونية مرتبطة بمرجع رسمي</h3>
+                      <h3 className="font-semibold">لم ترصد مخالفة مهنية</h3>
                       {hasOtherIssues
-                        ? <p className="mt-2 leading-7 text-amber-800">القرار السلبي مبني على: {otherIssueReasons}. راجع بطاقات المؤشرات أعلاه وعالج هذه النقاط قبل النشر.</p>
+                        ? <p className="mt-2 leading-7 text-amber-800">التوصية مبنية على: {otherIssueReasons}. راجع بطاقات المؤشرات أعلاه وعالج هذه النقاط قبل النشر.</p>
                         : <p className="mt-2 leading-7 text-ink/70">راجع متطلبات الاعتماد وجودة اللغة قبل تجهيز النشر.</p>}
                     </div>
                   </div>
