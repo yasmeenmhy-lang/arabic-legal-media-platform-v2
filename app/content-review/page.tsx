@@ -1346,7 +1346,9 @@ export default function ContentReviewPage() {
               </button>
             </div>
             {recordSearchFocus ? (
-              <div className="absolute inset-x-0 top-full z-30 mt-1 max-h-72 overflow-y-auto rounded-lg border border-line bg-white shadow-lg">
+              // القائمة في السياق الطبيعي لا معلّقة: البطاقة تتمدّد معها فلا تُقصّ عند
+              // حافتها مهما قصُرت، وتعمل في كل المتصفحات بلا اعتماد على سلوك overflow.
+              <div className="mt-1 max-h-72 overflow-y-auto rounded-lg border border-line bg-white shadow-sm">
                 {(() => {
                   // السجل كاملاً بلا سقف — الصندوق نفسه يمرّر. والترتيب يجعل ما طابق
                   // العنوان أولاً ثم ما طابق المتن، فيتحرّك أعلى القائمة مع أول حرف
