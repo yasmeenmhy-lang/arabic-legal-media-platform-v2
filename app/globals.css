@@ -2,6 +2,17 @@
 @tailwind components;
 @tailwind utilities;
 
+/* منع تكبير iOS Safari التلقائي عند التركيز على الحقول:
+   المتصفح يُكبّر الصفحة إذا كان خط الحقل أقل من 16px. على أجهزة اللمس فقط
+   نضمن ألا يقل خط حقول الإدخال عن 16px — فيختفي التكبير المزعج، دون أي أثر على تخطيط الحاسب. */
+@media (pointer: coarse) {
+  input:not([type="checkbox"]):not([type="radio"]),
+  textarea,
+  select {
+    font-size: 16px;
+  }
+}
+
 /* IBM Plex Sans Arabic — الخط الرسمي لـ DGA كود المنصات؛ المنصة وكل مخرجاتها المرئية عليه حصراً */
 
 :root {
