@@ -1361,7 +1361,6 @@ export default function ContentReviewPage() {
         {/* بحث منسدل لفتح محتوى محفوظ سابقاً وتحميله للمراجعة */}
         {savedRecords.length > 0 ? (
           <div className="relative mb-4">
-            <FieldLabel label="فتح محتوى محفوظ" optional />
             <div className="flex items-center gap-2 rounded-lg border border-line bg-white px-3 py-2.5">
               <Search size={15} className="shrink-0 text-ink/40" />
               <input
