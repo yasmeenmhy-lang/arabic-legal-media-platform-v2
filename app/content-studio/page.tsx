@@ -2498,7 +2498,7 @@ export default function ContentStudioPage() {
     <div className="content-review-window space-y-6">
       <PageHeader
         eyebrow="مركز المحتوى الإعلامي والإعلاني"
-        title={path === "review" ? "مراجعة المحتوى المهني" : "إعداد المحتوى المهني"}
+        title={path === "review" ? "مراجعة المحتوى المهني" : path === "create" ? "إنشاء المحتوى المهني" : "إعداد المحتوى المهني"}
         action={path ? <Button variant="secondary-gray" onClick={goBackOneStage} leadingIcon={<ArrowRight size={16} />}>رجوع</Button> : undefined}
       />
 
