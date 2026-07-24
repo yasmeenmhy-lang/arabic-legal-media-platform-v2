@@ -1,4 +1,4 @@
-import { ShieldCheck, AlertTriangle, UserRound, PenTool, FileText, BookOpen, LogIn } from "lucide-react";
+import { ShieldCheck, AlertTriangle, UserRound, PenTool, FileClock, BookOpen, LogIn, Sparkles, Languages } from "lucide-react";
 import { PageHeader, Panel } from "@/components/ui";
 import { getNafathConfiguration } from "@/lib/nafath-config";
 import { isAuthConfigured } from "@/lib/access-auth";
@@ -10,12 +10,14 @@ export const dynamic = "force-dynamic";
 // الرئيسية داخل شل المنصة ومكوّناتها (PageHeader/Panel) — الخط والألوان والأحجام
 // من المنصة نفسها. المزايا أيقونة + عنوان فقط. محتوى صادق بلا أرقام أو شعارات.
 const FEATURES = [
-  { icon: ShieldCheck, tone: "text-palm", bg: "bg-mintDeep", title: "مراجعة الامتثال" },
+  { icon: Sparkles, tone: "text-palm", bg: "bg-mintDeep", title: "إنشاء المحتوى" },
+  { icon: ShieldCheck, tone: "text-successBase", bg: "bg-successSoft", title: "مراجعة الامتثال" },
   { icon: AlertTriangle, tone: "text-errorBase", bg: "bg-errorSoft", title: "تقييم المخاطر" },
-  { icon: UserRound, tone: "text-violet", bg: "bg-violetSoft", title: "الجوانب المهنية واللغة" },
+  { icon: UserRound, tone: "text-violet", bg: "bg-violetSoft", title: "المعايير المهنية" },
+  { icon: Languages, tone: "text-infoBase", bg: "bg-infoSoft", title: "جودة اللغة" },
   { icon: PenTool, tone: "text-gold", bg: "bg-goldSoft", title: "تحسين الصياغة" },
-  { icon: FileText, tone: "text-inkSecondary", bg: "bg-warmGraySoft", title: "سجل موثّق" },
-  { icon: BookOpen, tone: "text-infoBase", bg: "bg-infoSoft", title: "مصادر معتمدة" },
+  { icon: FileClock, tone: "text-inkSecondary", bg: "bg-warmGraySoft", title: "سجل المحتوى" },
+  { icon: BookOpen, tone: "text-palmDeep", bg: "bg-mint", title: "مصادر معتمدة" },
 ];
 
 export default function LoginPage() {
@@ -25,8 +27,8 @@ export default function LoginPage() {
   return (
     <>
       <PageHeader
-        title="راجع محتواك، وتأكّد من امتثاله قبل نشره"
-        description="منصّة متخصّصة للمحامين لمراجعة وإدارة المحتوى الإعلامي والإعلاني بما يتوافق مع الضوابط المهنية ونظام المحاماة ولائحته التنفيذية."
+        title="أنشئ محتواك المهني، وتأكّد من امتثاله قبل نشره"
+        description="منصّة متخصّصة للمحامين لإنشاء المحتوى الإعلامي والإعلاني ومراجعته وإدارة سجلّه، بما يتوافق مع الضوابط المهنية ونظام المحاماة ولائحته التنفيذية."
       />
 
       <Panel className="mx-auto max-w-lg">
@@ -73,7 +75,7 @@ export default function LoginPage() {
 
       <section className="mx-auto mt-6 max-w-3xl">
         <h3 className="mb-4 text-center text-base font-semibold text-ink">ماذا تقدّم المنصّة</h3>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           {FEATURES.map((f) => {
             const Icon = f.icon;
             return (
