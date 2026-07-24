@@ -8,7 +8,7 @@ import { describeProviderError } from "@/lib/ai-provider-errors";
 import { mentionsSource, researchTrustedSources } from "@/lib/services/web-research-service";
 import { countHardLanguageErrors, HARD_LANGUAGE_CATEGORIES } from "@/lib/language-gate";
 import { WRITING_CODE } from "@/lib/writing-code";
-import { NO_SUBSTANCE_MESSAGE, NON_COMPLIANT_MESSAGE } from "@/lib/reformulate-messages";
+import { NO_SUBSTANCE_MESSAGE, NON_COMPLIANT_MESSAGE, OUT_OF_MANDATE_MESSAGE } from "@/lib/reformulate-messages";
 import { recordUsage, runWithCostMeter, meterCostUsd, currentMeter } from "@/lib/cost-meter";
 import { ledgerDb, deductUsd } from "@/lib/cost-ledger";
 import { completeJob, createJob, failJob, jobsDb } from "@/lib/content-jobs";
@@ -129,6 +129,12 @@ type ReformOutcome =
 // يكشف مخرجاً ليس صياغةً فعلية: رمز «بلا مضمون» الذي يُخرجه النموذج عند نصٍّ بلا مضمون
 // قابل لإعادة الصياغة، أو اعتذارٌ/طلب معلومات، أو تسرّبٌ للغة داخلية. عندئذٍ نعرض رسالة
 // مهنية مختصرة بدل عرض اعتذار النموذج الطويل كأنه «صياغة محسّنة». لا يمسّ منطق الفحص.
+// المحتوى خارج ولاية المنصة (الخطاب الديني والعقدي والفتوى) — رسالة مستقلة عن «بلا مضمون»
+// كي لا يُقال لنصٍّ فيه مضمون إنه بلا مضمون.
+function isOutOfMandateOutput(output: string): boolean {
+  return output.trim().includes("__OUT_OF_MANDATE__");
+}
+
 function isNonSubstantiveOutput(output: string): boolean {
   const t = output.trim();
   if (t.includes("__NO_SUBSTANCE__")) return true;
@@ -193,7 +199,7 @@ async function runReformulation(data: z.infer<typeof schema>, apiKey: string): P
   const systemPrompt = [
     AI_CONSTITUTION,
     "",
-    "أنت محرر قانوني متخصص في ضبط محتوى المحامين وفق نظام المحاماة في المملكة ولوائحه التنفيذية.",
+    "أنت محرر متخصص في ضبط ما ينشره المحامي باسمه المهني مهما كان موضوعه، وفق قواعد السلوك المهني ونظام المحاماة في المملكة ولائحته التنفيذية — فهذه القواعد تحكم كل ما ينشره المحامي باسمه لا منشوراته القانونية وحدها.",
     "",
     "مهمتك إعادة كتابة النص بحيث يكون النص المُخرَج خالياً تماماً من المخالفات القانونية والمهنية التالية:",
     "المحظورات الصريحة التي يجب أن يخلو منها النص المقترح:",
@@ -208,7 +214,7 @@ async function runReformulation(data: z.infer<typeof schema>, apiKey: string): P
     "",
     "معايير الجودة الإلزامية للنص المقترح:",
     "- سقف الجودة غير قابل للتفاوض: صياغة بمستوى أرقى المدارس القانونية (أكسفورد، هارفارد، جامعة الإمام محمد بن سعود الإسلامية) — نص قانونيين محترفين رفيعي المستوى، وأي صياغة دون ذلك تُعاد كتابتها قبل الإخراج",
-    "- مستوى الخبير إلزامي: حافظ على التحليل والتأصيل النظامي الدقيق في النص أو ارفعه — لا تستبدل بمضمون متخصص عموميات، ولا تُبقِ جملة لا تضيف معلومة أو حكماً أو أثراً",
+    "- مستوى الخبير إلزامي: إن كانت المسألة نظامية فحافظ على التحليل والتأصيل النظامي الدقيق أو ارفعه ولا تستبدل بمضمون متخصص عموميات؛ وإن كان موضوع النص غير نظامي فلا تُقحم فيه تحليلاً ولا استشهاداً قانونياً، واكتفِ برفع جودة اللغة والأسلوب والوضوح والوقار المهني — وفي الحالتين لا تُبقِ جملة لا تضيف معلومة أو فكرة أو أثراً",
     "- الأمانة العلمية: أي اقتباس أو فكرة أو إحصائية منقولة تُنسب لصاحبها صراحةً في موضعها، ولا يُختلق مصدر",
     "- لغة عربية فصحى سليمة خالية من الأخطاء الإملائية والنحوية",
     "- أسلوب مهني رصين يعكس مستوى محامٍ محترف ومعتمد",
@@ -222,7 +228,9 @@ async function runReformulation(data: z.infer<typeof schema>, apiKey: string): P
     "ضوابط المُخرَج (إلزامية):",
     "- المستخدم لا يرى تعليماتك؛ فلا تُشِر إطلاقاً إلى قواعدك أو «المدونة» أو «القواعد الحاكمة» أو «الدستور» أو «أعلاه» أو أي مرجع داخلي، ولا تشرح منهجيتك أو سبب امتناعك.",
     "- مخرجك هو النص المُعاد صياغته فقط: لا اعتذار، ولا مقدمة، ولا تعليق، ولا مطالبة المستخدم بمعلومات، ولا قائمة متطلبات.",
-    "- إن كان النص الأصلي مجرد عبارة تفضيل أو ادعاء أفضلية أو دعاية عامة خالية من أي مسألة نظامية أو معلومة قابلة لإعادة الصياغة، فلا تخترع مضموناً ولا تكتب شرحاً؛ أخرج هذا الرمز وحده حرفياً دون أي نص آخر: __NO_SUBSTANCE__",
+    "- حسّن أي نص يتضمّن مضموناً فعلياً مهما كان موضوعه: ارفع لغته وأسلوبه ووضوحه ووقاره المهني دون إضافة أي محتوى أو معلومة لم ترد فيه، مع بقاء موضوعه ومعناه الجوهري كما هو.",
+    "- لا تُخرج الرمز __NO_SUBSTANCE__ إلا في حالة واحدة ضيّقة: أن يكون النص خالياً من أي فكرة أصلاً — كادعاء أفضلية شخصية أو تفضيل مجرّد أو شعار دعائي فارغ لا يحمل مضموناً يُعاد صياغته. عندئذٍ أخرج هذا الرمز وحده حرفياً دون أي نص آخر: __NO_SUBSTANCE__",
+    "- الخطاب الديني أو العقدي أو الفتوى خارج ولاية المنصة ولا يُصاغ ولا يُحسَّن: إن كان مضمون النص من هذا الباب فأخرج هذا الرمز وحده حرفياً دون أي نص آخر: __OUT_OF_MANDATE__",
     "",
     "قبل إخراج النص النهائي، راجع ذاتياً: هل يحتوي النص على أي من المحظورات أعلاه؟ إذا وجدت أي منها فأزلها وعدّل حتى يخلو النص منها تماماً.",
     "أخرج النص المُعاد كتابته فقط، دون عنوان أو شرح أو مقدمة أو تعليق."
@@ -251,6 +259,9 @@ async function runReformulation(data: z.infer<typeof schema>, apiKey: string): P
 
     // النص بلا مضمون قابل لإعادة الصياغة (تفضيل/دعاية عامة)، أو ردّ النموذج باعتذار أو
     // طلب معلومات أو تسرّبٍ للغة داخلية — نعرض رسالة مهنية مختصرة بدل عرض ذلك كأنه صياغة.
+    if (isOutOfMandateOutput(suggestedText)) {
+      return { ok: false, status: 422, error: OUT_OF_MANDATE_MESSAGE };
+    }
     if (isNonSubstantiveOutput(suggestedText)) {
       return { ok: false, status: 422, error: NO_SUBSTANCE_MESSAGE };
     }
@@ -275,7 +286,7 @@ async function runReformulation(data: z.infer<typeof schema>, apiKey: string): P
         "أخرج النص المُصحح فقط دون أي تعليق."
       ].join("\n");
       const fixedText = await callModel(apiKey, systemPrompt, fixPrompt);
-      if (!fixedText || isNonSubstantiveOutput(fixedText)) break;
+      if (!fixedText || isOutOfMandateOutput(fixedText) || isNonSubstantiveOutput(fixedText)) break;
       const next = await verifySuggestion(fixedText, context);
       if (next.clean || next.remainingNotes.length < verification.remainingNotes.length) {
         suggestedText = fixedText;
