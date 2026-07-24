@@ -516,6 +516,9 @@ export default function ContentReviewPage() {
   // زر التحليل/إعادة التحليل حيٌّ دائماً ما دام هناك نص (٥ أحرف فأكثر) — لا يُعطَّل بانتظار
   // دخول وضع التعديل. الضغط قرار المستخدم؛ لا نُقفل الزر الأساسي في وجهه.
   const canAnalyze = text.trim().length >= 5;
+  // هذه الصفحة تعمل على محتوى قائم يُختار من السجل: «مراجعة المحتوى» وأزرار العمل
+  // تظهر مع المحتوى المختار ولا وجود لها على الفراغ (لا صندوق فارغ ولا زر بلا محتوى).
+  const hasSelectedContent = Boolean(contentId) || text.trim().length > 0;
   // المقياس الموحد لحواجز الاعتماد — بأمر مالكة المنصة: زر الاعتماد وأسبابه وسطر
   // «الجاهزية» يقرؤون جميعاً من هذه القائمة الواحدة فلا يظهر «جاهزة — لا حواجز»
   // مع «تعذر الاعتماد» معاً أبداً. الملاحظة الأسلوبية حاجز كأي مؤشر (كل المؤشرات).
@@ -1378,7 +1381,8 @@ export default function ContentReviewPage() {
             ) : null}
           </div>
         ) : null}
-        {/* مراجعة المحتوى — يُفتح بمجرد اختيار محتوى من السجل؛ الـ flex على div داخلي لا على summary لتفادي عطل Safari */}
+        {/* مراجعة المحتوى — تظهر مع المحتوى المختار فقط، ومفتوحة عليه؛ الـ flex على div داخلي لا على summary لتفادي عطل Safari */}
+        {hasSelectedContent ? (
         <details
           open={inputOpen}
           onToggle={(e) => setInputOpen((e.currentTarget as HTMLDetailsElement).open)}
@@ -1415,6 +1419,7 @@ export default function ContentReviewPage() {
             </div>
           </div>
         </details>
+        ) : null}
         {charLimit !== null && (
           <div className={`mt-1 text-left text-xs tabular-nums ${
             text.length > charLimit
@@ -2015,8 +2020,8 @@ export default function ContentReviewPage() {
             </div>
           </details>
         ) : null}
-        <div className="mt-4 flex flex-wrap gap-3">
-          {/* زر التحليل ظاهر دائماً — بعد ظهور النتائج يصبح «إعادة التحليل» بلا حاجة لدخول وضع التعديل */}
+        <div className={`mt-4 flex flex-wrap gap-3 ${hasSelectedContent ? "" : "hidden"}`}>
+          {/* أزرار العمل تظهر مع المحتوى المختار؛ وبعد ظهور النتائج يصبح زر التحليل «إعادة التحليل» بلا حاجة لدخول وضع التعديل */}
           <Button size="lg" onClick={() => runReview(false)} disabled={loading || !canAnalyze} leadingIcon={loading ? <DgaSpinner size="sm" tone="violet" /> : <FileText size={17} />}>{loading ? "جار التحليل..." : review || contentId ? "إعادة التحليل" : "تحليل المحتوى"}</Button>
           {review && !isEditing ? <Button variant="secondary" onClick={beginEditing} leadingIcon={<Edit3 size={16} />}>تعديل</Button> : null}
           {isEditing && contentId ? <Button variant="secondary" onClick={saveEdits} disabled={loading || text.trim().length < 5} leadingIcon={<Save size={16} />}>حفظ التعديلات</Button> : null}
