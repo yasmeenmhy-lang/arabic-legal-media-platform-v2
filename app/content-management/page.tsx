@@ -96,13 +96,15 @@ function StatCard({ value, label, sub, icon, tone, pct, suffix }: {
 }) {
   const t = TONE[tone];
   return (
-    <div className={`rounded-xl border ${t.card} p-2.5`}>
-      <div className="flex items-center justify-between gap-1">
-        <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-lg ${t.iconBg} ${t.icon}`}>{icon}</span>
-        <span className={`text-lg font-bold leading-none tabular-nums ${t.num}`}>{value}{suffix ? <span className="text-xs font-semibold">{suffix}</span> : null}</span>
+    <div className={`flex h-full flex-col justify-between rounded-xl border ${t.card} p-2.5`}>
+      <div>
+        <div className="flex items-center justify-between gap-1">
+          <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-lg ${t.iconBg} ${t.icon}`}>{icon}</span>
+          <span className={`text-lg font-bold leading-none tabular-nums ${t.num}`}>{value}{suffix ? <span className="text-xs font-semibold">{suffix}</span> : null}</span>
+        </div>
+        <p className="mt-1.5 truncate text-[11px] font-semibold text-ink">{label}</p>
+        <p className="truncate text-[9px] font-normal text-ink/45">{sub}</p>
       </div>
-      <p className="mt-1.5 truncate text-[11px] font-semibold text-ink">{label}</p>
-      <p className="truncate text-[9px] font-normal text-ink/45">{sub}</p>
       <div className={`mt-1.5 h-1 overflow-hidden rounded-full ${t.track}`}>
         <div className={`h-full rounded-full ${t.bar}`} style={{ width: `${Math.max(4, Math.min(100, pct))}%` }} />
       </div>
@@ -115,7 +117,7 @@ function JourneyStepper({ steps }: { steps: Array<{ label: string; value: number
   return (
     <div className="rounded-2xl border border-line bg-white p-3.5 shadow-xs">
       <p className="mb-3 flex items-center gap-2 text-xs font-semibold text-ink"><FileClock size={14} className="text-palm" />رحلة المحتوى</p>
-      <div className="flex items-start justify-between gap-1">
+      <div className="mx-auto flex max-w-[560px] items-start justify-between gap-1">
         {steps.map((st) => (
           <div key={st.label} className="flex flex-1 flex-col items-center text-center">
             <span className={`grid h-9 w-9 place-items-center rounded-full ${TONE[st.tone].iconBg} ${TONE[st.tone].icon}`}>{st.icon}</span>
@@ -467,20 +469,20 @@ export default function ContentManagementPage() {
       {/* لوحة السجل — بطاقات مصغّرة هادئة: الإجمالي مميّز بالوسط، رحلة المحتوى، ثم حسب النوع والقناة */}
       {records.length > 0 ? (
         <div className="space-y-3">
-          {/* الإجمالي بارز بلون المنصّة الأخضر العميق، ومعه مؤشّران موجزان لا يكرّران مراحل رحلة المحتوى */}
-          <div className="space-y-2">
-            <div className="rounded-2xl bg-gradient-to-br from-palm to-palmDeep p-4 shadow-sm">
+          {/* الإجمالي بارز بلون المنصّة، ومعه مؤشّران موجزان — شبكة متجاوبة: عمود على الجوال، صف واحد على اللوحي/الحاسب */}
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+            <div className="col-span-2 flex flex-col justify-between rounded-2xl bg-gradient-to-br from-palm to-palmDeep p-4 shadow-sm">
               <div className="flex items-center justify-between gap-2">
                 <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-white/15 text-white"><FolderOpen size={22} /></span>
                 <span className="text-4xl font-bold leading-none tabular-nums text-white">{counts.all}</span>
               </div>
-              <p className="mt-2.5 text-sm font-semibold text-white">إجمالي المحتوى</p>
-              <p className="text-[11px] font-normal text-white/70">جميع المحتويات المحفوظة في السجل</p>
+              <div className="mt-2.5">
+                <p className="text-sm font-semibold text-white">إجمالي المحتوى</p>
+                <p className="text-[11px] font-normal text-white/70">جميع المحتويات المحفوظة في السجل</p>
+              </div>
             </div>
-            <div className="grid grid-cols-2 gap-2">
-              <StatCard value={acceptance} suffix="%" label="نسبة الاعتماد" sub="من إجمالي المحتوى" icon={<CheckCircle2 size={16} />} tone="success" pct={acceptance} />
-              <StatCard value={thisWeekCount} label="هذا الأسبوع" sub={`أُنشئت من إجمالي المحتوى (${counts.all})`} icon={<CalendarDays size={16} />} tone="sky" pct={counts.all ? (thisWeekCount / counts.all) * 100 : 0} />
-            </div>
+            <StatCard value={acceptance} suffix="%" label="نسبة الاعتماد" sub="من إجمالي المحتوى" icon={<CheckCircle2 size={16} />} tone="success" pct={acceptance} />
+            <StatCard value={thisWeekCount} label="هذا الأسبوع" sub={`أُنشئت من إجمالي المحتوى (${counts.all})`} icon={<CalendarDays size={16} />} tone="sky" pct={counts.all ? (thisWeekCount / counts.all) * 100 : 0} />
           </div>
 
           <JourneyStepper steps={[
