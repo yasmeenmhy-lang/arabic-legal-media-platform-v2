@@ -134,11 +134,11 @@ export default function LoginPage() {
             </div>
           </div>
           <nav className="hidden items-center gap-7 text-sm text-white/65 lg:flex">
-            <span className="font-bold text-[#17B26A]">الرئيسية</span>
-            <span>مركز المحتوى</span>
-            <span>المراجعة</span>
-            <span>السجل</span>
-            <span>المصادر</span>
+            <Link href="/login" className="font-bold text-[#17B26A] focus-ring">الرئيسية</Link>
+            <Link href="/content-studio" className="transition hover:text-white focus-ring">مركز المحتوى</Link>
+            <Link href="/content-review" className="transition hover:text-white focus-ring">المراجعة</Link>
+            <Link href="/content-management" className="transition hover:text-white focus-ring">السجل</Link>
+            <Link href="/library" className="transition hover:text-white focus-ring">المصادر</Link>
           </nav>
           <a
             href="#login"

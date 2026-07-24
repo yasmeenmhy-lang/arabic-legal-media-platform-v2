@@ -70,13 +70,9 @@ export async function middleware(request: NextRequest) {
         url.search = "";
         return NextResponse.redirect(url);
       }
-    } else if (pathname === "/login" && session) {
-      // من لديه جلسة صالحة لا يحتاج صفحة الدخول
-      const url = request.nextUrl.clone();
-      url.pathname = session.role === "admin" ? "/admin/access" : "/";
-      url.search = "";
-      return NextResponse.redirect(url);
     }
+    // ملاحظة: الرئيسية (/login) مدخل عام ويُسمح للمسجّل بمشاهدتها كصفحة تعريفية
+    // (بقرار مالكة المنصة) — فلا يُحوَّل من لديه جلسة بعيداً عنها.
   }
 
   // ── منطق RBAC التجريبي القائم — يبقى كما هو ──────────────────────────────

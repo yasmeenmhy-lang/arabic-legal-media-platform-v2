@@ -1,6 +1,7 @@
 import {
   FileCheck2,
   FileClock,
+  Home,
   Link2,
   Sparkles
 } from "lucide-react";
@@ -11,6 +12,7 @@ export const platformTitle = "إدارة المحتوى الإعلامي وال�
 // user/role management are intentionally absent here; regular users must never
 // see platform-owner administration unless they access the protected /admin URL.
 export const navItems = [
+  { title: "الرئيسية", href: "/login", icon: Home, group: "الرئيسية" },
   { title: "مركز المحتوى الإعلامي والإعلاني", href: "/content-studio", icon: Sparkles, group: "الرئيسية" },
   { title: "التحليل التفصيلي للمحتوى المهني", href: "/content-review", icon: FileCheck2, group: "الرئيسية" },
   { title: "سجل المحتوى المهني", href: "/content-management", icon: FileClock, group: "الرئيسية" },
