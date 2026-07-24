@@ -64,6 +64,7 @@ import {
   approvalBarriers,
   approveContentVersion,
   getActiveContentSelection,
+  setActiveContentSelection,
   loadContentRecords,
   markContentShared,
   saveContentDraft,
@@ -434,6 +435,9 @@ export default function ContentReviewPage() {
     reviewRequestIdRef.current++;
     setContentId(record.id);
     setVersionNumber(version.version);
+    // مزامنة «المحتوى النشط» مع ما تعرضه المراجعة فعلاً — فأي شاشة أخرى تستعيده تعرض
+    // نفس المحتوى لا محتوى آخر قديماً (إصلاح خلل عدم تطابق المحتوى بين الشاشات).
+    setActiveContentSelection(record.id, version.version);
     setContentTitle(record.title === "محتوى دون عنوان" ? "" : record.title);
     setText(version.body);
     setKind(version.contentType);
@@ -1265,7 +1269,7 @@ export default function ContentReviewPage() {
       <PageHeader
         eyebrow="مساعد قرار النشر للمحامي"
         title="إدارة المحتوى الإعلامي والإعلاني للمحامين"
-        action={<ButtonLink href="/content-studio" variant="secondary-gray"><ArrowRight size={16} />العودة إلى مركز المحتوى</ButtonLink>}
+        action={<ButtonLink href={contentId ? "/content-studio?results=1" : "/content-studio"} variant="secondary-gray"><ArrowRight size={16} />العودة إلى مركز المحتوى</ButtonLink>}
       />
 
       {/* النتائج بعرض الصفحة للحاسب والآيباد؛ الجوال يحتفظ بتسلسله العمودي. */}
