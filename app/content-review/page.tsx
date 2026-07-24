@@ -1313,23 +1313,27 @@ export default function ContentReviewPage() {
       {/* النتائج بعرض الصفحة للحاسب والآيباد؛ الجوال يحتفظ بتسلسله العمودي. */}
       <div>
         <div className="min-w-0 space-y-6">
-      <Panel id="input">
-        <SectionTitle title="1. إدخال المحتوى" />
+      {/* قبل الاختيار: بطاقة واحدة موجزة متمركزة والبحث هو بطلها — فالصفحة سؤال واحد
+          «أي محتوى؟». وبعد الاختيار تعود بطاقة الخطوة الأولى ضمن تسلسل التقرير المرقّم. */}
+      <Panel id="input" className={hasSelectedContent ? "" : "mx-auto max-w-xl"}>
+        <SectionTitle title={hasSelectedContent ? "1. إدخال المحتوى" : "اختر المحتوى"} />
 
         {/* عنوان المحتوى والنص محل المراجعة — بقرار مالكة المنصة: ظاهران دائماً خارج
             الأكورديون، حتى في عرض النتائج، فلا يحتاج المستخدم فتح السياق ليرى محتواه */}
         {/* بحث لفتح محتوى محفوظ سابقاً وتحميله للمراجعة — في الأعلى مكان عنوان المحتوى */}
         {savedRecords.length > 0 ? (
           <div className="relative" ref={recordSearchRef}>
-            <div className="flex items-center gap-2 rounded-lg border border-line bg-white px-3 py-2.5">
-              <Search size={15} className="shrink-0 text-ink/40" />
+            <div className={`flex items-center gap-2.5 rounded-lg border bg-white transition focus-within:border-palm ${
+              hasSelectedContent ? "border-line px-3 py-2.5" : "border-line px-4 py-3.5 shadow-sm"
+            }`}>
+              <Search size={hasSelectedContent ? 15 : 18} className="shrink-0 text-palm" />
               <input
                 type="text"
-                placeholder="بحث"
+                placeholder={hasSelectedContent ? "بحث" : "ابحث بموضوع المحتوى"}
                 value={recordSearch}
                 onChange={(e) => { setRecordSearch(e.target.value); setRecordSearchFocus(true); }}
                 onFocus={() => setRecordSearchFocus(true)}
-                className="flex-1 bg-transparent text-sm outline-none placeholder:text-ink/35"
+                className={`flex-1 bg-transparent outline-none placeholder:text-ink/35 ${hasSelectedContent ? "text-sm" : "text-base"}`}
               />
               {recordSearch ? (
                 <button type="button" onClick={() => setRecordSearch("")} className="text-ink/35 transition hover:text-ink/70" aria-label="مسح البحث">
