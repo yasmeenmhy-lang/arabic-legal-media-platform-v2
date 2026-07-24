@@ -227,7 +227,7 @@ export default function ContentReviewPage() {
   const [decisionOpen, setDecisionOpen] = useState(false);
   const [contentTitle, setContentTitle] = useState("");
   const [titleSuggesting, setTitleSuggesting] = useState(false);
-  const [kind, setKind] = useState<ContentKind | "">("");
+  const [kind, setKind] = useState<ContentKind | "">("post");
   const [channel, setChannel] = useState("");
   const [audience, setAudience] = useState("");
   const [purpose, setPurpose] = useState("");
@@ -464,6 +464,9 @@ export default function ContentReviewPage() {
   // وعاد الأقدم بعد الأحدث، تُهمل استجابته بدل أن تظهر كأن «التحليل رجع نصاً قديماً».
   const reviewRequestIdRef = useRef(0);
 
+  // حقول الإطار (نوع/جمهور/هدف/تخصص/قناة/حد) تُدخَل في مركز المحتوى — تُخفى هنا منعاً
+  // للتكرار (بقرار المالكة). المراجعة تعمل على النص وحده؛ النوع الافتراضي «منشور».
+  const showFrameworkFields = false;
   const hasReviewContext = Boolean(kind && audience && purpose && specialty);
   // شرط «التعديل قبل إعادة التحليل» يسري فقط على محتوى نتائجه معروضة فعلاً (review) —
   // محتوى محفوظ بلا تحليل (مسودة قديمة) لا نتائج له تُحمى، واشتراط التعديل عليه كان
@@ -471,7 +474,7 @@ export default function ContentReviewPage() {
   const isReanalysis = Boolean(review);
   // إعادة التحليل تُتاح فقط بعد «تعديل» أو «مسح + كتابة» (كلاهما يفعّل isEditing) — لا على محتوى مُحلَّل لم يُلمس.
   // التحليل الأول يتطلب اكتمال السياق مع التخصص. النص لا يقل عن ٥ أحرف في الحالتين.
-  const canAnalyze = text.trim().length >= 5 && Boolean(kind && audience && purpose) && (isReanalysis ? isEditing : Boolean(specialty));
+  const canAnalyze = text.trim().length >= 5 && (isReanalysis ? isEditing : true);
   // المقياس الموحد لحواجز الاعتماد — بأمر مالكة المنصة: زر الاعتماد وأسبابه وسطر
   // «الجاهزية» يقرؤون جميعاً من هذه القائمة الواحدة فلا يظهر «جاهزة — لا حواجز»
   // مع «تعذر الاعتماد» معاً أبداً. الملاحظة الأسلوبية حاجز كأي مؤشر (كل المؤشرات).
@@ -509,8 +512,8 @@ export default function ContentReviewPage() {
   }, [review]);
 
   async function requestReview(reviewStatus?: "READY_FOR_PUBLISHING") {
-    if (!kind || !audience || !purpose || (!isReanalysis && !specialty)) {
-      throw new Error("اختر نوع المحتوى والجمهور والهدف والتخصص قبل التحليل حتى ترتبط النتائج بإطار المحتوى الصحيح.");
+    if (text.trim().length < 5) {
+      throw new Error("أدخل نصاً من خمسة أحرف على الأقل للتحليل.");
     }
     const response = await fetch("/api/reviews", {
       method: "POST",
@@ -650,8 +653,8 @@ export default function ContentReviewPage() {
   }, []);
 
   async function runReview() {
-    if (!kind || !audience || !purpose || (!isReanalysis && !specialty)) {
-      setMessage("اختر نوع المحتوى والجمهور والهدف والتخصص قبل التحليل حتى ترتبط النتائج بإطار المحتوى الصحيح.");
+    if (text.trim().length < 5) {
+      setMessage("أدخل نصاً من خمسة أحرف على الأقل للتحليل.");
       return;
     }
     const requestId = ++reviewRequestIdRef.current;
@@ -713,7 +716,7 @@ export default function ContentReviewPage() {
         contentId,
         title: contentTitle,
         body: text,
-        contentType: kind,
+        contentType: kind || "post",
         contentTypeLabel,
         channel,
         audience,
@@ -1337,16 +1340,16 @@ export default function ContentReviewPage() {
 
         <details open={!review} className="mt-5 group">
           <summary className="flex cursor-pointer list-none items-center justify-between gap-3 rounded-lg border border-line bg-paper px-4 py-3 text-sm font-semibold text-ink focus-ring">
-            <span>{review ? "عرض إطار المحتوى أو تعديله" : "إدخال إطار المحتوى"}</span>
+            <span>فتح محتوى محفوظ</span>
             <span className="flex items-center gap-2 text-xs font-normal text-ink/50">
-              {review ? "معبأ وجاهز من مركز المحتوى" : "أكمل الحقول المطلوبة"}
+              اختياري
               <ChevronDown size={16} className="transition-transform group-open:rotate-180" aria-hidden="true" />
             </span>
           </summary>
           <div className="pt-5">
 
-        {/* شريط اكتمال السياق */}
-        <div className="mb-5">
+        {/* شريط اكتمال السياق — مخفي بلا حقول إطار (الإطار في مركز المحتوى) */}
+        <div className={showFrameworkFields ? "mb-5" : "hidden"}>
           <div className="mb-1.5 flex items-center justify-between text-xs">
             <span className="text-ink/55">اكتمال إطار المحتوى</span>
           </div>
@@ -1402,6 +1405,8 @@ export default function ContentReviewPage() {
           </div>
         ) : null}
 
+        {/* حقول الإطار مخفية في المراجعة — تُدخَل في مركز المحتوى (منع التكرار) */}
+        {showFrameworkFields && (<>
         {/* نوع المحتوى */}
         <div className={`mb-4 ${Boolean(review) && !isEditing ? "pointer-events-none opacity-60" : ""}`}>
           <FieldLabel label="نوع المحتوى" required />
@@ -1942,6 +1947,7 @@ export default function ContentReviewPage() {
         {!hasReviewContext ? (
           <p className="mt-2 text-xs leading-6 text-ink/60">اختر نوع المحتوى والجمهور والهدف والتخصص حتى يكون التحليل مرتبطًا بإطار المحتوى الصحيح.</p>
         ) : null}
+        </>)}
         {/* توعوي بحت عند رصد اقتباس في النص الملصق — كشف عرضي حتمي، لا يمس المؤشرات ولا محرك التحليل */}
         {review ? (
           <div className="mt-3 rounded-xl border border-infoBorder bg-infoSoft p-4">
@@ -1978,7 +1984,7 @@ export default function ContentReviewPage() {
           {/* زر التحليل ظاهر دائماً — بعد ظهور النتائج يصبح «إعادة التحليل» بلا حاجة لدخول وضع التعديل */}
           <Button size="lg" onClick={runReview} disabled={loading || !canAnalyze} leadingIcon={loading ? <DgaSpinner size="sm" tone="violet" /> : <FileText size={17} />}>{loading ? "جار التحليل..." : review || contentId ? "إعادة التحليل" : "تحليل المحتوى"}</Button>
           {review && !isEditing ? <Button variant="secondary" onClick={beginEditing} leadingIcon={<Edit3 size={16} />}>تعديل</Button> : null}
-          {isEditing && contentId ? <Button variant="secondary" onClick={saveEdits} disabled={loading || text.trim().length < 5 || !(kind && audience && purpose)} leadingIcon={<Save size={16} />}>حفظ التعديلات</Button> : null}
+          {isEditing && contentId ? <Button variant="secondary" onClick={saveEdits} disabled={loading || text.trim().length < 5} leadingIcon={<Save size={16} />}>حفظ التعديلات</Button> : null}
           {isEditing ? <Button variant="secondary-gray" onClick={cancelEditing} disabled={loading} leadingIcon={<AlertTriangle size={16} />}>إلغاء</Button> : null}
         </div>
         {message ? <p className="mt-3 text-sm text-palm">{message}</p> : null}
