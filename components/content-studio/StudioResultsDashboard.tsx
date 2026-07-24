@@ -30,9 +30,14 @@ const toneCardStyles: Record<Tone, { border: string; bar: string; value: string 
   neutral: { border: "border-warmGrayBorder", bar: "bg-warmGray", value: "text-warmGrayText" },
 };
 
-function uniqueReferences(findings: ReviewResult["findings"]) {
-  return Array.from(new Set(findings.map((finding) => finding.legalReference.trim()).filter(Boolean)));
-}
+// ألوان الرقائق المصغّرة في ملخّص المركز (نظرة سريعة لا تكرار للشاشة الكاملة)
+const chipTone: Record<Tone, string> = {
+  good: "bg-green-50 text-green-700",
+  gold: "bg-amber-50 text-amber-700",
+  warning: "bg-orange-50 text-orange-800",
+  danger: "bg-red-50 text-red-700",
+  neutral: "bg-slate-100 text-slate-600",
+};
 
 function riskTone(review: ReviewResult): Tone {
   if (review.analysisMode === "pattern-only" || review.evaluationIncomplete) return "neutral";
@@ -44,10 +49,6 @@ function riskTone(review: ReviewResult): Tone {
 
 export function StudioResultsDashboard({ review, text, visuals = [], onEdit, onSaveDraft, onPublish, actionMessage, detailedAnalysisAvailable = true }: Props) {
   const unavailable = review.analysisMode === "pattern-only" || review.evaluationIncomplete;
-  const conductFindings = review.professionalConductCompliance.findings;
-  const regulationFindings = review.executiveRegulationCompliance.findings;
-  const conductReferences = uniqueReferences(conductFindings);
-  const regulationReferences = uniqueReferences(regulationFindings);
   const languageIssues = review.languageQuality.issues;
   const hardLanguageIssues = languageIssues.filter((issue) => issue.category === "spelling" || issue.category === "grammar");
   const softLanguageIssues = languageIssues.filter((issue) => issue.category !== "spelling" && issue.category !== "grammar");
@@ -65,13 +66,13 @@ export function StudioResultsDashboard({ review, text, visuals = [], onEdit, onS
       ? "good"
       : "warning";
 
-  const indicators: Array<{ label: string; value: string; tone: Tone }> = [
-    { label: "قرار النشر", value: unavailable ? "تعذّر التحليل" : review.publicationDecision.label, tone: decisionTone },
-    { label: "الامتثال", value: unavailable ? "تعذّر التحليل" : review.findings.length === 0 ? "ملتزم" : "غير ملتزم", tone: complianceTone },
-    { label: "المخاطر", value: unavailable ? "تعذّر التحليل" : riskDisplayLabel(review.riskLevel), tone: riskTone(review) },
-    { label: "الجوانب المهنية", value: unavailable ? "تعذّر التحليل" : review.professionalismScore >= 80 ? "مستوفٍ للمعايير" : "يتطلب تحسيناً", tone: professionalTone },
-    { label: "اللغة والإملاء", value: unavailable ? "تعذّر التحليل" : hardLanguageIssues.length > 0 || !review.languageQuality.passed ? "يحتاج تصحيحًا" : softLanguageIssues.length > 0 ? `سليم إملائياً ونحوياً — ${softLanguageIssues.length} ملاحظة أسلوبية` : "سليم لغويًا", tone: languageTone },
-    { label: "جاهزية النشر", value: unavailable ? "تعذّر التحليل" : review.readinessDecision.level, tone: readinessTone },
+  // رقائق مصغّرة (بلا «قرار النشر» — هو العنوان) — نظرة سريعة لا شاشة كاملة
+  const summaryChips: Array<{ label: string; value: string; tone: Tone }> = [
+    { label: "الامتثال", value: unavailable ? "—" : review.findings.length === 0 ? "ملتزم" : "غير ملتزم", tone: complianceTone },
+    { label: "المخاطر", value: unavailable ? "—" : riskDisplayLabel(review.riskLevel), tone: riskTone(review) },
+    { label: "الجوانب المهنية", value: unavailable ? "—" : review.professionalismScore >= 80 ? "مستوفٍ" : "يتطلب تحسيناً", tone: professionalTone },
+    { label: "اللغة", value: unavailable ? "—" : hardLanguageIssues.length > 0 || !review.languageQuality.passed ? "يحتاج تصحيحًا" : softLanguageIssues.length > 0 ? `${softLanguageIssues.length} ملاحظة أسلوبية` : "سليم لغويًا", tone: languageTone },
+    { label: "الجاهزية", value: unavailable ? "—" : review.readinessDecision.level, tone: readinessTone },
   ];
 
   return (
@@ -105,48 +106,37 @@ export function StudioResultsDashboard({ review, text, visuals = [], onEdit, onS
         ) : null}
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <p className="text-xs font-semibold text-ink/50">مساعد قرار النشر للمحامي</p>
-          <h2 id="studio-results-title" className="mt-1 text-xl font-semibold text-ink">المؤشرات المساندة للقرار</h2>
+      {/* ملخّص مصغّر — نظرة سريعة وبوابة إلى التحليل التفصيلي (لا تكرار للشاشة الكاملة) */}
+      <Panel className={`relative border pt-6 ${toneCardStyles[decisionTone].border}`}>
+        <span className={`absolute inset-x-0 top-0 h-1 ${toneCardStyles[decisionTone].bar}`} aria-hidden="true" />
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-xs font-semibold text-ink/50">ملخّص المراجعة</p>
+            <div className="mt-1.5 flex flex-wrap items-center gap-2">
+              <h2 id="studio-results-title" className="text-base font-bold text-ink">قرار النشر</h2>
+              <StatusBadge tone={decisionTone}>{unavailable ? "تعذّر التحليل" : review.publicationDecision.label}</StatusBadge>
+            </div>
+          </div>
+          <Button variant="secondary-gray" onClick={onEdit}>تعديل النص</Button>
         </div>
-        <Button variant="secondary-gray" onClick={onEdit}>تعديل النص</Button>
-      </div>
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-6">
-        {indicators.map((indicator) => {
-          const colors = toneCardStyles[indicator.tone];
-          return (
-            <Panel key={indicator.label} className={`relative min-h-28 min-w-0 border ${colors.border} px-3 pt-6 sm:px-5`}>
-              <span className={`absolute inset-x-0 top-0 h-1 ${colors.bar}`} aria-hidden="true" />
-              <p className="mb-3 text-xs font-semibold text-ink/50">{indicator.label}</p>
-              <StatusBadge tone={indicator.tone}>{indicator.value}</StatusBadge>
-            </Panel>
-          );
-        })}
-      </div>
+        <div className="mt-4 flex flex-wrap gap-2">
+          {summaryChips.map((chip) => (
+            <span key={chip.label} className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold ${chipTone[chip.tone]}`}>
+              <span className="font-normal opacity-70">{chip.label}</span>{chip.value}
+            </span>
+          ))}
+        </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
-        <Panel className={`relative border pt-6 ${unavailable ? toneCardStyles.neutral.border : conductFindings.length > 0 ? toneCardStyles.danger.border : toneCardStyles.good.border}`}>
-          <span className={`absolute inset-x-0 top-0 h-1 ${unavailable ? toneCardStyles.neutral.bar : conductFindings.length > 0 ? toneCardStyles.danger.bar : toneCardStyles.good.bar}`} aria-hidden="true" />
-          <div className="flex items-start justify-between gap-4"><div><h3 className="text-sm font-semibold text-ink">مخالفات قواعد السلوك المهني للمحامين</h3><p className="mt-1 text-xs text-ink/50">عدد القواعد المخالفة</p></div><span className={`text-3xl font-semibold ${unavailable ? toneCardStyles.neutral.value : conductFindings.length > 0 ? toneCardStyles.danger.value : toneCardStyles.good.value}`}>{unavailable ? "—" : conductFindings.length}</span></div>
-          <div className="mt-4 border-t border-line pt-3"><p className="text-xs text-ink/50">القواعد المخالفة (بأرقامها)</p><p className="mt-1 text-sm font-semibold text-ink">{unavailable ? "التحليل غير مكتمل" : conductReferences.length > 0 ? conductReferences.join("، ") : "لا توجد"}</p></div>
-        </Panel>
-        <Panel className={`relative border pt-6 ${unavailable ? toneCardStyles.neutral.border : regulationFindings.length > 0 ? toneCardStyles.danger.border : toneCardStyles.good.border}`}>
-          <span className={`absolute inset-x-0 top-0 h-1 ${unavailable ? toneCardStyles.neutral.bar : regulationFindings.length > 0 ? toneCardStyles.danger.bar : toneCardStyles.good.bar}`} aria-hidden="true" />
-          <div className="flex items-start justify-between gap-4"><div><h3 className="text-sm font-semibold text-ink">مخالفات اللائحة التنفيذية لنظام المحاماة</h3><p className="mt-1 text-xs text-ink/50">عدد مواد اللائحة المخالفة</p></div><span className={`text-3xl font-semibold ${unavailable ? toneCardStyles.neutral.value : regulationFindings.length > 0 ? toneCardStyles.danger.value : toneCardStyles.good.value}`}>{unavailable ? "—" : regulationFindings.length}</span></div>
-          <div className="mt-4 border-t border-line pt-3"><p className="text-xs text-ink/50">المواد المخالفة من اللائحة (بأرقامها)</p><p className="mt-1 text-sm font-semibold text-ink">{unavailable ? "التحليل غير مكتمل" : regulationReferences.length > 0 ? regulationReferences.join("، ") : "لا توجد"}</p></div>
-        </Panel>
-      </div>
-
-      <div className="flex flex-col gap-3 border-t border-line pt-5 sm:flex-row sm:items-center sm:justify-between">
-        <div><p className="text-sm font-semibold text-ink">لمزيد من التفاصيل</p><p className="mt-1 text-xs text-ink/50">{detailedAnalysisAvailable ? "الملاحظات، الأدلة، الأثر، والإجراء الموصى به." : "تعذر حفظ هذه النتيجة في سجل المحتوى — أعد التحليل لإتاحة التحليل التفصيلي."}</p></div>
-        {detailedAnalysisAvailable ? (
-          <ButtonLink href="/content-review?open=1">التحليل التفصيلي للمحتوى المهني</ButtonLink>
-        ) : (
-          <Button variant="secondary-gray" disabled className="cursor-not-allowed opacity-60">التحليل التفصيلي غير متاح</Button>
-        )}
-      </div>
+        <div className="mt-5 flex flex-col gap-2.5 border-t border-line pt-4 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-xs leading-6 text-ink/55">التفاصيل الكاملة — الملاحظات والأدلة والأثر والإجراء الموصى به — في شاشة التحليل التفصيلي.</p>
+          {detailedAnalysisAvailable ? (
+            <ButtonLink href="/content-review?open=1" className="w-full justify-center sm:w-auto">افتح التحليل التفصيلي ←</ButtonLink>
+          ) : (
+            <Button variant="secondary-gray" disabled className="cursor-not-allowed opacity-60">التحليل التفصيلي غير متاح</Button>
+          )}
+        </div>
+      </Panel>
 
       <Panel>
         <p className="mb-4 text-sm font-semibold text-ink">ماذا تريد؟</p>
