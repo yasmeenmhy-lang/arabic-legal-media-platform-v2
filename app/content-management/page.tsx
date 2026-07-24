@@ -27,6 +27,14 @@ function formatDate(value?: string) {
   return `${hijri} / ${gregorian}`;
 }
 
+// تاريخ موجز لصفوف السجل (يوم/شهر/سنة) — أخفّ من التاريخ الكامل الهجري والميلادي
+function formatShortDate(value?: string) {
+  if (!value) return "";
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return "";
+  return new Intl.DateTimeFormat("ar-EG", { day: "numeric", month: "short", year: "numeric" }).format(d);
+}
+
 function complianceLabel(findings?: { resolved?: boolean }[]): "ملتزم" | "غير ملتزم" | null {
   if (!findings) return null;
   return findings.length === 0 ? "ملتزم" : "غير ملتزم";
@@ -491,16 +499,18 @@ export default function ContentManagementPage() {
                       setExpanded(isOpen ? undefined : record.id);
                       if (isOpen) setDetailsId(undefined);
                     }}
-                    className={`w-full flex items-center justify-between gap-3 px-4 py-4 text-right transition focus-ring ${isOpen ? "bg-paper" : "hover:bg-paper/60"}`}
+                    className={`w-full flex items-center gap-3 px-4 py-3.5 text-right transition focus-ring ${isOpen ? "bg-paper" : "hover:bg-paper/60"}`}
                   >
-                    <div className="flex items-center gap-3 min-w-0 flex-1">
-                      <span className="shrink-0 flex h-6 w-6 items-center justify-center rounded-full bg-mint text-xs font-bold text-palm">{serialById.get(record.id) ?? index + 1}</span>
-                      <div className="min-w-0">
-                        <p className="text-sm font-medium text-ink leading-6">{record.title}</p>
-                        {current && <p className="mt-0.5 text-xs text-ink/50">{current.contentTypeLabel} · {current.channel}</p>}
-                      </div>
+                    <span className="shrink-0 grid h-7 w-7 place-items-center rounded-full bg-mint text-[11px] font-bold text-palm tabular-nums">{serialById.get(record.id) ?? index + 1}</span>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium text-ink leading-6 line-clamp-2">{record.title}</p>
+                      {current && <p className="mt-0.5 truncate text-[11px] text-ink/45">{current.contentTypeLabel}{current.channel ? ` · ${current.channel}` : ""}</p>}
                     </div>
-                    <ChevronDown size={16} className={`shrink-0 text-ink/40 transition-transform ${isOpen ? "rotate-180" : ""}`} />
+                    <div className="shrink-0 flex flex-col items-end gap-1.5">
+                      <StatusBadge tone={st.tone}>{st.label}</StatusBadge>
+                      {record.createdAt ? <span className="whitespace-nowrap text-[10px] tabular-nums text-ink/40">{formatShortDate(record.createdAt)}</span> : null}
+                    </div>
+                    <ChevronDown size={16} className={`shrink-0 text-ink/35 transition-transform ${isOpen ? "rotate-180" : ""}`} aria-hidden="true" />
                   </button>
 
                   {isOpen && (
