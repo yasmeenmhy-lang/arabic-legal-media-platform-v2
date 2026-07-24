@@ -3461,7 +3461,7 @@ export default function ContentStudioPage() {
           <div className="mt-4 rounded-lg border border-line bg-paper/50 p-3">
             <label className="flex cursor-pointer items-start gap-2.5">
               <input type="checkbox" checked={reviewHasSource} onChange={(e) => setReviewHasSource(e.target.checked)} className="mt-0.5 h-4 w-4 accent-palm" />
-              <span className="text-sm text-ink/80">هل يستند نصك إلى مرجع أو مادة نظامية؟ <span className="text-ink/40">(اختياري — يُعين دقّة التحرّي)</span></span>
+              <span className="text-sm text-ink/80">هل يستند نصك إلى مرجع أو مادة نظامية؟ <span className="text-ink/40">(اختياري — يعزّز دقة التحقق)</span></span>
             </label>
             {reviewHasSource && (
               <input
@@ -3472,7 +3472,7 @@ export default function ContentStudioPage() {
                 className="mt-2.5 w-full rounded-lg border border-line bg-white px-3 py-2 text-sm focus:border-palm focus:outline-none"
               />
             )}
-            <p className="mt-2 text-xs leading-5 text-ink/45">يدقّق الذكاء صحّة المعلومات ومصداقيتها في كل الأحوال، حتى لو لم تُشِر إلى مرجع.</p>
+            <p className="mt-2 text-xs leading-5 text-ink/45">يُتحقَّق من صحّة المعلومات ومصداقيتها في كل الأحوال، حتى دون الإشارة إلى مرجع.</p>
           </div>
           <div className="mt-4 flex gap-3">
             <Button onClick={runReview} disabled={reviewText.trim().length < 5} leadingIcon={<FileCheck2 size={16} aria-hidden="true" />}>
