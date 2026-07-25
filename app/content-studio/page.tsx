@@ -16,6 +16,7 @@ import {
   ChevronDown,
   Edit3,
   Eye,
+  FastForward,
   FileCheck2,
   FileText,
   Globe,
@@ -33,7 +34,6 @@ import {
   Users,
   Trash2,
   Upload,
-  Zap,
   Video,
   XCircle,
   RefreshCw,
@@ -2511,7 +2511,7 @@ export default function ContentStudioPage() {
       {path === "review" && !review && !reviewing && frameStep < FRAME_TOTAL && (
         <div className="flex flex-col gap-3 rounded-xl border border-infoBase/40 bg-infoSoft p-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-3">
-            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-infoBase text-white"><Zap size={20} aria-hidden="true" /></span>
+            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-infoBase text-white"><FastForward size={20} className="scale-x-[-1]" aria-hidden="true" /></span>
             <p className="text-sm font-semibold text-infoDark">مراجعة سريعة</p>
           </div>
           <button
@@ -2525,7 +2525,7 @@ export default function ContentStudioPage() {
             }}
             className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg bg-infoBase px-5 py-2.5 text-sm font-semibold text-white shadow-xs transition hover:bg-infoDark focus-ring"
           >
-            <Zap size={16} aria-hidden="true" /> ابدأ المراجعة السريعة
+            <FastForward size={16} className="scale-x-[-1]" aria-hidden="true" /> ابدأ المراجعة السريعة
           </button>
         </div>
       )}
