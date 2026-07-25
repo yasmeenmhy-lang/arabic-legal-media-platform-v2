@@ -2149,7 +2149,7 @@ export default function ContentReviewPage() {
                       <h3 className="font-semibold">لم ترصد مخالفة مهنية</h3>
                       {hasOtherIssues
                         ? <p className="mt-2 leading-7 text-amber-800">التوصية مبنية على: {otherIssueReasons}. راجع بطاقات المؤشرات أعلاه وعالج هذه النقاط قبل النشر.</p>
-                        : <p className="mt-2 leading-7 text-ink/70">راجع متطلبات الاعتماد وجودة اللغة قبل تجهيز النشر.</p>}
+                        : null}
                     </div>
                   </div>
                 </Panel>
@@ -2358,7 +2358,7 @@ export default function ContentReviewPage() {
                   <p className="mt-2 text-xs text-red-700/80">لن يؤدي الاعتماد إلى إخفاء ملاحظة حرجة أو تجاوزها.</p>
                 </div>
               ) : (
-                <p className="mt-3 text-sm text-ink/65">النسخة جاهزة للاعتماد — لا حواجز متبقية.</p>
+                <p className="mt-3 text-sm text-ink/65">النسخة جاهزة للاعتماد.</p>
               );
             })() : null}
           </Panel>
@@ -2454,7 +2454,7 @@ export default function ContentReviewPage() {
                     <p className="mt-2 text-xs text-red-700/80">لن يؤدي الاعتماد إلى إخفاء ملاحظة حرجة أو تجاوزها.</p>
                   </div>
                 ) : (
-                  <p className="mt-3 text-sm text-ink/65">النسخة جاهزة للاعتماد — لا حواجز متبقية.</p>
+                  <p className="mt-3 text-sm text-ink/65">النسخة جاهزة للاعتماد.</p>
                 );
               })() : null}
             </Panel>
