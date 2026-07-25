@@ -2509,8 +2509,8 @@ export default function ContentStudioPage() {
           تُهيّئ سياقاً مهنياً عامّاً وتقفز إلى إدخال النص مباشرةً دون خطوات الإطار الخمس؛ لا
           تنتقل بك لمسار آخر ولا تظهر في مسار «إنشاء محتوى». الفحوص كاملةً كما هي (سياق عام). ── */}
       {path === "review" && !review && !reviewing && frameStep < FRAME_TOTAL && (
-        <div className="flex flex-col gap-3 rounded-xl border border-goldBorder bg-goldSoft p-4 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-sm font-semibold text-goldDeep">مراجعة سريعة</p>
+        <div className="flex flex-col gap-3 rounded-xl border border-line bg-paper p-4 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-sm font-semibold text-ink">مراجعة سريعة</p>
           <button
             type="button"
             onClick={() => {
@@ -2520,7 +2520,7 @@ export default function ContentStudioPage() {
               setSpecialty("عام — لا يقتصر على تخصص محدد");
               setFrameStep(FRAME_TOTAL);
             }}
-            className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg bg-gold px-5 py-2.5 text-sm font-semibold text-ink shadow-xs transition hover:bg-goldDark hover:text-white focus-ring"
+            className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg border border-palm bg-white px-5 py-2.5 text-sm font-semibold text-palm transition hover:bg-mint focus-ring"
           >
             <Zap size={16} aria-hidden="true" /> ابدأ المراجعة السريعة
           </button>

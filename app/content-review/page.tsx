@@ -1347,7 +1347,7 @@ export default function ContentReviewPage() {
               <Search size={hasSelectedContent ? 15 : 18} className="shrink-0 text-palm" />
               <input
                 type="text"
-                placeholder={hasSelectedContent ? "بحث" : "ابحث بموضوع المحتوى"}
+                placeholder={hasSelectedContent ? "بحث" : "ابحث بعنوان المحتوى"}
                 value={recordSearch}
                 onChange={(e) => { setRecordSearch(e.target.value); setRecordSearchFocus(true); }}
                 onFocus={() => setRecordSearchFocus(true)}
