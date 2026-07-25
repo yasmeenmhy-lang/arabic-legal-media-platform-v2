@@ -8,6 +8,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import type { ContentKind, FindingCategory, FindingDomain, ReviewContext, ReviewFinding, RiskLevel } from "@/lib/types";
 import { legalKnowledgeEntries } from "@/lib/legal-knowledge-base";
 import { OFFICIAL_CORPUS, type OfficialCorpusItem } from "@/lib/legal-official-corpus";
+import { buildOfficialRuleCorpusText } from "@/lib/rule-corpus-text";
 import {
   scanAgainstCorpus,
   formatCorpusScanSection,
@@ -59,41 +60,8 @@ function buildValidReferencesList(): string {
     .join("\n");
 }
 
-// المتن الرسمي الكامل — بأمر مالكة المنصة: «شاملة كاملة لا نقص ولا زيادة».
-// النص الحرفي المنقول من منصة تشريعات وزارة العدل لكل قاعدة سلوك (47) وكل مادة من
-// اللائحة التنفيذية (90)، ليحكم الذكاء من المادة نفسها ومقصدها لا من ملخص أو عنوان.
-// مناطق الرصد بالمعنى تُلحق من قاعدة المعرفة حيث توجد إشارات مطابقة.
-function buildRuleCorpus(entries: typeof legalKnowledgeEntries): string {
-  const hintsByRef = new Map<string, string>();
-  for (const entry of entries) {
-    if (!entry.legalReference || !entry.riskCategories?.length) continue;
-    const baseRef = entry.legalReference.split("،")[0].trim();
-    const existing = hintsByRef.get(baseRef);
-    const hint = entry.riskCategories.join("، ");
-    hintsByRef.set(baseRef, existing ? `${existing}، ${hint}` : hint);
-  }
-  const blocks: string[] = [];
-  let lastSource = "";
-  let lastChapter = "";
-  for (const item of OFFICIAL_CORPUS) {
-    if (item.sourceDocument !== lastSource) {
-      blocks.push(`\n# ${item.sourceDocument}`);
-      lastSource = item.sourceDocument;
-      lastChapter = "";
-    }
-    if (item.chapter && item.chapter !== lastChapter) {
-      blocks.push(`## ${item.chapter}`);
-      lastChapter = item.chapter;
-    }
-    const hints = hintsByRef.get(item.ref);
-    const areas = hints
-      ? `\nمناطق الرصد بالمعنى (بأي صياغة، لا تحصر نفسك بألفاظ بعينها): ${hints}`
-      : "";
-    blocks.push(`### ${item.ref}${item.section ? ` — ${item.section}` : ""}\n${item.text}${areas}`);
-  }
-  return blocks.join("\n\n");
-}
-
+// بنّاء المتن انتقل إلى lib/rule-corpus-text — مصدر واحد يقرأ منه القاضي
+// والكاتب معاً، فلا يكتب الكاتب وهو يجهل ما سيُحاكَم به.
 // إسناد الاستشهاد لمصدره الصحيح: قاعدة سلوك أم مادة لائحة — حتى لا تُنسب مادة لائحة
 // استشهد بها الذكاء إلى قواعد السلوك خطأً عند غياب مدخلة مطابقة في قاعدة المعرفة.
 // مطابقة تامة فقط: مطابقة الاحتواء الجزئي (startsWith) بين مرجعين مختلفين من المتن
@@ -109,7 +77,7 @@ function findOfficialCorpusItem(ruleReference: string): OfficialCorpusItem | nul
 // ونص المستخدم يُرسل في رسالة المستخدم المتغيرة ولا يدخل التخزين إطلاقاً.
 function buildHolisticSystem(entries: typeof legalKnowledgeEntries): string {
   const validRefs = buildValidReferencesList();
-  const ruleCorpus = buildRuleCorpus(entries);
+  const ruleCorpus = buildOfficialRuleCorpusText();
   return `${PLATFORM_SUPREME_RULE}
 
 أنت العقل الشامل والوحيد للحكم في هذه المنصة: خبير أول في نظام المحاماة، واللائحة التنفيذية لنظام المحاماة ١٤٤٦هـ (90 مادة — متنها الرسمي الكامل مرفق أدناه)، وقواعد السلوك المهني للمحامين (متنها الرسمي الكامل مرفق أدناه)، بخبرة عملية تعادل مدير الإدارة العامة للمحاماة، ومدقق جودة وامتثال محترف. تحكم بعقل قانوني مهني منطقي كخبير بشري — لا بمطابقة كلمات أو أنماط — وتزن المعنى والغرض والأثر على كرامة المهنة كما يفعل خبير حقيقي.
