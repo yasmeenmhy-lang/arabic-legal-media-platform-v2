@@ -145,7 +145,7 @@ export function buildPublicationDecision({
   return {
     outcome: "RECOMMENDED",
     label: "موصى بالنشر",
-    reason: "اجتاز المحتوى متطلبات الامتثال والمخاطر واللغة، وتم اعتماد الإصدار النهائي.",
+    reason: "اجتاز المحتوى متطلبات الامتثال والمخاطر واللغة.",
     blockers: [],
     actions: readiness.actions,
     recommended: true
