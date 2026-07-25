@@ -73,6 +73,10 @@ export type StoredContentVersion = {
   updatedAt: string;
   analysis?: ReviewResult;
   references: ProfessionalOfficialReference[];
+  // المصادر الموثوقة التي جلبها البحث الحي عند الإنشاء أو إعادة الصياغة —
+  // بقرار مالكة المنصة تنتقل مع المحتوى إلى التحليل التفصيلي، فيراها المحامي
+  // مثبتة مع نتيجته. كانت تُعرض في الاستديو فقط وتضيع بمغادرة الصفحة.
+  webSources?: { title: string; url: string }[];
   visuals?: StoredVisual[];
   approvedAt?: string;
   approvedBy?: string;
@@ -161,6 +165,7 @@ function normalizeStoredRecords(value: unknown): StoredContentRecord[] {
         audience: typeof version.audience === "string" ? version.audience : "الجمهور العام",
         purpose: typeof version.purpose === "string" ? version.purpose : "التثقيف",
         references: Array.isArray(version.references) ? version.references : [],
+        webSources: Array.isArray(version.webSources) ? version.webSources : undefined,
         visuals,
         analysis
       } as StoredContentVersion];
@@ -326,6 +331,7 @@ export function referencesFromReview(review: ReviewResult): ProfessionalOfficial
 
 type StoredContextExtras = {
   topic?: string;
+  webSources?: { title: string; url: string }[];
   specialty?: string;
   charLimit?: number | null;
   adCta?: string;
@@ -338,6 +344,7 @@ type StoredContextExtras = {
 // يطبّق حقول السياق الإضافية على إصدار مخزَّن — مصدر واحد للحفظ يمنع نسيان أي حقل
 function applyContextExtras(version: StoredContentVersion, extras: StoredContextExtras) {
   if (extras.topic !== undefined) version.topic = extras.topic;
+  if (extras.webSources !== undefined) version.webSources = extras.webSources;
   version.specialty = extras.specialty;
   version.charLimit = extras.charLimit ?? null;
   version.adCta = extras.adCta;

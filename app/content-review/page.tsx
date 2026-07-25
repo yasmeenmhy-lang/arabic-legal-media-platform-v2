@@ -240,6 +240,9 @@ export default function ContentReviewPage() {
   const [versionNumber, setVersionNumber] = useState<number>();
   // بقرار مالكة المنصة: المرئيات تنتقل مع المحتوى — تُعرض في المراجعة القانونية مع إصدارها
   const [savedVisuals, setSavedVisuals] = useState<StoredVisual[]>([]);
+  // بقرار مالكة المنصة: المصادر الموثوقة المجلوبة عند الإنشاء تنتقل مع المحتوى
+  // وتُعرض مثبتة في التحليل التفصيلي — كانت تُعرض في الاستديو وحده فتضيع
+  const [savedWebSources, setSavedWebSources] = useState<{ title: string; url: string }[]>([]);
   const [approved, setApproved] = useState(false);
   const [approving, setApproving] = useState(false);
   const [saveLaterMsg, setSaveLaterMsg] = useState("");
@@ -498,6 +501,7 @@ export default function ContentReviewPage() {
     const record = loadContentRecords().find((item) => item.id === contentId);
     const version = record?.versions.find((item) => item.version === versionNumber);
     setSavedVisuals(version?.visuals ?? []);
+    setSavedWebSources(version?.webSources ?? []);
   }, [contentId, versionNumber]);
 
   // حارس تسلسل الطلبات: يمنع استجابة متأخرة من طلب تحليل قديم من الكتابة فوق نتيجة
@@ -2012,6 +2016,32 @@ export default function ContentReviewPage() {
               <p className="text-xs leading-6 text-ink/70">{QUOTE_INTEGRITY_NOTICE.body}</p>
               <p className="mt-1.5 text-xs leading-6 text-ink/50">{QUOTE_INTEGRITY_NOTICE.disclaimer}</p>
             </div>
+          </details>
+        ) : null}
+        {/* المصادر الموثوقة المرافقة للمحتوى — مثبتة مفتوحة، فهي دليل النص لا زينة */}
+        {savedWebSources.length ? (
+          <details className="mt-3 w-full max-w-full overflow-hidden rounded-xl border border-line bg-white p-4" open>
+            <summary className="cursor-pointer text-sm font-semibold text-palm">
+              المصادر المعتمدة ({savedWebSources.length})
+            </summary>
+            <p className="mt-2 text-sm leading-7 text-ink/70">
+              مصادر موثوقة استند إليها المحتوى — من جهات رسمية ودولية وأكاديمية معتمدة. راجعها للتحقق.
+            </p>
+            <ul className="mt-3 space-y-2">
+              {savedWebSources.map((item, index) => (
+                <li key={`${item.url}-${index}`} className="rounded-lg border border-line bg-surface p-3">
+                  <a
+                    href={item.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block text-sm font-semibold leading-6 text-ink underline decoration-line underline-offset-4 hover:text-palm focus-ring"
+                  >
+                    {item.title || item.url}
+                  </a>
+                  <span className="mt-1 block break-all text-xs text-ink/50">{item.url}</span>
+                </li>
+              ))}
+            </ul>
           </details>
         ) : null}
         {/* بقرار مالكة المنصة: المرئيات المحفوظة تنتقل مع المحتوى وتظهر في المراجعة القانونية مع إصدارها */}

@@ -4,7 +4,7 @@ import { badRequest } from "@/lib/api";
 import { AI_CONSTITUTION } from "@/lib/governance";
 import { governTextFull, type GovernTextFullResult } from "@/lib/services/governor-gate";
 import { verifyCorpusCitations } from "@/lib/services/citation-verifier";
-import { needsResearch, researchTrustedSources } from "@/lib/services/web-research-service";
+import { needsResearch, researchTrustedSources, verifyTextCitations } from "@/lib/services/web-research-service";
 import { WRITING_CODE } from "@/lib/writing-code";
 import { recordUsage, runWithCostMeter, meterCostUsd, currentMeter } from "@/lib/cost-meter";
 import { ledgerDb, deductUsd } from "@/lib/cost-ledger";
@@ -60,6 +60,42 @@ const OPEN_LENGTH_TYPES = new Set(["مقال", "حملة", "خطة نشر"]);
 const arabicToContentKind = Object.fromEntries(
   (Object.entries(contentKindLabels) as [ContentKind, string][]).map(([key, label]) => [label, key])
 ) as Record<string, ContentKind>;
+
+// ─── مطابقة النصّ المولَّد بمصادره قبل التسليم ───────────────────────────────
+// بقرار مالكة المنصة: ما تملكه المنصة من أدلة يجب أن يصل من يحكم. المطابقة
+// كانت في مسار المراجعة وحده، فيخرج من الإنشاء نصٌّ مصادره رسمية صحيحة وهو
+// زائدٌ عليها، ولا يُكتشف إلا بعد التسليم.
+//
+// يُستخرج «غير مطابق» وحده ليُصحَّح. أما «تعذّر التحقّق» فلا يُبنى عليه شيء —
+// تعذّر التحقّق الآني ليس دليل خطأ، والحجب به يمنع نصوصاً صحيحة لم يجد لها
+// البحث مصدراً. وفشل المدقّق نفسه لا يُسقط التوليد.
+async function matchAgainstSources(
+  text: string,
+  specialty?: string
+): Promise<{ mismatches: string[] }> {
+  let report: Awaited<ReturnType<typeof verifyTextCitations>> = null;
+  try {
+    report = await verifyTextCitations({ text, specialty, timeoutMs: 45_000 });
+  } catch (err) {
+    console.warn("[generate:source-match] تعذّر التدقيق — يكمل التوليد بضوابطه:", err instanceof Error ? err.message : "");
+    return { mismatches: [] };
+  }
+  const briefing = report?.briefing?.trim();
+  if (!briefing) return { mismatches: [] };
+
+  // بنود التقرير أسطر مستقلة، كلٌّ موسوم بحكمه بين «...» — يُلتقط الموسوم
+  // بـ«غير مطابق» وحده، ويُنقل بنصّه ليصل التصحيح محدداً لا عاماً.
+  const mismatches = briefing
+    .split(/\n{2,}|\n(?=\*\*|[-•])/)
+    .map((block) => block.replace(/\s+/g, " ").trim())
+    .filter((block) => block.includes("«غير مطابق»") || block.includes("\u00abغير مطابق\u00bb"))
+    .map((block) => block.slice(0, 600));
+
+  if (mismatches.length > 0) {
+    console.log("[generate:source-match] مواضع غير مطابقة:", mismatches.length);
+  }
+  return { mismatches };
+}
 
 export async function POST(request: Request) {
   const parsed = schema.safeParse(await request.json());
@@ -499,7 +535,24 @@ ${briefType
       if (candidates.length === 0) return { kind: "err", error: "لم يُنشأ أي محتوى" };
 
       const winner = candidates.find((c) => c.deliverable);
-      if (winner) return { kind: "ok", text: winner.text, truncated: false, gov: winner.gov, sources: researchSources, sourceNote };
+      if (winner) {
+        // ★ مطابقة ما كُتب بالمصادر قبل التسليم (بقرار مالكة المنصة):
+        // البحث الحي يجري قبل الكتابة ليجلب المصادر، ولم يكن أحد يعود بعدها
+        // ليسأل: هل ما كُتب يطابق ما في المصادر فعلاً؟ فكان يخرج نص مصادره
+        // صحيحة رسمية وهو زائد عليها («و» بدل «أو»، خلط مادتين، جزم بلا نص).
+        // المطابقة كانت في المراجعة وحدها، فيُكتشف التجاوز بعد التسليم لا قبله.
+        // تُستدعى مرة واحدة على المرشّح الفائز — لا في كل جولة — موازنةً للزمن.
+        const matched = await matchAgainstSources(winner.text, specialty);
+        if (matched.mismatches.length > 0) {
+          console.log("[generate:source-match] غير مطابق:", matched.mismatches.length, "— جولة تصحيح");
+          text = winner.text;
+          truncated = false;
+          lastGov = winner.gov;
+          promptText = `${user}\n\nتصحيحات إلزامية قبل الإخراج — قورن نصك السابق (أدناه) بالمصادر الرسمية، وهذه المواضع لا تطابق مصدرها. صحّحها لتطابق نص المصدر حرفاً بحرف، أو احذف التفصيلة غير المطابقة، وأبقِ كل ما سواها كما هو:\n${matched.mismatches.map((m) => `- ${m}`).join("\n")}\n\nنصك السابق:\n${winner.text}`;
+          continue;
+        }
+        return { kind: "ok", text: winner.text, truncated: false, gov: winner.gov, sources: researchSources, sourceNote };
+      }
 
       // لا مستوفي بعد: يُختار الأقرب (أقل تصحيحات) لجولة تصحيح موضعي
       const best = [...candidates].sort((a, b) => a.corrections.length - b.corrections.length)[0];

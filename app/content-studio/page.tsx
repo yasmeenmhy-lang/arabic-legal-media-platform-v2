@@ -570,6 +570,8 @@ function createDraftRecord(
     // كل معلومات السياق المدخلة تُحفظ مع المسودة — فلا تختفي عند فتحها لاحقاً
     specialty?: string; topic?: string; charLimit?: number | null; adCta?: string; adStyle?: string;
     scriptDuration?: string; scriptStyle?: string; articleLength?: string;
+    // المصادر الموثوقة المرافقة — تنتقل مع المحتوى إلى التحليل التفصيلي
+    webSources?: { title: string; url: string }[];
   },
   // بقرار مالكة المنصة: المرئيات تنتقل مع المحتوى وتُحفظ في السجل فلا تختفي
   visuals: Omit<StoredVisual, "id" | "createdAt">[] = []
@@ -604,6 +606,7 @@ function createDraftRecord(
     createdAt: timestamp,
     updatedAt: timestamp,
     references: [],
+    webSources: ctx.webSources,
     visuals: stampedVisuals.length ? stampedVisuals : undefined,
   };
   const record: StoredContentRecord = {
@@ -793,6 +796,11 @@ export default function ContentStudioPage() {
   const [improvedSourceHint, setImprovedSourceHint] = useState("");
   // المصادر المعتمدة المجلوبة لإعادة الصياغة — تُعرض كأدلة مرئية
   const [improvedSources, setImprovedSources] = useState<Source[]>([]);
+  // المصادر المرافقة للنسخة الحالية — تُحفظ معها فتنتقل إلى التحليل التفصيلي.
+  // الأولوية لمصادر إعادة الصياغة حين وُجدت لأنها تخصّ النص الأحدث.
+  const activeWebSources = (improvedSources.length > 0 ? improvedSources : generatedSources)
+    .map((s) => ({ title: s.title, url: s.url }));
+  const activeWebSourcesValue = activeWebSources.length > 0 ? activeWebSources : undefined;
   // إشعار المصارحة لمسار إعادة الصياغة — طُلب مرجع ولم يُعثر عليه
   const [improvedSourceNote, setImprovedSourceNote] = useState("");
   // معاينة القراءة النظيفة (بطلب مالكة المنصة) — للنص محل المراجعة وللصياغة التحسينية
@@ -1456,7 +1464,7 @@ export default function ContentStudioPage() {
     try {
       window.localStorage.setItem(scopedKey(PENDING_REVIEW_KEY), JSON.stringify({
         at: Date.now(), contentId, body: trimmed, contentType: kind, contentTypeLabel,
-        channel, audience, purpose, specialty, topic: topic.trim() || undefined, charLimit, adCta, adStyle, scriptDuration, scriptStyle, articleLength,
+        channel, audience, purpose, specialty, topic: topic.trim() || undefined, webSources: activeWebSourcesValue, charLimit, adCta, adStyle, scriptDuration, scriptStyle, articleLength,
       }));
     } catch { /* بيئة بلا تخزين */ }
     try {
@@ -1473,7 +1481,7 @@ export default function ContentStudioPage() {
         try {
           window.localStorage.setItem(scopedKey(PENDING_REVIEW_KEY), JSON.stringify({
             jobId: startPayload.jobId, at: Date.now(), contentId, body: trimmed, contentType: kind, contentTypeLabel,
-            channel, audience, purpose, specialty, topic: topic.trim() || undefined, charLimit, adCta, adStyle, scriptDuration, scriptStyle, articleLength,
+            channel, audience, purpose, specialty, topic: topic.trim() || undefined, webSources: activeWebSourcesValue, charLimit, adCta, adStyle, scriptDuration, scriptStyle, articleLength,
           }));
         } catch { /* بيئة بلا تخزين — تبقى المتابعة داخل الجلسة فقط */ }
         outcome = await pollReviewJob(startPayload.jobId);
@@ -1681,7 +1689,7 @@ export default function ContentStudioPage() {
           body: activeText,
           contentType: kind,
           contentTypeLabel: contentKindLabels[kind],
-          channel, audience, purpose, specialty, topic: topic.trim() || undefined, charLimit,
+          channel, audience, purpose, specialty, topic: topic.trim() || undefined, webSources: activeWebSourcesValue, charLimit,
           adCta, adStyle, scriptDuration, scriptStyle, articleLength,
           review,
         });
@@ -1693,7 +1701,7 @@ export default function ContentStudioPage() {
       }
       createDraftRecord(
         activeText,
-        { kind, channel, audience, purpose, specialty, topic: topic.trim() || undefined, charLimit, adCta, adStyle, scriptDuration, scriptStyle, articleLength },
+        { kind, channel, audience, purpose, specialty, topic: topic.trim() || undefined, webSources: activeWebSourcesValue, charLimit, adCta, adStyle, scriptDuration, scriptStyle, articleLength },
         visuals
       );
       router.push("/content-management");
