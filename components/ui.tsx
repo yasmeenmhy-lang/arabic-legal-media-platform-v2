@@ -1,5 +1,5 @@
 ﻿import Link from "next/link";
-import { ArrowLeft, CheckCircle2, Clock3, FileText, ShieldAlert, Sparkles } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Clock3, FileText, ShieldAlert } from "lucide-react";
 import { clsx } from "clsx";
 import React from "react";
 
@@ -133,12 +133,7 @@ export function PageHeader({
         {/* الرسم بجانب العنوان في كل المقاسات (الجوال أصغر) — لا يُخفى على الجوال */}
         <div className="flex min-w-0 flex-1 items-center gap-4">
           <div className="min-w-0 max-w-full flex-1">
-            {eyebrow ? (
-              <p className="mb-2 flex items-center gap-1.5 text-xs font-normal text-palm">
-                <Sparkles size={13} aria-hidden="true" />
-                {eyebrow}
-              </p>
-            ) : null}
+            {eyebrow ? <p className="mb-2 text-xs font-normal text-palm">{eyebrow}</p> : null}
             <h2 className="text-lg font-semibold leading-8 text-ink sm:text-xl sm:leading-9">{title}</h2>
             {description ? <p className="mt-2 max-w-4xl text-sm leading-7 text-ink/65">{description}</p> : null}
           </div>
