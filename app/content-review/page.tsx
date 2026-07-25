@@ -1327,11 +1327,11 @@ export default function ContentReviewPage() {
         {hasSelectedContent ? <SectionTitle title="1. إدخال المحتوى" /> : null}
         <div>
         {hasSelectedContent ? null : (
-          <div className="mb-3 flex flex-col items-start gap-3">
-            <span className="grid h-14 w-14 place-items-center rounded-full bg-mint text-palm">
-              <Search size={26} />
+          <div className="mb-5 flex items-center gap-4">
+            <h2 className="min-w-0 flex-1 text-lg font-semibold text-ink">اختر المحتوى</h2>
+            <span className="grid h-16 w-16 shrink-0 place-items-center rounded-full bg-mint text-palm">
+              <Search size={30} />
             </span>
-            <h2 className="text-lg font-semibold text-ink">اختر المحتوى</h2>
           </div>
         )}
         <div>
