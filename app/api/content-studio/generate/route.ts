@@ -5,7 +5,7 @@ import { AI_CONSTITUTION } from "@/lib/governance";
 import { buildOfficialRuleCorpusText } from "@/lib/rule-corpus-text";
 import { governTextFull, type GovernTextFullResult } from "@/lib/services/governor-gate";
 import { verifyCorpusCitations } from "@/lib/services/citation-verifier";
-import { lastResearchFailure, needsResearch, researchTrustedSources } from "@/lib/services/web-research-service";
+import { needsResearch, researchTrustedSources } from "@/lib/services/web-research-service";
 import { WRITING_CODE } from "@/lib/writing-code";
 import { recordUsage, runWithCostMeter, meterCostUsd, currentMeter } from "@/lib/cost-meter";
 import { ledgerDb, deductUsd } from "@/lib/cost-ledger";
@@ -426,15 +426,7 @@ ${briefType
     // كل المؤشرات كاملةً. فشلها لا يُسقط التوليد — يكمل الكاتب بضوابطه الحالية.
     const sourceSpec = { wantSource, sourceKind, sourceEntity, sourceDesc };
     if (needsResearch(source, topic, contentType, sourceSpec)) {
-      // ★ مهلة البحث في مسار الإنشاء ١٢٠ ثانية (بقرار مالكة المنصة على رقم مقيس):
-      // البحث لا يجلب رابطاً — يفتح النظام على بوابته الرسمية ويقرؤه ليقتبس منه،
-      // وصفحة النظام تحمل مواده كلها. قياسان فعليان: ٤١ ثانية لنظام مكافحة جرائم
-      // المعلوماتية، و٤٥ لنظام العقار. والمهلة كانت ٦٠ — هامش عشر ثوانٍ فقط، فأي
-      // بطء شبكة أو صفحة أثقل يتجاوزه فيُقطع البحث ويعود فارغاً، فتقول المنصة
-      // «لم يُعثر على مصدر» والمصدر موجود. ونفس الموضوع قُطع مرة ونجح في ٤٥ أخرى.
-      // ولا يُبطئ هذا شيئاً في الغالب: ينتهي في ٤٥ ويمضي — السقف حماية لا انتظار،
-      // والحدّ الزمني الكلي يحتسب زمنه فتُقلَّص الجولات تلقائياً إن طال.
-      const research = await researchTrustedSources({ specialty, source, topic, contentType, spec: sourceSpec, timeoutMs: 120_000 });
+      const research = await researchTrustedSources({ specialty, source, topic, contentType, spec: sourceSpec });
       if (research) {
         console.log("[generate:research]", research.sources.length, "مصدر موثوق");
         researchSources = research.sources; // للعرض كأدلة مرئية للمستخدم
@@ -448,17 +440,8 @@ ${briefType
       } else if (wantSource) {
         // المصارحة (بقرار المالكة): طلب المستخدم مصدراً ولم يُعثر على مطابق موثوق —
         // يُوجَّه الكاتب للأمانة (نسبة عامة صادقة، لا اختلاق)، ويُبلَّغ المستخدم بذلك.
-        // ★ السبب الحقيقي لا رسالة واحدة تُخفي ثلاثة (بقرار مالكة المنصة):
-        // «لم يُعثر» تعني أن المصدر غير موجود — وهي كذبة حين يكون البحث قد
-        // انقطع بالمهلة أو رفضته الخدمة، فالمصدر موجود ولم نصل إليه.
-        const failure = lastResearchFailure();
-        console.log("[generate:research] تعذّر جلب مصادر — السبب:", failure ?? "غير محدد");
-        sourceNote =
-          failure === "مهلة"
-            ? "تعذّر إكمال البحث عن مرجع موثّق في الوقت المتاح — صيغ المحتوى بنسبة عامة صادقة دون اختلاق مرجع. أعد المحاولة، فالمرجع قد يكون متاحاً."
-            : failure === "خدمة"
-            ? "تعذّر الوصول إلى خدمة البحث في المصادر المعتمدة حالياً — صيغ المحتوى بنسبة عامة صادقة دون اختلاق مرجع. أعد المحاولة بعد قليل."
-            : "طُلب تعزيز المحتوى بمرجع موثّق، ولم يُعثر على مصدر مطابق في المصادر المعتمدة — صيغ المحتوى بنسبة عامة صادقة دون اختلاق مرجع. يمكنك إعادة المحاولة بوصف أدق للمرجع.";
+        console.log("[generate:research] لا مصدر موثوق مطابق للطلب");
+        sourceNote = "طُلب تعزيز المحتوى بمرجع موثّق، ولم يُعثر على مصدر مطابق في المصادر المعتمدة — صيغ المحتوى بنسبة عامة صادقة دون اختلاق مرجع. يمكنك إعادة المحاولة بوصف أدق للمرجع.";
         promptText = `${user}\n\n★ طلب المستخدم دعم المحتوى بمصدر، ولم يُعثر على مصدر موثوق مطابق للمواصفات في المصادر المعتمدة. لا تختلق مصدراً ولا رقماً ولا دراسة إطلاقاً — اكتب المحتوى بنسبة عامة صادقة (اتجاهات معروفة، أحكام عامة دون رقم مخترع)، وأشر بإيجاز مهني إلى أن التفاصيل تُراجَع في مصادرها الرسمية.`;
       }
     }

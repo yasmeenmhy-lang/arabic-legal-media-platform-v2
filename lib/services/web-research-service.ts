@@ -135,19 +135,9 @@ function extractText(content: unknown[]): string {
 // النواة المشتركة لنداء البحث الحي على المصادر الموثوقة — يخدم مسارين:
 // الإنشاء (جمع مصادر قبل الكتابة) والمراجعة (تدقيق إحالات نص قائم). فشل البحث أو
 // خدمته لا يُسقط العملية: يرجع null فتُكمل بضوابطها الحالية — البحث تحسين لا شرط.
-// سبب آخر فشل — يُعرض للمستخدم بصدق بدل رسالة واحدة تُخفي ثلاثة أسباب مختلفة:
-// انقطاع بالمهلة، أو رفض من الخدمة، أو بحثٌ تمّ ولم يجد. وكان الكود يبتلعها كلها
-// في `return null` صامت، فتعذّر التشخيص طويلاً.
-export type ResearchFailure = "مهلة" | "خدمة" | "لا نتيجة" | null;
-let lastFailure: ResearchFailure = null;
-export function lastResearchFailure(): ResearchFailure {
-  return lastFailure;
-}
-
 async function callWebSearch(instruction: string, timeoutMs?: number): Promise<ResearchResult | null> {
-  lastFailure = null;
   const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) { lastFailure = "خدمة"; return null; }
+  if (!apiKey) return null;
   // سقف زمني صارم للبحث (بقرار مالكة المنصة لمنع تعليق الصفحة): إن تجاوزه يُلغى.
   const controller = new AbortController();
   const abortTimer = setTimeout(() => controller.abort(), timeoutMs ?? 60_000);
@@ -178,12 +168,7 @@ async function callWebSearch(instruction: string, timeoutMs?: number): Promise<R
         }),
       }
     );
-    if (!response.ok) {
-      const detail = await response.text().catch(() => "");
-      console.warn("[research] رفضت الواجهة الطلب — الحالة:", response.status, "|", detail.slice(0, 300));
-      lastFailure = response.status === 429 || response.status >= 500 ? "خدمة" : "خدمة";
-      return null;
-    }
+    if (!response.ok) return null;
     const payload = (await response.json()) as { content?: unknown[]; usage?: unknown };
     recordUsage(payload.usage); // عدّاد التكلفة الداخلي (يشمل عدد عمليات البحث)
     const content = payload.content ?? [];
@@ -191,15 +176,10 @@ async function callWebSearch(instruction: string, timeoutMs?: number): Promise<R
     const briefing = extractText(content);
     // لا مصادر مجلوبة أو تقرير فارغ ⇒ لا فائدة من الحقن
     if (sources.length === 0 || !briefing || briefing.includes("لا توجد مصادر موثوقة")) {
-      console.warn("[research] لا مصادر مستخرجة — مصادر:", sources.length, "| طول التقرير:", briefing.length);
-      lastFailure = "لا نتيجة";
       return null;
     }
     return { briefing, sources };
-  } catch (err) {
-    const aborted = err instanceof Error && (err.name === "AbortError" || err.message.includes("abort"));
-    console.warn("[research] تعذّر البحث —", aborted ? "انقطاع بالمهلة" : (err instanceof Error ? err.message : ""));
-    lastFailure = aborted ? "مهلة" : "خدمة";
+  } catch {
     return null;
   } finally {
     clearTimeout(abortTimer);
@@ -214,17 +194,7 @@ export async function researchTrustedSources(context: {
   // يبقى الطلب قصيراً فلا ينقطع اتصال الجوال؛ المسار الخلفي (الإنشاء) يحتمل الأطول.
   timeoutMs?: number;
 }): Promise<ResearchResult | null> {
-  const instruction = buildResearchInstruction(context);
-  const first = await callWebSearch(instruction, context.timeoutMs);
-  if (first) return first;
-  // ★ محاولة ثانية (بقرار مالكة المنصة): خدمة البحث الخارجية متقلّبة بطبعها —
-  // قياسات فعلية على الموضوع الواحد: مرة تنجح في ٤٥ ثانية بثلاثة مصادر، ومرة
-  // تعود فارغة. وكانت المنصة تعامل الفشل العابر حكماً نهائياً بلا إعادة.
-  // لا تُعاد إلا عند فشل عابر (مهلة أو رفض خدمة)؛ أما بحثٌ تمّ ولم يجد شيئاً
-  // فإعادته لا تُجدي وتُهدر الوقت.
-  if (lastFailure === "لا نتيجة") return null;
-  console.warn("[research] محاولة ثانية بعد فشل عابر:", lastFailure);
-  return callWebSearch(instruction, context.timeoutMs);
+  return callWebSearch(buildResearchInstruction(context), context.timeoutMs);
 }
 
 // موجّه تدقيق الإحالات لمسار المراجعة — تحقّق فعلي من صحة ما في النص القائم، لا كتابة.
