@@ -29,6 +29,7 @@ const config: Config = {
         // الذهبي الثانوي
         gold:       "#DBA102", // Gold 600
         goldDark:   "#B87B02", // Gold 700
+        goldDeep:   "#945C01", // Gold 800
         goldSoft:   "#FFFCE6", // Gold 100
         goldBorder: "#FCF3BD", // Gold 200
 
