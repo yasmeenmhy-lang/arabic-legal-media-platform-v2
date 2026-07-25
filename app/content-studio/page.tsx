@@ -2509,7 +2509,7 @@ export default function ContentStudioPage() {
           تُهيّئ سياقاً مهنياً عامّاً وتقفز إلى إدخال النص مباشرةً دون خطوات الإطار الخمس؛ لا
           تنتقل بك لمسار آخر ولا تظهر في مسار «إنشاء محتوى». الفحوص كاملةً كما هي (سياق عام). ── */}
       {path === "review" && !review && !reviewing && frameStep < FRAME_TOTAL && (
-        <div className="flex flex-col gap-3 rounded-xl border border-line bg-paper p-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-3 rounded-xl border border-line bg-surface p-4 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-sm font-semibold text-ink">مراجعة سريعة</p>
           <button
             type="button"

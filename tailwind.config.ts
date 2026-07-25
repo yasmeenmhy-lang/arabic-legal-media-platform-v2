@@ -42,6 +42,7 @@ const config: Config = {
         warmGraySoft:    "#F3F4F6", // Gray 100
         warmGrayBorder:  "#D2D6DB", // Gray 300
         paper:           "#FCFCFD", // Gray 25  — خلفية الصفحة
+        surface:         "#F9FAFB", // Gray 50  — سطح يعلو خلفية الصفحة
         line:            "#E5E7EB", // Gray 200 — الحدود
 
         // الخزامى / البنفسجي (الذكاء الاصطناعي)
