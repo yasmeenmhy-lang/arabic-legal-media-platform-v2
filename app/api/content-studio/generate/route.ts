@@ -599,6 +599,22 @@ ${briefType
       };
     };
 
+    // ★ تبنّي حالة المرشّح كاملةً عند إعادة الجولة — لا نصّه وحده.
+    // المتغيّرات تبدأ بقيم افتراضية (compliant=false)، والسلّم النهائي يقرؤها.
+    // فحين تعيد جولةٌ الكرّةَ وتُحدّث النصّ دون هذه الحالة، تبقى قيمة البداية،
+    // فيُخرج السلّم رسالة مخالفة على نصّ لا مخالفة فيه — بلا سبب مذكور، لأن
+    // لا مخالفة أصلاً. مصدر واحد يمنع نسيان أي حقل عند إضافة مسار جديد.
+    const adoptCandidateState = (candidate: Candidate): GovernTextFullResult => {
+      text = candidate.text;
+      truncated = candidate.truncated;
+      clean = candidate.gov.clean;
+      compliant = candidate.gov.compliant;
+      hardLanguageError = candidate.hardLanguageError;
+      riskBlocked = candidate.riskBlocked;
+      lastCitationIssues = candidate.citationIssues;
+      return candidate.gov;
+    };
+
     for (let attempt = 0; attempt < 4; attempt++) {
       // سباق المرشحين (بقرار مالكة المنصة للتسريع ورفع حظ التسليم): كل جولة —
       // تأليفاً أولياً كانت أو تصحيحاً موضعياً — تؤلف نسختين بالتوازي وتفحصهما
@@ -624,9 +640,7 @@ ${briefType
             researchSources = afterDraft.sources;
             sourceNote = undefined;
             const lines = afterDraft.sources.slice(0, 3).map((x) => `- ${x.title}: ${x.url}`).join("\n");
-            text = winner.text;
-            truncated = false;
-            lastGov = winner.gov;
+            lastGov = adoptCandidateState(winner);
             promptText = `${user}\n\n★ بُحث عن سند ما كتبتَه في المصادر الرسمية، وهذه نتيجته. أعد إخراج نصك السابق (أدناه) كما هو مع أمرين حصراً: (١) صحّح كل ما ورد في التقرير بوصفه «غير مطابق» ليطابق نص المصدر حرفاً بحرف، (٢) وأسنِد ما ورد «مؤكَّد» إلى مصدره باسم النظام ورقم المادة ورابطه. وما لم يرد له سند هنا فاتركه عاماً بلا رقم ولا اسم نظام. لا تُعد صياغة ما سوى ذلك.\n\nتقرير المصادر:\n${afterDraft.briefing}\n\nقائمة الروابط للاستشهاد:\n${lines}`;
             continue;
           }
@@ -641,18 +655,14 @@ ${briefType
         const unsourced = unsourcedLegalClaims(winner.text, researchSources.length);
         if (unsourced.length > 0) {
           console.log("[generate:source-gate] ادعاء نظامي بلا مصدر:", unsourced.length, "— جولة تصحيح");
-          text = winner.text;
-          truncated = false;
-          lastGov = winner.gov;
+          lastGov = adoptCandidateState(winner);
           promptText = `${user}\n\nتصحيحات إلزامية قبل الإخراج — لم يُعثر لهذا الموضوع على مصدر رسمي، ومع ذلك ورد في نصك السابق (أدناه) استناد نظامي محدد لا سند له. المنصة لا تستشهد بنص إلا من مصدره: احذف من النص كل تسمية لنظام بعينه، وكل رقم مادة، وكل مدة أو ميعاد أو عقوبة أو أثر إجرائي محدد — واكتب الفكرة عامةً صادقةً بلا رقم ولا اسم نظام، وأحِل القارئ إلى مراجعة تفاصيل حالته في مصادرها الرسمية. المواضع المرصودة:\n${unsourced.map((u) => `- ${u}`).join("\n")}\n\nنصك السابق:\n${winner.text}`;
           continue;
         }
         const matched = await matchAgainstSources(winner.text, specialty);
         if (matched.mismatches.length > 0) {
           console.log("[generate:source-match] غير مطابق:", matched.mismatches.length, "— جولة تصحيح");
-          text = winner.text;
-          truncated = false;
-          lastGov = winner.gov;
+          lastGov = adoptCandidateState(winner);
           promptText = `${user}\n\nتصحيحات إلزامية قبل الإخراج — قورن نصك السابق (أدناه) بالمصادر الرسمية، وهذه المواضع لا تطابق مصدرها. صحّحها لتطابق نص المصدر حرفاً بحرف، أو احذف التفصيلة غير المطابقة، وأبقِ كل ما سواها كما هو:\n${matched.mismatches.map((m) => `- ${m}`).join("\n")}\n\nنصك السابق:\n${winner.text}`;
           continue;
         }
@@ -661,14 +671,7 @@ ${briefType
 
       // لا مستوفي بعد: يُختار الأقرب (أقل تصحيحات) لجولة تصحيح موضعي
       const best = [...candidates].sort((a, b) => a.corrections.length - b.corrections.length)[0];
-      text = best.text;
-      truncated = best.truncated;
-      clean = best.gov.clean;
-      compliant = best.gov.compliant;
-      lastGov = best.gov;
-      hardLanguageError = best.hardLanguageError;
-      riskBlocked = best.riskBlocked;
-      lastCitationIssues = best.citationIssues;
+      lastGov = adoptCandidateState(best);
       // حارس الحدّ الزمني: إن قاربنا الميزانية لا نبدأ جولة تصحيح جديدة (قد تطول
       // فتتجاوز حدّ الخادم وتُقتل المهمة وتعلق الواجهة). نتوقف الآن ونخرج بالفشل
       // الواضح أدناه (رسالة «أعد المحاولة») بدل الصمت — البوابة تبقى كما هي بلا
