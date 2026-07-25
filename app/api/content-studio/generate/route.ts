@@ -659,7 +659,12 @@ ${briefType
           promptText = `${user}\n\nتصحيحات إلزامية قبل الإخراج — لم يُعثر لهذا الموضوع على مصدر رسمي، ومع ذلك ورد في نصك السابق (أدناه) استناد نظامي محدد لا سند له. المنصة لا تستشهد بنص إلا من مصدره: احذف من النص كل تسمية لنظام بعينه، وكل رقم مادة، وكل مدة أو ميعاد أو عقوبة أو أثر إجرائي محدد — واكتب الفكرة عامةً صادقةً بلا رقم ولا اسم نظام، وأحِل القارئ إلى مراجعة تفاصيل حالته في مصادرها الرسمية. المواضع المرصودة:\n${unsourced.map((u) => `- ${u}`).join("\n")}\n\nنصك السابق:\n${winner.text}`;
           continue;
         }
-        const matched = await matchAgainstSources(winner.text, specialty);
+        // المطابقة لا معنى لها بلا مصادر تُطابَق بها — كانت تُستدعى في كل إنشاء
+        // ولو لم يُجلب مصدر واحد، فتُهدر عشرات الثواني بلا فائدة وقد تتجاوز
+        // الحدّ الزمني للطلب. تُقصر على وجود مصادر فعلية.
+        const matched = researchSources.length > 0
+          ? await matchAgainstSources(winner.text, specialty)
+          : { mismatches: [] as string[] };
         if (matched.mismatches.length > 0) {
           console.log("[generate:source-match] غير مطابق:", matched.mismatches.length, "— جولة تصحيح");
           lastGov = adoptCandidateState(winner);
@@ -711,6 +716,17 @@ ${briefType
     }
     if (hardLanguageError) {
       return { kind: "err", error: "تعذّر إنشاء نص خالٍ من الأخطاء اللغوية والإملائية. أعد المحاولة." };
+    }
+    // فشل مغلق على حارس الاستناد: كان يُفتح عند نفاد الجولات فيُسلَّم نصّ فيه
+    // اسم نظام أو رقم مادة أو مدة بلا مصدر — وهو عين ما وُضع الحارس ليمنعه.
+    // المنصة لا تستشهد بنصّ إلا من مصدره، ولو استُنفدت المحاولات.
+    const residualUnsourced = unsourcedLegalClaims(text, researchSources.length);
+    if (residualUnsourced.length > 0) {
+      console.log("[generate:source-gate] استُنفدت الجولات وبقي استناد بلا مصدر:", residualUnsourced.length);
+      return {
+        kind: "err",
+        error: `تعذّر إنشاء نص مسنَد لهذا الموضوع: لم يُعثر على مصدر رسمي، والنص يستند إلى ${residualUnsourced[0].split(":")[0]}. أعد المحاولة أو حدّد الموضوع بدقة أكبر ليتمكّن البحث من جلب مصدره.`,
+      };
     }
     // ★ بقرار مالكة المنصة: «خلاص الأسلوب لا يحجب».
     // كان بقاء الملاحظة الأسلوبية يحجب التسليم كالمخالفة تماماً، فيُرفض نصّ اجتاز
