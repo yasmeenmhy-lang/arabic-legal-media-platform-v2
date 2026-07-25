@@ -5,7 +5,7 @@ import { AI_CONSTITUTION } from "@/lib/governance";
 import { buildOfficialRuleCorpusText } from "@/lib/rule-corpus-text";
 import { governTextFull, type GovernTextFullResult } from "@/lib/services/governor-gate";
 import { verifyCorpusCitations } from "@/lib/services/citation-verifier";
-import { needsResearch, researchTrustedSources, verifyTextCitations } from "@/lib/services/web-research-service";
+import { needsResearch, researchTrustedSources } from "@/lib/services/web-research-service";
 import { WRITING_CODE } from "@/lib/writing-code";
 import { recordUsage, runWithCostMeter, meterCostUsd, currentMeter } from "@/lib/cost-meter";
 import { ledgerDb, deductUsd } from "@/lib/cost-ledger";
@@ -61,106 +61,6 @@ const OPEN_LENGTH_TYPES = new Set(["مقال", "حملة", "خطة نشر"]);
 const arabicToContentKind = Object.fromEntries(
   (Object.entries(contentKindLabels) as [ContentKind, string][]).map(([key, label]) => [label, key])
 ) as Record<string, ContentKind>;
-
-// ─── حارس الاستناد: لا حكم نظامي بلا مصدر حاضر ──────────────────────────────
-// بقرار مالكة المنصة: «المنصة يجب أن تستشهد بنصّ من المصدر نفسه» — فإن لم تفتحه
-// وتقرأه فلا تكتبه. وقع ما يخالف ذلك: نصّ يقول «نظام ديوان المظالم يمنحك تسعين
-// يوماً» وتحته في الشاشة نفسها «لم يُعثر على مصدر مطابق».
-//
-// السبب أن الكاتب يكتب من ذاكرة النموذج، والبحث خادمٌ اختياري له: ينجح فيُضاف
-// سطر «استند إليها»، ويفشل فيُضاف «كن عاماً» — وهو رجاء لا حارس، وقد خولف فعلاً.
-//
-// حتمي بلا ذكاء، كالطبقة الأولى: يرصد الادعاء النظامي في نصّ المنصّة، فإن لم
-// يقابله مصدر حاضر رُفض النص وأُعيدت كتابته. وهذا لا يمسّ مسار المراجعة —
-// النصّ فيه نصّ المحامي، ومن حقّه أن يستشهد، والمنصّة تتحقّق وتُخبره.
-// ★ الكاشف يرصد **الاستشهاد بنصّ**، لا **ذكر النظام**. كان يطابق أي «نظام +
-// كلمة» فيُعامل تسمية النظام في سياق الكلام كأنها استشهاد بمادته، فمُنع الإنشاء
-// على مواضيع مشروعة تماماً. والقاعدة: «لا تستشهد المنصة بنصّ إلا من مصدره» —
-// وتسميةُ نظامٍ ليست استشهاداً بنصّه. فحُصر الرصد في التفصيلة المنسوبة: رقم
-// المادة، والمدة، والعقوبة، والأثر الإجرائي المحدد.
-const LEGAL_CLAIM_PATTERNS: Array<{ re: RegExp; label: string; requires?: RegExp }> = [
-  { re: /(الماد[هة]|القاعد[هة])\s+(الأولى|الثاني|الثالث|الرابع|الخامس|السادس|السابع|الثامن|التاسع|العاشر|الحادي|\d)/, label: "إحالة إلى مادة أو قاعدة برقمها" },
-  { re: /(مدة|مهلة|ميعاد|خلال)(\s+\S+){0,2}\s+(\d+|[يت]وما|شهرا|سنة|سنوات|أيام|ثلاثون|ثلاثين|ستون|ستين|تسعون|تسعين|مائة|اثني عشر)/, label: "مدة أو ميعاد نظامي" },
-  { re: /(يعاقب|عقوبته|بالسجن|غرامة|يُعاقب)/, label: "عقوبة" },
-  { re: /(تسقط الدعوى|عدم القبول شكلا|يسقط الحق|يبطل|بطلان)/, label: "أثر إجرائي محدد" },
-  // مدة صريحة (رقم + وحدة زمنية) دون لفظ «مدة» قبلها — كـ«يمنحك تسعين يوماً».
-  // مشروطة بسياق نظامي في الجملة نفسها، فلا تُرصد «خبرة تتجاوز عشرين عاماً».
-  {
-    re: /(\d+|ثلاثين|ثلاثون|ستين|ستون|تسعين|تسعون|مائة)\s+(يوما|يوم|شهرا|شهر|سنة|سنوات|اشهر)/,
-    label: "مدة نظامية محددة",
-    requires: /(نظام|ماد[هة]|لائح[هة]|دعوى|طعن|اعتراض|تقادم|مهل[هة]|ميعاد|يمنح|يجوز|يسقط|تسقط|يشترط)/,
-  },
-];
-
-function normalizeClaim(text: string): string {
-  return text
-    .replace(/[\u064B-\u0652\u0640]/g, "")
-    .replace(/[إأآا]/g, "ا")
-    .replace(/ى/g, "ي")
-    .replace(/\s+/g, " ");
-}
-
-// أنظمة المتن المخزّن في المنصّة — مصدرها حاضر دائماً ولا يستوجب بحثاً
-const IN_CORPUS = /نظام المحاما[هة]|اللائح[هة] التنفيذي[هة]|قواعد السلوك المهني/;
-
-function unsourcedLegalClaims(text: string, sourceCount: number): string[] {
-  if (sourceCount > 0) return [];
-  // الفحص على مستوى الجملة لا النصّ كله: الاستثناء يخصّ الجملة التي تحيل إلى متن
-  // المنصّة (قواعد السلوك واللائحة التنفيذية) — فمصدرها حاضر دائماً. أما جملة
-  // تحيل إلى نظام آخر في النصّ نفسه فتبقى محكومة بالحارس.
-  const hits: string[] = [];
-  const seen = new Set<string>();
-  for (const raw of text.split(/(?<=[.؟!])\s+|\n+/)) {
-    const norm = normalizeClaim(raw);
-    if (!norm.trim() || IN_CORPUS.test(norm)) continue;
-    for (const { re, label, requires } of LEGAL_CLAIM_PATTERNS) {
-      const match = norm.match(re);
-      if (!match) continue;
-      if (requires && !requires.test(norm)) continue;
-      const entry = `${label}: «${match[0].trim().slice(0, 70)}»`;
-      if (seen.has(entry)) continue;
-      seen.add(entry);
-      hits.push(entry);
-    }
-  }
-  return hits;
-}
-
-// ─── مطابقة النصّ المولَّد بمصادره قبل التسليم ───────────────────────────────
-// بقرار مالكة المنصة: ما تملكه المنصة من أدلة يجب أن يصل من يحكم. المطابقة
-// كانت في مسار المراجعة وحده، فيخرج من الإنشاء نصٌّ مصادره رسمية صحيحة وهو
-// زائدٌ عليها، ولا يُكتشف إلا بعد التسليم.
-//
-// يُستخرج «غير مطابق» وحده ليُصحَّح. أما «تعذّر التحقّق» فلا يُبنى عليه شيء —
-// تعذّر التحقّق الآني ليس دليل خطأ، والحجب به يمنع نصوصاً صحيحة لم يجد لها
-// البحث مصدراً. وفشل المدقّق نفسه لا يُسقط التوليد.
-async function matchAgainstSources(
-  text: string,
-  specialty?: string
-): Promise<{ mismatches: string[] }> {
-  let report: Awaited<ReturnType<typeof verifyTextCitations>> = null;
-  try {
-    report = await verifyTextCitations({ text, specialty, timeoutMs: 45_000 });
-  } catch (err) {
-    console.warn("[generate:source-match] تعذّر التدقيق — يكمل التوليد بضوابطه:", err instanceof Error ? err.message : "");
-    return { mismatches: [] };
-  }
-  const briefing = report?.briefing?.trim();
-  if (!briefing) return { mismatches: [] };
-
-  // بنود التقرير أسطر مستقلة، كلٌّ موسوم بحكمه بين «...» — يُلتقط الموسوم
-  // بـ«غير مطابق» وحده، ويُنقل بنصّه ليصل التصحيح محدداً لا عاماً.
-  const mismatches = briefing
-    .split(/\n{2,}|\n(?=\*\*|[-•])/)
-    .map((block) => block.replace(/\s+/g, " ").trim())
-    .filter((block) => block.includes("«غير مطابق»") || block.includes("\u00abغير مطابق\u00bb"))
-    .map((block) => block.slice(0, 600));
-
-  if (mismatches.length > 0) {
-    console.log("[generate:source-match] مواضع غير مطابقة:", mismatches.length);
-  }
-  return { mismatches };
-}
 
 export async function POST(request: Request) {
   const parsed = schema.safeParse(await request.json());
@@ -525,13 +425,7 @@ ${briefType
     // يستند إليها الكاتب بدل التخمين. لا تمسّ الفحص إطلاقاً: النص الناتج يمرّ على
     // كل المؤشرات كاملةً. فشلها لا يُسقط التوليد — يكمل الكاتب بضوابطه الحالية.
     const sourceSpec = { wantSource, sourceKind, sourceEntity, sourceDesc };
-    // ★ البحث المسبق لا يُستدعى إلا حين يكون الموضوع معروفاً فعلاً (بقرار مالكة
-    // المنصة): كان يُستدعى بالإطار وحده — نوع ومحتوى وجمهور وهدف وتخصص — والإطار
-    // يقول «أي نوع» لا «عن ماذا»، فيُسأل الباحث أن يجد سنداً لموضوعٍ لم يُولد بعد.
-    // والموضوع يبتكره الكاتب في الخطوة التالية، فينتهي البحث قبل وجود ما يُبحث عنه.
-    // ولذلك كان يعود فارغاً مهما رُفع عدد عملياته — والعلّة في ما يصله لا في عددها.
-    const topicKnown = Boolean(topic && topic.trim().length >= 3);
-    if (topicKnown && needsResearch(source, topic, contentType, sourceSpec)) {
+    if (needsResearch(source, topic, contentType, sourceSpec)) {
       const research = await researchTrustedSources({ specialty, source, topic, contentType, spec: sourceSpec });
       if (research) {
         console.log("[generate:research]", research.sources.length, "مصدر موثوق");
@@ -639,52 +533,7 @@ ${briefType
       if (candidates.length === 0) return { kind: "err", error: "لم يُنشأ أي محتوى" };
 
       const winner = candidates.find((c) => c.deliverable);
-      if (winner) {
-        // ★ البحث بعد المسودة (بقرار مالكة المنصة): حين لم يُحدَّد الموضوع سلفاً،
-        // الموضوع الحقيقي لا يوجد إلا بعد أن يكتبه الكاتب. فيُبحث عن سند ما كُتب
-        // فعلاً — بالنصّ لا بالإطار — وهو بعينه ما أثبت نجاحه في مسار المراجعة:
-        // نفس الأداة ونفس عدد العمليات، ونجحت لأن معها نصّاً.
-        // لا مكالمة تُضاف: البحث ينتقل من قبل الكتابة إلى بعدها.
-        if (researchSources.length === 0 && !topicKnown && Date.now() - startedAt < DEADLINE_MS) {
-          const afterDraft = await verifyTextCitations({ text: winner.text, specialty, timeoutMs: 60_000 });
-          if (afterDraft && afterDraft.sources.length > 0) {
-            console.log("[generate:research-after-draft]", afterDraft.sources.length, "مصدر موثوق");
-            researchSources = afterDraft.sources;
-            sourceNote = undefined;
-            const lines = afterDraft.sources.slice(0, 3).map((x) => `- ${x.title}: ${x.url}`).join("\n");
-            lastGov = adoptCandidateState(winner);
-            promptText = `${user}\n\n★ بُحث عن سند ما كتبتَه في المصادر الرسمية، وهذه نتيجته. أعد إخراج نصك السابق (أدناه) كما هو مع أمرين حصراً: (١) صحّح كل ما ورد في التقرير بوصفه «غير مطابق» ليطابق نص المصدر حرفاً بحرف، (٢) وأسنِد ما ورد «مؤكَّد» إلى مصدره باسم النظام ورقم المادة ورابطه. وما لم يرد له سند هنا فاتركه عاماً بلا رقم ولا اسم نظام. لا تُعد صياغة ما سوى ذلك.\n\nتقرير المصادر:\n${afterDraft.briefing}\n\nقائمة الروابط للاستشهاد:\n${lines}`;
-            continue;
-          }
-        }
-        // ★ مطابقة ما كُتب بالمصادر قبل التسليم (بقرار مالكة المنصة):
-        // البحث الحي يجري قبل الكتابة ليجلب المصادر، ولم يكن أحد يعود بعدها
-        // ليسأل: هل ما كُتب يطابق ما في المصادر فعلاً؟ فكان يخرج نص مصادره
-        // صحيحة رسمية وهو زائد عليها («و» بدل «أو»، خلط مادتين، جزم بلا نص).
-        // المطابقة كانت في المراجعة وحدها، فيُكتشف التجاوز بعد التسليم لا قبله.
-        // تُستدعى مرة واحدة على المرشّح الفائز — لا في كل جولة — موازنةً للزمن.
-        // لا يُسلَّم حكم نظامي بلا مصدر حاضر — يُعاد بأمر صريح
-        const unsourced = unsourcedLegalClaims(winner.text, researchSources.length);
-        if (unsourced.length > 0) {
-          console.log("[generate:source-gate] ادعاء نظامي بلا مصدر:", unsourced.length, "— جولة تصحيح");
-          lastGov = adoptCandidateState(winner);
-          promptText = `${user}\n\nتصحيحات إلزامية قبل الإخراج — لم يُعثر لهذا الموضوع على مصدر رسمي، ومع ذلك ورد في نصك السابق (أدناه) استناد نظامي محدد لا سند له. المنصة لا تستشهد بنص إلا من مصدره: احذف من النص كل تسمية لنظام بعينه، وكل رقم مادة، وكل مدة أو ميعاد أو عقوبة أو أثر إجرائي محدد — واكتب الفكرة عامةً صادقةً بلا رقم ولا اسم نظام، وأحِل القارئ إلى مراجعة تفاصيل حالته في مصادرها الرسمية. المواضع المرصودة:\n${unsourced.map((u) => `- ${u}`).join("\n")}\n\nنصك السابق:\n${winner.text}`;
-          continue;
-        }
-        // المطابقة لا معنى لها بلا مصادر تُطابَق بها — كانت تُستدعى في كل إنشاء
-        // ولو لم يُجلب مصدر واحد، فتُهدر عشرات الثواني بلا فائدة وقد تتجاوز
-        // الحدّ الزمني للطلب. تُقصر على وجود مصادر فعلية.
-        const matched = researchSources.length > 0
-          ? await matchAgainstSources(winner.text, specialty)
-          : { mismatches: [] as string[] };
-        if (matched.mismatches.length > 0) {
-          console.log("[generate:source-match] غير مطابق:", matched.mismatches.length, "— جولة تصحيح");
-          lastGov = adoptCandidateState(winner);
-          promptText = `${user}\n\nتصحيحات إلزامية قبل الإخراج — قورن نصك السابق (أدناه) بالمصادر الرسمية، وهذه المواضع لا تطابق مصدرها. صحّحها لتطابق نص المصدر حرفاً بحرف، أو احذف التفصيلة غير المطابقة، وأبقِ كل ما سواها كما هو:\n${matched.mismatches.map((m) => `- ${m}`).join("\n")}\n\nنصك السابق:\n${winner.text}`;
-          continue;
-        }
-        return { kind: "ok", text: winner.text, truncated: false, gov: winner.gov, sources: researchSources, sourceNote };
-      }
+      if (winner) return { kind: "ok", text: winner.text, truncated: false, gov: winner.gov, sources: researchSources, sourceNote };
 
       // لا مستوفي بعد: يُختار الأقرب (أقل تصحيحات) لجولة تصحيح موضعي
       const best = [...candidates].sort((a, b) => a.corrections.length - b.corrections.length)[0];
@@ -728,17 +577,6 @@ ${briefType
     }
     if (hardLanguageError) {
       return { kind: "err", error: "تعذّر إنشاء نص خالٍ من الأخطاء اللغوية والإملائية. أعد المحاولة." };
-    }
-    // فشل مغلق على حارس الاستناد: كان يُفتح عند نفاد الجولات فيُسلَّم نصّ فيه
-    // اسم نظام أو رقم مادة أو مدة بلا مصدر — وهو عين ما وُضع الحارس ليمنعه.
-    // المنصة لا تستشهد بنصّ إلا من مصدره، ولو استُنفدت المحاولات.
-    const residualUnsourced = unsourcedLegalClaims(text, researchSources.length);
-    if (residualUnsourced.length > 0) {
-      console.log("[generate:source-gate] استُنفدت الجولات وبقي استناد بلا مصدر:", residualUnsourced.length);
-      return {
-        kind: "err",
-        error: `تعذّر إنشاء نص مسنَد لهذا الموضوع: لم يُعثر على مصدر رسمي، والنص يستند إلى ${residualUnsourced[0].split(":")[0]}. أعد المحاولة أو حدّد الموضوع بدقة أكبر ليتمكّن البحث من جلب مصدره.`,
-      };
     }
     // ★ بقرار مالكة المنصة: «خلاص الأسلوب لا يحجب».
     // كان بقاء الملاحظة الأسلوبية يحجب التسليم كالمخالفة تماماً، فيُرفض نصّ اجتاز
