@@ -557,19 +557,55 @@ function hitToViolation(hit: CorpusHit): HolisticViolation | null {
   };
 }
 
-// إزالة التكرار بعد اتحاد الطبقتين: قد تلتقط الثانية ما حكمت به الأولى رغم
-// إعلامها به، فيظهر للمحامي مؤشران لنفس القاعدة على نفس الدليل. المعرّف
-// التتبّعي مبنيّ على (المدخلة + الدليل) فهو الفيصل الصحيح للتطابق.
-// الأسبقية للأول في الترتيب — وأحكام الطبقة الأولى تُقدَّم، فهي الأساس.
+// المرجع في صورته الجامعة: «القاعدة الثامنة والثلاثون، الفقرة (1)» و«القاعدة
+// الثامنة والثلاثون» قاعدةٌ واحدة لا قاعدتان. المقارنة بالاسم كما ورد كانت
+// تراهما مختلفتين فيمرّ التكرار — فتُجرّد الفقرة قبل المقارنة.
+// ★ تجريدٌ للمقارنة فقط: المرجع المعروض للمحامي يبقى كما هو بفقرته، والمتن
+// الرسمي لا يُمس بحال.
+function canonicalRuleRef(reference: string): string {
+  return normalizeForMatch(reference.split(/[،\-–—]|الفقرة/)[0].trim());
+}
+
+// إزالة التكرار بعد اتحاد الطبقتين — بقرار مالكة المنصة: «لا يحذف تحليل».
+// فلا يسقط هنا حكمٌ قائم، وإنما تُطوى إعادةُ عرض الحكم نفسه مرتين:
+// (١) تطابق تام بالمعرّف التتبّعي.
+// (٢) نفس القاعدة (بصورتها الجامعة) ودليلٌ أحدهما داخل الآخر — كأن ترصد
+//     الأولى الجملة كاملة وترصد الثانية جزءاً منها بالقاعدة نفسها.
+// وتداخل الدليل شرطٌ لازم: قاعدةٌ واحدة على دليلين منفصلين وجهان مختلفان من
+// المخالفة، وكلاهما يبقى. الأسبقية للأسبق ترتيباً — وأحكام الطبقة الأولى
+// مقدَّمة فهي الأساس، وإسنادها من المتن المخزّن لا اجتهاد فيه.
 function dedupeFindings(findings: ReviewFinding[]): ReviewFinding[] {
-  const seen = new Set<string>();
-  const out: ReviewFinding[] = [];
+  const seenTraceability = new Set<string>();
+  const kept: ReviewFinding[] = [];
+
   for (const finding of findings) {
-    if (seen.has(finding.traceabilityId)) continue;
-    seen.add(finding.traceabilityId);
-    out.push(finding);
+    if (seenTraceability.has(finding.traceabilityId)) {
+      console.warn("[semantic] طُويت إعادة عرض مطابقة:", finding.legalReference);
+      continue;
+    }
+
+    const ref = canonicalRuleRef(finding.legalReference);
+    const evidence = normalizeForMatch(finding.evidence);
+    const isRepeat = kept.some((existing) => {
+      if (canonicalRuleRef(existing.legalReference) !== ref) return false;
+      const existingEvidence = normalizeForMatch(existing.evidence);
+      if (!existingEvidence || !evidence) return false;
+      return existingEvidence.includes(evidence) || evidence.includes(existingEvidence);
+    });
+    if (isRepeat) {
+      console.warn(
+        "[semantic] طُويت إعادة عرض لنفس القاعدة على دليل متداخل:",
+        finding.legalReference,
+        "|",
+        finding.evidence.slice(0, 50)
+      );
+      continue;
+    }
+
+    seenTraceability.add(finding.traceabilityId);
+    kept.push(finding);
   }
-  return out;
+  return kept;
 }
 
 // تغطية الموضع: هل صدر في النتيجة حكمٌ يخص هذا الموضع؟ المعيار تداخل الدليل
