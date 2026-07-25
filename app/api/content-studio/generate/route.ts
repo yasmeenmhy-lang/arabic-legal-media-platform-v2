@@ -513,7 +513,13 @@ ${briefType
     // يستند إليها الكاتب بدل التخمين. لا تمسّ الفحص إطلاقاً: النص الناتج يمرّ على
     // كل المؤشرات كاملةً. فشلها لا يُسقط التوليد — يكمل الكاتب بضوابطه الحالية.
     const sourceSpec = { wantSource, sourceKind, sourceEntity, sourceDesc };
-    if (needsResearch(source, topic, contentType, sourceSpec)) {
+    // ★ البحث المسبق لا يُستدعى إلا حين يكون الموضوع معروفاً فعلاً (بقرار مالكة
+    // المنصة): كان يُستدعى بالإطار وحده — نوع ومحتوى وجمهور وهدف وتخصص — والإطار
+    // يقول «أي نوع» لا «عن ماذا»، فيُسأل الباحث أن يجد سنداً لموضوعٍ لم يُولد بعد.
+    // والموضوع يبتكره الكاتب في الخطوة التالية، فينتهي البحث قبل وجود ما يُبحث عنه.
+    // ولذلك كان يعود فارغاً مهما رُفع عدد عملياته — والعلّة في ما يصله لا في عددها.
+    const topicKnown = Boolean(topic && topic.trim().length >= 3);
+    if (topicKnown && needsResearch(source, topic, contentType, sourceSpec)) {
       const research = await researchTrustedSources({ specialty, source, topic, contentType, spec: sourceSpec });
       if (research) {
         console.log("[generate:research]", research.sources.length, "مصدر موثوق");
@@ -606,6 +612,25 @@ ${briefType
 
       const winner = candidates.find((c) => c.deliverable);
       if (winner) {
+        // ★ البحث بعد المسودة (بقرار مالكة المنصة): حين لم يُحدَّد الموضوع سلفاً،
+        // الموضوع الحقيقي لا يوجد إلا بعد أن يكتبه الكاتب. فيُبحث عن سند ما كُتب
+        // فعلاً — بالنصّ لا بالإطار — وهو بعينه ما أثبت نجاحه في مسار المراجعة:
+        // نفس الأداة ونفس عدد العمليات، ونجحت لأن معها نصّاً.
+        // لا مكالمة تُضاف: البحث ينتقل من قبل الكتابة إلى بعدها.
+        if (researchSources.length === 0 && !topicKnown && Date.now() - startedAt < DEADLINE_MS) {
+          const afterDraft = await verifyTextCitations({ text: winner.text, specialty, timeoutMs: 60_000 });
+          if (afterDraft && afterDraft.sources.length > 0) {
+            console.log("[generate:research-after-draft]", afterDraft.sources.length, "مصدر موثوق");
+            researchSources = afterDraft.sources;
+            sourceNote = undefined;
+            const lines = afterDraft.sources.slice(0, 3).map((x) => `- ${x.title}: ${x.url}`).join("\n");
+            text = winner.text;
+            truncated = false;
+            lastGov = winner.gov;
+            promptText = `${user}\n\n★ بُحث عن سند ما كتبتَه في المصادر الرسمية، وهذه نتيجته. أعد إخراج نصك السابق (أدناه) كما هو مع أمرين حصراً: (١) صحّح كل ما ورد في التقرير بوصفه «غير مطابق» ليطابق نص المصدر حرفاً بحرف، (٢) وأسنِد ما ورد «مؤكَّد» إلى مصدره باسم النظام ورقم المادة ورابطه. وما لم يرد له سند هنا فاتركه عاماً بلا رقم ولا اسم نظام. لا تُعد صياغة ما سوى ذلك.\n\nتقرير المصادر:\n${afterDraft.briefing}\n\nقائمة الروابط للاستشهاد:\n${lines}`;
+            continue;
+          }
+        }
         // ★ مطابقة ما كُتب بالمصادر قبل التسليم (بقرار مالكة المنصة):
         // البحث الحي يجري قبل الكتابة ليجلب المصادر، ولم يكن أحد يعود بعدها
         // ليسأل: هل ما كُتب يطابق ما في المصادر فعلاً؟ فكان يخرج نص مصادره

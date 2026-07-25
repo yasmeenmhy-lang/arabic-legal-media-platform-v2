@@ -344,7 +344,18 @@ type StoredContextExtras = {
 // يطبّق حقول السياق الإضافية على إصدار مخزَّن — مصدر واحد للحفظ يمنع نسيان أي حقل
 function applyContextExtras(version: StoredContentVersion, extras: StoredContextExtras) {
   if (extras.topic !== undefined) version.topic = extras.topic;
-  if (extras.webSources !== undefined) version.webSources = extras.webSources;
+  // ★ المراجع لا تختفي (بقرار مالكة المنصة): تُدمج مع المحفوظ ولا تُستبدل به،
+  // فلا يمحو حفظٌ لاحقٌ بلا مصادر ما سبق حفظه من مصادر استند إليها النص.
+  if (extras.webSources !== undefined && extras.webSources.length > 0) {
+    const merged = [...(version.webSources ?? [])];
+    const seen = new Set(merged.map((item) => item.url));
+    for (const item of extras.webSources) {
+      if (!item?.url || seen.has(item.url)) continue;
+      seen.add(item.url);
+      merged.push(item);
+    }
+    version.webSources = merged;
+  }
   version.specialty = extras.specialty;
   version.charLimit = extras.charLimit ?? null;
   version.adCta = extras.adCta;

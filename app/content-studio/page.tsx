@@ -796,10 +796,20 @@ export default function ContentStudioPage() {
   const [improvedSourceHint, setImprovedSourceHint] = useState("");
   // المصادر المعتمدة المجلوبة لإعادة الصياغة — تُعرض كأدلة مرئية
   const [improvedSources, setImprovedSources] = useState<Source[]>([]);
-  // المصادر المرافقة للنسخة الحالية — تُحفظ معها فتنتقل إلى التحليل التفصيلي.
-  // الأولوية لمصادر إعادة الصياغة حين وُجدت لأنها تخصّ النص الأحدث.
-  const activeWebSources = (improvedSources.length > 0 ? improvedSources : generatedSources)
-    .map((s) => ({ title: s.title, url: s.url }));
+  // ★ بقرار مالكة المنصة: «المراجع لا تُخفى — تظهر وتنتقل للمراجعة ولا تختفي،
+  // تبقى بالسجلات». فتُجمع مصادر الإنشاء وإعادة الصياغة معاً ولا يُسقط أحدهما
+  // الآخر: كان الأحدث يحجب الأقدم فتضيع مصادر استند إليها النص فعلاً.
+  // وتُحفظ مع كل إصدار فتنتقل إلى التحليل التفصيلي وتبقى في السجل.
+  const activeWebSources = (() => {
+    const merged: { title: string; url: string }[] = [];
+    const seen = new Set<string>();
+    for (const item of [...generatedSources, ...improvedSources]) {
+      if (!item?.url || seen.has(item.url)) continue;
+      seen.add(item.url);
+      merged.push({ title: item.title, url: item.url });
+    }
+    return merged;
+  })();
   const activeWebSourcesValue = activeWebSources.length > 0 ? activeWebSources : undefined;
   // إشعار المصارحة لمسار إعادة الصياغة — طُلب مرجع ولم يُعثر عليه
   const [improvedSourceNote, setImprovedSourceNote] = useState("");
