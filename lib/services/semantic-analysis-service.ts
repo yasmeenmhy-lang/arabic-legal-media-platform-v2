@@ -8,7 +8,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import type { ContentKind, FindingCategory, FindingDomain, ReviewContext, ReviewFinding, RiskLevel } from "@/lib/types";
 import { legalKnowledgeEntries } from "@/lib/legal-knowledge-base";
 import { OFFICIAL_CORPUS, type OfficialCorpusItem } from "@/lib/legal-official-corpus";
-import { scanAgainstCorpus, formatCorpusScanSection } from "@/lib/services/corpus-scan";
+import { scanAgainstCorpus, formatCorpusScanSection, type CorpusPosition } from "@/lib/services/corpus-scan";
 import { AUTHORITIES_RULE, KINGDOM_STYLE_RULE, PLATFORM_SUPREME_RULE } from "@/lib/governance";
 import {
   arabicSeverity,
@@ -305,6 +305,43 @@ ${firstPassCompact}
 أجب بمصفوفة JSON فقط تحتوي على المخالفات **الجديدة فقط** بنفس تنسيق المخالفة المعتاد — لا تضف أي نص خارجها.`;
 }
 
+// ─── إغلاق المواضع غير المحكومة: الحلقة التي تجعل الطبقتين مكمّلتين فعلاً ────
+// بقرار مالكة المنصة: «الطبقات مكمّلة لبعض، الأولى والثانية، حتى لا يسقط شي».
+// إلزام الطبقة الثانية بالحكم لا يكفي وحده — السكوت عن موضع يُسقطه بلا أثر.
+// فبعد اتحاد القراءتين نتحقق برمجياً: أي موضع قويّ استخرجته الطبقة الأولى ولم
+// يقابله حكمٌ في النتيجة، يُعاد طرحه وحده في سؤال مغلق مركّز.
+// وسكوتها بعد ذلك حكمٌ بالسلامة لا إغفال — إذ سُئلت عنه بعينه مرتين.
+function buildPositionClosureMessage(
+  text: string,
+  contextSummary: string,
+  uncovered: CorpusPosition[]
+): string {
+  const items = uncovered
+    .map((position, index) => {
+      const refs =
+        position.candidateRefs.length > 0
+          ? `\n   مراجع مرشّحة للنظر (ترشيحٌ لا حكم): ${position.candidateRefs.join("، ")}`
+          : "\n   الإسناد النظامي إليك: حدّد القاعدة أو المادة إن كان مخالفاً.";
+      const trigger = position.trigger ? `\n   ما التقطه البحث: «${position.trigger}»` : "";
+      return `${index + 1}. [${position.kind}] «${position.excerpt}»${trigger}${refs}`;
+    })
+    .join("\n");
+
+  return `${contextSummary !== "غير محدد" ? `السياق الإضافي: ${contextSummary}\n\n` : ""}## النص المراد تحليله
+«${text}»
+
+## مواضع لم يصدر فيها حكمٌ منك بعد
+استخرجها البحث الحتمي في المتن، ومرّت قراءتاك دون حكم صريح عليها:
+${items}
+
+## مهمتك الآن: احكم على هذه المواضع وحدها
+لكل موضع: هل يخالف قاعدةً أو مادةً من المتن الرسمي، بالمعنى والمقصد لا باللفظ؟
+- إن كان مخالفاً: أخرِج له مخالفة كاملة بحقولها المعتادة، بمرجعها الصحيح ودليلها منقولاً حرفياً من النص.
+- إن كان سليماً في سياقه (نفياً، أو اقتباساً، أو تحذيراً منه، أو استعمالاً مشروعاً، أو معلومةً عامة لا تقرّر حكماً نظامياً): لا تُخرِج له شيئاً. لا تصطنع مخالفة لمجرّد أن البحث أشار إلى الموضع.
+لا تلتفت إلى غير هذه المواضع، ولا تُعد ذكر ما رصدته سابقاً.
+أجب بمصفوفة JSON فقط — وإن كانت كل المواضع سليمة فأرجع [] فوراً دون شرح.`;
+}
+
 interface HolisticViolation {
   ruleReference: string;
   confidenceLevel: "مرتفع" | "متوسط" | "منخفض";
@@ -496,6 +533,33 @@ function buildSemanticFinding(
   };
 }
 
+// تغطية الموضع: هل صدر في النتيجة حكمٌ يخص هذا الموضع؟ المعيار تداخل الدليل
+// المنقول في المخالفة مع مقطع الموضع — بأي اتجاه، لأن الطبقة الثانية قد تقتبس
+// الجملة كاملة أو جزءاً منها. التقصير هنا آمن: عدّ الموضع مغطّى بلا حق يُسقط
+// سؤالاً كان يجب طرحه، فيُشدَّد بالمطابقة على المقاطع الدالة لا على أي تشابه.
+// تُستثنى المواضع السياقية: إشارتها أضعف من أن تُنفق عليها مكالمة إضافية.
+function findUncoveredPositions(
+  positions: CorpusPosition[],
+  violations: HolisticViolation[],
+  text: string
+): CorpusPosition[] {
+  const strong = positions.filter((p) => p.kind !== "نمط سياقي");
+  if (strong.length === 0) return [];
+  return strong.filter((position) => {
+    const positionNorm = normalizeForMatch(position.excerpt);
+    if (!positionNorm) return false;
+    const covered = violations.some((violation) => {
+      const evidenceNorm = normalizeForMatch(violation.evidenceExcerpt);
+      if (evidenceNorm.length < 4) return false;
+      return positionNorm.includes(evidenceNorm) || evidenceNorm.includes(positionNorm);
+    });
+    if (covered) return false;
+    // حارس أخير: لا يُطرح موضع لا يوجد مقطعه في النص أصلاً (لا يقع عملياً —
+    // المقاطع منسوخة من النص نفسه — لكنه يمنع سؤالاً عن دليل لا يُتحقق منه)
+    return evidenceAppearsInText(position.excerpt, text);
+  });
+}
+
 export type SemanticAnalysisResult =
   | { mode: "full"; findings: ReviewFinding[] }
   | { mode: "pattern-only"; findings: ReviewFinding[]; degradedReason: "missing-key" | "api-error" | "timeout" };
@@ -611,7 +675,20 @@ export async function runSemanticAnalysis(
   const additionsMessage = buildAdditionsOnlyMessage(text, contextSummary, firstPassCompact, scanSection);
   const additionsResult = await callHolisticJudge(client, system, additionsMessage, "القراءة الثانية (إضافات)", 2000);
   const additions = additionsResult.ok && !additionsResult.truncatedEmpty ? additionsResult.violations : [];
-  const violations = [...result.violations, ...additions];
+  let violations = [...result.violations, ...additions];
+
+  // إغلاق المواضع غير المحكومة — تكامل الطبقتين: ما استخرجته الأولى بقوة ولم
+  // تحكم عليه الثانية يُعاد طرحه وحده. لا يُستدعى إلا عند وجود موضع غير مغطّى،
+  // فلا كلفة على النصوص التي حُكمت مواضعها أصلاً أو التي لا مواضع فيها.
+  const uncovered = findUncoveredPositions(scan.positions, violations, text);
+  if (uncovered.length > 0) {
+    console.log("[corpus-scan] uncovered positions =", uncovered.length, "— طلب إغلاق مركّز");
+    const closureMessage = buildPositionClosureMessage(text, contextSummary, uncovered);
+    const closureResult = await callHolisticJudge(client, system, closureMessage, "إغلاق المواضع", 2500);
+    if (closureResult.ok && !closureResult.truncatedEmpty) {
+      violations = [...violations, ...closureResult.violations];
+    }
+  }
 
   const findings = violations
     .filter((violation) => {
