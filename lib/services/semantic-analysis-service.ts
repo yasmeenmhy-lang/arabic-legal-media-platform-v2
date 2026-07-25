@@ -8,7 +8,12 @@ import Anthropic from "@anthropic-ai/sdk";
 import type { ContentKind, FindingCategory, FindingDomain, ReviewContext, ReviewFinding, RiskLevel } from "@/lib/types";
 import { legalKnowledgeEntries } from "@/lib/legal-knowledge-base";
 import { OFFICIAL_CORPUS, type OfficialCorpusItem } from "@/lib/legal-official-corpus";
-import { scanAgainstCorpus, formatCorpusScanSection, type CorpusPosition } from "@/lib/services/corpus-scan";
+import {
+  scanAgainstCorpus,
+  formatCorpusScanSection,
+  type CorpusPosition,
+  type CorpusHit,
+} from "@/lib/services/corpus-scan";
 import { AUTHORITIES_RULE, KINGDOM_STYLE_RULE, PLATFORM_SUPREME_RULE } from "@/lib/governance";
 import {
   arabicSeverity,
@@ -533,6 +538,40 @@ function buildSemanticFinding(
   };
 }
 
+// أحكام الطبقة الأولى تدخل خطّ الإنتاج نفسه الذي تدخله أحكام الطبقة الثانية:
+// نفس بناء المؤشر، ونفس التصنيف والأوزان والتصعيد، ونفس بوابة التثبّت من
+// الدليل. فلا يكون للمحامي مؤشران بمظهرين مختلفين حسب من التقطه.
+// الإسناد النظامي كلّه من مدخلة قاعدة المعرفة المخزّنة — لا اجتهاد فيه.
+function hitToViolation(hit: CorpusHit): HolisticViolation | null {
+  const entry = legalKnowledgeEntries.find((e) => e.id === hit.entryId);
+  if (!entry || !entry.legalReference) return null;
+  return {
+    ruleReference: entry.legalReference,
+    // مطابقة قاطعة على نمط محظور صريح في سياق خالٍ من الصوارف
+    confidenceLevel: "مرتفع",
+    evidenceExcerpt: hit.excerpt,
+    violationType: "صريح",
+    severity: entry.severity,
+    explanation: `تضمّن النص عبارة «${hit.trigger}»، وهي من الصياغات التي تحظرها ${entry.legalReference} من ${entry.sourceDocument}${entry.riskCategories.length > 0 ? ` — ${entry.riskCategories.join("، ")}` : ""}.`,
+    advice: entry.recommendedAction,
+  };
+}
+
+// إزالة التكرار بعد اتحاد الطبقتين: قد تلتقط الثانية ما حكمت به الأولى رغم
+// إعلامها به، فيظهر للمحامي مؤشران لنفس القاعدة على نفس الدليل. المعرّف
+// التتبّعي مبنيّ على (المدخلة + الدليل) فهو الفيصل الصحيح للتطابق.
+// الأسبقية للأول في الترتيب — وأحكام الطبقة الأولى تُقدَّم، فهي الأساس.
+function dedupeFindings(findings: ReviewFinding[]): ReviewFinding[] {
+  const seen = new Set<string>();
+  const out: ReviewFinding[] = [];
+  for (const finding of findings) {
+    if (seen.has(finding.traceabilityId)) continue;
+    seen.add(finding.traceabilityId);
+    out.push(finding);
+  }
+  return out;
+}
+
 // تغطية الموضع: هل صدر في النتيجة حكمٌ يخص هذا الموضع؟ المعيار تداخل الدليل
 // المنقول في المخالفة مع مقطع الموضع — بأي اتجاه، لأن الطبقة الثانية قد تقتبس
 // الجملة كاملة أو جزءاً منها. التقصير هنا آمن: عدّ الموضع مغطّى بلا حق يُسقط
@@ -635,36 +674,53 @@ export async function runSemanticAnalysis(
   context: ReviewContext | undefined,
   contentKind?: ContentKind
 ): Promise<SemanticAnalysisResult> {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) {
-    console.warn("[semantic] ANTHROPIC_API_KEY missing — falling back to pattern-only");
-    return { mode: "pattern-only", findings: [], degradedReason: "missing-key" };
-  }
-
   const profile = resolveScoringProfile(contentKind ?? ("post" as ContentKind), context?.channel);
   const contextSummary = buildContextSummary(context);
 
-  const eligibleEntries = legalKnowledgeEntries.filter((e) => e.legalReference);
-  console.log("[semantic] starting holistic analysis: anchored to", eligibleEntries.length, "KB entries");
-
-  // الطبقة الأولى — بحث حتمي في المتن قبل أي استدعاء ذكاء: بلا كلفة ولا تذبذب،
-  // ونتيجتها تُلزم الطبقة الثانية بالحكم صراحةً على كل موضع استخرجته. إضافةٌ صرفة:
-  // لا تحذف من نطاق فحص الطبقة الثانية شيئاً ولا تحصر حريتها في الرصد.
+  // ═══ الطبقة الأولى — الأساس: القواعد واللوائح ═══
+  // بحث حتمي في المتن قبل أي استدعاء ذكاء: بلا كلفة ولا حرارة ولا تذبذب.
+  // تحكم بنفسها فيما بلغ حدّ القطع (hits)، وترفع ما دونه للطبقة الثانية
+  // (positions). أحكامها تُبنى أولاً وتصمد حتى لو تعطّلت الطبقة الثانية أو
+  // غاب المفتاح — فالأساس لا يسقط بسقوط ما يُكمله.
   const scan = scanAgainstCorpus(text);
   const scanSection = formatCorpusScanSection(scan);
   console.log(
-    "[corpus-scan] positions =", scan.positions.length,
+    "[corpus-scan] hits =", scan.hits.length,
+    "| positions =", scan.positions.length,
     "| focusRefs =", scan.focusRefs.length
   );
+
+  const baseFindings = scan.hits
+    .map((hit) => hitToViolation(hit))
+    .filter((v): v is HolisticViolation => v !== null)
+    .filter((v) => evidenceAppearsInText(v.evidenceExcerpt, text))
+    .map((v) => buildSemanticFinding(v, findKbEntry(v.ruleReference), profile))
+    .filter((f): f is ReviewFinding => f !== null);
+
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) {
+    console.warn("[semantic] ANTHROPIC_API_KEY missing — الطبقة الأولى وحدها");
+    return { mode: "pattern-only", findings: dedupeFindings(baseFindings), degradedReason: "missing-key" };
+  }
+
+  const eligibleEntries = legalKnowledgeEntries.filter((e) => e.legalReference);
+  console.log("[semantic] starting holistic analysis: anchored to", eligibleEntries.length, "KB entries");
 
   const client = new Anthropic({ apiKey });
   const system = buildHolisticSystem(eligibleEntries);
   const userMessage = buildHolisticUserMessage(text, contextSummary, scanSection);
 
+  // تعطّل الطبقة الثانية لا يُسقط أحكام الأولى: ما حكمت به القواعد واللوائح
+  // قائمٌ ويُعرض، ويبقى الوضع «pattern-only» ليظهر تحذير نقص التحليل الدلالي —
+  // فلا يُدّعى اكتمال الفحص، ولا تضيع مخالفة قاطعة رُصدت فعلاً.
   const result = await callHolisticJudge(client, system, userMessage, "القراءة الأولى");
-  if (!result.ok) return { mode: "pattern-only", findings: [], degradedReason: result.reason };
+  if (!result.ok) {
+    return { mode: "pattern-only", findings: dedupeFindings(baseFindings), degradedReason: result.reason };
+  }
   // انقطع الجواب بلا أي مخالفة مكتملة: لا يُدّعى الامتثال — فشل مغلق
-  if (result.truncatedEmpty) return { mode: "pattern-only", findings: [], degradedReason: "api-error" };
+  if (result.truncatedEmpty) {
+    return { mode: "pattern-only", findings: dedupeFindings(baseFindings), degradedReason: "api-error" };
+  }
 
   // قراءة ثانية سريعة (إضافات فقط): تسد فجوة التذكّر التي قد تفوت القراءة الواحدة —
   // مخرَجها صغير عادة (فارغ أو مخالفة أو اثنتان) فتنتهي خلال ثوانٍ، بخلاف إعادة كتابة
@@ -690,7 +746,7 @@ export async function runSemanticAnalysis(
     }
   }
 
-  const findings = violations
+  const semanticFindings = violations
     .filter((violation) => {
       // بوابة التثبّت: مخالفة دليلها غير موجود حرفياً في النص تُسقط — لا حكم بلا دليل
       if (!evidenceAppearsInText(violation.evidenceExcerpt, text)) {
@@ -710,6 +766,13 @@ export async function runSemanticAnalysis(
     })
     .filter((f): f is ReviewFinding => f !== null);
 
-  console.log("[semantic] done: findings =", findings.length);
+  // اتحاد الطبقتين: أحكام الأساس أولاً ثم ما أكملته الثانية بالمعنى. اتحادٌ لا
+  // تقاطع — لا تُسقط طبقةٌ حكم الأخرى، وإنما يُزال التكرار المحض فقط.
+  const findings = dedupeFindings([...baseFindings, ...semanticFindings]);
+
+  console.log(
+    "[semantic] done: findings =", findings.length,
+    "(الطبقة الأولى:", baseFindings.length, "| الثانية:", semanticFindings.length, ")"
+  );
   return { mode: "full", findings };
 }

@@ -33,7 +33,24 @@ export type CorpusPosition = {
   candidateRefs: string[];
 };
 
+// إصابة قاطعة: مخالفة تلتقطها الطبقة الأولى **بنفسها** ويصدر بها حكمها، لا
+// موضعاً يُحال إلى غيرها. لا تُعدّ الإصابة قاطعة إلا حين لا يحتمل السياق
+// وجهاً سليماً — انظر isDecisive أدناه.
+export type CorpusHit = {
+  // مقطع الدليل منقولاً حرفياً من نصّ المحامي
+  excerpt: string;
+  // النمط المحظور المطابَق، كما هو مخزّن في قاعدة المعرفة
+  trigger: string;
+  // معرّف المدخلة في قاعدة المعرفة — منها يُبنى الإسناد النظامي كاملاً،
+  // فلا تختلق هذه الطبقة نسبةً لمادة ولا تجتهد في تحديدها
+  entryId: string;
+  legalReference: string;
+};
+
 export type CorpusScan = {
+  // ما حكمت به الطبقة الأولى بنفسها — الأساس
+  hits: CorpusHit[];
+  // ما رفعته للطبقة الثانية لتحكم فيه بالمعنى — ما لم يبلغ حدّ القطع
   positions: CorpusPosition[];
   // مراجع مرشّحة لقراءة مركّزة، مستخرجة بدلالة مفاتيح المتن — لا تحصر القراءة
   focusRefs: string[];
@@ -42,6 +59,7 @@ export type CorpusScan = {
 // حدّان يمنعان تضخّم المطالبة على النصوص الطويلة — الأولوية للمواضع الأقوى دلالة
 const MAX_POSITIONS = 12;
 const MAX_FOCUS_REFS = 8;
+const MAX_HITS = 20;
 
 // تطبيع شكلي يسامح فروق الكتابة: تشكيل/همزات/تاء مربوطة/أرقام/ترقيم/مسافات.
 // نفس فلسفة normalizeForMatch في محرّك الحكم وverifyCorpusCitations في المتحقق.
@@ -124,8 +142,41 @@ function detectCategoricalAssertions(sentences: string[]): CorpusPosition[] {
 // طبقة الأنماط الحاكمة نهائياً، والحكم كله للمعنى. دورها هنا استدلالي بحت:
 // دالّة على أي قاعدة أو مادة من المتن يُحتمل أن تكون في محلّ النظر، فتُرفع
 // الجملة إلى الطبقة الثانية لتحكم عليها بالمعنى — إثباتاً أو نفياً.
-function detectPatternPositions(sentences: string[]): CorpusPosition[] {
+// ─── حدّ القطع: متى تحكم الطبقة الأولى بنفسها ومتى تُحيل؟ ──────────────────
+// «الخلل فيه ممنوع» — بقرار مالكة المنصة. ومطابقة اللفظ وحدها لا تكفي حكماً:
+// النصّ قد يورد العبارة نافياً لها، أو محذّراً منها، أو ناقلاً لها، أو سائلاً
+// عنها — فيكون قائلُها ملتزماً لا مخالفاً، ويكون الحكم عليه ظلماً وخللاً.
+//
+// فحين يخلو السياق من كل صارف: الحكم قاطع وتحكم به الطبقة الأولى.
+// وحين يوجد صارف: لا تُسقط الموضع — تُحيله إلى الطبقة الثانية لتحكم بالمعنى.
+// فلا تُخطئ الأولى، ولا يسقط الموضع بين الطبقتين.
+const CONTEXT_QUALIFIERS: string[] = [
+  // النفي والحظر — «لا يجوز أن يضمن»، «لم يعد»، «ليس صحيحاً»
+  "لا يجوز", "لا يحق", "لا يصح", "لا يمكن", "لا ينبغي", "لا تقل", "لا تكتب", "لا تعد",
+  "لم", "ليس", "ليست", "غير صحيح", "غير جائز", "بلا", "دون",
+  // التحذير والإنكار — نصّ يحذّر من المخالفة لا يرتكبها
+  "يحظر", "ممنوع", "محظور", "تجنب", "احذر", "احذري", "خطأ شائع", "من الأخطاء",
+  "مخالفة", "يخالف", "لا يجوز للمحامي", "على المحامي ألا",
+  // النقل والاستفهام
+  "هل", "يقول بعض", "يزعم", "يدعي", "يروج",
+];
+
+function hasContextQualifier(normalizedSentence: string): boolean {
+  return CONTEXT_QUALIFIERS.some((q) => normalizedSentence.includes(normalize(q)));
+}
+
+// الاقتباس صارفٌ أيضاً: العبارة داخل علامتي اقتباس منقولةٌ عن غير الكاتب.
+// يُفحص على النصّ الخام قبل التطبيع، لأن التطبيع يجرّد علامات الاقتباس.
+function isInsideQuotes(rawSentence: string, trigger: string): boolean {
+  const quoted = rawSentence.match(/[«"'"']([^«»"'"']+)[»"'"']/g) ?? [];
+  const normalizedTrigger = normalize(trigger);
+  return quoted.some((segment) => normalize(segment).includes(normalizedTrigger));
+}
+
+function detectPatternPositions(sentences: string[]): { hits: CorpusHit[]; positions: CorpusPosition[] } {
   const byExcerpt = new Map<string, CorpusPosition>();
+  const hits: CorpusHit[] = [];
+  const seenHits = new Set<string>();
 
   for (const sentence of sentences) {
     const norm = normalize(sentence);
@@ -138,6 +189,22 @@ function detectPatternPositions(sentences: string[]): CorpusPosition[] {
         const n = normalize(p);
         return n.length >= 3 && norm.includes(n);
       });
+
+      // الحكم القاطع: نمط محظور صريح، في جملة خالية من كل صارف سياقي.
+      // تحكم به الطبقة الأولى بنفسها ولا يُحال — وهذا هو الأساس.
+      if (prohibited && !hasContextQualifier(norm) && !isInsideQuotes(sentence, prohibited)) {
+        const key = `${entry.id}|${sentence}`;
+        if (!seenHits.has(key)) {
+          seenHits.add(key);
+          hits.push({
+            excerpt: sentence,
+            trigger: prohibited,
+            entryId: entry.id,
+            legalReference: entry.legalReference,
+          });
+        }
+        continue;
+      }
       const contextual = prohibited
         ? undefined
         : (entry.contextualPatterns ?? []).find((p) => {
@@ -147,6 +214,8 @@ function detectPatternPositions(sentences: string[]): CorpusPosition[] {
       const trigger = prohibited ?? contextual;
       if (!trigger) continue;
 
+      // بلغ هنا نمطٌ محظور دخله صارف سياقي، أو نمطٌ سياقي — كلاهما دون حدّ
+      // القطع، فيُرفع للطبقة الثانية لتحكم فيه بالمعنى ولا يسقط.
       const kind: CorpusPositionKind = prohibited ? "نمط محظور" : "نمط سياقي";
       const key = `${sentence}|${kind}`;
       const existing = byExcerpt.get(key);
@@ -166,9 +235,10 @@ function detectPatternPositions(sentences: string[]): CorpusPosition[] {
   }
 
   // المحظور قبل السياقي — عند بلوغ السقف تبقى المواضع الأقوى دلالة
-  return [...byExcerpt.values()].sort((a, b) =>
+  const positions = [...byExcerpt.values()].sort((a, b) =>
     a.kind === b.kind ? 0 : a.kind === "نمط محظور" ? -1 : 1
   );
+  return { hits, positions };
 }
 
 // ─── ترشيح المراجع بدلالة المفاتيح ──────────────────────────────────────────
@@ -194,21 +264,38 @@ function detectFocusRefs(normalizedText: string): string[] {
 export function scanAgainstCorpus(text: string): CorpusScan {
   const sentences = splitSentences(text);
   const normalizedText = normalize(text);
+  const patternScan = detectPatternPositions(sentences);
 
   const positions = [
     ...detectCategoricalAssertions(sentences),
-    ...detectPatternPositions(sentences),
+    ...patternScan.positions,
   ].slice(0, MAX_POSITIONS);
 
-  return { positions, focusRefs: detectFocusRefs(normalizedText) };
+  return {
+    hits: patternScan.hits.slice(0, MAX_HITS),
+    positions,
+    focusRefs: detectFocusRefs(normalizedText),
+  };
 }
 
 // صياغة نتيجة البحث كقسم يُلحق برسالة المستخدم في الطبقة الثانية.
 // يعود بسلسلة فارغة عند خلوّ النتيجة، فلا يُحشى في المطالبة قسمٌ بلا مضمون.
 export function formatCorpusScanSection(scan: CorpusScan): string {
-  if (scan.positions.length === 0 && scan.focusRefs.length === 0) return "";
+  if (scan.hits.length === 0 && scan.positions.length === 0 && scan.focusRefs.length === 0) return "";
 
   const blocks: string[] = ["## نتيجة البحث الحتمي في المتن (الطبقة الأولى)"];
+
+  if (scan.hits.length > 0) {
+    blocks.push(
+      "مخالفات **حكمت بها الطبقة الأولى وصدرت فعلاً** — مثبتة في النتيجة ولا تحتاج منك إعادة رصدها ولا تأكيدها. لا تُعد ذكرها:"
+    );
+    scan.hits.forEach((hit, index) => {
+      blocks.push(`${index + 1}. «${hit.trigger}» ← ${hit.legalReference} — في: «${hit.excerpt}»`);
+    });
+    blocks.push(
+      "دورك تجاهها: التقاط ما **لم تلتقطه** — أيّ وجه آخر من المخالفة في الجملة نفسها لم يُغطَّ أعلاه، أو مخالفة في وثيقة أخرى لنفس الواقعة."
+    );
+  }
 
   if (scan.positions.length > 0) {
     blocks.push(
