@@ -5,7 +5,7 @@ import { AI_CONSTITUTION } from "@/lib/governance";
 import { buildOfficialRuleCorpusText } from "@/lib/rule-corpus-text";
 import { governTextFull, type GovernTextFullResult } from "@/lib/services/governor-gate";
 import { verifyCorpusCitations } from "@/lib/services/citation-verifier";
-import { needsResearch, researchTrustedSources } from "@/lib/services/web-research-service";
+import { lastResearchFailure, needsResearch, researchTrustedSources } from "@/lib/services/web-research-service";
 import { WRITING_CODE } from "@/lib/writing-code";
 import { recordUsage, runWithCostMeter, meterCostUsd, currentMeter } from "@/lib/cost-meter";
 import { ledgerDb, deductUsd } from "@/lib/cost-ledger";
@@ -448,8 +448,17 @@ ${briefType
       } else if (wantSource) {
         // المصارحة (بقرار المالكة): طلب المستخدم مصدراً ولم يُعثر على مطابق موثوق —
         // يُوجَّه الكاتب للأمانة (نسبة عامة صادقة، لا اختلاق)، ويُبلَّغ المستخدم بذلك.
-        console.log("[generate:research] لا مصدر موثوق مطابق للطلب");
-        sourceNote = "طُلب تعزيز المحتوى بمرجع موثّق، ولم يُعثر على مصدر مطابق في المصادر المعتمدة — صيغ المحتوى بنسبة عامة صادقة دون اختلاق مرجع. يمكنك إعادة المحاولة بوصف أدق للمرجع.";
+        // ★ السبب الحقيقي لا رسالة واحدة تُخفي ثلاثة (بقرار مالكة المنصة):
+        // «لم يُعثر» تعني أن المصدر غير موجود — وهي كذبة حين يكون البحث قد
+        // انقطع بالمهلة أو رفضته الخدمة، فالمصدر موجود ولم نصل إليه.
+        const failure = lastResearchFailure();
+        console.log("[generate:research] تعذّر جلب مصادر — السبب:", failure ?? "غير محدد");
+        sourceNote =
+          failure === "مهلة"
+            ? "تعذّر إكمال البحث عن مرجع موثّق في الوقت المتاح — صيغ المحتوى بنسبة عامة صادقة دون اختلاق مرجع. أعد المحاولة، فالمرجع قد يكون متاحاً."
+            : failure === "خدمة"
+            ? "تعذّر الوصول إلى خدمة البحث في المصادر المعتمدة حالياً — صيغ المحتوى بنسبة عامة صادقة دون اختلاق مرجع. أعد المحاولة بعد قليل."
+            : "طُلب تعزيز المحتوى بمرجع موثّق، ولم يُعثر على مصدر مطابق في المصادر المعتمدة — صيغ المحتوى بنسبة عامة صادقة دون اختلاق مرجع. يمكنك إعادة المحاولة بوصف أدق للمرجع.";
         promptText = `${user}\n\n★ طلب المستخدم دعم المحتوى بمصدر، ولم يُعثر على مصدر موثوق مطابق للمواصفات في المصادر المعتمدة. لا تختلق مصدراً ولا رقماً ولا دراسة إطلاقاً — اكتب المحتوى بنسبة عامة صادقة (اتجاهات معروفة، أحكام عامة دون رقم مخترع)، وأشر بإيجاز مهني إلى أن التفاصيل تُراجَع في مصادرها الرسمية.`;
       }
     }
