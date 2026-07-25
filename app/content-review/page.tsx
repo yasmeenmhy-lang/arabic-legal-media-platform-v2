@@ -224,53 +224,6 @@ function downloadBlob(name: string, type: string, body: string) {
   URL.revokeObjectURL(url);
 }
 
-// مؤشر تقدّم التحليل — بطلب مالكة المنصة: «إضافة تقدّم يوضّح كم باقي».
-// المراحل الأربع هي مراحل الخادم الفعلية بترتيبها الحقيقي في review-service:
-// تحرّي المصادر ← فحص الامتثال بالطبقتين ← قياس المخاطر واللغة ← تجهيز الصياغة.
-// الأزمنة تقديرية مقيسة على تحليلات فعلية، ولذلك:
-// (١) لا يبلغ الشريط ١٠٠٪ إلا عند وصول النتيجة فعلاً — لا يُدّعى اكتمال لم يقع.
-// (٢) عند تجاوز الزمن المتوقع تبقى المرحلة الأخيرة معلّقة ولا يُقفز بها.
-const ANALYSIS_STAGES: Array<{ label: string; seconds: number }> = [
-  { label: "تحرّي المصادر", seconds: 20 },
-  { label: "فحص الامتثال", seconds: 35 },
-  { label: "قياس المخاطر واللغة", seconds: 25 },
-  { label: "تجهيز الصياغة", seconds: 25 },
-];
-const ANALYSIS_TOTAL_SECONDS = ANALYSIS_STAGES.reduce((sum, stage) => sum + stage.seconds, 0);
-
-function AnalysisProgress({ seconds }: { seconds: number }) {
-  let elapsedBefore = 0;
-  let activeIndex = ANALYSIS_STAGES.length - 1;
-  for (let i = 0; i < ANALYSIS_STAGES.length; i++) {
-    if (seconds < elapsedBefore + ANALYSIS_STAGES[i].seconds) { activeIndex = i; break; }
-    elapsedBefore += ANALYSIS_STAGES[i].seconds;
-  }
-  // سقف ٩٥٪: النتيجة وحدها تُكمل الشريط
-  const percent = Math.min(95, Math.round((seconds / ANALYSIS_TOTAL_SECONDS) * 100));
-  const remaining = Math.max(0, ANALYSIS_TOTAL_SECONDS - seconds);
-
-  return (
-    <div className="mt-4 rounded-lg border border-line bg-surface p-4">
-      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <p className="text-sm font-semibold text-ink">{ANALYSIS_STAGES[activeIndex].label}</p>
-        <p className="text-xs text-ink/60 tabular-nums">
-          {remaining > 0 ? `يتبقّى نحو ${remaining} ثانية` : "على وشك الانتهاء"}
-        </p>
-      </div>
-      <div className="h-2 w-full overflow-hidden rounded-full bg-line" role="progressbar" aria-valuenow={percent} aria-valuemin={0} aria-valuemax={100} aria-label="تقدّم التحليل">
-        <div className="h-full rounded-full bg-palm transition-[width] duration-1000 ease-linear" style={{ width: `${percent}%` }} />
-      </div>
-      <ol className="mt-3 flex flex-wrap gap-x-4 gap-y-1">
-        {ANALYSIS_STAGES.map((stage, index) => (
-          <li key={stage.label} className={`text-xs ${index < activeIndex ? "text-palm" : index === activeIndex ? "font-semibold text-ink" : "text-ink/40"}`}>
-            {index < activeIndex ? "✓ " : ""}{stage.label}
-          </li>
-        ))}
-      </ol>
-    </div>
-  );
-}
-
 export default function ContentReviewPage() {
   const router = useRouter();
   const [text, setText] = useState("");
@@ -282,8 +235,6 @@ export default function ContentReviewPage() {
   const [purpose, setPurpose] = useState("");
   const [review, setReview] = useState<ReviewResult | null>(null);
   const [loading, setLoading] = useState(false);
-  // عدّاد الثواني المنقضية — يغذّي مؤشر التقدّم، ويُصفَّر مع كل تحليل جديد
-  const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [message, setMessage] = useState("");
   const [contentId, setContentId] = useState<string>();
   const [versionNumber, setVersionNumber] = useState<number>();
@@ -311,13 +262,6 @@ export default function ContentReviewPage() {
   // نسبة تقدّم إنشاء الصياغة التحسينية — تقديرية زمنياً (المهمة خلفية بلا تقدّم دقيق):
   // تتصاعد تدريجياً وتتباطأ قرب النهاية فلا تبلغ ١٠٠٪ إلا باكتمال النتيجة فعلاً.
   const [suggestProgress, setSuggestProgress] = useState(0);
-  // عدّاد التحليل: يبدأ من الصفر مع كل تحليل ويتوقف عند وصول النتيجة
-  useEffect(() => {
-    if (!loading) { setElapsedSeconds(0); return; }
-    setElapsedSeconds(0);
-    const timer = setInterval(() => setElapsedSeconds((s) => s + 1), 1000);
-    return () => clearInterval(timer);
-  }, [loading]);
   useEffect(() => {
     if (!suggestingAI) { setSuggestProgress(0); return; }
     setSuggestProgress(8);
@@ -2101,7 +2045,6 @@ export default function ContentReviewPage() {
           {isEditing && contentId ? <Button variant="secondary" onClick={saveEdits} disabled={loading || text.trim().length < 5} leadingIcon={<Save size={16} />}>حفظ التعديلات</Button> : null}
           {isEditing ? <Button variant="secondary-gray" onClick={cancelEditing} disabled={loading} leadingIcon={<AlertTriangle size={16} />}>إلغاء</Button> : null}
         </div>
-        {loading && hasSelectedContent ? <AnalysisProgress seconds={elapsedSeconds} /> : null}
         {message ? <p className="mt-3 text-sm text-palm">{message}</p> : null}
       </section>
 
