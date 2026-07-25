@@ -153,12 +153,14 @@ export async function buildReviewResult(
       ? {
           level: complianceFloor,
           affectedParties: flooredParties,
-          explanation: [
-            `رُصدت ${activeFindings.length} مخالفة امتثال — عدم الالتزام بقواعد السلوك المهني يعرّض المحامي للمساءلة ويضر بسمعة المهنة.`,
+          // الجملة الآلية التي كانت تتصدّر التعليل («رُصدت N مخالفة امتثال…»)
+          // حُذفت: كانت رقعةً تشرح رفعاً وقع لأن محرّك المخاطر لم يعلم بالمخالفة.
+          // وقد صار يعلم بها ويصف أثرها بلغته المهنية، فلا حاجة لعدّاد داخلي
+          // يتصدّر تعليل المحامي. والرفع نفسه يبقى شبكة أمان.
+          explanation:
             contentEval.risks.explanation && !contentEval.risks.explanation.startsWith("تعذّر")
               ? contentEval.risks.explanation
-              : ""
-          ].filter(Boolean).join(" "),
+              : "",
           fix: contentEval.risks.fix || "عالج مخالفات الامتثال المرصودة قبل النشر لخفض مستوى المخاطر."
         }
       : contentEval.risks;
@@ -309,11 +311,13 @@ export async function reviewContent(text: string, kind: ContentKind = "post", co
   if (verification?.briefing) {
     ctx = { ...context, verificationBriefing: verification.briefing, verificationSources: verification.sources };
   }
-  // Run compliance analysis and content evaluation (risk + professionalism + language) in parallel
-  const [semanticResult, contentEval] = await Promise.all([
-    runSemanticAnalysis(text, ctx, kind),
-    evaluateContent(text, ctx)
-  ]);
+  // متتابعتان لا متوازيتان — بقرار مالكة المنصة: «الامتثال عنصر أساسي في قياس
+  // المخاطر». كانتا تعملان معاً فيقيس محرّك المخاطر الأثر وهو لا يعلم بما رُصد،
+  // فيقع الحكمان متناقضين (مخالفة قائمة مع مخاطر منخفضة) ولا يُعالَج التناقض إلا
+  // برفعٍ قسري بعد النتيجة. الآن تُمرَّر المخالفات المثبتة إلى القياس نفسه.
+  // الثمن: زمن التحليل يطول بقدر المكالمة الثانية — ولا مكالمات إضافية.
+  const semanticResult = await runSemanticAnalysis(text, ctx, kind);
+  const contentEval = await evaluateContent(text, ctx, semanticResult.findings);
   return buildReviewResult(text, kind, ctx, semanticResult, contentEval);
 }
 

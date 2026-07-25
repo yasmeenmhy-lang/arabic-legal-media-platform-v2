@@ -17,6 +17,7 @@ import type {
   LanguageIssueCategory,
   LanguageIssueSeverity,
   ReviewContext,
+  ReviewFinding,
   RiskAffectedParty,
   RiskLevel
 } from "@/lib/types";
@@ -70,6 +71,20 @@ ${KINGDOM_STYLE_RULE}
 
 ### المحور الأول: المخاطر
 المخاطر تُقاس حصراً بالأثر على الجهات الثلاث. حدد الجهات المتضررة من سياق النص نفسه — اقرأ المحتوى واستنتج من سيتأثر به فعلياً:
+
+★ الامتثال عنصر أساسي في قياس المخاطر (بقرار مالكة المنصة — ملزم):
+قد تصلك في رسالة المستخدم نتيجة فحص الامتثال تحت عنوان «مخالفات رُصدت في هذا النص». إن وصلتك فهي **حكم صادر ومثبت** لا رأي تراجعه ولا تنقضه:
+- المخالفة المثبتة **أساسٌ قائم بذاته** لإدراج الجهة المتضررة — لا تحتاج ضرراً إضافياً تتخيّله. مخالفة قاعدة سلوك مهني تعرّض **المحامي** للمساءلة وتمسّ **المهنة** بحكم وقوعها، فأدرجهما ووصف الأثر.
+- وانظر في كل مخالفة: **هل يمتد أثرها إلى الموكل أو المستفيد من المحتوى؟** إن كان النص يوهم قارئه أو يضلّله أو يبني عنده فهماً خاطئاً يتصرّف على أساسه — فهو متضرر، فأدرجه.
+- ولا تُنقص مستوى المخاطر عن مقتضى المخالفة المثبتة، ولا تصف نصاً ثبتت مخالفته بأنه سليم من المخاطر.
+- ولا تذكر أن فحصاً جرى ولا تُشر إلى آلية المنصة — اكتب الأثر المهني والقانوني كما تكتبه دائماً.
+
+★★ وهي عنصر **يُضاف** ولا **يُلغي** غيره (ملزم — الأهم في هذا الباب):
+- **اقرأ النص كاملاً وقِس أثره بنفسك كما كنت تفعل دائماً، ولا تقتصر على المخالفات الواردة إليك.** ما يصلك أساسٌ **إضافي** لا **بديل** عن فحصك، ولا سقفٌ له.
+- **كل ضرر تراه بنفسك في النص يبقى ويُذكر** ولو لم يقابله مخالفة أعلاه: الضرر الواقعي الراجح أساسٌ مستقل قائم بذاته.
+- **ولا تحذف جهةً متضررة ولا وجهَ ضررٍ لمجرّد أنه لم يرد في المخالفات.** الجهات النهائية = ما استوجبته المخالفات **+** ما رأيتَه أنت. اجمع ولا تُسقط.
+- وخلوّ المخالفات لا يعني سلامة النص من المخاطر — احكم من النص وحده كالمعتاد.
+
 - الموكل: أي محتوى يضر بمصلحة الموكل أو المستفيد من الخدمة أو المحتوى، أو يكشف معلوماته، أو يؤثر على قضيته
 - المحامي: أي محتوى يعرضه للمساءلة التأديبية أو القانونية وفق القواعد واللوائح
 - المهنة: أي محتوى يسيء لسمعة المهنة القانونية أو يقلل من هيبتها
@@ -285,14 +300,37 @@ function buildContextLine(context?: ReviewContext): string {
   return base + verification;
 }
 
-export async function evaluateContent(text: string, context?: ReviewContext): Promise<ContentEvaluation> {
+// المخالفات المثبتة تُصاغ قسماً يُلحق برسالة المستخدم — بمرجعها وخطورتها ودليلها،
+// فيقيس المحرّك الأثر وهو يعلم ما رُصد، لا من فراغ. محلّه رسالة المستخدم لا كتلة
+// system المخزّنة مؤقتاً، لأنه يتغيّر بتغيّر النص.
+function buildComplianceSection(findings: ReviewFinding[] | undefined): string {
+  const active = (findings ?? []).filter((f) => !f.resolved);
+  if (active.length === 0) return "";
+  const items = active
+    .map(
+      (f, i) =>
+        `${i + 1}. ${f.legalReference} — ${f.sourceDocument} [خطورة: ${f.severity}]\n   الدليل من النص: «${f.evidence}»\n   وجه المخالفة: ${f.explanation || f.issue}`
+    )
+    .join("\n");
+  return `\n\n## مخالفات رُصدت في هذا النص (حكم صادر ومثبت — لا يُراجَع ولا يُنقض)\n${items}`;
+}
+
+export async function evaluateContent(
+  text: string,
+  context?: ReviewContext,
+  complianceFindings?: ReviewFinding[]
+): Promise<ContentEvaluation> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
     console.warn("[evaluation] ANTHROPIC_API_KEY missing — returning fallback evaluation");
     return buildFallbackEvaluation();
   }
 
-  console.log("[evaluation] starting content evaluation (risks, professionalism, language)");
+  const complianceSection = buildComplianceSection(complianceFindings);
+  console.log(
+    "[evaluation] starting content evaluation (risks, professionalism, language) — compliance findings passed:",
+    (complianceFindings ?? []).filter((f) => !f.resolved).length
+  );
 
   const client = new Anthropic({ apiKey });
   const MAX_ATTEMPTS = 2;
@@ -308,7 +346,7 @@ export async function evaluateContent(text: string, context?: ReviewContext): Pr
         thinking: { type: "disabled" },
         max_tokens: 4096,
         system: [{ type: "text", text: buildEvaluationSystem(), cache_control: { type: "ephemeral" } }],
-        messages: [{ role: "user", content: `${buildContextLine(context)}«${text}»` }]
+        messages: [{ role: "user", content: `${buildContextLine(context)}«${text}»${complianceSection}` }]
       });
 
       recordUsage(message.usage); // عدّاد التكلفة الداخلي — قياس صرف

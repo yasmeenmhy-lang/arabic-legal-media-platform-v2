@@ -49,15 +49,13 @@ export function normalizeReviewResult(review: ReviewResult): ReviewResult {
           ...review.riskScoreExplanation,
           level: riskLevel,
           affectedParties: parties,
-          explanation: [
-            `رُصدت ${unresolved.length} مخالفة امتثال — عدم الالتزام بقواعد السلوك المهني يعرّض المحامي للمساءلة ويضر بسمعة المهنة.`,
+          // الجملة الآلية حُذفت — نفس سبب حذفها في review-service: محرّك المخاطر
+          // صار يعلم بالمخالفات ويصف أثرها بلغته، فلا يتصدّر تعليلَ المحامي عدّادٌ داخلي.
+          explanation:
             review.riskScoreExplanation?.explanation &&
             !review.riskScoreExplanation.explanation.startsWith("تعذّر")
               ? review.riskScoreExplanation.explanation
               : ""
-          ]
-            .filter(Boolean)
-            .join(" ")
         }
       : review.riskScoreExplanation;
 
