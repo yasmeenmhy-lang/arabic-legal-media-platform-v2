@@ -54,10 +54,11 @@ async function governTextFull(
   opts?: { checkLanguage?: boolean }
 ): Promise<GovernTextFullResult> {
   const checkLanguage = opts?.checkLanguage !== false;
-  const [gov, evaluation] = await Promise.all([
-    runSemanticAnalysis(text, context, contentKind),
-    checkLanguage ? evaluateContent(text, context) : Promise.resolve(null),
-  ]);
+  // متتابعتان لا متوازيتان — بقرار مالكة المنصة: «الامتثال عنصر أساسي في قياس
+  // المخاطر»، وهو أساس عام لا يخصّ شاشة المراجعة. فالمقياس الذي يحكم بلا علم
+  // بالمخالفة ناقصٌ سواء عُرض للمحامي أم استُعمل بوابةً داخلية كما هنا.
+  const gov = await runSemanticAnalysis(text, context, contentKind);
+  const evaluation = checkLanguage ? await evaluateContent(text, context, gov.findings) : null;
 
   // فشل مغلق: تعذّر حكم الذكاء (عطل مفتاح/خدمة) ⇒ لا يُعد النص ممتثلاً ولا يُسلَّم —
   // لا توجد طبقة أخرى تفحصه، وتمريره بلا فحص يناقض ضمانة «لا يخرج نص مخالف».
@@ -82,10 +83,24 @@ async function governTextFull(
     const kind = hard ? "خطأ لغوي" : "ملاحظة أسلوب أو وضوح";
     return `- ${kind}: «${i.excerpt ?? ""}» — ${i.message}${i.suggestion ? ` — التصحيح: ${i.suggestion}` : ""}`;
   });
-  const corrections = [...semantic, ...language];
+  // ★ حجب المخاطر — بقرار مالكة المنصة: «مثل ما أنه لا يُسمح للمستخدم بارتكاب
+  // المخالفات والتعرّض للمخاطر، أيضاً لا يُسمح للذكاء بارتكاب المخالفات وتعريض
+  // المهنة أو المحامي أو المواطن أو الموكل للمخاطر»، و«إذا كان على المهنة فطبعاً
+  // دائماً لا يُسمح».
+  // كان تقييم المخاطر يُحسب ثم يُهمَل: يُسلَّم نصٌّ من إنتاج المنصة يقول محرّكها
+  // إن ضرره واقع على المهنة، ما دام لا مخالفة صريحة فيه. وهذا نقضٌ للمبدأ نفسه
+  // الذي تُلزم به المحامي. الآن ضررُ المهنة يمنع التسليم كما تمنعه المخالفة.
+  const professionAtRisk = (evaluation?.risks.affectedParties ?? []).includes("المهنة");
+  const risk = professionAtRisk
+    ? [`- أثر على سمعة المهنة ومكانتها: ${evaluation?.risks.explanation ?? ""}${evaluation?.risks.fix ? ` — المعالجة: ${evaluation.risks.fix}` : ""}`]
+    : [];
+
+  const corrections = [...semantic, ...risk, ...language];
   return {
     clean: corrections.length === 0,
-    compliant: semantic.length === 0,
+    // المخالفة النظامية وضررُ المهنة كلاهما يحجب التسليم — أما الملاحظة اللغوية
+    // فتبقى غير حاجبة كما استقرّ سابقاً.
+    compliant: semantic.length === 0 && !professionAtRisk,
     corrections,
     semanticResult: gov,
     contentEval: evaluation,

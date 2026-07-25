@@ -17,6 +17,7 @@ import { countAdvisoryLanguageIssues, countHardLanguageErrors } from "@/lib/lang
 import { createReviewedContentContext } from "@/lib/review-context";
 import { runPublishingReadinessReview } from "@/lib/services/approval-workflow-service";
 import { rebuildComplianceFromFindings } from "@/lib/services/legal-compliance-service";
+import { partiesToRiskLevel } from "@/lib/risk-parties";
 import { runSemanticAnalysis } from "@/lib/services/semantic-analysis-service";
 import type { SemanticAnalysisResult } from "@/lib/services/semantic-analysis-service";
 import { evaluateContent } from "@/lib/services/content-evaluation-service";
@@ -45,11 +46,7 @@ const noRegisteredViolationMessage = "لم يتم رصد ملاحظة مرتبط
 // "مرتفع" يبقى محكوماً بتقييم الجهات الثلاث، لا بشدة المخالفة.
 const RISK_ORDER: RiskLevel[] = ["منخفض", "متوسط", "مرتفع", "بالغ"];
 
-function partiesToRiskLevel(count: number): RiskLevel {
-  if (count >= 3) return "مرتفع";
-  if (count === 2) return "متوسط";
-  return "منخفض";
-}
+
 
 const workflowLabels: Array<[ReviewWorkflowStep["key"], string]> = [
   ["language_quality_review", "جودة اللغة والصياغة"],
@@ -147,7 +144,7 @@ export async function buildReviewResult(
   const flooredParties = activeFindings.length > 0
     ? ([...new Set([...contentEval.risks.affectedParties, "المحامي", "المهنة"])] as RiskAffectedParty[])
     : contentEval.risks.affectedParties;
-  const complianceFloor = partiesToRiskLevel(flooredParties.length);
+  const complianceFloor = partiesToRiskLevel(flooredParties);
   const effectiveRisks =
     RISK_ORDER.indexOf(complianceFloor) > RISK_ORDER.indexOf(contentEval.risks.level)
       ? {

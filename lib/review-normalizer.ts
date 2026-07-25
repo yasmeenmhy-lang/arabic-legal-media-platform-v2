@@ -6,6 +6,7 @@ import {
 } from "@/lib/services/decision-support-service";
 import { calculateContentQualityScore } from "@/lib/services/scoring-service";
 import { countAdvisoryLanguageIssues, languageGateReason } from "@/lib/language-gate";
+import { partiesToRiskLevel } from "@/lib/risk-parties";
 
 // تطبيع التحليلات المحفوظة وقت العرض: القواعد الحالية تُطبَّق على كل نسخة
 // محفوظة أو مشاركة — قديمة أو جديدة — بدل عرض قرارات محسوبة بقواعد قديمة.
@@ -14,11 +15,7 @@ import { countAdvisoryLanguageIssues, languageGateReason } from "@/lib/language-
 
 const RISK_ORDER: RiskLevel[] = ["منخفض", "متوسط", "مرتفع", "بالغ"];
 
-function partiesToRiskLevel(count: number): RiskLevel {
-  if (count >= 3) return "مرتفع";
-  if (count === 2) return "متوسط";
-  return "منخفض";
-}
+
 
 function riskLevelToScore(level: RiskLevel): number {
   if (level === "بالغ") return 100;
@@ -39,7 +36,7 @@ export function normalizeReviewResult(review: ReviewResult): ReviewResult {
     const parties = unresolved.length > 0
       ? ([...new Set([...storedParties, "المحامي", "المهنة"])] as RiskAffectedParty[])
       : storedParties;
-    const floor = partiesToRiskLevel(parties.length);
+    const floor = partiesToRiskLevel(parties);
     const useFloor =
       unresolved.length > 0 && RISK_ORDER.indexOf(floor) > RISK_ORDER.indexOf(review.riskLevel);
     const riskLevel = useFloor ? floor : review.riskLevel;

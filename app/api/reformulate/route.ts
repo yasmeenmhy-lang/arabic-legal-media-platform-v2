@@ -93,10 +93,10 @@ async function verifySuggestion(
   text: string,
   context: { contentType?: string; channel?: string; audience?: string; purpose?: string }
 ) {
-  const [semantic, evaluation] = await Promise.all([
-    runSemanticAnalysis(text, context),
-    evaluateContent(text, context)
-  ]);
+  // متتابعتان — نفس أساس المراجعة والحاكم: الامتثال عنصر في قياس المخاطر،
+  // فلا تُقاس مخاطر صياغة مقترحة بمعزل عن مخالفاتها المرصودة.
+  const semantic = await runSemanticAnalysis(text, context);
+  const evaluation = await evaluateContent(text, context, semantic.findings);
   // ★ بقرار مالكة المنصة: يحجب عرض الصياغة الخطأُ القطعي (إملاء/نحو/اتساق مصطلحات)
   // والمخالفة والمخاطر؛ أما الملاحظة الأسلوبية (أسلوب/وضوح) فإرشادية لا تحجب — فلا
   // تدخل الصياغة النظيفة حلقةً لا تنتهي بسبب تفضيل ذوقي متغيّر. الكشف كما هو.
