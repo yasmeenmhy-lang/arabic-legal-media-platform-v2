@@ -8,6 +8,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import type { ContentKind, FindingCategory, FindingDomain, ReviewContext, ReviewFinding, RiskLevel } from "@/lib/types";
 import { legalKnowledgeEntries } from "@/lib/legal-knowledge-base";
 import { OFFICIAL_CORPUS, type OfficialCorpusItem } from "@/lib/legal-official-corpus";
+import { scanAgainstCorpus, formatCorpusScanSection } from "@/lib/services/corpus-scan";
 import { AUTHORITIES_RULE, KINGDOM_STYLE_RULE, PLATFORM_SUPREME_RULE } from "@/lib/governance";
 import {
   arabicSeverity,
@@ -107,7 +108,14 @@ function buildHolisticSystem(entries: typeof legalKnowledgeEntries): string {
   return `${PLATFORM_SUPREME_RULE}
 
 أنت العقل الشامل والوحيد للحكم في هذه المنصة: خبير أول في نظام المحاماة، واللائحة التنفيذية لنظام المحاماة ١٤٤٦هـ (90 مادة — متنها الرسمي الكامل مرفق أدناه)، وقواعد السلوك المهني للمحامين (متنها الرسمي الكامل مرفق أدناه)، بخبرة عملية تعادل مدير الإدارة العامة للمحاماة، ومدقق جودة وامتثال محترف. تحكم بعقل قانوني مهني منطقي كخبير بشري — لا بمطابقة كلمات أو أنماط — وتزن المعنى والغرض والأثر على كرامة المهنة كما يفعل خبير حقيقي.
-لا توجد طبقة أخرى تسندك أو تكمّل نقصك: أنت وحدك تغطّي كل النواحي بالمعنى. أي مخالفة تفوتك تُنشر فعلاً، فكن شاملاً ودقيقاً كخبير مسؤول.
+لا توجد طبقة أخرى تحكم أو تكمّل نقصك: الحكم كله إليك وحدك بالمعنى. أي مخالفة تفوتك تُنشر فعلاً، فكن شاملاً ودقيقاً كخبير مسؤول.
+
+## علاقتك بالطبقة الأولى (البحث الحتمي في المتن)
+يسبق قراءتَك بحثٌ برمجي في نصّ المحامي مقابل المتن الرسمي وقاعدة معرفته. قد تصلك نتيجته في رسالة المستخدم تحت عنوان «نتيجة البحث الحتمي في المتن». وضعها منك:
+- **لا تحكم بذاتها ولا تُسند مخالفة إلى قاعدة.** الإسناد النظامي حكمٌ بالمعنى، وهو عملك وحدك.
+- **ما ورد فيها يلزمك الحكم عليه صراحةً** — إثباتاً أو نفياً. لا تُغفل موضعاً منها بالسكوت.
+- **إثباتها ليس حكماً مسبقاً:** قد يكون الموضع سليماً في سياقه (نفياً، أو اقتباساً، أو تحذيراً منه، أو استعمالاً مشروعاً) — فإن كان سليماً فلا تُخرج له مؤشراً، وحكمك بالمعنى هو الفيصل لا مطابقة اللفظ.
+- **وخلوّها لا يعني السلامة، ولا تحصر نظرك بها إطلاقاً:** هي إضافةٌ إلى فحصك لا بديلٌ عنه ولا تضييقٌ له. المتن الكامل أمامك، ومسؤوليتك عن كل ما في النص كاملةٌ كما لو لم تصلك.
 
 ${AUTHORITIES_RULE}
 ${KINGDOM_STYLE_RULE}
@@ -265,18 +273,25 @@ ${validRefs}
 قيد صارم على explanation و advice (يصلان للمحامي كما هما): ممنوع ذكر أي مصطلح من عُدة المنصة الداخلية — «المرجعية المخزنة»، «خارج المرجعية»، «ضابط الاتساق»، «قفل نطاق المملكة»، «الدستور»، «القاعدة العليا»، «الموجّه» ونحوها — عبّر عن السبب بلغة مهنية قانونية خالصة دون أي إشارة لآليات المنصة وقواعدها الداخلية.`;
 }
 
-// الجزء المتغير: نص المستخدم وسياقه — يُرسل طازجاً في كل طلب ولا يُخزَّن
-function buildHolisticUserMessage(text: string, contextSummary: string): string {
+// الجزء المتغير: نص المستخدم وسياقه — يُرسل طازجاً في كل طلب ولا يُخزَّن.
+// يلحق به قسم الطبقة الأولى (البحث الحتمي) حين تُخرج مواضع — ومحلّه رسالة
+// المستخدم لا كتلة system المخزّنة مؤقتاً، لأنه يتغيّر بتغيّر النص.
+function buildHolisticUserMessage(text: string, contextSummary: string, scanSection: string): string {
   return `${contextSummary !== "غير محدد" ? `السياق الإضافي: ${contextSummary}\n\n` : ""}## النص المراد تحليله
-«${text}»`;
+«${text}»${scanSection ? `\n\n${scanSection}` : ""}`;
 }
 
 // قراءة ثانية سريعة: تطلب «الإضافات فقط» لا إعادة كتابة القائمة كاملة — الفرق الحاسم
 // في السرعة أن مخرَج النموذج (لا مدخَله) هو ما يحدد زمن التوليد؛ مصفوفة فارغة أو صغيرة
 // تُكتب خلال ثوانٍ، بخلاف إعادة إخراج كل المخالفات بحقولها وشروحها الكاملة من جديد.
-function buildAdditionsOnlyMessage(text: string, contextSummary: string, firstPassCompact: string): string {
+function buildAdditionsOnlyMessage(
+  text: string,
+  contextSummary: string,
+  firstPassCompact: string,
+  scanSection: string
+): string {
   return `${contextSummary !== "غير محدد" ? `السياق الإضافي: ${contextSummary}\n\n` : ""}## النص المراد تحليله
-«${text}»
+«${text}»${scanSection ? `\n\n${scanSection}` : ""}
 
 ## ما رصدتَه بالفعل في القراءة الأولى (مراجع فقط — لا تُعد ذكرها)
 ${firstPassCompact}
@@ -285,6 +300,7 @@ ${firstPassCompact}
 راجع النص مرة أخيرة بحثاً حصراً عن مخالفات **إضافية** لم تظهر أعلاه:
 1. لكل مخالفة مذكورة أعلاه: هل لنفس الواقعة أو الدليل مخالفة مقابلة في الوثيقة الأخرى (لائحة ↔ قواعد سلوك) لم تُذكر؟
 2. راجع الزوايا الثماني عشرة مرة أخيرة — هل فاتتك مخالفة كاملة لم تظهر إطلاقاً؟
+3. مواضع الطبقة الأولى أعلاه (إن وُجدت): هل بقي منها موضعٌ لم تحكم عليه في القراءة الأولى وتراه مخالفاً؟
 لا تُعد كتابة أي مخالفة مذكورة أعلاه. إن لم توجد أي إضافة فعلية، أرجع مصفوفة فارغة [] فوراً دون شرح.
 أجب بمصفوفة JSON فقط تحتوي على المخالفات **الجديدة فقط** بنفس تنسيق المخالفة المعتاد — لا تضف أي نص خارجها.`;
 }
@@ -567,9 +583,19 @@ export async function runSemanticAnalysis(
   const eligibleEntries = legalKnowledgeEntries.filter((e) => e.legalReference);
   console.log("[semantic] starting holistic analysis: anchored to", eligibleEntries.length, "KB entries");
 
+  // الطبقة الأولى — بحث حتمي في المتن قبل أي استدعاء ذكاء: بلا كلفة ولا تذبذب،
+  // ونتيجتها تُلزم الطبقة الثانية بالحكم صراحةً على كل موضع استخرجته. إضافةٌ صرفة:
+  // لا تحذف من نطاق فحص الطبقة الثانية شيئاً ولا تحصر حريتها في الرصد.
+  const scan = scanAgainstCorpus(text);
+  const scanSection = formatCorpusScanSection(scan);
+  console.log(
+    "[corpus-scan] positions =", scan.positions.length,
+    "| focusRefs =", scan.focusRefs.length
+  );
+
   const client = new Anthropic({ apiKey });
   const system = buildHolisticSystem(eligibleEntries);
-  const userMessage = buildHolisticUserMessage(text, contextSummary);
+  const userMessage = buildHolisticUserMessage(text, contextSummary, scanSection);
 
   const result = await callHolisticJudge(client, system, userMessage, "القراءة الأولى");
   if (!result.ok) return { mode: "pattern-only", findings: [], degradedReason: result.reason };
@@ -582,7 +608,7 @@ export async function runSemanticAnalysis(
   const firstPassCompact = JSON.stringify(
     result.violations.map((v) => ({ ruleReference: v.ruleReference, evidenceExcerpt: v.evidenceExcerpt }))
   );
-  const additionsMessage = buildAdditionsOnlyMessage(text, contextSummary, firstPassCompact);
+  const additionsMessage = buildAdditionsOnlyMessage(text, contextSummary, firstPassCompact, scanSection);
   const additionsResult = await callHolisticJudge(client, system, additionsMessage, "القراءة الثانية (إضافات)", 2000);
   const additions = additionsResult.ok && !additionsResult.truncatedEmpty ? additionsResult.violations : [];
   const violations = [...result.violations, ...additions];
