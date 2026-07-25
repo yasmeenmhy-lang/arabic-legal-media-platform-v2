@@ -557,20 +557,12 @@ function hitToViolation(hit: CorpusHit): HolisticViolation | null {
   };
 }
 
-// إزالة التكرار بعد اتحاد الطبقتين: قد تلتقط الثانية ما حكمت به الأولى رغم
-// إعلامها به، فيظهر للمحامي مؤشران لنفس القاعدة على نفس الدليل. المعرّف
-// التتبّعي مبنيّ على (المدخلة + الدليل) فهو الفيصل الصحيح للتطابق.
-// الأسبقية للأول في الترتيب — وأحكام الطبقة الأولى تُقدَّم، فهي الأساس.
-function dedupeFindings(findings: ReviewFinding[]): ReviewFinding[] {
-  const seen = new Set<string>();
-  const out: ReviewFinding[] = [];
-  for (const finding of findings) {
-    if (seen.has(finding.traceabilityId)) continue;
-    seen.add(finding.traceabilityId);
-    out.push(finding);
-  }
-  return out;
-}
+// ★ بقرار مالكة المنصة: «لا يُجرَّد — سردهم بتكرارهم أفضل».
+// لا يُطوى شيء بعد اتحاد الطبقتين: كل مؤشر يُسرد كما صدر، ولو تكرّرت القاعدة.
+// وللقرار وجهٌ فنيّ سليم: المؤشران المتشابهان مرجعاً ليسا نسخةً واحدة — لكلٍّ
+// شرحه ودليله وزاويته، وشرح الطبقة الثانية أوفى من قالب الأولى الثابت. فطيّ
+// أحدهما إخفاءُ تحليلٍ قائم على المحامي، لا تنظيفُ عرض.
+// الترتيب: أحكام الطبقة الأولى أولاً فهي الأساس، ثم ما أكملته الثانية.
 
 // تغطية الموضع: هل صدر في النتيجة حكمٌ يخص هذا الموضع؟ المعيار تداخل الدليل
 // المنقول في المخالفة مع مقطع الموضع — بأي اتجاه، لأن الطبقة الثانية قد تقتبس
@@ -700,7 +692,7 @@ export async function runSemanticAnalysis(
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
     console.warn("[semantic] ANTHROPIC_API_KEY missing — الطبقة الأولى وحدها");
-    return { mode: "pattern-only", findings: dedupeFindings(baseFindings), degradedReason: "missing-key" };
+    return { mode: "pattern-only", findings: baseFindings, degradedReason: "missing-key" };
   }
 
   const eligibleEntries = legalKnowledgeEntries.filter((e) => e.legalReference);
@@ -715,11 +707,11 @@ export async function runSemanticAnalysis(
   // فلا يُدّعى اكتمال الفحص، ولا تضيع مخالفة قاطعة رُصدت فعلاً.
   const result = await callHolisticJudge(client, system, userMessage, "القراءة الأولى");
   if (!result.ok) {
-    return { mode: "pattern-only", findings: dedupeFindings(baseFindings), degradedReason: result.reason };
+    return { mode: "pattern-only", findings: baseFindings, degradedReason: result.reason };
   }
   // انقطع الجواب بلا أي مخالفة مكتملة: لا يُدّعى الامتثال — فشل مغلق
   if (result.truncatedEmpty) {
-    return { mode: "pattern-only", findings: dedupeFindings(baseFindings), degradedReason: "api-error" };
+    return { mode: "pattern-only", findings: baseFindings, degradedReason: "api-error" };
   }
 
   // قراءة ثانية سريعة (إضافات فقط): تسد فجوة التذكّر التي قد تفوت القراءة الواحدة —
@@ -766,9 +758,9 @@ export async function runSemanticAnalysis(
     })
     .filter((f): f is ReviewFinding => f !== null);
 
-  // اتحاد الطبقتين: أحكام الأساس أولاً ثم ما أكملته الثانية بالمعنى. اتحادٌ لا
-  // تقاطع — لا تُسقط طبقةٌ حكم الأخرى، وإنما يُزال التكرار المحض فقط.
-  const findings = dedupeFindings([...baseFindings, ...semanticFindings]);
+  // اتحاد الطبقتين: أحكام الأساس أولاً ثم ما أكملته الثانية بالمعنى. اتحادٌ
+  // كامل لا طيّ فيه — لا تُسقط طبقةٌ حكم الأخرى، وكل مؤشر يُسرد كما صدر.
+  const findings = [...baseFindings, ...semanticFindings];
 
   console.log(
     "[semantic] done: findings =", findings.length,
