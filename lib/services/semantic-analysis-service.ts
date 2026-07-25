@@ -264,6 +264,7 @@ ${validRefs}
 [
   {
     "ruleReference": "القاعدة الثانية",
+    "cleared": false — لا تضعها true إلا لإسقاط حكم من أحكام الطبقة الأولى الواردة في رسالة المستخدم
     "confidenceLevel": "مرتفع" أو "متوسط",
     "evidenceExcerpt": "العبارة الحرفية من النص التي تُثبت المخالفة",
     "violationType": "صريح" أو "ضمني" أو "سياقي",
@@ -312,6 +313,8 @@ ${firstPassCompact}
 
 interface HolisticViolation {
   ruleReference: string;
+  // إسقاط حكمٍ أصدرته الطبقة الأولى بسوء فهم — لا مخالفة جديدة
+  cleared: boolean;
   confidenceLevel: "مرتفع" | "متوسط" | "منخفض";
   evidenceExcerpt: string;
   violationType: "صريح" | "ضمني" | "سياقي";
@@ -404,6 +407,7 @@ function parseHolisticResponse(raw: string): HolisticViolation[] | null {
       .filter((v) => typeof v.ruleReference === "string" && v.ruleReference && typeof v.evidenceExcerpt === "string" && v.evidenceExcerpt)
       .map((v) => ({
         ruleReference: v.ruleReference!,
+        cleared: v.cleared === true,
         confidenceLevel: v.confidenceLevel ?? "متوسط",
         evidenceExcerpt: v.evidenceExcerpt!.trim(), // منقول حرفياً من نص المستخدم — لا يُمس
         violationType: v.violationType ?? "سياقي",
@@ -505,12 +509,21 @@ function buildSemanticFinding(
 // نفس بناء المؤشر، ونفس التصنيف والأوزان والتصعيد، ونفس بوابة التثبّت من
 // الدليل. فلا يكون للمحامي مؤشران بمظهرين مختلفين حسب من التقطه.
 // الإسناد النظامي كلّه من مدخلة قاعدة المعرفة المخزّنة — لا اجتهاد فيه.
+// المرجع في صورته الجامعة — «القاعدة الثامنة والثلاثون، الفقرة (1)» و«القاعدة
+// الثامنة والثلاثون» قاعدة واحدة. تُستعمل للمطابقة وحدها؛ المعروض للمحامي يبقى
+// كما ورد.
+function canonicalRuleRef(reference: string): string {
+  return normalizeForMatch(reference.split(/[،\-–—]|الفقرة/)[0].trim());
+}
+
 function hitToViolation(hit: CorpusHit): HolisticViolation | null {
   const entry = legalKnowledgeEntries.find((e) => e.id === hit.entryId);
   if (!entry || !entry.legalReference) return null;
   return {
     ruleReference: entry.legalReference,
-    // مطابقة قاطعة على نمط محظور صريح في سياق خالٍ من الصوارف
+    // حكم الطبقة الأولى نفسه — لا إسقاط
+    cleared: false,
+    // مطابقة نمط محظور صريح من المتن المخزّن
     confidenceLevel: "مرتفع",
     evidenceExcerpt: hit.excerpt,
     violationType: "صريح",
@@ -618,7 +631,7 @@ export async function runSemanticAnalysis(
     "| focusRefs =", scan.focusRefs.length
   );
 
-  const baseFindings = scan.hits
+  const rawBaseFindings = scan.hits
     .map((hit) => hitToViolation(hit))
     .filter((v): v is HolisticViolation => v !== null)
     .filter((v) => evidenceAppearsInText(v.evidenceExcerpt, text))
@@ -628,7 +641,7 @@ export async function runSemanticAnalysis(
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
     console.warn("[semantic] ANTHROPIC_API_KEY missing — الطبقة الأولى وحدها");
-    return { mode: "pattern-only", findings: baseFindings, degradedReason: "missing-key" };
+    return { mode: "pattern-only", findings: rawBaseFindings, degradedReason: "missing-key" };
   }
 
   const eligibleEntries = legalKnowledgeEntries.filter((e) => e.legalReference);
@@ -643,11 +656,11 @@ export async function runSemanticAnalysis(
   // فلا يُدّعى اكتمال الفحص، ولا تضيع مخالفة قاطعة رُصدت فعلاً.
   const result = await callHolisticJudge(client, system, userMessage, "القراءة الأولى");
   if (!result.ok) {
-    return { mode: "pattern-only", findings: baseFindings, degradedReason: result.reason };
+    return { mode: "pattern-only", findings: rawBaseFindings, degradedReason: result.reason };
   }
   // انقطع الجواب بلا أي مخالفة مكتملة: لا يُدّعى الامتثال — فشل مغلق
   if (result.truncatedEmpty) {
-    return { mode: "pattern-only", findings: baseFindings, degradedReason: "api-error" };
+    return { mode: "pattern-only", findings: rawBaseFindings, degradedReason: "api-error" };
   }
 
   // قراءة ثانية سريعة (إضافات فقط): تسد فجوة التذكّر التي قد تفوت القراءة الواحدة —
@@ -659,7 +672,32 @@ export async function runSemanticAnalysis(
   const additionsMessage = buildAdditionsOnlyMessage(text, contextSummary, firstPassCompact, scanSection);
   const additionsResult = await callHolisticJudge(client, system, additionsMessage, "القراءة الثانية (إضافات)", 2000);
   const additions = additionsResult.ok && !additionsResult.truncatedEmpty ? additionsResult.violations : [];
-  const violations = [...result.violations, ...additions];
+  const allViolations = [...result.violations, ...additions];
+
+  // ═══ تحقّق الطبقة الثانية من أحكام الأولى ═══
+  // بقرار مالكة المنصة: الأولى تحكم بمطابقة الألفاظ ولا تفهم المعنى، والثانية
+  // تقرأ المعنى فتُثبت الحكم الصحيح وتُسقط ما بُني على سوء فهم (كأن يكون النص
+  // ناهياً عن المخالفة أو محذّراً منها لا مرتكباً لها).
+  // ما وسمته الثانية بـ cleared ليس مخالفة جديدة — هو إسقاط لحكم من الأولى،
+  // فيُستبعد من النتيجة ولا يُبنى منه مؤشر.
+  const cleared = allViolations.filter((v) => v.cleared);
+  const violations = allViolations.filter((v) => !v.cleared);
+
+  const baseFindings = cleared.length === 0
+    ? rawBaseFindings
+    : rawBaseFindings.filter((finding) => {
+        const findingEvidence = normalizeForMatch(finding.evidence);
+        const dropped = cleared.some((c) => {
+          if (canonicalRuleRef(c.ruleReference) !== canonicalRuleRef(finding.legalReference)) return false;
+          const clearedEvidence = normalizeForMatch(c.evidenceExcerpt);
+          if (!clearedEvidence || !findingEvidence) return false;
+          return clearedEvidence.includes(findingEvidence) || findingEvidence.includes(clearedEvidence);
+        });
+        if (dropped) {
+          console.log("[semantic] أسقطت الطبقة الثانية حكم الأولى بالمعنى:", finding.legalReference);
+        }
+        return !dropped;
+      });
 
   const semanticFindings = violations
     .filter((violation) => {
