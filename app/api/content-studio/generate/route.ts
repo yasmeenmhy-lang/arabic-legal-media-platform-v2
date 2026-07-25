@@ -426,7 +426,15 @@ ${briefType
     // كل المؤشرات كاملةً. فشلها لا يُسقط التوليد — يكمل الكاتب بضوابطه الحالية.
     const sourceSpec = { wantSource, sourceKind, sourceEntity, sourceDesc };
     if (needsResearch(source, topic, contentType, sourceSpec)) {
-      const research = await researchTrustedSources({ specialty, source, topic, contentType, spec: sourceSpec });
+      // ★ مهلة البحث في مسار الإنشاء ١٢٠ ثانية (بقرار مالكة المنصة على رقم مقيس):
+      // البحث لا يجلب رابطاً — يفتح النظام على بوابته الرسمية ويقرؤه ليقتبس منه،
+      // وصفحة النظام تحمل مواده كلها. قياسان فعليان: ٤١ ثانية لنظام مكافحة جرائم
+      // المعلوماتية، و٤٥ لنظام العقار. والمهلة كانت ٦٠ — هامش عشر ثوانٍ فقط، فأي
+      // بطء شبكة أو صفحة أثقل يتجاوزه فيُقطع البحث ويعود فارغاً، فتقول المنصة
+      // «لم يُعثر على مصدر» والمصدر موجود. ونفس الموضوع قُطع مرة ونجح في ٤٥ أخرى.
+      // ولا يُبطئ هذا شيئاً في الغالب: ينتهي في ٤٥ ويمضي — السقف حماية لا انتظار،
+      // والحدّ الزمني الكلي يحتسب زمنه فتُقلَّص الجولات تلقائياً إن طال.
+      const research = await researchTrustedSources({ specialty, source, topic, contentType, spec: sourceSpec, timeoutMs: 120_000 });
       if (research) {
         console.log("[generate:research]", research.sources.length, "مصدر موثوق");
         researchSources = research.sources; // للعرض كأدلة مرئية للمستخدم
