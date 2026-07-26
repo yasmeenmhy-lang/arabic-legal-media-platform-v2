@@ -462,8 +462,6 @@ ${briefType
     // مقاطع الادعاءات المثبتة — مدخل منفّذ المادة (١٠) بالخريطة (مبدأ الإثبات:
     // التفصيلة لا تُقبل لوجود مصادر، بل لورودها في مقطع داعم لادعاء مثبت)
     let proofList: string[] = [];
-    // إيقاف من بوابة المستجدات (حجب لا تسليم عام) — بمرحلته وسببه، والتقني مميز
-    const understandStopRef: { current: { failedStage: string; technical: boolean; technicalReason?: string } | null } = { current: null };
 
     // ★ محرك الفهم والإثبات (المرجع المعماري المعتمد): فكرة ← فهم ← ادعاءات ←
     // إثبات ← محتوى. البحث مرحلة تفكير في المنتصف، لا نقطة بداية — ومحرك الفهم
@@ -495,33 +493,11 @@ ${briefType
       dossier = await openAndExtract(dossier, intent);
       proofList = provenExcerpts(dossier);
 
-      // ★ بوابة المستجدات (بقرار المالكة): موضوع حديث لا يُكتب قبل الوصول لمصدره
-      // الرسمي وفتحه والتحقق من تاريخ النشر أو النفاذ — ولا محتوى عام يوحي
-      // بتغطية مستجد لم يُقرأ مصدره. والتعذر التقني يُبين بصفته لا كغياب مصدر.
-      if (intent.recency === "حديث" && needsAnyProof) {
-        const provenNow = dossier.claims.filter((c) => c.status === "مثبت");
-        const datedEvidence = (dossier.evidence ?? []).some(
-          (e) => e.publishedAt && e.linkedClaimIds.some((id) => provenNow.some((c) => c.id === id))
-        );
-        if (provenNow.length === 0 || !datedEvidence) {
-          const technicalFailure = dossier.claims.find((c) => c.failure?.technical);
-          const failedStage = provenNow.length === 0
-            ? (nameFailedStage(dossier.researchTrace) ?? `${PIPELINE_STAGES[5]} — لم يُوصل إلى المصدر الرسمي للمستجد`)
-            : `${PIPELINE_STAGES[7]} — فُتح المصدر ولم يُتحقق من تاريخ النشر أو النفاذ للمستجد`;
-          enforcement.article10Applied = true;
-          enforcement.stopped = true;
-          enforcement.generalAllowed = false;
-          enforcement.outcome = `بوابة المستجدات: أُوقف الإنشاء — ${failedStage}`;
-          console.log("[generate:recency-gate]", enforcement.outcome);
-          dossier = { ...dossier, article10: { applied: true, stopped: true, notice: pickNoSourceDeclaration(source), failedStage } };
-          understandStopRef.current = {
-            failedStage,
-            technical: Boolean(technicalFailure),
-            technicalReason: technicalFailure?.failure?.reason,
-          };
-          return;
-        }
-      }
+      // بقرار المالكة الأخير قبل الجولة: المستجد الذي لم يُفتح مصدره لا يُحجب —
+      // يُكتب الموضوع عاماً مع منع الجزم بالمستجد ومضمونه (التوجيه أدناه)،
+      // والتصريح/الملاحظة التقنية توضح الحال، والجاهزية تُمنع حتى الإثبات.
+      const recencyUnproven = intent.recency === "حديث" && needsAnyProof &&
+        !dossier.claims.some((c) => c.status === "مثبت" && (dossier!.evidence ?? []).some((e) => e.publishedAt && e.linkedClaimIds.includes(c.id)));
       const proven = dossier.claims.filter((c) => c.status === "مثبت");
       const unproven = dossier.claims.filter((c) => c.status === "غير قابل للجزم" || c.status === "محكوم بالمادة ١٠");
       const generalClaims = dossier.claims.filter((c) => c.status === "عام مشروع");
@@ -533,29 +509,6 @@ ${briefType
       enforcement.sourceFound = proven.length > 0;
       enforcement.sources = researchSources;
       console.log("[generate:proof-map]", proven.length, "مثبت /", unproven.length, "بلا إثبات /", generalClaims.length, "عام");
-
-      // ★ سلوك التسليم عند عدم اكتمال الإثبات (قرار المالكة الملزم):
-      // ادعاء جوهري بلا إثبات ⇒ حجب — لا يخرج النص مسودةً صالحة ولا محتوى عاماً،
-      // ويظهر سبب الإيقاف ومرحلة الإخفاق بدقة (والتقني مميز عن الغياب).
-      const essentialUnproven = unproven.filter((c) => c.essential !== false);
-      if (essentialUnproven.length > 0) {
-        const first = essentialUnproven[0];
-        const failedStage = first.failure
-          ? `${first.failure.stage} — ${first.failure.reason}`
-          : (nameFailedStage(dossier.researchTrace) ?? "تعذر إثبات الادعاء الجوهري");
-        enforcement.article10Applied = true;
-        enforcement.stopped = true;
-        enforcement.generalAllowed = false;
-        enforcement.outcome = `حجب قبل الكتابة: ادعاء جوهري بلا إثبات — ${failedStage}`;
-        console.log("[generate:essential-block]", enforcement.outcome);
-        dossier = { ...dossier, article10: { applied: true, stopped: true, notice: pickNoSourceDeclaration(source), failedStage } };
-        understandStopRef.current = {
-          failedStage,
-          technical: Boolean(first.failure?.technical),
-          technicalReason: first.failure?.reason,
-        };
-        return;
-      }
 
       // [٤] خريطة الإثبات تُسلَّم للكاتب — الأدلة المستخرجة من الصفحات المفتوحة
       // أولاً (بمحدداتها وطبيعتها)، والعزو في الموضع بصيغة مهنية لا روابط في المتن
@@ -569,36 +522,33 @@ ${briefType
         }
         return `- [${c.id}] ${c.text}\n  المقطع الداعم: «${c.supportingExcerpt ?? ""}»\n  الجهة: ${src?.issuer ?? src?.title ?? ""}`;
       }).join("\n");
-      const supportingUnproven = unproven; // كلها مساندة هنا (الجوهرية حُجبت أعلاه)
-      const unprovenLines = supportingUnproven.map((c) => `- [${c.id}] ${c.text}`).join("\n");
+      const unprovenLines = unproven.map((c) => `- [${c.id}] ${c.text}`).join("\n");
       const generalLines = generalClaims.map((c) => `- [${c.id}] ${c.text}`).join("\n");
 
-      if (supportingUnproven.length > 0) {
-        // ادعاءات مساندة بلا إثبات ⇒ تُحذف من النص كلياً ويُسلَّم بشفافية مع
-        // منع الجاهزية (قرار المالكة ٢-ب) — «الإفصاح لا يصحح المعلومة غير المثبتة»
+      if (unproven.length > 0) {
+        // ★ سلوك التسليم المعتمد (بقرار المالكة الأخير قبل الجولة): تعذر الإثبات
+        // لا يحجب المقال — يُكتب عاماً صادقاً بلا أي تفصيلة نظامية (المنفّذ الحتمي
+        // يضمنها) وتُوضَّح الحال للمستخدم ملاحظةً مرافقة أعلى المحتوى، مع منع
+        // الجاهزية حتى المعالجة. والتعذر التقني يُبين بصفته لا كغياب مصدر (قاعدة ٨).
         enforcement.article10Applied = true;
         enforcement.generalAllowed = true;
         enforcement.violations = [];
-        sourceNote = pickNoSourceDeclaration(source);
-        const failedStage = nameFailedStage(dossier.researchTrace);
+        const technicalFailure = unproven.find((c) => c.failure?.technical);
+        sourceNote = technicalFailure
+          ? "ملاحظة: تعذر تقنياً الوصول إلى المصدر الرسمي أثناء إعداد هذا المحتوى، فلم تُدرج أي تفاصيل نظامية — المصدر قد يكون موجوداً ولم يُتحقق منه في هذه اللحظة. يمكنك إعادة المحاولة الآن أو طلب تحديث المصادر لاحقاً."
+          : pickNoSourceDeclaration(source);
+        const failedStage = unproven[0].failure
+          ? `${unproven[0].failure.stage} — ${unproven[0].failure.reason}`
+          : nameFailedStage(dossier.researchTrace);
         if (failedStage) console.log("[generate:failed-stage]", failedStage);
         dossier = { ...dossier, article10: { applied: true, stopped: false, notice: sourceNote, failedStage } };
       }
 
-      promptText = `${user}\n\n★ خريطة الإثبات (المرجع الوحيد للحقيقة — اكتب على أساسها حصراً، ولا تنشئ حقيقة خارجها):\n${proven.length > 0 ? `\nالادعاءات المثبتة بأدلتها المستخرجة من المصادر المفتوحة — اكتب الحقائق منها حصراً:\n${provenLines}\n\nقواعد الكتابة من الأدلة (ملزمة):\n- كل دليل صلته «جوهري» يجب أن يدخل النص بمضمونه مع عزوه في موضعه بصيغة مهنية طبيعية: «وفق المادة (…) من النظام…» أو «بحسب اللائحة التنفيذية…» أو «وفق ما أعلنته (الجهة) بتاريخ…» — بحسب نوع الدليل، ولا تختلق رقم مادة لدليل ليس نصاً نظامياً.\n- لا تضع روابط داخل متن النص إطلاقاً — الروابط في ملف المصادر لا في المقال. وفي ختام النص قائمة «المصادر» بأسماء الجهات والوثائق فقط (مصدران أو ثلاثة كحد أقصى).\n- ميّز بوضوح بين خمس فئات في صياغتك: (١) الحقيقة الرسمية — من الدليل بعزوه فقط؛ (٢) التلخيص — ينقل المعنى دون توسيع؛ (٣) الشرح — يبسط الأثر دون إنشاء حكم جديد؛ (٤) التحليل المهني — مبني على المثبت فقط ويُعرض بصيغة التحليل («ومن الناحية العملية…») لا بصيغة الحقيقة؛ (٥) الرأي — بصفته رأياً مهنياً غير ملزم لا يُنسب للنظام أو الجهة.\n- ممنوع استنتاج آثار غير واردة في الأدلة (بطلان، أهلية، اختصاص جهة، أثر على خدمة، التزام إضافي، نتيجة قضائية): كل أثر كهذا ادعاء مستقل — إن لم يكن له دليل فلا يُذكر إلا تحليلاً احتمالياً صريح الصيغة، أو يُترك.\n- ممنوع أي تفصيلة نظامية من ذاكرتك خارج الأدلة.` : ""}${supportingUnproven.length > 0 ? `\n\nادعاءات مساندة تعذر إثباتها — احذفها من المحتوى كلياً: لا تذكرها ولا تلمح إليها ولا تبقها مع تنبيه (الإفصاح لا يصحح معلومة غير مثبتة). أعد بناء الفكرة بدونها متماسكة غير ناقصة:\n${unprovenLines}\nوإن تعذر بناء محتوى صادق بدونها فأخرج سطر الإيقاف وحده: ${ARTICLE10_STOP_MARKER}` : ""}${generalLines ? `\n\nأفكار عامة مشروعة (لا تحتاج مصدراً):\n${generalLines}` : ""}`;
+      promptText = `${user}\n\n★ خريطة الإثبات (المرجع الوحيد للحقيقة — اكتب على أساسها حصراً، ولا تنشئ حقيقة خارجها):\n${proven.length > 0 ? `\nالادعاءات المثبتة بأدلتها المستخرجة من المصادر المفتوحة — اكتب الحقائق منها حصراً:\n${provenLines}\n\nقواعد الكتابة من الأدلة (ملزمة):\n- كل دليل صلته «جوهري» يجب أن يدخل النص بمضمونه مع عزوه في موضعه بصيغة مهنية طبيعية: «وفق المادة (…) من النظام…» أو «بحسب اللائحة التنفيذية…» أو «وفق ما أعلنته (الجهة) بتاريخ…» — بحسب نوع الدليل، ولا تختلق رقم مادة لدليل ليس نصاً نظامياً.\n- لا تضع روابط داخل متن النص إطلاقاً — الروابط في ملف المصادر لا في المقال. وفي ختام النص قائمة «المصادر» بأسماء الجهات والوثائق فقط (مصدران أو ثلاثة كحد أقصى).\n- ميّز بوضوح بين خمس فئات في صياغتك: (١) الحقيقة الرسمية — من الدليل بعزوه فقط؛ (٢) التلخيص — ينقل المعنى دون توسيع؛ (٣) الشرح — يبسط الأثر دون إنشاء حكم جديد؛ (٤) التحليل المهني — مبني على المثبت فقط ويُعرض بصيغة التحليل («ومن الناحية العملية…») لا بصيغة الحقيقة؛ (٥) الرأي — بصفته رأياً مهنياً غير ملزم لا يُنسب للنظام أو الجهة.\n- ممنوع استنتاج آثار غير واردة في الأدلة (بطلان، أهلية، اختصاص جهة، أثر على خدمة، التزام إضافي، نتيجة قضائية): كل أثر كهذا ادعاء مستقل — إن لم يكن له دليل فلا يُذكر إلا تحليلاً احتمالياً صريح الصيغة، أو يُترك.\n- ممنوع أي تفصيلة نظامية من ذاكرتك خارج الأدلة.` : ""}${unproven.length > 0 ? `\n\nادعاءات تعذر إثباتها — اكتب المقال في موضوعه عاماً صادقاً بدونها كلياً: لا تذكرها ولا تلمح إليها ولا تبقها مع تنبيه (الإفصاح لا يصحح معلومة غير مثبتة)، وممنوع أي حكم أو رقم أو مدة أو عقوبة أو تفصيلة نظامية بلا دليل. أعد بناء الفكرة بدونها متماسكة مفيدة:\n${unprovenLines}${recencyUnproven ? `\nوالموضوع مستجدٌّ لم يُفتح مصدره الرسمي: ممنوع الجزم بوجود «تحديث/تعديل جديد» أو وصف مضمونه — اكتب في الموضوع العام دون الإيحاء بتغطية المستجد.` : ""}\nوفقط إن كان الطلب كله لا يُجاب إلا بالمعلومة الرسمية نفسها فأخرج سطر الإيقاف وحده: ${ARTICLE10_STOP_MARKER}` : ""}${generalLines ? `\n\nأفكار عامة مشروعة (لا تحتاج مصدراً):\n${generalLines}` : ""}`;
     };
 
     if (needsResearch(contentType, sourceSpec)) {
       await runUnderstandingAndResearch();
-      // بوابة المستجدات أوقفت قبل الكتابة: يظهر للمستخدم سبب الإيقاف ومرحلة
-      // الإخفاق بدقة — والتعذر التقني يُبين بصفته ولا يوصف غياباً للمصدر
-      const stop = understandStopRef.current;
-      if (stop) {
-        const message = stop.technical
-          ? `توقف الإنشاء قبل الكتابة: ${stop.technicalReason ?? "تعذر تقني في فتح صفحة المصدر الرسمي"}.\n\nموضع التوقف: ${stop.failedStage}`
-          : `${pickNoSourceDeclaration(source)}\n\nموضع التوقف: ${stop.failedStage}`;
-        return { kind: "err", error: message, enforcement, dossier: dossier ?? undefined };
-      }
     }
 
     // أربع جولات كحد أقصى (كتابة + ثلاثة تصحيحات) — بوابة «كل المؤشرات بلا استثناء»
@@ -722,13 +672,6 @@ ${briefType
         researchDone = true;
         console.log("[generate:research] طلب مكتوب فُهم بالمعنى — تشغيل محرك الفهم والإثبات");
         await runUnderstandingAndResearch();
-        const stop = understandStopRef.current;
-        if (stop) {
-          const message = stop.technical
-            ? `توقف الإنشاء قبل الكتابة: ${stop.technicalReason ?? "تعذر تقني في فتح صفحة المصدر الرسمي"}.\n\nموضع التوقف: ${stop.failedStage}`
-            : `${pickNoSourceDeclaration(source)}\n\nموضع التوقف: ${stop.failedStage}`;
-          return { kind: "err", error: message, enforcement, dossier: dossier ?? undefined };
-        }
         attempt--; // جولة البحث لا تُحسب من جولات التصحيح
         continue;
       }

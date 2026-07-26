@@ -225,19 +225,19 @@ async function runReformulation(data: z.infer<typeof schema>, apiKey: string): P
       .filter((s) => s.linkedClaimIds.some((id) => proven.some((c) => c.id === id)))
       .map((s) => ({ title: s.title, url: s.url }));
 
-    // ★ سلوك التسليم (قرار المالكة الملزم): ادعاء جوهري بلا إثبات ⇒ حجب —
-    // لا صياغة تُسلَّم، ويظهر سبب الإيقاف ومرحلته بدقة (التقني مميز عن الغياب)
-    const essentialUnproven = unproven.filter((c) => c.essential !== false);
-    if (essentialUnproven.length > 0) {
-      const first = essentialUnproven[0];
-      const failedStage = first.failure
-        ? `${first.failure.stage} — ${first.failure.reason}`
-        : (nameFailedStage(activeDossier.researchTrace) ?? "تعذر إثبات الادعاء الجوهري");
-      console.log("[reformulate:essential-block]", failedStage);
-      const message = first.failure?.technical
-        ? `توقفت الصياغة: ${first.failure.reason}.\n\nموضع التوقف: ${failedStage}`
-        : `${ARTICLE_10_DECLARATION}\n\nموضع التوقف: ${failedStage}`;
-      return { ok: false, status: 422, error: message };
+    // ★ سلوك التسليم المعتمد (بقرار المالكة الأخير قبل الجولة): تعذر الإثبات لا
+    // يحجب الصياغة — تُكتب بلا الادعاءات غير المثبتة كلياً، والملاحظة المرافقة
+    // توضح الحال (والتقني مبين بصفته لا كغياب مصدر)، والجاهزية تُمنع حتى المعالجة.
+    if (unproven.length > 0) {
+      const technicalFailure = unproven.find((c) => c.failure?.technical);
+      sourceNote = technicalFailure
+        ? "ملاحظة: تعذر تقنياً الوصول إلى المصدر الرسمي أثناء إعداد هذه الصياغة، فلم تُدرج أي تفاصيل نظامية — المصدر قد يكون موجوداً ولم يُتحقق منه في هذه اللحظة. يمكنك إعادة المحاولة أو طلب تحديث المصادر."
+        : ARTICLE_10_DECLARATION;
+      const failedStage = unproven[0].failure
+        ? `${unproven[0].failure.stage} — ${unproven[0].failure.reason}`
+        : nameFailedStage(activeDossier.researchTrace);
+      if (failedStage) console.log("[reformulate:failed-stage]", failedStage);
+      activeDossier = { ...activeDossier, article10: { applied: true, stopped: false, notice: sourceNote, failedStage } };
     }
 
     if (proven.length > 0) {
@@ -253,7 +253,7 @@ async function runReformulation(data: z.infer<typeof schema>, apiKey: string): P
         return `- ${c.text}\n  المقطع الداعم: «${c.supportingExcerpt ?? ""}»\n  الجهة: ${src?.issuer ?? src?.title ?? ""}`;
       }).join("\n");
       const dropLines = unproven.length
-        ? `\nوادعاءات مساندة بلا إثبات — احذفها من الصياغة كلياً ولا تبقها مع تنبيه (الإفصاح لا يصحح معلومة غير مثبتة):\n${unproven.map((c) => `- ${c.text}`).join("\n")}`
+        ? `\nوادعاءات بلا إثبات — احذفها من الصياغة كلياً ولا تبقها مع تنبيه (الإفصاح لا يصحح معلومة غير مثبتة)، وأعد بناء الفكرة بدونها متماسكة:\n${unproven.map((c) => `- ${c.text}`).join("\n")}`
         : "";
       researchBlock = [
         "",
@@ -261,13 +261,10 @@ async function runReformulation(data: z.infer<typeof schema>, apiKey: string): P
         provenLines,
         dropLines,
       ].join("\n");
-    } else if (hasSource || refreshSources) {
-      // ملف بلا ادعاء مثبت (كله مساند متعذر) — المادة (١٠): التصريح ملاحظةً
-      // مستقلة، ومرحلة الإخفاق تُسمى من الأثر وتُحفظ في الملف مع النسخة
+    } else if ((hasSource || refreshSources) && !sourceNote) {
+      // ملف بلا ادعاءات إثبات أصلاً (كلها عامة) مع إقرار مرجع — التصريح ملاحظةً مستقلة
       sourceNote = ARTICLE_10_DECLARATION;
-      const failedStage = nameFailedStage(activeDossier.researchTrace);
-      if (failedStage) console.log("[reformulate:failed-stage]", failedStage);
-      activeDossier = { ...activeDossier, article10: { applied: true, stopped: false, notice: sourceNote, failedStage } };
+      activeDossier = { ...activeDossier, article10: { applied: true, stopped: false, notice: sourceNote } };
     }
   }
 

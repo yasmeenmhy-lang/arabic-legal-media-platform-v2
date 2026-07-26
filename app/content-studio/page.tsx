@@ -833,14 +833,11 @@ export default function ContentStudioPage() {
   // Action feedback
   const [actionMsg, setActionMsg] = useState("");
 
-  // الوضع الافتراضي لمفتاح «تعزيز بمصدر» بحسب النوع (بقرارات الاعتماد النهائية):
-  // مشغّل في التحليلية والمعرفية (مقال، منشور، نص فيديو، رسم توضيحي، حملة، محتوى
-  // بصري)، مطفأ في الموجزة (إعلان، تعليق، تصريح، يوميات...) — وللمستخدم قلبه،
-  // وقلبه يُحترم في الاتجاهين.
+  // مفتاح «تعزيز بمصدر» مطفأ افتراضياً لكل الأنواع — بقرار المالكة قبل جولة
+  // التحقق: «يفتحه المستخدم نفسه». تغيير النوع يعيده مطفأً، وقلب المستخدم يُحترم.
   useEffect(() => {
     if (!kind) return;
-    const onByDefault = new Set<ContentKind>(["article", "post", "script", "infographic", "campaign", "visual_content"]);
-    setWantSource(onByDefault.has(kind));
+    setWantSource(false);
   }, [kind]);
 
   // بقرارها: المصادر تتبع التخصص ونوع المحتوى — مصدر لم يعد متاحاً يُلغى اختياره تلقائياً
@@ -1177,29 +1174,17 @@ function toStoredGovernance(gov: ServerGovernance | undefined, notice: string | 
       inputs = parsed.inputs;
     } catch { /* قيمة تالفة */ }
     if (!jobId) {
-      // سجل مُسبق بلا رقم مهمة: خرجت المستخدمة قبل وصول الرد — تُستعاد المدخلات بدل
-      // أن تُرمى (نفس معالجة مسار التحليل)، بحدّ يوم كامل حفاظاً على النموذج النظيف.
-      const fresh = startedAt > 0 && Date.now() - startedAt < 24 * 60 * 60 * 1000;
-      if (inputs && fresh) {
-        setPath("create");
-        restoreGenerationInputs(inputs);
-        setGenerateError("استُعيدت مدخلاتك — انقطع بدء الإنشاء عند مغادرة الصفحة. اضغط «أنشئ المحتوى» للاستئناف.");
-      } else {
-        try { window.localStorage.removeItem(scopedKey(PENDING_GENERATION_KEY)); } catch { /* تجاهل */ }
-      }
+      // بقرار المالكة قبل جولة التحقق: فتح الصفحة من جديد = نموذج نظيف دائماً —
+      // لا استعادة لمدخلات قديمة. يُستثنى فقط استئناف مهمة ما زالت تعمل فعلاً
+      // (أدناه) كي لا تضيع نتيجة إنشاء اكتمل في الخادم.
+      try { window.localStorage.removeItem(scopedKey(PENDING_GENERATION_KEY)); } catch { /* تجاهل */ }
       return;
     }
-    // مهمة قديمة تجاوزت حدّ الخادم (نحو ٦ دقائق) ميتة قطعاً — لا تُستأنف، لكن مدخلاتها
-    // تُستعاد إن كانت حديثة (بحدّ يوم) كي لا يضيع عمل المستخدمة مع موت المهمة.
+    // مهمة قديمة تجاوزت حدّ الخادم (نحو ٦ دقائق) ميتة قطعاً — لا تُستأنف ولا
+    // تُستعاد مدخلاتها (النموذج النظيف بقرار المالكة).
     const stale = startedAt > 0 && Date.now() - startedAt > 6 * 60 * 1000;
     if (stale) {
-      const fresh = startedAt > 0 && Date.now() - startedAt < 24 * 60 * 60 * 1000;
       try { window.localStorage.removeItem(scopedKey(PENDING_GENERATION_KEY)); } catch { /* تجاهل */ }
-      if (inputs && fresh) {
-        setPath("create");
-        restoreGenerationInputs(inputs);
-        setGenerateError("تعذّر إكمال الإنشاء السابق في وقته، واستُعيدت مدخلاتك — اضغط «أنشئ المحتوى» لإعادة المحاولة.");
-      }
       return;
     }
     setPath("create");
@@ -3669,10 +3654,10 @@ function toStoredGovernance(gov: ServerGovernance | undefined, notice: string | 
             />
           </div>
 
-          {/* تعزيز بمصدر (بقرارات الاعتماد النهائية الملزمة) — مفتاح واحد ظاهر في كل
-              الأنواع المؤهلة، وقرار المستخدم فيه هو المرجع الوحيد ويُحترم في
-              الاتجاهين. وضعه الافتراضي يتبع النوع (مشغّل في التحليلية، مطفأ في
-              الموجزة)، والبحث محكوم بوثيقة حوكمة المصادر في الخادم. */}
+          {/* تعزيز بمصدر — مفتاح واحد ظاهر في كل الأنواع المؤهلة، وقرار المستخدم
+              فيه هو المرجع الوحيد ويُحترم في الاتجاهين. مطفأ افتراضياً لكل الأنواع
+              (بقرار المالكة: يفتحه المستخدم نفسه)، والبحث محكوم بوثيقة حوكمة
+              المصادر في الخادم. */}
           {canSupportSource && source && (
             <div className="mb-4 rounded-lg border border-line bg-paper/40 p-4">
               <label className="flex cursor-pointer items-start justify-between gap-3">

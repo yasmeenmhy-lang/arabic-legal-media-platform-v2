@@ -616,7 +616,9 @@ export function containsNormalizedWindow(pageText: string, extracted: string, wi
 export async function openAndExtract(
   dossier: SourceDossier,
   intent: IntentRepresentation,
-  timeoutMs = 90_000
+  // صفحات الأنظمة واللوائح الحكومية ضخمة — مهلة موسعة بقرار المالكة بعد أن
+  // أسقطت مهلة أقصر فتح لائحة رسمية مرتين متتاليتين
+  timeoutMs = 150_000
 ): Promise<SourceDossier> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   // المرشح للفتح: مصادر الادعاءات المثبتة من البحث — بسقف ٣ صفحات (الكلفة)
@@ -680,7 +682,7 @@ ${sourceLines}
     const pages = extractFetchedTexts(content);
     return applyOpenExtract(dossier, report, pages, targetSources.map((s) => s.id), Date.now() - startedAt);
   } catch (error) {
-    const reason = error instanceof Error && error.name === "AbortError" ? "انقضت مهلة نداء الفتح" : "انقطاع اتصال أثناء نداء الفتح";
+    const reason = error instanceof Error && error.name === "AbortError" ? "انقضت مهلة فتح صفحة المصدر" : "انقطع الاتصال أثناء فتح صفحة المصدر";
     return failAllOpen(dossier, provenClaims, reason, startedAt);
   } finally {
     clearTimeout(abortTimer);
