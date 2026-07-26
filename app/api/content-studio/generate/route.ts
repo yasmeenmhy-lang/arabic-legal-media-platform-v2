@@ -5,7 +5,7 @@ import { AI_CONSTITUTION } from "@/lib/governance";
 import { buildOfficialRuleCorpusText } from "@/lib/rule-corpus-text";
 import { governTextFull, type GovernTextFullResult } from "@/lib/services/governor-gate";
 import { verifyCorpusCitations } from "@/lib/services/citation-verifier";
-import { needsResearch, researchClaims } from "@/lib/services/web-research-service";
+import { needsResearch, researchClaimsWithExpansion, fetchVerifyDossier } from "@/lib/services/web-research-service";
 import { isSaudiOfficialUrl } from "@/lib/services/web-research-service";
 import { analyzeIntent } from "@/lib/services/intent-analysis-service";
 import { buildDossier, markUsedSources, provenExcerpts, type SourceDossier } from "@/lib/source-dossier";
@@ -480,10 +480,14 @@ ${briefType
         promptText = `${user}\n\n★ تعذر بناء خريطة إثبات لهذا الطلب — تسري المادة (١٠): اكتب محتوى عاماً مشروعاً خالياً من الفئات الثلاث عشرة، أو أخرج سطر الإيقاف وحده إن كان الطلب لا يُجاب إلا بمعلومة رسمية: ${ARTICLE10_STOP_MARKER}`;
         return;
       }
-      // [٢-٣] الإثبات — البحث لكل ادعاء ثم بوابة السيادة داخل بناء الملف
+      // [٢-٣] الإثبات — حلقة البحث المحكومة (توقف فور الإثبات، توسيع مبرر واحد
+      // عند الحاجة فقط، كل انتقال مسجل في أثر البحث) ثم بوابة السيادة في البناء،
+      // ثم التثبيت بالفتح الفعلي للصفحات («gov.sa لازم لا كافٍ»)
       const needsAnyProof = intent.claims.some((c) => c.needsProof);
-      const research = needsAnyProof ? await researchClaims(intent) : null;
+      const research = needsAnyProof ? await researchClaimsWithExpansion(intent) : null;
       dossier = buildDossier(intent, research?.findings ?? [], isSaudiOfficialUrl);
+      if (research?.trace?.length) dossier = { ...dossier, researchTrace: research.trace };
+      dossier = await fetchVerifyDossier(dossier);
       proofList = provenExcerpts(dossier);
       const proven = dossier.claims.filter((c) => c.status === "مثبت");
       const unproven = dossier.claims.filter((c) => c.status === "غير قابل للجزم" || c.status === "محكوم بالمادة ١٠");

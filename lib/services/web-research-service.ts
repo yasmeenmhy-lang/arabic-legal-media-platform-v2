@@ -16,7 +16,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 import { SOURCE_GOVERNANCE } from "@/lib/source-governance";
 import { recordUsage } from "@/lib/cost-meter";
-import type { IntentRepresentation, ClaimFinding, SourceDossier } from "@/lib/source-dossier";
+import type { IntentRepresentation, ClaimFinding, SourceDossier, ResearchTraceEntry } from "@/lib/source-dossier";
 
 export type ResearchResult = {
   // ملخص عربي للوقائع المتحقق منها، كل واقعة منسوبة لجهتها ورابطها — يُحقن في مطالبة الكاتب
@@ -236,11 +236,23 @@ export async function researchTrustedSources(context: {
 // (يختبرها لا يفترض صحتها)، ويعيد تقريره منسوباً بمعرفات الادعاءات — فيُبنى
 // منه Claim–Source Mapping بالكود. البحث مرحلة تفكير، لا نقطة بداية.
 
-function buildClaimResearchInstruction(intent: IntentRepresentation): string {
-  const proofClaims = intent.claims.filter((c) => c.needsProof);
+function buildClaimResearchInstruction(
+  intent: IntentRepresentation,
+  // جولة التوسيع (اختيارية): تستهدف الادعاءات غير المثبتة وحدها، وتحمل مبررها —
+  // ما فشل في الجولة السابقة ولماذا، فيغير الباحث زاويته لا أن يكرر نفسه
+  expansion?: { targetIds: string[]; failureNotes: string[] }
+): string {
+  const proofClaims = intent.claims.filter((c) =>
+    c.needsProof && (!expansion || expansion.targetIds.includes(c.id))
+  );
   const claimLines = proofClaims
     .map((c) => `- [${c.id}] ${c.text} (النطاق: ${c.scope}${c.whyNeedsProof ? ` — الفئة: ${c.whyNeedsProof}` : ""})`)
     .join("\n");
+  const expansionBlock = expansion
+    ? `\n★ هذه جولة توسيع مبررة — الجولة السابقة لم تثبت هذه الادعاءات للأسباب التالية:
+${expansion.failureNotes.map((n) => `- ${n}`).join("\n")}
+غيّر زاوية البحث جذرياً: جرّب مصطلحاً رسمياً آخر من الفرضيات، أو جهة مختصة أخرى، أو صيغة مختلفة للمسألة — ولا تكرر استعلامات الجولة السابقة نفسها.\n`
+    : "";
   return `أنت باحث قانوني موثوق يعمل لمنصة محتوى قانوني لمحامٍ مرخَّص في المملكة العربية السعودية. تحكمك وثيقة حوكمة المصادر التالية حرفياً:
 
 ${SOURCE_GOVERNANCE}
@@ -253,8 +265,8 @@ ${SOURCE_GOVERNANCE}
 - النطاق: ${intent.jurisdiction} | نوع المعلومة: ${intent.infoType} | الحداثة: ${intent.recency}
 - فرضيات الجهات المختصة (اختبرها بالبحث، لا تفترض صحتها): ${intent.candidateAuthorities.join("، ") || "—"}
 - فرضيات المصطلح الرسمي (اختبرها بالبحث): ${intent.candidateOfficialTerms.join("، ") || "—"}
-
-الادعاءات المطلوب إثباتها — ابحث عن كل واحد على حدة (بحدود ثلاث عمليات بحث إجمالاً، فوزّعها على الأهم):
+${expansionBlock}
+الادعاءات المطلوب إثباتها — ابحث عن كل واحد على حدة (بحدود ثلاث عمليات بحث إجمالاً، فوزّعها على الأهم — وتوقف فوراً متى أثبتَّها كلها ولا تستكمل عمليات لا حاجة لها):
 ${claimLines}
 
 لكل ادعاء نوّع استراتيجيتك من المعنى: بصياغة المستخدم، وبالمصطلح الرسمي المفترض، وبالجهة المرشحة، وبنوع الوثيقة — ولا تعتمد مطابقة كلمات.
@@ -279,7 +291,9 @@ export function parseClaimFindings(briefing: string, urls: Set<string>): ClaimFi
     if (!idMatch) continue;
     const claimId = idMatch[1];
     if (/لم يُعثر|لم يعثر/.test(line)) {
-      findings.push({ claimId, status: "لم يُعثر" });
+      // سبب عدم العثور بلفظ الباحث (ما بعد الشرطة) — يُبنى منه مبرر التوسيع والأثر
+      const reason = line.split("—").slice(1).join("—").trim() || undefined;
+      findings.push({ claimId, status: "لم يُعثر", reason });
       continue;
     }
     if (!/مثبت/.test(line)) continue;
@@ -288,7 +302,7 @@ export function parseClaimFindings(briefing: string, urls: Set<string>): ClaimFi
     const url = urlMatch?.[0]?.replace(/[).،]+$/, "");
     if (!url || !urls.has(url)) {
       // «مثبت» بلا رابط حقيقي من نتائج البحث = غير مقبول — يُعامل كغير معثور
-      findings.push({ claimId, status: "لم يُعثر" });
+      findings.push({ claimId, status: "لم يُعثر", reason: "الرابط المذكور لم يرد في نتائج البحث الفعلية" });
       continue;
     }
     const excerpt = line.match(/«(.+?)»/)?.[1];
@@ -313,7 +327,11 @@ export type ClaimResearchResult = {
 
 // نداء البحث بالادعاءات — نفس نواة callWebSearch (نفس الأداة والقيود) مع
 // موجه الادعاءات وتحليل مخرجه. فشله لا يُسقط التوليد — تسري المادة (١٠).
-export async function researchClaims(intent: IntentRepresentation, timeoutMs?: number): Promise<ClaimResearchResult | null> {
+async function researchClaimsRound(
+  instruction: string,
+  stage: string,
+  timeoutMs?: number
+): Promise<ClaimResearchResult | null> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) return null;
   const calledAt = Date.now();
@@ -331,13 +349,13 @@ export async function researchClaims(intent: IntentRepresentation, timeoutMs?: n
           max_tokens: 2048,
           thinking: { type: "disabled" },
           tools: [{ type: "web_search_20260209", name: "web_search", max_uses: 3 }],
-          messages: [{ role: "user", content: buildClaimResearchInstruction(intent) }],
+          messages: [{ role: "user", content: instruction }],
         }),
       }
     );
     if (!response.ok) return null;
     const payload = (await response.json()) as { content?: unknown[]; usage?: unknown };
-    recordUsage(payload.usage, { stage: "باحث الادعاءات", model: "claude-sonnet-5", durationMs: Date.now() - calledAt });
+    recordUsage(payload.usage, { stage, model: "claude-sonnet-5", durationMs: Date.now() - calledAt });
     const content = payload.content ?? [];
     const raw = extractSources(content);
     const briefing = extractText(content);
@@ -349,6 +367,252 @@ export async function researchClaims(intent: IntentRepresentation, timeoutMs?: n
   } finally {
     clearTimeout(abortTimer);
   }
+}
+
+export async function researchClaims(intent: IntentRepresentation, timeoutMs?: number): Promise<ClaimResearchResult | null> {
+  return researchClaimsRound(buildClaimResearchInstruction(intent), "باحث الادعاءات", timeoutMs);
+}
+
+// ─── حلقة التوسع المحكومة (الدفعة ب — بمبادئ مالكة المنصة الستة) ─────────────
+// الهدف تحسين الوصول إلى المصدر الرسمي لا زيادة عدد العمليات:
+// ١) التوسع تدريجي ومبرر — جولة توسيع واحدة فقط، ولا تُنفذ إلا لادعاءات بقيت
+//    بلا إثبات، بمبرر مبني من أسباب فشل الجولة الأولى.
+// ٢) التوقف فور الإثبات — إن أثبتت الجولة الأولى كل الادعاءات بمصادر مقبولة
+//    سيادياً فلا توسع إطلاقاً.
+// ٣) العدد وسيلة لا هدف — لا «استكمال محاولات»؛ الجولة الثانية مشروطة بالحاجة.
+// ٤) كل انتقال مسجل بسببه في أثر البحث (يسافر داخل الملف مع النسخة).
+// ٥) استنفاد المحاولات يُسجل سبب إخفاق كل ادعاء بوضوح ثم تسري المادة (١٠)
+//    عبر بناء الملف نفسه — لا ادعاء غير مثبت يُقدَّم حقيقةً.
+// ٦) الأداء والكلفة: جولتان كحد أقصى (٦ عمليات بحث سقفاً مطلقاً)، والتوسيع
+//    يُتخطى إن لم يبقَ من الميزانية الزمنية ما يكفيه.
+
+// هل هذا الادعاء مثبت بنتيجة مقبولة سيادياً؟ (ادعاء المملكة ⇒ رابط حكومي رسمي)
+function claimProven(claim: { id: string; scope: string }, findings: ClaimFinding[]): boolean {
+  const f = findings.find((x) => x.claimId === claim.id && x.status === "مثبت" && x.url);
+  if (!f?.url) return false;
+  return claim.scope !== "المملكة" || isSaudiOfficialUrl(f.url);
+}
+
+export type ExpandedResearchResult = {
+  findings: ClaimFinding[];
+  trace: ResearchTraceEntry[];
+};
+
+export async function researchClaimsWithExpansion(
+  intent: IntentRepresentation,
+  opts?: { totalBudgetMs?: number }
+): Promise<ExpandedResearchResult> {
+  const budget = opts?.totalBudgetMs ?? 150_000;
+  const startedAt = Date.now();
+  const trace: ResearchTraceEntry[] = [];
+  const proofClaims = intent.claims.filter((c) => c.needsProof);
+  // لا ادعاء يحتاج إثباتاً ⇒ لا عملية بحث واحدة (العدد وسيلة لا هدف)
+  if (proofClaims.length === 0) return { findings: [], trace };
+  const note = (stage: string, reason: string, claimIds: string[], outcome: string, durationMs?: number) =>
+    trace.push({ stage, reason, claimIds, outcome, at: new Date().toISOString(), durationMs });
+
+  // الجولة الأولى — كل الادعاءات المحتاجة إثباتاً
+  const r1Start = Date.now();
+  const round1 = await researchClaimsRound(
+    buildClaimResearchInstruction(intent),
+    "باحث الادعاءات",
+    Math.min(90_000, budget)
+  );
+  let findings: ClaimFinding[] = round1?.findings ?? [];
+  const proven1 = proofClaims.filter((c) => claimProven(c, findings));
+  const unproven1 = proofClaims.filter((c) => !claimProven(c, findings));
+  note(
+    "البحث الأول",
+    "الجولة الأولى بادعاءات محرك الفهم كاملة",
+    proofClaims.map((c) => c.id),
+    round1
+      ? `أُثبت ${proven1.length} من ${proofClaims.length}${unproven1.length ? ` — بقي بلا إثبات: ${unproven1.map((c) => c.id).join("، ")}` : ""}`
+      : "تعذر تنفيذ البحث (لا نتيجة من الأداة)",
+    Date.now() - r1Start
+  );
+
+  // التوقف فور الإثبات — لا استكمال عمليات لمجرد العدد
+  if (unproven1.length === 0) {
+    if (proofClaims.length > 0) {
+      note("التوقف", "كل الادعاءات أُثبتت بمصادر مقبولة سيادياً — لا حاجة لأي توسع", proofClaims.map((c) => c.id), "اكتفاء بالجولة الأولى");
+    }
+    return { findings, trace };
+  }
+
+  // جولة توسيع واحدة مشروطة بالحاجة وبالميزانية الزمنية المتبقية
+  const remaining = budget - (Date.now() - startedAt);
+  if (!round1 || remaining < 25_000) {
+    note(
+      "استنفاد المحاولات",
+      !round1 ? "الجولة الأولى نفسها تعذرت — لا جدوى من توسيع فوق أداة متعطلة" : "الميزانية الزمنية لا تكفي جولة توسيع — حفاظاً على زمن الاستجابة",
+      unproven1.map((c) => c.id),
+      "تسري المادة (١٠) على ما لم يثبت — لا ادعاء غير مثبت يُقدَّم حقيقةً"
+    );
+    return { findings, trace };
+  }
+
+  // مبرر التوسيع: أسباب فشل كل ادعاء في الجولة الأولى (بلفظ الباحث أو الخفض الحتمي)
+  const failureNotes = unproven1.map((c) => {
+    const f = findings.find((x) => x.claimId === c.id);
+    const nonOfficial = f?.status === "مثبت" && f.url && c.scope === "المملكة" && !isSaudiOfficialUrl(f.url);
+    return `[${c.id}] ${nonOfficial ? "عُثر على مصدر غير حكومي فقط — والادعاء يخص المملكة فلا يثبته إلا مصدر حكومي رسمي" : f?.reason ?? "لم يُعثر على نتيجة"}`;
+  });
+  const r2Start = Date.now();
+  note(
+    "توسيع البحث",
+    `انتقال مبرر: ${failureNotes.join(" | ")}`,
+    unproven1.map((c) => c.id),
+    "جولة توسيع مستهدفة للادعاءات غير المثبتة وحدها بزاوية مختلفة"
+  );
+  const round2 = await researchClaimsRound(
+    buildClaimResearchInstruction(intent, { targetIds: unproven1.map((c) => c.id), failureNotes }),
+    "باحث الادعاءات — توسيع",
+    Math.min(75_000, remaining)
+  );
+  if (round2) {
+    // نتائج التوسيع تسد ما بقي فقط — المثبت من الجولة الأولى لا يُمس، ولا يتكرر
+    // ادعاء بنتيجتين: نتيجة التوسيع تحل محل السابقة فقط إن أثبتت الادعاء فعلاً
+    // (بمصدر مقبول سيادياً)، وإلا بقيت نتيجة الجولة الأولى بسببها الموثق.
+    const unprovenIds = new Set(unproven1.map((c) => c.id));
+    for (const f2 of round2.findings) {
+      if (!unprovenIds.has(f2.claimId)) continue;
+      const claim = proofClaims.find((c) => c.id === f2.claimId);
+      if (!claim) continue;
+      const f2Proves = f2.status === "مثبت" && f2.url && (claim.scope !== "المملكة" || isSaudiOfficialUrl(f2.url));
+      if (f2Proves) {
+        findings = [...findings.filter((f) => f.claimId !== f2.claimId), f2];
+      } else if (!findings.some((f) => f.claimId === f2.claimId)) {
+        findings = [...findings, f2];
+      }
+    }
+  }
+  const unproven2 = proofClaims.filter((c) => !claimProven(c, findings));
+  note(
+    "توسيع البحث — النتيجة",
+    "خلاصة جولة التوسيع",
+    unproven1.map((c) => c.id),
+    round2
+      ? `أُثبت بعد التوسيع ${unproven1.length - unproven2.length} من ${unproven1.length}${unproven2.length ? ` — بقي: ${unproven2.map((c) => c.id).join("، ")}` : ""}`
+      : "تعذر تنفيذ جولة التوسيع",
+    Date.now() - r2Start
+  );
+  if (unproven2.length > 0) {
+    note(
+      "استنفاد المحاولات",
+      "اكتمل سقف الجولتين (٦ عمليات بحث) دون إثبات هذه الادعاءات",
+      unproven2.map((c) => c.id),
+      unproven2
+        .map((c) => {
+          const f = findings.find((x) => x.claimId === c.id);
+          return `[${c.id}] ${f?.reason ?? (f?.status === "مثبت" ? "المصدر المتاح غير حكومي والادعاء يخص المملكة" : "لم يُعثر على مصدر")}`;
+        })
+        .join(" | ") + " — تسري المادة (١٠) ولا يُقدَّم غير المثبت حقيقةً"
+    );
+  }
+  return { findings, trace };
+}
+
+// ─── التثبيت بالفتح (الدفعة ب): «gov.sa لازم لا كافٍ» ───────────────────────
+// النطاق الحكومي شرط لازم حسمته بوابة السيادة في بناء الملف — وهذه المرحلة تحسم
+// الكفاية: تفتح صفحة المصدر فعلياً (web_fetch) وتتحقق أنها تدعم الادعاء ومقطعه.
+// «مطابق» يرفع حالة المصدر إلى «متحقق بالفتح»، و«غير مطابق» يُنزل الادعاء إلى
+// «غير قابل للجزم» فيخرج مقطعه من قائمة الإثبات (فلا يغطي تفصيلة في النص)،
+// و«تعذّر الفتح» يُبقي «مسند بالتقرير» بلا اختلاق رفضٍ ولا قبولٍ — وكل ذلك
+// يُدوَّن في أثر البحث. لا ادعاءات مثبتة ⇒ لا نداء إطلاقاً (الأداء والكلفة).
+export async function fetchVerifyDossier(dossier: SourceDossier, timeoutMs = 60_000): Promise<SourceDossier> {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  const proven = dossier.claims.filter((c) => c.status === "مثبت" && c.sourceId).slice(0, 3);
+  if (!apiKey || proven.length === 0) return dossier;
+  const startedAt = Date.now();
+  const trace = [...(dossier.researchTrace ?? [])];
+  const note = (reason: string, outcome: string) =>
+    trace.push({ stage: "التثبيت بالفتح", reason, claimIds: proven.map((c) => c.id), outcome, at: new Date().toISOString(), durationMs: Date.now() - startedAt });
+
+  const lines = proven
+    .map((c) => {
+      const src = dossier.sources.find((s) => s.id === c.sourceId);
+      return `- [${c.id}] الادعاء: ${c.text}\n  الرابط: ${src?.url ?? ""}\n  المقطع المسند إليه: «${c.supportingExcerpt ?? ""}»`;
+    })
+    .join("\n");
+  const instruction = `أنت مدقق تثبيت في منصة محتوى قانوني. أمامك ادعاءات أسندها باحث إلى صفحات بعينها. مهمتك الوحيدة: افتح كل رابط فعلياً بأداة web_fetch وتحقق أن الصفحة نفسها تدعم الادعاء والمقطع المسند إليه.
+
+${lines}
+
+أخرج لكل بند سطراً واحداً حصراً بهذه الصيغ الحرفية (تُقرأ آلياً):
+[c1] مطابق
+[c1] غير مطابق — سبب موجز (الصفحة لا تتضمن هذا الحكم / المقطع غير موجود / المضمون مختلف)
+[c1] تعذّر الفتح
+ممنوع الحكم من الذاكرة أو من عنوان الصفحة — الحكم مما فتحته فعلاً فقط. لا تكتب شيئاً غير هذه الأسطر.`;
+
+  const controller = new AbortController();
+  const abortTimer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const response = await fetch(
+      `${process.env.ANTHROPIC_BASE_URL ?? "https://api.anthropic.com"}/v1/messages`,
+      {
+        method: "POST",
+        signal: controller.signal,
+        headers: { "x-api-key": apiKey, "anthropic-version": "2023-06-01", "content-type": "application/json" },
+        body: JSON.stringify({
+          model: "claude-sonnet-5",
+          max_tokens: 1024,
+          thinking: { type: "disabled" },
+          tools: [{ type: "web_fetch_20260209", name: "web_fetch", max_uses: proven.length }],
+          messages: [{ role: "user", content: instruction }],
+        }),
+      }
+    );
+    if (!response.ok) {
+      note("فتح صفحات المصادر للتحقق الفعلي", "تعذر النداء — بقيت الحالة «مسند بالتقرير» بلا اختلاق رفض أو قبول");
+      return { ...dossier, researchTrace: trace };
+    }
+    const payload = (await response.json()) as { content?: unknown[]; usage?: unknown };
+    recordUsage(payload.usage, { stage: "مدقق التثبيت بالفتح", model: "claude-sonnet-5", durationMs: Date.now() - startedAt });
+    const report = extractText(payload.content ?? []);
+    return applyFetchVerification(dossier, report, proven.map((c) => c.id));
+  } catch {
+    note("فتح صفحات المصادر للتحقق الفعلي", "انقطاع أو مهلة — بقيت الحالة «مسند بالتقرير»");
+    return { ...dossier, researchTrace: trace };
+  } finally {
+    clearTimeout(abortTimer);
+  }
+}
+
+// تطبيق تقرير التثبيت على الملف — حتمي بالكود، ويدوّن الأثر
+export function applyFetchVerification(dossier: SourceDossier, report: string, targetIds: string[]): SourceDossier {
+  const verdicts = new Map<string, { verdict: "مطابق" | "غير مطابق" | "تعذّر الفتح"; reason?: string }>();
+  for (const raw of report.split("\n")) {
+    const line = raw.trim();
+    const m = line.match(/^\[?(c\d+)\]?\s*(مطابق|غير مطابق|تعذّر الفتح|تعذر الفتح)/);
+    if (!m) continue;
+    const verdict = m[2].startsWith("تعذ") ? "تعذّر الفتح" : (m[2] as "مطابق" | "غير مطابق");
+    verdicts.set(m[1], { verdict, reason: line.split("—").slice(1).join("—").trim() || undefined });
+  }
+  const claims = dossier.claims.map((c) => {
+    if (!targetIds.includes(c.id)) return c;
+    const v = verdicts.get(c.id);
+    if (v?.verdict === "غير مطابق") return { ...c, status: "غير قابل للجزم" as const };
+    return c;
+  });
+  const sources = dossier.sources.map((s) => {
+    const linked = s.linkedClaimIds.filter((id) => targetIds.includes(id));
+    if (!linked.length) return s;
+    const linkedVerdicts = linked.map((id) => verdicts.get(id)?.verdict);
+    if (linkedVerdicts.includes("غير مطابق")) return { ...s, verificationStatus: "غير مطابق" as const };
+    if (linkedVerdicts.includes("مطابق")) return { ...s, verificationStatus: "متحقق بالفتح" as const };
+    return s;
+  });
+  const summary = targetIds
+    .map((id) => {
+      const v = verdicts.get(id);
+      return `[${id}] ${v ? v.verdict + (v.reason ? ` — ${v.reason}` : "") : "لم يرد حكم — بقي مسنداً بالتقرير"}`;
+    })
+    .join(" | ");
+  const trace: ResearchTraceEntry[] = [
+    ...(dossier.researchTrace ?? []),
+    { stage: "التثبيت بالفتح", reason: "فتح صفحات المصادر للتحقق أن كلاً منها يدعم ادعاءه فعلاً (النطاق الحكومي لازم لا كافٍ)", claimIds: targetIds, outcome: summary, at: new Date().toISOString() },
+  ];
+  return { ...dossier, claims, sources, researchTrace: trace };
 }
 
 // موجّه تدقيق الإحالات لمسار المراجعة — تحقّق فعلي من صحة ما في النص القائم، لا كتابة.

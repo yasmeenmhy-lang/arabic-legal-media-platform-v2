@@ -5,7 +5,7 @@ import { AI_CONSTITUTION } from "@/lib/governance";
 import { runSemanticAnalysis } from "@/lib/services/semantic-analysis-service";
 import { evaluateContent } from "@/lib/services/content-evaluation-service";
 import { describeProviderError } from "@/lib/ai-provider-errors";
-import { researchClaims } from "@/lib/services/web-research-service";
+import { researchClaimsWithExpansion, fetchVerifyDossier } from "@/lib/services/web-research-service";
 import { isSaudiOfficialUrl } from "@/lib/services/web-research-service";
 import { analyzeIntent } from "@/lib/services/intent-analysis-service";
 import { buildDossier, provenExcerpts, markUsedSources, type SourceDossier } from "@/lib/source-dossier";
@@ -180,8 +180,12 @@ async function runReformulation(data: z.infer<typeof schema>, apiKey: string): P
       extraDirectives: hint ? `المرجع الذي وصفه المستخدم: ${hint}` : undefined,
     });
     if (intent) {
-      const research = intent.claims.some((c) => c.needsProof) ? await researchClaims(intent) : null;
+      // حلقة البحث المحكومة (الدفعة ب): توقف فور الإثبات، توسيع مبرر عند الحاجة
+      // فقط بأثر مسجل، ثم التثبيت بالفتح الفعلي — النطاق الحكومي لازم لا كافٍ
+      const research = intent.claims.some((c) => c.needsProof) ? await researchClaimsWithExpansion(intent) : null;
       activeDossier = buildDossier(intent, research?.findings ?? [], isSaudiOfficialUrl);
+      if (research?.trace?.length) activeDossier = { ...activeDossier, researchTrace: research.trace };
+      activeDossier = await fetchVerifyDossier(activeDossier);
       if (refreshSources) activeDossier = { ...activeDossier, refreshedAt: new Date().toISOString() };
     } else if (hasSource) {
       sourceNote = ARTICLE_10_DECLARATION;
