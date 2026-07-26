@@ -6,7 +6,7 @@ import { buildOfficialRuleCorpusText } from "@/lib/rule-corpus-text";
 import { governTextFull, type GovernTextFullResult } from "@/lib/services/governor-gate";
 import { verifyCorpusCitations } from "@/lib/services/citation-verifier";
 import { needsResearch, researchTrustedSources } from "@/lib/services/web-research-service";
-import { SOURCE_GOVERNANCE, ARTICLE_10_DECLARATION } from "@/lib/source-governance";
+import { SOURCE_GOVERNANCE, pickNoSourceDeclaration } from "@/lib/source-governance";
 import {
   article10Violations, detectWriterMarker, sanitizeEnforcementForStorage,
   ARTICLE10_STOP_MARKER, RESEARCH_NEEDED_MARKER,
@@ -481,7 +481,8 @@ ${briefType
         enforcement.sourceFound = false;
         enforcement.article10Applied = true;
         enforcement.generalAllowed = true;
-        sourceNote = ARTICLE_10_DECLARATION;
+        // قاعدة اختيار التصريح (البند ثالثاً): المملكة أصلاً، والعام للدولي المحض
+        sourceNote = pickNoSourceDeclaration(source);
         const comparativeLines = research.comparativeSources.slice(0, 3).map((s) => `- ${s.title}: ${s.url}`).join("\n");
         promptText = `${user}\n\n★ لم يُعثر على مصدر حكومي رسمي للمملكة العربية السعودية — تسري المادة (١٠): إن كان الطلب لا يُجاب إلا بحكم نظامي أو تفسير رسمي أو اختصاص جهة أو إجراء حكومي أو قرار أو سياسة رسمية فأخرج سطر الإيقاف حرفياً وحده: ${ARTICLE10_STOP_MARKER} — وإلا فاكتب محتوى عاماً مشروعاً خالياً من المحظورات الثلاثة عشر.\n\nمصادر دولية/مقارنة عُثر عليها — تخضع للباب الثاني، ويحظر قطعياً إثبات أو تفسير أي شأن يتعلق بالمملكة العربية السعودية بها؛ لا تُستخدم إلا إن كان طلب المستخدم مقارنة دولية صريحة، مع الفصل التام (المادة ١١):\n${comparativeLines}\n\nتقرير المصادر:\n${research.briefing}`;
       } else {
@@ -493,7 +494,8 @@ ${briefType
         saudiOfficialCount = 0;
         enforcement.article10Applied = true;
         enforcement.generalAllowed = true;
-        sourceNote = ARTICLE_10_DECLARATION;
+        // قاعدة اختيار التصريح (البند ثالثاً): المملكة أصلاً، والعام للدولي المحض
+        sourceNote = pickNoSourceDeclaration(source);
         promptText = `${user}\n\n★ لم يُعثر على مصدر رسمي معتمد لهذا الطلب — تسري المادة (١٠) من وثيقة حوكمة المصادر: إن كان الطلب لا يُجاب إلا بحكم نظامي أو تفسير رسمي أو اختصاص جهة أو إجراء حكومي أو قرار أو سياسة رسمية فأخرج سطر الإيقاف حرفياً وحده: ${ARTICLE10_STOP_MARKER} — وإلا فاكتب محتوى عاماً مشروعاً لا يتضمن أياً من المحظورات الثلاثة عشر في المادة (١٠)، وأحِل القارئ إلى المصادر الرسمية.`;
       }
     };
@@ -620,7 +622,7 @@ ${briefType
         enforcement.generalAllowed = false;
         enforcement.outcome = "أُوقف الإنشاء: الطلب يتطلب معلومة رسمية ولا مصدر حكومي مختص منشور";
         console.log("[generate:article10] إيقاف —", enforcement.outcome);
-        return { kind: "err", error: ARTICLE_10_DECLARATION, enforcement };
+        return { kind: "err", error: pickNoSourceDeclaration(source), enforcement };
       }
       const candidates = raw.filter((c): c is Candidate => c !== null && c !== "stop" && c !== "research");
       if (candidates.length === 0) return { kind: "err", error: "لم يُنشأ أي محتوى", enforcement };
@@ -674,7 +676,7 @@ ${briefType
       enforcement.stopped = true;
       enforcement.outcome = `أُوقف التسليم: بقيت تفاصيل نظامية بلا مصدر بعد ${enforcement.correctionRounds} جولة تصحيح`;
       console.log("[generate:article10] إيقاف بعد الجولات —", JSON.stringify(enforcement.violations).slice(0, 400));
-      return { kind: "err", error: ARTICLE_10_DECLARATION, enforcement };
+      return { kind: "err", error: pickNoSourceDeclaration(source), enforcement };
     }
     if (!compliant) {
       return { kind: "err", error: `تعذّر إنشاء نص ملتزم بقواعد السلوك المهني للمحامين واللائحة التنفيذية لنظام المحاماة من هذه المدخلات.${topReason ? ` أبرز سبب: ${topReason}` : ""} أعد المحاولة أو عدّل مدخلات السياق.`, enforcement };
@@ -710,10 +712,23 @@ ${briefType
   // يبني تقرير المراجعة الكامل من حكم الإنشاء نفسه (بلا ذكاء ثانٍ مستقل) — يُستدعى فقط
   // بعد نجاح التسليم. أي خطأ هنا لا يُسقط تسليم النص أبداً: يُسجَّل ويُتجاهل فقط
   // (المستخدمة تبقى قادرة على طلب تحليل عادي لاحقاً كالمعتاد).
-  async function buildUnifiedReview(text: string, gov: GovernTextFullResult): Promise<ReviewResult | null> {
+  async function buildUnifiedReview(text: string, gov: GovernTextFullResult, enforcement?: Article10Enforcement): Promise<ReviewResult | null> {
     if (!contentKind || !gov.semanticResult || !gov.contentEval) return null;
     try {
-      const context = { contentType, channel, audience, purpose, specialty, source, topic };
+      // نتيجة حوكمة المصادر الحتمية تُمرَّر لقرار النشر قيداً مستقلاً (البند ثانياً) —
+      // لا تدخل القاضي ولا المقيّم، والمخالفات المتبقية صفر هنا (النص سُلِّم)،
+      // فالسبب الوارد فعلياً: غياب المصدر الحكومي حين طُبقت المادة (١٠).
+      const context = {
+        contentType, channel, audience, purpose, specialty, source, topic,
+        sourceGovernance: enforcement
+          ? {
+              violations: enforcement.violations.map((v) => v.split(":")[0].trim()),
+              officialSourceFound: enforcement.sourceFound,
+              article10Applied: enforcement.article10Applied,
+              stopped: enforcement.stopped,
+            }
+          : undefined,
+      };
       const base = await buildReviewResult(text, contentKind, context, gov.semanticResult, gov.contentEval);
       // ★ سد جذر «الحكم الثاني»: هذا التقرير هو حكم التسليم نفسه — إسقاطه لأي علامة
       // جزئية كان يدفع الواجهة لطلب حكم ذكاء ثانٍ مستقل على نص لم يتغير، فتظهر
@@ -779,7 +794,7 @@ ${briefType
           void setJobPartial(sql, jobId, draft).catch(() => {});
         });
         if (result.kind === "ok") {
-          const review = await buildUnifiedReview(result.text, result.gov);
+          const review = await buildUnifiedReview(result.text, result.gov, result.enforcement);
           const costUsd = await settleCost();
           await completeJob(
             sql, jobId, result.text, result.truncated,
@@ -833,7 +848,7 @@ ${briefType
       try {
         const result = await runPipeline((draft) => send({ type: "partial", text: draft }));
         if (result.kind === "ok") {
-          const review = await buildUnifiedReview(result.text, result.gov);
+          const review = await buildUnifiedReview(result.text, result.gov, result.enforcement);
           send({ type: "result", text: result.text, truncated: result.truncated, review: review ?? undefined, sources: result.sources.length ? result.sources : undefined, sourceNote: result.sourceNote });
         } else {
           send({ type: "error", error: result.error });

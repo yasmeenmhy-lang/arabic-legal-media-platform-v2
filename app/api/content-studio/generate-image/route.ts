@@ -4,7 +4,7 @@ import { badRequest } from "@/lib/api";
 import { KINGDOM_STYLE_RULE } from "@/lib/governance";
 import { generatePremiumImage, generatePremiumVariants, providerStatus, verifyOpenAIKey } from "@/lib/image-providers";
 import { generateVisualPlan, planToEngineDescription, type VisualPlan } from "@/lib/visual-translator";
-import { scanAgainstCorpus } from "@/lib/services/corpus-scan";
+import { collectVisualPlanTexts, guardVisualTexts } from "@/lib/services/visual-guard";
 
 // توليد الصور عبر مزودين خارجيين قد يستغرق حتى دقيقة (ثلاث نسخ = أطول قليلاً)
 export const maxDuration = 120;
@@ -1413,33 +1413,49 @@ export async function POST(request: Request) {
       : null);
   // ★★ القاعدة المؤسسة (بأمر مالكة المنصة — ممنوع تجاوزها): لا يخرج من المنصة
   // نصٌ مخالف لقواعد السلوك المهني واللائحة التنفيذية — حتى داخل المرئيات.
-  // المترجم البصري يعيد صياغة النص نصوصاً قصيرة تُرسم، فتُفحص كلها هنا فحصاً
-  // حتمياً بالطبقة الأولى (متن القواعد المخزّن — كود صرف بلا تكلفة) قبل أي
-  // رسم أو إرجاع خطة. فشل مغلق: عبارة مخالفة ⇒ لا مرئي، برسالة تسمي العبارة
-  // ومرجعها ليُعدَّل النص.
-  const visualTexts: string[] = planForReturn
-    ? [
-        planForReturn.title, planForReturn.subtitle, planForReturn.shortVisualCopy,
-        planForReturn.centralMessage,
-        ...planForReturn.keySections.flatMap((s) => [s.heading, ...(s.bullets ?? []), s.stat ?? ""]),
-      ].filter((t): t is string => Boolean(t && t.trim()))
-    : [effectiveDescription];
-  const visualScan = scanAgainstCorpus(visualTexts.join(". "));
-  if (visualScan.hits.length > 0) {
-    const first = visualScan.hits[0];
-    console.log("[generate-image:founding-rule]", JSON.stringify(visualScan.hits.map((h) => h.trigger)).slice(0, 300));
-    return NextResponse.json(
-      { error: `تعذر إنتاج المرئي: نصه يتضمن عبارة مخالفة لقواعد السلوك المهني («${first.excerpt.slice(0, 60)}» — ${first.legalReference}). عدّل النص ثم أعد المحاولة.` },
-      { status: 422 }
+  // بأمر معالجة الفجوات (البند أولاً): كل نص سيُرسم يمر على الحارس المهني
+  // الكامل — الفحص الحرفي (الطبقة الأولى) + الفحص الدلالي (الحارس المعتمد
+  // نفسه governText، بلا منطق موازٍ) — قبل أي رسم وقبل إرجاع planOnly.
+  // المفحوص هو نصوص الخطة النهائية المعاد صياغتها، لا النص الأصلي.
+  // فشل مغلق: مخالفة باقية أو تعطل الحارس ⇒ لا مرئي ولا خطة.
+  let effectivePlan: VisualPlan | null = planForReturn;
+  {
+    const firstVerdict = await guardVisualTexts(
+      effectivePlan ? collectVisualPlanTexts(effectivePlan) : [effectiveDescription]
     );
+    let verdict = firstVerdict;
+    // جولة تصحيح واحدة موجهة بالمخالفات (بنص الأمر) — للخطط فقط: تُعاد الترجمة
+    // البصرية بتوجيه يسمي المخالفات، ثم يعاد الفحصان الحرفي والدلالي معاً.
+    if (!verdict.ok && effectivePlan && apiKey) {
+      console.log("[generate-image:guard] جولة تصحيح —", JSON.stringify(verdict.corrections).slice(0, 400));
+      const corrected = await generateVisualPlan(
+        apiKey,
+        `${description}\n\nتصحيح امتثال إلزامي (جولة واحدة): الخطة البصرية السابقة رُصدت عليها المخالفات المهنية التالية، أعد بناءها معالجاً كل واحدة بحذف العبارة أو إعادة صياغتها ملتزمة بقواعد السلوك المهني واللائحة التنفيذية:\n${verdict.corrections.join("\n")}`,
+        { channel, audience, purpose, contentType, specialty, source }
+      );
+      if (corrected) {
+        const recheck = await guardVisualTexts(collectVisualPlanTexts(corrected));
+        if (recheck.ok) {
+          effectivePlan = corrected;
+          verdict = recheck;
+        }
+      }
+    }
+    if (!verdict.ok) {
+      console.log("[generate-image:guard] منع —", JSON.stringify(verdict.corrections).slice(0, 400));
+      return NextResponse.json(
+        { error: `لم يُعتمد المخرج البصري لوجود مخالفة مهنية أو نظامية في نصه. ${verdict.corrections[0]?.replace(/^-\s*/, "") ?? ""} عدّل النص ثم أعد المحاولة.` },
+        { status: 422 }
+      );
+    }
   }
 
   if (planOnly) {
-    if (!planForReturn) return NextResponse.json({ error: "تعذر توليد الخطة البصرية — حاول مجدداً" }, { status: 502 });
-    return NextResponse.json({ visualPlan: planForReturn });
+    if (!effectivePlan) return NextResponse.json({ error: "تعذر توليد الخطة البصرية — حاول مجدداً" }, { status: 502 });
+    return NextResponse.json({ visualPlan: effectivePlan });
   }
-  const engineDescription = planForReturn
-    ? `${planToEngineDescription(planForReturn)}${editInstruction?.trim() ? `\n\nطلب تعديل يجب تطبيقه: ${editInstruction.trim()}` : ""}`
+  const engineDescription = effectivePlan
+    ? `${planToEngineDescription(effectivePlan)}${editInstruction?.trim() ? `\n\nطلب تعديل يجب تطبيقه: ${editInstruction.trim()}` : ""}`
     : effectiveDescription;
 
   // ════════════════════════════════════════════════════════════════════════
@@ -1455,25 +1471,25 @@ export async function POST(request: Request) {
     if (hasImageProvider) {
       const dims = premiumDims(channel);
       // نصوص الخطة الحرفية — تُعرض بجانب النسخ لكشف أي تشويه في العربي قبل الاعتماد
-      const planTexts = planForReturn
+      const planTexts = effectivePlan
         ? {
-            title: planForReturn.title,
-            subtitle: planForReturn.subtitle,
-            sections: planForReturn.keySections.map((s) => ({ heading: s.heading, bullets: s.bullets, stat: s.stat ?? "" })),
-            importantNumbers: planForReturn.importantNumbers ?? [],
+            title: effectivePlan.title,
+            subtitle: effectivePlan.subtitle,
+            sections: effectivePlan.keySections.map((s) => ({ heading: s.heading, bullets: s.bullets, stat: s.stat ?? "" })),
+            importantNumbers: effectivePlan.importantNumbers ?? [],
           }
         : null;
       const styleDirective = (editInstruction?.trim() && /أسلوب|ستايل|style/i.test(editInstruction))
         ? editInstruction.trim()
-        : style?.trim() || planForReturn?.styleDirective?.trim() || "clean flat vector editorial illustration, professional and calm";
-      const prompt = buildStudioImagePrompt(planForReturn, styleDirective, effectiveDescription, dims);
+        : style?.trim() || effectivePlan?.styleDirective?.trim() || "clean flat vector editorial illustration, professional and calm";
+      const prompt = buildStudioImagePrompt(effectivePlan, styleDirective, effectiveDescription, dims);
       // تفضيل المزوّد: Gemini (نانو بنانا) للمخرجات النصية العربية — الأقوى؛ وgpt-image-1 لصور الغلاف قليلة النص
       const prefer: "gemini" | "openai" = visualType === "image" ? "openai" : "gemini";
       const { images, failureNote } = await generatePremiumVariants(prompt, dims.w, dims.h, 3, prefer);
       if (images.length) {
         // فحص OCR لكل نسخة: العناوين القصيرة المرسومة داخل الصورة تُقارن بالخطة
-        const keyStrings = planForReturn
-          ? [planForReturn.title, ...(planForReturn.keySections?.map((s) => s.heading) ?? [])]
+        const keyStrings = effectivePlan
+          ? [effectivePlan.title, ...(effectivePlan.keySections?.map((s) => s.heading) ?? [])]
               .map((t) => (t ?? "").trim()).filter((t) => t && t.length <= 30)
           : [];
         const checked = await Promise.all(images.map(async (im) => {
@@ -1485,7 +1501,7 @@ export async function POST(request: Request) {
           variants: checked.filter((v) => v.url),
           provider: images[0]?.provider,
           planTexts,
-          visualPlan: planForReturn ?? undefined,
+          visualPlan: effectivePlan ?? undefined,
           prompt,
         });
       }

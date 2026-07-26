@@ -88,12 +88,43 @@ export function buildReadinessDecision({
   };
 }
 
+// ★ أسباب حوكمة المصادر المستقلة (بأمر معالجة الفجوات، البند ثانياً) — تُبنى من
+// النتيجة الحتمية وحدها: لا تفسير، لا مزاحمة للقواعد، ولا تحويل بين النوعين.
+// كل سبب بصيغته المعتمدة نصاً، وتُعرض الأسباب منفصلة لا مدمجة.
+export function buildSourceGovernanceReasons(gov?: {
+  violations?: string[];
+  officialSourceFound?: boolean;
+  article10Applied?: boolean;
+  stopped?: boolean;
+  unverifiedSource?: boolean;
+}, unmatchedCitations = 0): string[] {
+  if (!gov && unmatchedCitations === 0) return [];
+  const reasons: string[] = [];
+  if (gov?.stopped) {
+    reasons.push("غير جاهز للنشر لتطبيق المادة (١٠) بما يستوجب إيقاف المحتوى.");
+  }
+  if (gov?.violations?.length) {
+    reasons.push(`غير جاهز للنشر بسبب مخالفة حوكمة المصادر (${gov.violations.join("، ")}).`);
+  }
+  if (gov?.article10Applied && gov?.officialSourceFound === false && !gov?.stopped) {
+    reasons.push("غير جاهز للنشر لعدم وجود مصدر حكومي رسمي مختص يمكن الاستناد إليه.");
+  }
+  if (gov?.unverifiedSource) {
+    reasons.push("غير جاهز للنشر لتعذر التحقق من اختصاص المصدر أو إسناده الفعلي.");
+  }
+  if (unmatchedCitations > 0) {
+    reasons.push("غير جاهز للنشر بسبب مخالفة حوكمة المصادر (إحالة غير مطابقة للمصدر الرسمي المتحقق منه).");
+  }
+  return reasons;
+}
+
 export function buildPublicationDecision({
   confidence,
   readiness,
   findings,
   riskLevel,
-  languageIssuesCount = 0
+  languageIssuesCount = 0,
+  sourceGovernanceReasons = []
 }: {
   confidence: AssessmentConfidence;
   readiness: ReadinessDecision;
@@ -103,7 +134,34 @@ export function buildPublicationDecision({
   // مؤشر كأي مؤشر — وجودها يمنع «موصى بالنشر» كما يمنع الاعتماد، فلا يظهر قرار
   // موصى بالنشر لنسخة يتعذر اعتمادها منطقياً
   languageIssuesCount?: number;
+  // ★ قيد حوكمة المصادر المستقل (بأمر معالجة الفجوات): وجود أي سبب يمنع القرار
+  // الإيجابي، ويُعرض باسمه منفصلاً عن المخالفة المهنية — لا دمج ولا تحويل.
+  // لا يمس معادلات الامتثال أو المخاطر — إضافة سبب فقط.
+  sourceGovernanceReasons?: string[];
 }): PublicationDecision {
+  // يلحق أسباب الحوكمة بالقرار: قرار إيجابي مع أسباب حوكمة ⇒ ينقلب منعاً بأسبابها؛
+  // وقرار سلبي أصلاً ⇒ تُعرض أسبابها بجانب سببه المهني منفصلةً (البندان معاً بلا دمج)
+  const withGovernance = (d: PublicationDecision): PublicationDecision => {
+    if (sourceGovernanceReasons.length === 0) return d;
+    if (d.recommended) {
+      return {
+        outcome: "NOT_RECOMMENDED",
+        label: "غير موصى بالنشر",
+        reason: sourceGovernanceReasons.join(" "),
+        blockers: [...d.blockers, ...sourceGovernanceReasons],
+        actions: d.actions,
+        recommended: false,
+      };
+    }
+    return {
+      ...d,
+      reason: `${d.reason} ${sourceGovernanceReasons.join(" ")}`,
+      blockers: [...d.blockers, ...sourceGovernanceReasons],
+    };
+  };
+  return withGovernance(buildBaseDecision());
+
+  function buildBaseDecision(): PublicationDecision {
   // أي مخالفة غير معالجة ⇒ غير موصى بالنشر — المنصة استرشادية لا تمنع، لكنها لا توصي قبل المعالجة
   const unresolved = findings.filter((finding) => !finding.resolved);
   if (unresolved.length > 0 || riskLevel === "بالغ" || riskLevel === "حرج") {
@@ -150,6 +208,7 @@ export function buildPublicationDecision({
     actions: readiness.actions,
     recommended: true
   };
+  }
 }
 
 type ChannelRule = {

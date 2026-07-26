@@ -192,6 +192,16 @@ export type ReviewContext = {
   verificationSources?: { title: string; url: string }[];
   // ما تحقق منه فعلاً لكل مصدر (سطر المدقق الحرفي) — وحده يُعرض «مصدر تحقق»
   verificationDetails?: { title: string; url: string; note: string }[];
+  // ★ نتيجة حوكمة المصادر الحتمية (بأمر معالجة الفجوات، البند ثانياً): تُمرَّر
+  // لقرار النشر بوصفها قيداً مستقلاً — لا تدخل القاضي ولا المقيّم، ولا تُحوَّل
+  // إلى مخالفة قواعد، ولا يجوز لأحد إلغاؤها أو إعادة تفسيرها.
+  sourceGovernance?: {
+    violations?: string[];          // الفئات المرصودة
+    officialSourceFound?: boolean;  // هل وُجد مصدر حكومي رسمي مختص؟
+    article10Applied?: boolean;     // هل طُبقت المادة (١٠)؟
+    stopped?: boolean;              // هل أوقف المحتوى؟
+    unverifiedSource?: boolean;     // مصدر لم يُتحقق من اختصاصه أو إسناده
+  };
   reviewStatus?: ReviewReadinessStatus;
 };
 

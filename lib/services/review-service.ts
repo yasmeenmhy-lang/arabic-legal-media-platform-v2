@@ -36,7 +36,8 @@ import {
   buildConfidence,
   buildDecisionWorkflow,
   buildPublicationDecision,
-  buildReadinessDecision
+  buildReadinessDecision,
+  buildSourceGovernanceReasons
 } from "@/lib/services/decision-support-service";
 
 const noRegisteredViolationMessage = "لم يتم رصد ملاحظة مرتبطة بالمراجع المهنية والتنظيمية المسجلة.";
@@ -235,12 +236,19 @@ export async function buildReviewResult(
     approved,
     findings: compliance.findings
   });
+  // ★ قيد حوكمة المصادر المستقل في قرار النشر (بأمر معالجة الفجوات، البند ثانياً):
+  // يُبنى من النتيجة الحتمية الممررة في السياق + عدد الإحالات «غير المطابقة» في
+  // تقرير التحقق الحي (بصيغته المميزة «غير مطابق») — بلا مساس بالقاضي أو المقيّم
+  // أو معادلاتهما، وبلا تحويل بين نوعي المخالفة.
+  const unmatchedCitations = (context.verificationBriefing?.match(/«غير مطابق»/g) ?? []).length;
+  const sourceGovernanceReasons = buildSourceGovernanceReasons(context.sourceGovernance, unmatchedCitations);
   const publicationDecision = buildPublicationDecision({
     confidence,
     readiness: readinessDecision,
     findings: compliance.findings,
     riskLevel,
-    languageIssuesCount: languageQuality.issues.length
+    languageIssuesCount: languageQuality.issues.length,
+    sourceGovernanceReasons
   });
   const channelRecommendations = buildChannelRecommendations(kind, context, compliance.findings, readinessDecision);
   const decisionWorkflow = buildDecisionWorkflow(publicationDecision, governedRewrites.length > 0, approved);
