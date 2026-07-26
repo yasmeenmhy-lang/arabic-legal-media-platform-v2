@@ -22,6 +22,7 @@ import { runSemanticAnalysis } from "@/lib/services/semantic-analysis-service";
 import type { SemanticAnalysisResult } from "@/lib/services/semantic-analysis-service";
 import { evaluateContent } from "@/lib/services/content-evaluation-service";
 import { verifyTextCitations } from "@/lib/services/web-research-service";
+import { mergeVerificationIntoDossier } from "@/lib/source-dossier";
 import { buildGovernedRewriteSuggestions } from "@/lib/services/recommendation-service";
 import {
   calculateContentQualityScore,
@@ -280,6 +281,8 @@ export async function buildReviewResult(
     // نتيجة فعلية في تقريره (note) — نتيجة البحث المجردة لا تُعد مصدر تحقق،
     // ولا تتحول هذه المصادر تلقائياً إلى مصادر معتمدة.
     verifiedWebSources: context.verificationDetails?.length ? context.verificationDetails : undefined,
+    // ملف المصادر بعد دمج نتائج التحقق — يعود مع النتيجة فيُحفظ مع النسخة نفسها
+    sourceDossier: context.sourceDossier,
     governedRewrites,
     traceability: {
       reviewId: reviewContext.reviewId,
@@ -339,10 +342,13 @@ export async function reviewContent(text: string, kind: ContentKind = "post", co
   // إفصاح المستخدم، لأن النص قد يحمل ادعاءً نظامياً بلا لفظ مرجعي صريح. نتائجه
   // تُحقن في قياس المخاطر واللغة وتُعرض «مصادر تحقق». فشله لا يُسقط المراجعة.
   let ctx = context;
+  // ★ قاعدة المحرك الواحد: المدقق يستلم خريطة الادعاء–المصدر المرافقة للنسخة
+  // (إن وُجدت) فيتحقق من المثبت الموجود أولاً — لا بحث موازٍ يعيد بناء المصادر.
   const verification = await verifyTextCitations({
     text,
     specialty: context.specialty,
     sourceHint: context.sourceHint,
+    dossier: context.sourceDossier,
     timeoutMs: 45_000
   });
   if (verification?.briefing) {
@@ -360,6 +366,11 @@ export async function reviewContent(text: string, kind: ContentKind = "post", co
         unverifiedSource: context.sourceGovernance?.unverifiedSource || derived.unverifiedSource,
         verificationStatus: derived.verificationStatus,
       },
+      // دمج نتائج التحقق في ملف المصادر (المبدأ ٧): «مؤكَّد» يرفع حالة المصدر
+      // و«غير مطابق» يخفضها — تحديث حالة لا إعادة بناء، والملف يبقى المرجع الوحيد
+      sourceDossier: context.sourceDossier
+        ? mergeVerificationIntoDossier(context.sourceDossier, verification.details ?? [])
+        : undefined,
     };
   }
 

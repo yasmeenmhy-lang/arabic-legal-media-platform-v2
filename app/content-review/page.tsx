@@ -80,6 +80,7 @@ import { scopedKey } from "@/lib/user-scope";
 import { Search } from "lucide-react";
 import { saveLatestReviewSnapshot } from "@/components/review-context-summary";
 import { riskDisplayLabel, type ContentKind, type ReviewResult, type RiskLevel } from "@/lib/types";
+import type { SourceDossier } from "@/lib/source-dossier";
 import { FindingsList } from "@/components/content-review/FindingCard";
 import {
   ComplianceIndicatorCard,
@@ -246,6 +247,13 @@ export default function ContentReviewPage() {
   // سجل حوكمة المصادر المحفوظ مع النسخة — تصريح المادة (١٠) يظهر عند الفتح
   // والمراجعة والتصدير ملاحظةً مرافقة، فلا يضيع سياق المصارحة (بقرار المالكة)
   const [savedGovernance, setSavedGovernance] = useState<{ notice?: string; article10Applied?: boolean; article10Decision?: string; officialSourceFound?: boolean; officialSources?: { title: string; url: string }[]; enforcementReasons?: string[] } | null>(null);
+  // ★ ملف المصادر المرافق للنسخة (قاعدة المحرك الواحد): المرجع الوحيد للمصادر —
+  // يُقرأ من النسخة المحفوظة، يُرسل للمدقق فيتحقق من خريطته أولاً، ويُحفظ محدَّثاً
+  const [savedDossier, setSavedDossier] = useState<SourceDossier | null>(null);
+  // الملف العائد مع الصياغة المقترحة (بعد تحديث بطلب صريح) — يُحفظ مع النسخة عند التطبيق
+  const [rewriteDossier, setRewriteDossier] = useState<SourceDossier | null>(null);
+  // «تحديث المصادر» — البحث لا يُعاد إلا بطلب صريح من المستخدم (مبدأ: المصادر لا يُعاد بناؤها)
+  const [refreshSourcesRequested, setRefreshSourcesRequested] = useState(false);
   const [approved, setApproved] = useState(false);
   const [approving, setApproving] = useState(false);
   const [saveLaterMsg, setSaveLaterMsg] = useState("");
@@ -506,6 +514,7 @@ export default function ContentReviewPage() {
     setSavedVisuals(version?.visuals ?? []);
     setSavedWebSources(version?.webSources ?? []);
     setSavedGovernance(version?.sourceGovernance ?? null);
+    setSavedDossier(version?.sourceDossier ?? null);
   }, [contentId, versionNumber]);
 
   // حارس تسلسل الطلبات: يمنع استجابة متأخرة من طلب تحليل قديم من الكتابة فوق نتيجة
@@ -569,7 +578,7 @@ export default function ContentReviewPage() {
     const response = await fetch("/api/reviews", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text, kind, contentType: contentTypeLabel, channel: channel || "غير محددة", audience, purpose, reviewStatus })
+      body: JSON.stringify({ text, kind, contentType: contentTypeLabel, channel: channel || "غير محددة", audience, purpose, sourceDossier: savedDossier ?? undefined, reviewStatus })
     });
     if (!response.ok) {
       const payload = await response.json().catch(() => ({})) as { error?: string };
@@ -687,6 +696,8 @@ export default function ContentReviewPage() {
           scriptDuration: pending!.scriptDuration ?? "",
           scriptStyle: pending!.scriptStyle ?? "",
           articleLength: pending!.articleLength ?? "",
+          // ملف المصادر المدمَج بنتائج تحقق المدقق — يُحفظ مع النسخة (قاعدة المحرك الواحد)
+          sourceDossier: result.sourceDossier ?? undefined,
           review: result
         });
         setContentId(saved.record.id);
@@ -735,7 +746,7 @@ export default function ContentReviewPage() {
       const startRes = await fetch("/api/reviews/start", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ contentId, text, kind: effKind, contentType: effTypeLabel, channel: effChannel || "غير محددة", audience: effAudience, purpose: effPurpose }),
+        body: JSON.stringify({ contentId, text, kind: effKind, contentType: effTypeLabel, channel: effChannel || "غير محددة", audience: effAudience, purpose: effPurpose, sourceDossier: savedDossier ?? undefined }),
       });
       const startPayload = (await startRes.json().catch(() => ({}))) as { jobId?: string | null; error?: string };
       if (requestId !== reviewRequestIdRef.current) return;
@@ -788,6 +799,8 @@ export default function ContentReviewPage() {
         scriptDuration,
         scriptStyle,
         articleLength,
+        // ملف المصادر المدمَج بنتائج تحقق المدقق — يُحفظ مع النسخة (قاعدة المحرك الواحد)
+        sourceDossier: result.sourceDossier ?? savedDossier ?? undefined,
         review: result
       });
       setContentId(saved.record.id);
@@ -821,7 +834,7 @@ export default function ContentReviewPage() {
       const result = await fetch("/api/reviews", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: rewriteText, kind, contentType: contentTypeLabel, channel, audience, purpose })
+        body: JSON.stringify({ text: rewriteText, kind, contentType: contentTypeLabel, channel, audience, purpose, sourceDossier: savedDossier ?? undefined })
       }).then((response) => response.json()).then((payload) => payload.data as ReviewResult);
       // استجابة متأخرة لطلب سبقه طلب أحدث: تُهمل ولا تُطبَّق
       if (requestId !== reviewRequestIdRef.current) return;
@@ -843,6 +856,7 @@ export default function ContentReviewPage() {
         scriptDuration,
         scriptStyle,
         articleLength,
+        sourceDossier: result.sourceDossier ?? savedDossier ?? undefined,
         review: result
       });
       setVersionNumber(saved.version.version);
@@ -1066,7 +1080,14 @@ export default function ContentReviewPage() {
     const governanceNote = savedGovernance?.notice
       ? `<p><b>ملاحظة حوكمة المصادر المرافقة:</b> ${savedGovernance.notice}</p>`
       : "";
-    const html = `<html dir="rtl"><meta charset="utf-8"><body><h1>تقرير توصية النشر</h1><h2>${review?.publicationDecision.label}</h2><p>${review?.publicationDecision.reason}</p>${governanceNote}${findings}</body></html>`;
+    // ملحق الادعاءات ومصادرها من ملف مصادر النسخة — المرجع الوحيد (قاعدة المحرك الواحد)
+    const dossierAnnex = savedDossier?.claims?.length
+      ? `<h2>الادعاءات ومصادرها</h2>${savedDossier.claims.map((claim) => {
+          const src = claim.sourceId ? savedDossier.sources.find((s) => s.id === claim.sourceId) : undefined;
+          return `<p><b>${claim.status}:</b> ${claim.text}${claim.supportingExcerpt ? `<br/><b>المقطع الداعم:</b> «${claim.supportingExcerpt}»` : ""}${src ? `<br/><b>المصدر:</b> ${src.title} — ${src.url} (${src.verificationStatus})` : ""}</p>`;
+        }).join("")}`
+      : "";
+    const html = `<html dir="rtl"><meta charset="utf-8"><body><h1>تقرير توصية النشر</h1><h2>${review?.publicationDecision.label}</h2><p>${review?.publicationDecision.reason}</p>${governanceNote}${findings}${dossierAnnex}</body></html>`;
     downloadBlob("تقرير-توصية-النشر.doc", "application/msword;charset=utf-8", html);
     setMessage("تم تنزيل تقرير Word.");
   }
@@ -1100,16 +1121,16 @@ export default function ContentReviewPage() {
 
   // متابعة مهمة الصياغة الخلفية (كمسار الإنشاء): طلب قصير ثم استطلاع، فلا ينقطع
   // طلب طويل على الجوال («Load failed»). النتيجة: نص الصياغة + مصادرها المعتمدة.
-  async function pollRewriteJob(jobId: string): Promise<{ text?: string; sources?: Source[]; sourceNote?: string; error?: string; costUsd?: number; balanceUsd?: number }> {
+  async function pollRewriteJob(jobId: string): Promise<{ text?: string; sources?: Source[]; sourceNote?: string; sourceDossier?: SourceDossier; error?: string; costUsd?: number; balanceUsd?: number }> {
     const deadline = Date.now() + 6 * 60 * 1000;
     for (;;) {
       if (Date.now() > deadline) return { error: "طالت المتابعة أكثر من المتوقع — أعد المحاولة." };
       try {
         const res = await fetch(`/api/content-studio/generate-status?id=${encodeURIComponent(jobId)}`);
-        const data = (await res.json()) as { status?: string; text?: string; sources?: Source[]; sourceNote?: string; error?: string; costUsd?: number; balanceUsd?: number };
+        const data = (await res.json()) as { status?: string; text?: string; sources?: Source[]; sourceNote?: string; sourceDossier?: SourceDossier; error?: string; costUsd?: number; balanceUsd?: number };
         if (data.status === "done") {
           void fetch(`/api/content-studio/generate-status?id=${encodeURIComponent(jobId)}&ack=1`).catch(() => {});
-          return { text: data.text ?? "", sources: data.sources, sourceNote: data.sourceNote, costUsd: data.costUsd, balanceUsd: data.balanceUsd };
+          return { text: data.text ?? "", sources: data.sources, sourceNote: data.sourceNote, sourceDossier: data.sourceDossier, costUsd: data.costUsd, balanceUsd: data.balanceUsd };
         }
         if (data.status === "error" || data.status === "missing") {
           return { error: data.status === "missing" ? "انتهت صلاحية هذه الصياغة — أعد المحاولة." : data.error ?? "تعذر إنشاء الصياغة المقترحة." };
@@ -1132,6 +1153,7 @@ export default function ContentReviewPage() {
     setSuggestionNotice(null);
     setRewriteSources([]);
     setRewriteSourceNote("");
+    setRewriteDossier(null);
     setPreviewSuggestion(false);
     // حفظ مُسبق قبل الإرسال — نفس معالجة مساري التحليل والإنشاء
     try {
@@ -1165,10 +1187,14 @@ export default function ContentReviewPage() {
           // إقرار المستخدم بوجود مرجع في نصه — يُفعّل تعزيز الصياغة بمرجع موثّق
           hasSource: reviewHasSource || undefined,
           // وصف المرجع أو رابطه الذي حدده المستخدم — يوجّه البحث بدقة
-          sourceHint: reviewHasSource ? (reviewSourceHint.trim() || undefined) : undefined
+          sourceHint: reviewHasSource ? (reviewSourceHint.trim() || undefined) : undefined,
+          // ★ ملف المصادر المرافق للنسخة — يُستهلك كما هو بلا بحث جديد (قاعدة المحرك الواحد)
+          sourceDossier: savedDossier ?? undefined,
+          // «تحديث المصادر» — إعادة البناء بالمحرك الواحد بطلب المستخدم الصريح فقط
+          refreshSources: refreshSourcesRequested || undefined
         })
       });
-      const payload = await response.json().catch(() => null) as { jobId?: string; data?: { suggestedText?: string; sources?: Source[]; sourceNote?: string }; error?: string } | null;
+      const payload = await response.json().catch(() => null) as { jobId?: string; data?: { suggestedText?: string; sources?: Source[]; sourceNote?: string; sourceDossier?: SourceDossier }; error?: string } | null;
       if (!response.ok || !payload) {
         throw new Error(payload?.error ?? "تعذر إنشاء الصياغة المقترحة — حاول مرة أخرى.");
       }
@@ -1176,6 +1202,7 @@ export default function ContentReviewPage() {
       let suggested = payload.data?.suggestedText?.trim() ?? "";
       let srcs = payload.data?.sources ?? [];
       let note = payload.data?.sourceNote ?? "";
+      let dossier = payload.data?.sourceDossier;
       if (payload.jobId) {
         try {
           window.localStorage.setItem(scopedKey(PENDING_REWRITE_KEY), JSON.stringify({
@@ -1189,11 +1216,15 @@ export default function ContentReviewPage() {
         suggested = (outcome.text ?? "").trim();
         srcs = outcome.sources ?? [];
         note = outcome.sourceNote ?? "";
+        dossier = outcome.sourceDossier ?? dossier;
       }
       if (!suggested) throw new Error("أعاد النموذج نصًا فارغًا، حاول مرة أخرى.");
       setAiSuggestion(suggested);
       setRewriteSources(srcs);
       setRewriteSourceNote(note);
+      // الملف العائد مع الصياغة (قد يكون محدثاً بطلب صريح) — يُحفظ مع النسخة عند التطبيق
+      setRewriteDossier(dossier ?? null);
+      setRefreshSourcesRequested(false);
     } catch (error) {
       const msg = error instanceof Error ? error.message : "تعذر إنشاء الصياغة المقترحة.";
       // رسالة توجيهية (نص بلا مضمون/غير قابل للصياغة الملتزمة) تُعرض كتحذير لا كخطأ تقني
@@ -1241,6 +1272,7 @@ export default function ContentReviewPage() {
           setAiSuggestion(suggested);
           setRewriteSources(outcome.sources ?? []);
           setRewriteSourceNote(outcome.sourceNote ?? "");
+          setRewriteDossier(outcome.sourceDossier ?? null);
         }
         setSuggestingAI(false);
       })();
@@ -1269,10 +1301,12 @@ export default function ContentReviewPage() {
     setLoading(true);
     setMessage("تم استبدال المحتوى بالصياغة المقترحة. جار إعادة التقييم...");
     try {
+      // الصياغة المقترحة قد تحمل ملفاً محدثاً (بعد «تحديث المصادر») — هو المرجع عند التطبيق
+      const dossierForSuggestion = rewriteDossier ?? savedDossier ?? undefined;
       const result = await fetch("/api/reviews", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: suggestionText, kind, contentType: contentTypeLabel, channel, audience, purpose })
+        body: JSON.stringify({ text: suggestionText, kind, contentType: contentTypeLabel, channel, audience, purpose, sourceDossier: dossierForSuggestion })
       }).then((r) => r.json()).then((p) => p.data as ReviewResult);
       // استجابة متأخرة لطلب سبقه طلب أحدث: تُهمل ولا تُطبَّق
       if (requestId !== reviewRequestIdRef.current) return;
@@ -1293,11 +1327,13 @@ export default function ContentReviewPage() {
         scriptDuration,
         scriptStyle,
         articleLength,
+        sourceDossier: result.sourceDossier ?? dossierForSuggestion,
         review: result
       });
       setContentId(saved.record.id);
       setVersionNumber(saved.version.version);
       setApproved(false);
+      setRewriteDossier(null);
       setMessage("تم تطبيق الصياغة المقترحة وإعادة تقييمها. راجع النتائج واعتمد عند اكتمال الشروط.");
     } catch (error) {
       if (requestId !== reviewRequestIdRef.current) return;
@@ -2061,6 +2097,49 @@ export default function ContentReviewPage() {
             </ul>
           </details>
         ) : null}
+        {/* ★ خريطة الادعاء–المصدر من ملف مصادر النسخة (قاعدة المحرك الواحد): لكل ادعاء
+            حالته — مثبت بمقطعه ومصدره، أو غير قابل للجزم، أو محكوم بالمادة (١٠)، أو عام
+            مشروع. المرجع الوحيد لما استند إليه المحتوى. لا أكورديون فارغاً. */}
+        {savedDossier?.claims?.length ? (
+          <details className="mt-3 w-full max-w-full overflow-hidden rounded-xl border border-line bg-white p-4">
+            <summary className="cursor-pointer text-sm font-semibold text-palm">
+              الادعاءات ومصادرها ({savedDossier.claims.length})
+            </summary>
+            <p className="mt-2 text-sm leading-7 text-ink/70">
+              ما بُني عليه المحتوى من ادعاءات وحال إثبات كل منها — المثبت وحده يستند إلى مصدر بمقطع داعم، وما لم يثبت لا يُعرض في المحتوى حقيقةً.
+            </p>
+            <ul className="mt-3 space-y-2">
+              {savedDossier.claims.map((claim) => {
+                const src = claim.sourceId ? savedDossier.sources.find((s) => s.id === claim.sourceId) : undefined;
+                const statusStyle =
+                  claim.status === "مثبت" ? "bg-palm/10 text-palm" :
+                  claim.status === "عام مشروع" ? "bg-surface text-ink/70" :
+                  "bg-warningSoft text-warningDark";
+                return (
+                  <li key={claim.id} className="rounded-lg border border-line bg-surface p-3">
+                    <div className="flex flex-wrap items-start justify-between gap-2">
+                      <p className="text-sm font-medium leading-6 text-ink">{claim.text}</p>
+                      <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-semibold ${statusStyle}`}>{claim.status}</span>
+                    </div>
+                    {claim.supportingExcerpt ? (
+                      <p className="mt-1.5 text-xs leading-6 text-ink/70">
+                        <span className="font-semibold">المقطع الداعم: </span>«{claim.supportingExcerpt}»
+                      </p>
+                    ) : null}
+                    {src ? (
+                      <div className="mt-1.5">
+                        <a href={src.url} target="_blank" rel="noopener noreferrer" className="text-xs font-semibold text-ink underline decoration-line underline-offset-4 hover:text-palm focus-ring">
+                          {src.title || src.url}
+                        </a>
+                        <span className="mr-2 text-xs text-ink/50">({src.verificationStatus})</span>
+                      </div>
+                    ) : null}
+                  </li>
+                );
+              })}
+            </ul>
+          </details>
+        ) : null}
         {/* ★ بقرار مالكة المنصة: مصادر التحقق الحي تُعرض ولا تُرمى — مميزة بوضوح عن
             المصادر المعتمدة أعلاه: هذه عُثر عليها أثناء تدقيق إحالات النص (تحقُّق)،
             لا مصادر استند إليها الإنشاء (اعتماد). لا أكورديون فارغاً: لا مصادر ⇒ لا يظهر. */}
@@ -2299,6 +2378,31 @@ export default function ContentReviewPage() {
                     />
                   </div>
                 )}
+
+                {/* ★ «تحديث المصادر» (قاعدة المحرك الواحد): ملف المصادر المرافق للنسخة
+                    يُستهلك كما هو ولا يُعاد بناؤه إلا بطلب صريح — هذا المفتاح هو الطلب
+                    الصريح: يعاد الفهم والبحث والبناء بالمحرك نفسه وتُصاغ النسخة عليه. */}
+                <div className="mt-3 border-t border-line pt-3">
+                  <label className="flex cursor-pointer items-start justify-between gap-3">
+                    <span>
+                      <span className="text-sm text-ink/80">تحديث المصادر قبل الصياغة؟</span>
+                      <span className="mt-0.5 block text-xs leading-5 text-ink/45">
+                        {savedDossier
+                          ? "يُعاد بناء ملف مصادر هذه النسخة ببحث جديد — بدون التفعيل تُستخدم مصادر النسخة المحفوظة كما هي."
+                          : "لا يوجد ملف مصادر محفوظ لهذه النسخة — عند التفعيل يُبنى ملف جديد ببحث فعلي."}
+                      </span>
+                    </span>
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={refreshSourcesRequested}
+                      onClick={() => setRefreshSourcesRequested((v) => !v)}
+                      className={`relative mt-0.5 h-6 w-11 shrink-0 rounded-full transition ${refreshSourcesRequested ? "bg-palm" : "bg-line"}`}
+                    >
+                      <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all ${refreshSourcesRequested ? "right-0.5" : "right-[22px]"}`} />
+                    </button>
+                  </label>
+                </div>
               </div>
 
               {suggestingAI ? (

@@ -1,5 +1,6 @@
 "use client";
 
+import type { SourceDossier } from "@/lib/source-dossier";
 import type { ContentKind, ProfessionalOfficialReference, ReviewResult } from "@/lib/types";
 import { adoptLegacyKey, scopedKey } from "@/lib/user-scope";
 
@@ -81,6 +82,10 @@ export type StoredContentVersion = {
   // تصريح المادة (١٠) وسياق إنفاذها يُحفظان مع النسخة فلا يضيع سياق المصارحة
   // عند فتحها لاحقاً — يظهر التصريح عند الفتح والمراجعة والتقرير والتصدير
   // بوصفه ملاحظة مرافقة لا جزءاً من متن المحتوى.
+  // ★ ملف المصادر — المرجع الوحيد للمصادر (قاعدة المحرك الواحد): جزء من النسخة
+  // نفسها، يولد معها وينتقل معها في كل المسارات، ولا يُعاد بناؤه إلا بطلب تحديث
+  // صريح من المستخدم. Claim–Source Mapping داخله دائم لا وقتي.
+  sourceDossier?: SourceDossier;
   sourceGovernance?: {
     notice?: string;               // sourceGovernanceNotice — تصريح المادة (١٠) الحرفي
     article10Applied?: boolean;    // هل طُبقت المادة (١٠)؟
@@ -179,6 +184,7 @@ function normalizeStoredRecords(value: unknown): StoredContentRecord[] {
         references: Array.isArray(version.references) ? version.references : [],
         webSources: Array.isArray(version.webSources) ? version.webSources : undefined,
         sourceGovernance: version.sourceGovernance && typeof version.sourceGovernance === "object" ? version.sourceGovernance : undefined,
+        sourceDossier: version.sourceDossier && typeof version.sourceDossier === "object" && Array.isArray((version.sourceDossier as SourceDossier).claims) ? version.sourceDossier : undefined,
         visuals,
         analysis
       } as StoredContentVersion];
@@ -346,6 +352,7 @@ type StoredContextExtras = {
   topic?: string;
   webSources?: { title: string; url: string }[];
   sourceGovernance?: StoredContentVersion["sourceGovernance"];
+  sourceDossier?: SourceDossier;
   specialty?: string;
   charLimit?: number | null;
   adCta?: string;
@@ -372,6 +379,8 @@ function applyContextExtras(version: StoredContentVersion, extras: StoredContext
   }
   // سجل الحوكمة يخص النسخة بعينها — يُستبدل بالوارد ولا يُمحى بغيابه
   if (extras.sourceGovernance !== undefined) version.sourceGovernance = extras.sourceGovernance;
+  // ملف المصادر يخص النسخة — يُستبدل بالوارد ولا يُمحى بغيابه (لا يُفقد أبداً)
+  if (extras.sourceDossier !== undefined) version.sourceDossier = extras.sourceDossier;
   version.specialty = extras.specialty;
   version.charLimit = extras.charLimit ?? null;
   version.adCta = extras.adCta;
@@ -713,4 +722,16 @@ export function markContentShared(contentId: string, versionNumber: number) {
   saveContentRecords(records);
   setActiveContentSelection(record.id, versionNumber);
   return true;
+}
+
+// تحديث ملف مصادر نسخة محفوظة (دمج حالات التحقق بعد المراجعة — المبدأ ٦):
+// تحديث حالة لا إعادة بناء، والملف يبقى المرجع الوحيد.
+export function updateVersionDossier(contentId: string, versionNumber: number, dossier: SourceDossier) {
+  const records = loadContentRecords();
+  const record = records.find((item) => item.id === contentId);
+  const version = record?.versions.find((item) => item.version === versionNumber);
+  if (!record || !version) return;
+  version.sourceDossier = dossier;
+  version.updatedAt = now();
+  saveContentRecords(records);
 }

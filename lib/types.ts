@@ -1,3 +1,5 @@
+import type { SourceDossier } from "@/lib/source-dossier";
+
 export type RoleName = "LAWYER" | "SUPERVISOR" | "ADMIN" | "DIRECTOR";
 
 export type RiskLevel = "منخفض" | "متوسط" | "مرتفع" | "حرج" | "بالغ";
@@ -206,6 +208,10 @@ export type ReviewContext = {
     // verification_failed | unverified
     verificationStatus?: string;
   };
+  // ★ ملف المصادر المرافق للنسخة (قاعدة المحرك الواحد): المرجع الوحيد للمصادر —
+  // المدقق يستلم خريطة الادعاء–المصدر منه فيتحقق من المثبت الموجود أولاً، ونتائج
+  // تحققه تُدمج فيه (تحديث حالة لا إعادة بناء) ويعود محدَّثاً مع نتيجة المراجعة.
+  sourceDossier?: SourceDossier;
   reviewStatus?: ReviewReadinessStatus;
 };
 
@@ -423,6 +429,9 @@ export type ReviewResult = {
    * المدقق نتيجة تحقق فعلية — note هي ما تحقق منه حرفياً من تقريره. نتيجة البحث
    * المجردة لا تُعد مصدر تحقق، ولا تتحول هذه المصادر تلقائياً إلى مصادر معتمدة */
   verifiedWebSources?: { title: string; url: string; note?: string }[];
+  /** ملف المصادر بعد دمج نتائج التحقق (قاعدة المحرك الواحد) — يعود مع النتيجة
+   * فتحفظه الواجهة مع النسخة نفسها: تحديث حالة لا إعادة بناء */
+  sourceDossier?: SourceDossier;
   governedRewrites: GovernedRewriteSuggestion[];
   traceability: ReviewTraceability;
   workflow: ReviewWorkflowStep[];

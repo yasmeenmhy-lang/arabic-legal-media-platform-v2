@@ -16,6 +16,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 import { SOURCE_GOVERNANCE } from "@/lib/source-governance";
 import { recordUsage } from "@/lib/cost-meter";
+import type { IntentRepresentation, ClaimFinding, SourceDossier } from "@/lib/source-dossier";
 
 export type ResearchResult = {
   // ملخص عربي للوقائع المتحقق منها، كل واقعة منسوبة لجهتها ورابطها — يُحقن في مطالبة الكاتب
@@ -229,13 +230,146 @@ export async function researchTrustedSources(context: {
   return callWebSearch(buildResearchInstruction(context), context.timeoutMs);
 }
 
+// ─── البحث بالادعاءات — مسار محرك الفهم (قاعدة المحرك الواحد) ────────────────
+// الباحث لا يستلم حقولاً خاماً بل التمثيل الدلالي من محرك الفهم: يبحث لكل
+// ادعاء يحتاج إثباتاً على حدة، مسترشداً بفرضيات الجهات والمصطلحات الرسمية
+// (يختبرها لا يفترض صحتها)، ويعيد تقريره منسوباً بمعرفات الادعاءات — فيُبنى
+// منه Claim–Source Mapping بالكود. البحث مرحلة تفكير، لا نقطة بداية.
+
+function buildClaimResearchInstruction(intent: IntentRepresentation): string {
+  const proofClaims = intent.claims.filter((c) => c.needsProof);
+  const claimLines = proofClaims
+    .map((c) => `- [${c.id}] ${c.text} (النطاق: ${c.scope}${c.whyNeedsProof ? ` — الفئة: ${c.whyNeedsProof}` : ""})`)
+    .join("\n");
+  return `أنت باحث قانوني موثوق يعمل لمنصة محتوى قانوني لمحامٍ مرخَّص في المملكة العربية السعودية. تحكمك وثيقة حوكمة المصادر التالية حرفياً:
+
+${SOURCE_GOVERNANCE}
+
+—
+
+التمثيل الدلالي للطلب (من محرك الفهم):
+- الموضوع الرئيس: ${intent.mainTopic}
+- الموضوعات الفرعية: ${intent.subTopics.join("، ") || "—"}
+- النطاق: ${intent.jurisdiction} | نوع المعلومة: ${intent.infoType} | الحداثة: ${intent.recency}
+- فرضيات الجهات المختصة (اختبرها بالبحث، لا تفترض صحتها): ${intent.candidateAuthorities.join("، ") || "—"}
+- فرضيات المصطلح الرسمي (اختبرها بالبحث): ${intent.candidateOfficialTerms.join("، ") || "—"}
+
+الادعاءات المطلوب إثباتها — ابحث عن كل واحد على حدة (بحدود ثلاث عمليات بحث إجمالاً، فوزّعها على الأهم):
+${claimLines}
+
+لكل ادعاء نوّع استراتيجيتك من المعنى: بصياغة المستخدم، وبالمصطلح الرسمي المفترض، وبالجهة المرشحة، وبنوع الوثيقة — ولا تعتمد مطابقة كلمات.
+
+قواعد الإخراج الملزمة (تُقرأ آلياً — التزم الصيغة حرفياً):
+لكل ادعاء سطر واحد يبدأ بمعرفه:
+[c1] مثبت — «المقطع الداعم منقولاً حرفياً من المصدر» — الجهة المصدرة — نوع الوثيقة — الرابط الكامل
+أو:
+[c1] لم يُعثر — سبب موجز (لا نتائج / النتائج غير حكومية / غير مختصة / لا تدعم الادعاء)
+
+- الادعاء بنطاق «المملكة» لا يُكتب له «مثبت» إلا بمصدر جهة حكومية رسمية فيها (المادتان ٣ و٦) — الأصل لا الناقل (المادة ٤).
+- ممنوع منعاً باتاً اختلاق رابط أو مقطع أو جهة (المادة ١٣). انقل المقطع كما ورد حرفياً.
+- لا تكتب شيئاً غير هذه الأسطر.`;
+}
+
+// يقرأ أسطر [cN] من تقرير الباحث — تحليل حتمي بالكود
+export function parseClaimFindings(briefing: string, urls: Set<string>): ClaimFinding[] {
+  const findings: ClaimFinding[] = [];
+  for (const raw of briefing.split("\n")) {
+    const line = raw.trim();
+    const idMatch = line.match(/^\[?(c\d+)\]?/);
+    if (!idMatch) continue;
+    const claimId = idMatch[1];
+    if (/لم يُعثر|لم يعثر/.test(line)) {
+      findings.push({ claimId, status: "لم يُعثر" });
+      continue;
+    }
+    if (!/مثبت/.test(line)) continue;
+    // الرابط: أول URL في السطر ورد فعلاً في نتائج البحث الخام (لا اختلاق)
+    const urlMatch = line.match(/https?:\/\/[^\s)»]+/);
+    const url = urlMatch?.[0]?.replace(/[).،]+$/, "");
+    if (!url || !urls.has(url)) {
+      // «مثبت» بلا رابط حقيقي من نتائج البحث = غير مقبول — يُعامل كغير معثور
+      findings.push({ claimId, status: "لم يُعثر" });
+      continue;
+    }
+    const excerpt = line.match(/«(.+?)»/)?.[1];
+    // الجهة والنوع بين الشرطات إن التُزمت الصيغة — وإلا تبقى فارغة (لا تخمين)
+    const parts = line.split("—").map((p) => p.trim());
+    findings.push({
+      claimId, status: "مثبت", url,
+      excerpt,
+      issuer: parts.length >= 4 ? parts[2] : undefined,
+      docType: parts.length >= 5 ? parts[3] : undefined,
+      title: parts.length >= 4 ? parts[2] : url,
+    });
+  }
+  return findings;
+}
+
+export type ClaimResearchResult = {
+  briefing: string;
+  findings: ClaimFinding[];
+  rawUrls: string[];
+};
+
+// نداء البحث بالادعاءات — نفس نواة callWebSearch (نفس الأداة والقيود) مع
+// موجه الادعاءات وتحليل مخرجه. فشله لا يُسقط التوليد — تسري المادة (١٠).
+export async function researchClaims(intent: IntentRepresentation, timeoutMs?: number): Promise<ClaimResearchResult | null> {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) return null;
+  const calledAt = Date.now();
+  const controller = new AbortController();
+  const abortTimer = setTimeout(() => controller.abort(), timeoutMs ?? 90_000);
+  try {
+    const response = await fetch(
+      `${process.env.ANTHROPIC_BASE_URL ?? "https://api.anthropic.com"}/v1/messages`,
+      {
+        method: "POST",
+        signal: controller.signal,
+        headers: { "x-api-key": apiKey, "anthropic-version": "2023-06-01", "content-type": "application/json" },
+        body: JSON.stringify({
+          model: "claude-sonnet-5",
+          max_tokens: 2048,
+          thinking: { type: "disabled" },
+          tools: [{ type: "web_search_20260209", name: "web_search", max_uses: 3 }],
+          messages: [{ role: "user", content: buildClaimResearchInstruction(intent) }],
+        }),
+      }
+    );
+    if (!response.ok) return null;
+    const payload = (await response.json()) as { content?: unknown[]; usage?: unknown };
+    recordUsage(payload.usage, { stage: "باحث الادعاءات", model: "claude-sonnet-5", durationMs: Date.now() - calledAt });
+    const content = payload.content ?? [];
+    const raw = extractSources(content);
+    const briefing = extractText(content);
+    if (!briefing) return null;
+    const urls = new Set(raw.map((s) => s.url));
+    return { briefing, findings: parseClaimFindings(briefing, urls), rawUrls: [...urls] };
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(abortTimer);
+  }
+}
+
 // موجّه تدقيق الإحالات لمسار المراجعة — تحقّق فعلي من صحة ما في النص القائم، لا كتابة.
-function buildVerificationInstruction(context: { text: string; specialty?: string; sourceHint?: string }): string {
+function buildVerificationInstruction(context: { text: string; specialty?: string; sourceHint?: string; dossier?: SourceDossier }): string {
   const spec = context.specialty ? `\nالتخصص القانوني: ${context.specialty}` : "";
   const hint = context.sourceHint
     ? `\nأشار كاتب النص إلى هذا المرجع (وجّه تحرّيك للتحقق منه، ولا تكتفِ به): ${context.sourceHint}`
     : "";
-  return `أنت مدقّق مصادر قانوني موثوق يعمل لمنصة محتوى قانوني لمحامٍ مرخَّص في المملكة العربية السعودية. أمامك نصّ يريد المحامي نشره، وقد يتضمّن إحالات نظامية (أرقام مواد أو أسماء أنظمة)، أو أرقاماً ونسباً، أو دراسات ووقائع منسوبة لجهات.${spec}${hint}
+  // ★ قاعدة المحرك الواحد: خريطة الادعاء–المصدر المرافقة للنسخة هي المرجع الوحيد
+  // لما استند إليه النص — المدقق يبدأ بها: يتحقق أن كل مصدر فيها يدعم ادعاءه فعلاً
+  // (بالصيغ الحرفية نفسها)، ثم يدقق ما في النص خارجها.
+  const provenClaims = (context.dossier?.claims ?? []).filter((c) => c.status === "مثبت" && c.sourceId);
+  const dossierBlock = provenClaims.length
+    ? `\n\nخريطة الادعاءات ومصادرها المرافقة لهذه النسخة (ابدأ تدقيقك بها — لكل بند: افتح المصدر وتحقق أنه يدعم الادعاء فعلاً، واحكم عليه بالصيغ الحرفية نفسها مع ذكر الرابط):\n${provenClaims
+        .map((c) => {
+          const src = context.dossier!.sources.find((s) => s.id === c.sourceId);
+          return `- الادعاء: ${c.text}\n  المصدر: ${src?.title ?? ""} — ${src?.url ?? ""}${c.supportingExcerpt ? `\n  المقطع المسند إليه: «${c.supportingExcerpt}»` : ""}`;
+        })
+        .join("\n")}`
+    : "";
+  return `أنت مدقّق مصادر قانوني موثوق يعمل لمنصة محتوى قانوني لمحامٍ مرخَّص في المملكة العربية السعودية. أمامك نصّ يريد المحامي نشره، وقد يتضمّن إحالات نظامية (أرقام مواد أو أسماء أنظمة)، أو أرقاماً ونسباً، أو دراسات ووقائع منسوبة لجهات.${spec}${hint}${dossierBlock}
 
 تحكم تدقيقَك وثيقة حوكمة المصادر التالية حرفياً — وأخصّها للتدقيق: ما تعلق بالمملكة العربية السعودية لا يُثبَت إلا من جهة حكومية مختصة فيها، والأصل يُقدَّم على الناقل، والمصادر المحظورة في المادة (٨) والقواعد المانعة لا يُعتد بها:
 
@@ -259,7 +393,7 @@ ${SOURCE_GOVERNANCE}
 // مسار المراجعة: تحقّق حيّ من إحالات نص قائم في المصادر الموثوقة — إنفاذٌ فعليٌّ
 // لقاعدة تحرّي المصادر بأداة تحقّق حقيقية بدل الاكتفاء بذاكرة النموذج.
 export async function verifyTextCitations(context: {
-  text: string; specialty?: string; sourceHint?: string; timeoutMs?: number;
+  text: string; specialty?: string; sourceHint?: string; dossier?: SourceDossier; timeoutMs?: number;
 }): Promise<ResearchResult | null> {
   return callWebSearch(buildVerificationInstruction(context), context.timeoutMs);
 }

@@ -29,6 +29,9 @@ const schema = z.object({
   audience: z.string().optional(),
   purpose: z.string().optional(),
   sourceHint: z.string().optional(),
+  // ★ ملف المصادر المرافق للنسخة (قاعدة المحرك الواحد): يصل المدقق فيتحقق من
+  // خريطة الادعاء–المصدر الموجودة أولاً — لا بحث موازٍ يعيد بناء المصادر
+  sourceDossier: z.custom<import("@/lib/source-dossier").SourceDossier>((v) => !v || (typeof v === "object" && Array.isArray((v as { claims?: unknown }).claims))).optional(),
   reviewStatus: z.enum(["DRAFT", "REVIEW_REQUIRED", "NEEDS_CORRECTION", "READY_FOR_PUBLISHING", "EXPORTED", "SHARED"]).optional()
 });
 
@@ -47,6 +50,7 @@ export async function POST(request: Request) {
     audience: parsed.data.audience,
     purpose: parsed.data.purpose,
     sourceHint: parsed.data.sourceHint,
+    sourceDossier: parsed.data.sourceDossier,
     reviewStatus: parsed.data.reviewStatus
   };
 

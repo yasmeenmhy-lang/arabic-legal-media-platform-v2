@@ -5,10 +5,13 @@ import { AI_CONSTITUTION } from "@/lib/governance";
 import { runSemanticAnalysis } from "@/lib/services/semantic-analysis-service";
 import { evaluateContent } from "@/lib/services/content-evaluation-service";
 import { describeProviderError } from "@/lib/ai-provider-errors";
-import { researchTrustedSources } from "@/lib/services/web-research-service";
+import { researchClaims } from "@/lib/services/web-research-service";
+import { isSaudiOfficialUrl } from "@/lib/services/web-research-service";
+import { analyzeIntent } from "@/lib/services/intent-analysis-service";
+import { buildDossier, provenExcerpts, markUsedSources, type SourceDossier } from "@/lib/source-dossier";
 import { buildOfficialRuleCorpusText } from "@/lib/rule-corpus-text";
 import { SOURCE_GOVERNANCE, ARTICLE_10_DECLARATION } from "@/lib/source-governance";
-import { article10Violations } from "@/lib/services/article10-enforcer";
+import { article10Violations, article10ViolationsWithProof } from "@/lib/services/article10-enforcer";
 import { countHardLanguageErrors, HARD_LANGUAGE_CATEGORIES } from "@/lib/language-gate";
 import { WRITING_CODE } from "@/lib/writing-code";
 import { NO_SUBSTANCE_MESSAGE, NON_COMPLIANT_MESSAGE, OUT_OF_MANDATE_MESSAGE } from "@/lib/reformulate-messages";
@@ -44,7 +47,11 @@ const schema = z.object({
   // أو يُقرّه المستخدم صراحةً من مسار المراجعة (hasSource) فيُدعَّم بمصدر موثوق حقيقي.
   hasSource: z.boolean().optional(),
   // وصف المرجع الذي يريده المستخدم أو رابطه — يوجّه البحث بدقة داخل المصادر المعتمدة.
-  sourceHint: z.string().max(500).optional()
+  sourceHint: z.string().max(500).optional(),
+  // ★ ملف المصادر المرافق للنسخة (قاعدة المحرك الواحد): يُستهلك كما هو — لا بحث
+  // جديد إلا بطلب المستخدم الصريح refreshSources (مبدأ: المصادر لا يُعاد بناؤها)
+  sourceDossier: z.custom<import("@/lib/source-dossier").SourceDossier>().optional(),
+  refreshSources: z.boolean().optional()
 });
 
 // إكمال تلقائي: إن قُطعت الصياغة لبلوغ سقف التوكنز تُطلب متابعتها من حيث توقفت
@@ -126,7 +133,7 @@ async function verifySuggestion(
 }
 
 type ReformOutcome =
-  | { ok: true; suggestedText: string; sources: { title: string; url: string }[]; sourceNote?: string }
+  | { ok: true; suggestedText: string; sources: { title: string; url: string }[]; sourceNote?: string; dossier?: SourceDossier }
   | { ok: false; status: number; error: string };
 
 // يكشف مخرجاً ليس صياغةً فعلية: رمز «بلا مضمون» الذي يُخرجه النموذج عند نصٍّ بلا مضمون
@@ -150,47 +157,55 @@ function isNonSubstantiveOutput(output: string): boolean {
 // دورة إعادة الصياغة الكاملة (بحث + كتابة + تحقق + تصحيح) — تُشغَّل خلفياً كي لا
 // يبقى المستخدم على طلب طويل متزامن ينقطع على الجوال. لا تمسّ منطق الفحص إطلاقاً.
 async function runReformulation(data: z.infer<typeof schema>, apiKey: string): Promise<ReformOutcome> {
-  const { text, contentType, channel, audience, purpose, charLimit, findings, languageIssues, hasSource, sourceHint } = data;
+  const { text, contentType, channel, audience, purpose, charLimit, findings, languageIssues, hasSource, sourceHint, sourceDossier, refreshSources } = data;
   const context = { contentType, channel, audience, purpose };
 
-  // ★ طبقة البحث الحي في التحسين (بقرارات الاعتماد النهائية الملزمة): قرار
-  // المستخدم وحده يشغّلها — إقراره بالمصدر (hasSource) من واجهة المراجعة. حُذفت
-  // قائمة كلمات الكشف التلقائي (mentionsSource): لا قاضي خفياً من كلمات.
-  // لا تمسّ الفحص: الصياغة المحسّنة تمرّ على المؤشرات كاملةً. فشلها لا يوقف التحسين.
+  // ★ قاعدة المحرك الواحد + مبدأ «المصادر لا يُعاد بناؤها»: الملف المرافق للنسخة
+  // هو المرجع الوحيد للمصادر — يُستهلك كما هو بلا أي بحث جديد. البحث حصراً حين
+  // يطلب المستخدم التحديث صراحةً (refreshSources) أو يقرّ بمرجع لنص لا ملف له —
+  // وعندها عبر المحرك الواحد نفسه: محرك الفهم ← باحث الادعاءات ← بناء الملف.
   let researchBlock = "";
-  // المصادر المعتمدة المجلوبة — تُعاد للواجهة لعرضها كأدلة مرئية (لوحة «المصادر المعتمدة»)
   let researchSources: { title: string; url: string }[] = [];
-  // إشعار المصارحة: أقرّ المستخدم بمرجع ولم يُعثر على مطابق — يُبلَّغ صراحةً لا صمتاً
   let sourceNote: string | undefined;
-  // بوابة السيادة: العدد المعتدّ به في منفّذ المادة (١٠) هو المصادر الحكومية
-  // الرسمية للمملكة العربية السعودية وحدها — لا مجمل نتائج البحث.
-  let saudiOfficialCount = 0;
-  if (hasSource) {
+  // مقاطع الادعاءات المثبتة — مدخل منفّذ المادة (١٠) بمبدأ الإثبات
+  let proofList: string[] = [];
+  let activeDossier: SourceDossier | undefined = sourceDossier;
+
+  if (refreshSources || (hasSource && !activeDossier)) {
+    // بحث جديد بالمحرك الواحد — بطلب صريح أو لنصٍّ أُقرّ بمرجعه ولا ملف له
     const hint = (sourceHint ?? "").trim();
-    const research = await researchTrustedSources({
+    const intent = await analyzeIntent({
+      topic: text.slice(0, 600),
       contentType,
-      topic: text.slice(0, 500),
-      // وصف/رابط المرجع الذي حدده المستخدم يوجّه البحث بدقة داخل المصادر المعتمدة
-      spec: hint ? { wantSource: true, sourceDesc: hint } : undefined,
-      // صار المسار خلفياً، فيحتمل السقف الكامل (٦٠ث) لجودة أعلى للمصادر — والدورة
-      // كلها ضمن حدّ الدالة (٣٠٠ث) وحدّ المتابعة (٦ دقائق)، بلا انقطاع على الجوال.
-      timeoutMs: 60_000,
+      extraDirectives: hint ? `المرجع الذي وصفه المستخدم: ${hint}` : undefined,
     });
-    if (research) {
-      researchSources = research.sources; // للعرض كأدلة مرئية
-      saudiOfficialCount = research.saudiOfficialSources.length;
-      const sourceLines = research.sources.map((s) => `- ${s.title}: ${s.url}`).join("\n");
+    if (intent) {
+      const research = intent.claims.some((c) => c.needsProof) ? await researchClaims(intent) : null;
+      activeDossier = buildDossier(intent, research?.findings ?? [], isSaudiOfficialUrl);
+      if (refreshSources) activeDossier = { ...activeDossier, refreshedAt: new Date().toISOString() };
+    } else if (hasSource) {
+      sourceNote = ARTICLE_10_DECLARATION;
+    }
+  }
+
+  if (activeDossier) {
+    proofList = provenExcerpts(activeDossier);
+    const proven = activeDossier.claims.filter((c) => c.status === "مثبت");
+    researchSources = activeDossier.sources
+      .filter((s) => s.linkedClaimIds.length > 0)
+      .map((s) => ({ title: s.title, url: s.url }));
+    if (proven.length > 0) {
+      const provenLines = proven.map((c) => {
+        const src = activeDossier!.sources.find((s) => s.id === c.sourceId);
+        return `- ${c.text}\n  المقطع الداعم: «${c.supportingExcerpt ?? ""}»\n  المصدر: ${src?.issuer ?? src?.title ?? ""} — ${src?.url ?? ""}`;
+      }).join("\n");
       researchBlock = [
         "",
-        "★ مصادر موثوقة مجلوبة من البحث الحي في جهات رسمية وأكاديمية معتمدة — إن أشار النص الأصلي إلى مصدر أو دراسة أو رقم، فصحّحه أو ادعمه بهذه المصادر الحقيقية واذكر رابطها في النص عند الاستشهاد. ممنوع الإبقاء على رقم مادة أو دراسة أو إحصائية لا سند لها هنا؛ وما لا تجد له سنداً موثوقاً اعرضه نسبةً عامة صادقة دون رقم مخترع.",
-        "تقرير المصادر:",
-        research.briefing,
-        "قائمة الروابط للاستشهاد:",
-        sourceLines,
+        "★ خريطة الادعاءات المثبتة المرافقة للنسخة (المرجع الوحيد — مبدأ الإثبات): صحّح أو ادعم من مقاطعها بنسبتها وروابطها. ممنوع الإبقاء على أو إدخال أي تفصيلة نظامية خارجها؛ وما لا إثبات له اعرضه نسبةً عامة صادقة.",
+        provenLines,
       ].join("\n");
-    } else {
-      // إنفاذ المادة (١٠): طُلب المصدر ولم يوجد — التصريح الإلزامي يُعرض ملاحظةً
-      // مستقلة أعلى الصياغة، والمنفّذ البرمجي أدناه يمنع بقاء تفصيلة نظامية بلا مصدر.
+    } else if (hasSource || refreshSources) {
+      // ملف بلا ادعاء مثبت — المادة (١٠): التصريح ملاحظةً مستقلة
       sourceNote = ARTICLE_10_DECLARATION;
     }
   }
@@ -329,7 +344,7 @@ async function runReformulation(data: z.infer<typeof schema>, apiKey: string): P
     // ★ المنفّذ البرمجي الحتمي للمادة (١٠) على الصياغة النهائية — بقرار المالكة
     // الملزم: لا مصدر ⇒ لا تفصيلة نظامية. تُرصد بالكود، وتُمنح جولة تصحيح محددة،
     // فإن بقيت لا تُسلَّم الصياغة ويُعرض التصريح فقط.
-    let a10 = article10Violations(suggestedText, saudiOfficialCount);
+    let a10 = article10ViolationsWithProof(suggestedText, proofList);
     if (a10.length > 0) {
       const a10Prompt = [
         "النص التالي اقترحته أنت، لكن الفحص البرمجي رصد فيه تفاصيل نظامية بلا مصدر رسمي مرفق — وهذا محظور بالمادة (١٠) من وثيقة حوكمة المصادر:",
@@ -344,7 +359,7 @@ async function runReformulation(data: z.infer<typeof schema>, apiKey: string): P
       ].join("\n");
       const fixed = await callModel(apiKey, systemPrompt, a10Prompt);
       if (fixed && !isOutOfMandateOutput(fixed) && !isNonSubstantiveOutput(fixed)) {
-        const fixedA10 = article10Violations(fixed, saudiOfficialCount);
+        const fixedA10 = article10ViolationsWithProof(fixed, proofList);
         const fixedVerification = await verifySuggestion(fixed, context);
         if (fixedA10.length === 0 && fixedVerification.clean) {
           suggestedText = fixed;
@@ -358,7 +373,15 @@ async function runReformulation(data: z.infer<typeof schema>, apiKey: string): P
     }
 
     // «المصادر المعتمدة» = ما استُخدم فعلاً — رابطه وارد في الصياغة المسلَّمة (بقرار المالكة)
-    return { ok: true, suggestedText, sources: researchSources.filter((s) => suggestedText.includes(s.url)), sourceNote };
+    // الملف يعود مع الصياغة (موسوماً بالاستخدام الفعلي) فيبقى جزءاً من النسخة الجديدة —
+    // قاعدة المحرك الواحد: المصادر تنتقل مع المحتوى ولا تضيع بإعادة الصياغة.
+    return {
+      ok: true,
+      suggestedText,
+      sources: researchSources.filter((s) => suggestedText.includes(s.url)),
+      sourceNote,
+      dossier: activeDossier ? markUsedSources(activeDossier, suggestedText) : undefined,
+    };
   } catch (error) {
     const raw = error instanceof Error ? error.message : "خطأ غير متوقع";
     // أخطاء المزود المعروفة (رصيد/مفتاح/ضغط) تُعرض بالعربية بسببها وإجرائها — لا بنصها الإنجليزي الخام
@@ -413,7 +436,7 @@ export async function POST(request: Request) {
         const r = await runReformulation(parsed.data, apiKey);
         const costUsd = await settleCost();
         if (r.ok) {
-          await completeJob(sql, jobId, r.suggestedText, false, undefined, r.sources.length ? JSON.stringify(r.sources) : undefined, r.sourceNote, costUsd);
+          await completeJob(sql, jobId, r.suggestedText, false, undefined, r.sources.length ? JSON.stringify(r.sources) : undefined, r.sourceNote, costUsd, undefined, r.dossier ? JSON.stringify(r.dossier) : undefined);
         } else {
           await failJob(sql, jobId, r.error, costUsd);
         }
@@ -432,6 +455,6 @@ export async function POST(request: Request) {
 
   // احتياطي (تشغيل محلي بلا قاعدة بيانات): متزامن كالسابق
   const r = await runReformulation(parsed.data, apiKey);
-  if (r.ok) return ok({ suggestedText: r.suggestedText, sources: r.sources.length ? r.sources : undefined, sourceNote: r.sourceNote });
+  if (r.ok) return ok({ suggestedText: r.suggestedText, sources: r.sources.length ? r.sources : undefined, sourceNote: r.sourceNote, sourceDossier: r.dossier });
   return NextResponse.json({ error: r.error }, { status: r.status });
 }

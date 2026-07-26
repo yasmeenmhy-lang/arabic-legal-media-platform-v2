@@ -52,7 +52,12 @@ export async function GET(request: Request) {
     if (job.enforcement_json) {
       try { sourceGovernance = JSON.parse(job.enforcement_json); } catch { sourceGovernance = undefined; }
     }
-    return NextResponse.json({ status: "done", text: job.result_text ?? "", truncated: job.truncated, review, sources, sourceNote: job.source_note ?? undefined, sourceGovernance, ...(await ownerCostFields(job.cost_usd)) });
+    // ملف المصادر — المرجع الوحيد: تحفظه الواجهة جزءاً من النسخة (قاعدة المحرك الواحد)
+    let sourceDossier: unknown;
+    if (job.dossier_json) {
+      try { sourceDossier = JSON.parse(job.dossier_json); } catch { sourceDossier = undefined; }
+    }
+    return NextResponse.json({ status: "done", text: job.result_text ?? "", truncated: job.truncated, review, sources, sourceNote: job.source_note ?? undefined, sourceGovernance, sourceDossier, ...(await ownerCostFields(job.cost_usd)) });
   }
   if (job.status === "error") return NextResponse.json({ status: "error", error: job.error ?? "تعذر إنشاء المحتوى — حاول مرة أخرى.", ...(await ownerCostFields(job.cost_usd)) });
   return NextResponse.json({ status: "pending", partial: job.partial_text ?? undefined });

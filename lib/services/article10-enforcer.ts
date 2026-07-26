@@ -112,6 +112,35 @@ const IN_CORPUS = /نظام المحاما[هة]|اللائح[هة] التنفي
 // فعلاً (لا مجمل نتائج البحث) — بوابة السيادة المرجعية تفصلها قبل النداء.
 // sourceCount > 0 ⇒ المصدر الرسمي حاضر والكاتب يكتب منه — لا رصد.
 // الفحص على مستوى الجملة: الجملة المحيلة إلى متن المنصة مستثناة وحدها.
+// ─── الإنفاذ بالخريطة (مبدأ الإثبات — قاعدة المحرك الواحد) ───────────────────
+// «المحتوى يُبنى على الحقائق المثبتة بالمصادر»: التفصيلة النظامية في النص لا
+// تُقبل لمجرد وجود مصادر — تُقبل فقط إن كانت واردة في مقطع داعم لادعاء مثبت
+// في Claim–Source Mapping. ما ليس له إثبات في الخريطة يُرصد ولو امتلأ الملف
+// مصادر — فالمصدر لا يغطي إلا ادعاءه.
+export function article10ViolationsWithProof(text: string, provenExcerptsList: string[]): string[] {
+  const normalizedProofs = provenExcerptsList.map((e) => normalizeClaim(e)).filter((e) => e.trim());
+  const hits: string[] = [];
+  const seen = new Set<string>();
+  for (const raw of text.split(/(?<=[.؟!])\s+|\n+/)) {
+    const norm = normalizeClaim(raw);
+    if (!norm.trim() || IN_CORPUS.test(norm)) continue;
+    for (const { category, re, requires } of CLAIM_PATTERNS) {
+      const match = norm.match(re);
+      if (!match) continue;
+      if (requires && !requires.test(norm)) continue;
+      const detail = normalizeClaim(match[0].trim());
+      // التفصيلة مغطاة إن وردت داخل مقطع داعم مثبت (أو ورد المقطع في جملتها)
+      const covered = normalizedProofs.some((p) => p.includes(detail) || norm.includes(p));
+      if (covered) continue;
+      const entry = `${category}: «${match[0].trim().slice(0, 70)}»`;
+      if (seen.has(entry)) continue;
+      seen.add(entry);
+      hits.push(entry);
+    }
+  }
+  return hits;
+}
+
 export function article10Violations(text: string, sourceCount: number): string[] {
   if (sourceCount > 0) return [];
   const hits: string[] = [];
