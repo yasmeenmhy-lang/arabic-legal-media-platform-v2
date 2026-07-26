@@ -875,6 +875,16 @@ export default function ContentStudioPage() {
   const canSupportSource = Boolean(kind) && !NO_SOURCE_LABELS.has(kind ? contentKindLabels[kind] : "");
   // wantSource الفعّال المُرسَل للخادم: مفتاح المستخدم وحده — مشروطاً بنوع مؤهل.
   const effectiveWantSource = canSupportSource && wantSource;
+  // سياق حوكمة المصادر المرافق لنداءات المرئي (أمر الإغلاق النهائي): الحد الأدنى
+  // من سجل النسخة الأصلية — النص الأصلي نفسه يُرسل description ويطابق به الخادم.
+  const visualSourceContext = generatedGovernance
+    ? {
+        stopped: generatedGovernance.article10Decision === "أوقف",
+        article10Applied: generatedGovernance.article10Applied,
+        officialSourceFound: generatedGovernance.officialSourceFound,
+        notice: generatedGovernance.notice,
+      }
+    : undefined;
   const activeText = path === "create" ? generatedText : reviewText;
   // نوع المحتوى هو مصدر الحقيقة الوحيد — قسم بصري رئيسي واحد فقط لكل نوع:
   // «رسم توضيحي»: قسم «إعداد المرئيات والمخططات» وامتداده التوليدي (النوع من الإعداد، بلا اختيار مكرر)
@@ -1996,6 +2006,7 @@ function toStoredGovernance(gov: ServerGovernance | undefined, notice: string | 
           source: contextSourceLabel || undefined,
           outputMode: "editable_svg",
           planOnly: true,
+          sourceContext: visualSourceContext,
         }),
       });
       const data = (await res.json()) as { visualPlan?: VisualPlan; error?: string };
@@ -2033,7 +2044,8 @@ function toStoredGovernance(gov: ServerGovernance | undefined, notice: string | 
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           // بعد اعتماد الخطة لا يُرسل النص الخام — الخطة مصدر الحقيقة
-          description: approvedPlan ? `${approvedPlan.title} — ${approvedPlan.centralMessage}`.slice(0, 400) : generatedText.trim(),
+          // النص الأصلي كاملاً — مرجع مطابقة الادعاءات في بوابة حوكمة المرئي
+          description: generatedText.trim() || (approvedPlan ? `${approvedPlan.title} — ${approvedPlan.centralMessage}`.slice(0, 400) : ""),
           approvedPlan: approvedPlan ?? undefined,
           visualType: vtType,
           chartType: vtType === "chart" ? (vtChartType || undefined) : undefined,
@@ -2053,6 +2065,7 @@ function toStoredGovernance(gov: ServerGovernance | undefined, notice: string | 
           contentType: kind ? contentKindLabels[kind] : undefined,
           specialty: specialty || undefined,
           source: contextSourceLabel || undefined,
+          sourceContext: visualSourceContext,
         }),
       });
       const data = (await res.json()) as { svgCode?: string; imageUrl?: string; imageBase64?: string; provider?: string; providerNote?: string; premiumError?: string; visual?: VisualStructure; error?: string; variants?: { url: string; flagged?: boolean; extracted?: string; checked?: boolean }[]; planTexts?: typeof vtPlanTexts; variantsError?: string; fallbackToVector?: boolean };
@@ -2468,6 +2481,7 @@ function toStoredGovernance(gov: ServerGovernance | undefined, notice: string | 
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           description: description.trim(),
+          sourceContext: visualSourceContext,
           visualType,
           chartType: visualType === "chart" ? (infographicChartType || undefined) : undefined,
           style: imageStyle || undefined,

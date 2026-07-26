@@ -304,6 +304,29 @@ export async function buildReviewResult(
   };
 }
 
+// ─── الرافع الفعلي لحالة التحقق (أمر الإغلاق النهائي، البند ثانياً) ─────────
+// نقطة التحقق الفعلية في المنصة هي المدقق الحي (verifyTextCitations): يفحص
+// الاختصاص والإسناد الفعلي والأصالة وصلاحية الرابط ويحكم بصيغ حرفية ملزمة.
+// هذه الدالة تشتق من تقريره الحالةَ الحتمية وتوصلها بسياق sourceGovernance
+// فتصل قرارَ النشر تلقائياً من المسار الحقيقي — لا من قيمة اختبار مصطنعة.
+export function deriveVerificationGovernance(briefing?: string): {
+  verificationStatus: "approved" | "rejected_not_authoritative" | "rejected_not_supported" | "verification_failed" | "unverified";
+  unverifiedSource: boolean;
+  unmatchedCitations: number;
+} {
+  const b = briefing ?? "";
+  const unmatchedCitations = (b.match(/«غير مطابق»/g) ?? []).length;
+  const notAuthoritative = (b.match(/«غير مختص»/g) ?? []).length;
+  const failed = (b.match(/«تعذّر التحقّق»|«تعذر التحقق»/g) ?? []).length;
+  const confirmed = (b.match(/«مؤكَّد»|«مؤكد»/g) ?? []).length;
+  // الأولوية: الرفض الصريح أشد من التعذر، والتعذر أشد من الغياب
+  if (unmatchedCitations > 0) return { verificationStatus: "rejected_not_supported", unverifiedSource: false, unmatchedCitations };
+  if (notAuthoritative > 0) return { verificationStatus: "rejected_not_authoritative", unverifiedSource: true, unmatchedCitations };
+  if (failed > 0) return { verificationStatus: "verification_failed", unverifiedSource: true, unmatchedCitations };
+  if (confirmed > 0) return { verificationStatus: "approved", unverifiedSource: false, unmatchedCitations };
+  return { verificationStatus: "unverified", unverifiedSource: false, unmatchedCitations };
+}
+
 export async function reviewContent(text: string, kind: ContentKind = "post", context: ReviewContext = {}): Promise<ReviewResult> {
   // ★★ القاعدة المؤسسة (بأمر مالكة المنصة — ممنوع تجاوزها): قواعد السلوك المهني
   // واللائحة التنفيذية نقطة الانطلاق لكل مسار. النص يُعرض على القواعد أولاً —
@@ -323,11 +346,20 @@ export async function reviewContent(text: string, kind: ContentKind = "post", co
     timeoutMs: 45_000
   });
   if (verification?.briefing) {
+    // الرافع الفعلي: حالة التحقق تُشتق من تقرير المدقق وتُوصل بسياق الحوكمة —
+    // فتصل قرار النشر تلقائياً (rejected_not_supported / not_authoritative /
+    // verification_failed ترفع أسبابها المستقلة هناك). ولا تدخل القاضي ولا المقيّم.
+    const derived = deriveVerificationGovernance(verification.briefing);
     ctx = {
       ...context,
       verificationBriefing: verification.briefing,
       verificationSources: verification.sources,
       verificationDetails: verification.details,
+      sourceGovernance: {
+        ...context.sourceGovernance,
+        unverifiedSource: context.sourceGovernance?.unverifiedSource || derived.unverifiedSource,
+        verificationStatus: derived.verificationStatus,
+      },
     };
   }
 

@@ -4,7 +4,8 @@ import { badRequest } from "@/lib/api";
 import { KINGDOM_STYLE_RULE } from "@/lib/governance";
 import { generatePremiumImage, generatePremiumVariants, providerStatus, verifyOpenAIKey } from "@/lib/image-providers";
 import { generateVisualPlan, planToEngineDescription, type VisualPlan } from "@/lib/visual-translator";
-import { collectVisualPlanTexts, guardVisualTexts } from "@/lib/services/visual-guard";
+import { collectVisualPlanTexts, guardVisualTexts, guardVisualSourceGovernance, type VisualSourceContext } from "@/lib/services/visual-guard";
+import { pickNoSourceDeclaration } from "@/lib/source-governance";
 
 // توليد الصور عبر مزودين خارجيين قد يستغرق حتى دقيقة (ثلاث نسخ = أطول قليلاً)
 export const maxDuration = 120;
@@ -135,6 +136,15 @@ const schema = z.object({
   // توليد الخطة فقط (خطوة المراجعة) / خطة معتمدة من المستخدم — تُستخدم كما هي دون النص الخام
   planOnly: z.boolean().optional(),
   approvedPlan: z.custom<import("@/lib/visual-translator").VisualPlan>().optional(),
+  // ★ سياق حوكمة المصادر المنقول من النسخة الأصلية (أمر الإغلاق النهائي، البند
+  // أولاً) — الحد الأدنى: حالة الإيقاف والمادة (١٠) والمصدر الحكومي والتصريح.
+  // النص الأصلي نفسه هو description ويُستخدم مرجعاً لمطابقة الادعاءات.
+  sourceContext: z.object({
+    stopped: z.boolean().optional(),
+    article10Applied: z.boolean().optional(),
+    officialSourceFound: z.boolean().optional(),
+    notice: z.string().max(500).optional(),
+  }).optional(),
   audience: z.string().optional(),
   purpose: z.string().optional(),
   // معادلة السياق تسري على المرئيات أيضاً: النوع والتخصص والمصدر عوامل حاكمة
@@ -1354,7 +1364,7 @@ export async function POST(request: Request) {
   const parsed = schema.safeParse(await request.json());
   if (!parsed.success) return badRequest("المدخلات غير مكتملة");
 
-  const { description, visualType, chartType, style, dimensions, channel, editInstruction, previousVisual, outputMode, audience, purpose, planOnly, approvedPlan, contentType, specialty, source } = parsed.data;
+  const { description, visualType, chartType, style, dimensions, channel, editInstruction, previousVisual, outputMode, audience, purpose, planOnly, approvedPlan, contentType, specialty, source, sourceContext } = parsed.data;
 
   // عند طلب تعديل: يُلحق الطلب بالوصف فيُطبق على البيانات المولدة والتصميم
   // عند وجود بنية سابقة: التعديل يُطبَّق عليها حرفياً وكل ما عداه يبقى كما هو
@@ -1418,23 +1428,44 @@ export async function POST(request: Request) {
   // نفسه governText، بلا منطق موازٍ) — قبل أي رسم وقبل إرجاع planOnly.
   // المفحوص هو نصوص الخطة النهائية المعاد صياغتها، لا النص الأصلي.
   // فشل مغلق: مخالفة باقية أو تعطل الحارس ⇒ لا مرئي ولا خطة.
+  // ★ شرطا التسليم المستقلان للمرئي (أمر الإغلاق النهائي — القاعدة الحاكمة):
+  // (١) الامتثال المهني: الفحص الحرفي بالطبقة الأولى + الدلالي بالحارس المعتمد.
+  // (٢) الامتثال لحوكمة المصادر: فئات المادة (١٠) على النص النهائي المعاد
+  //     صياغته، بمطابقة كل تفصيلة مع النص الأصلي المحكوم — المترجم البصري
+  //     ممنوع من إضافة تفصيلة جديدة غير مسندة، ولا بحث حي داخل هذا المسار.
+  // مخالفة أيهما لا تُسجل على أنها الأخرى، وجولة تصحيح واحدة موجهة تجمعهما،
+  // وبقاء أيهما أو تعطل الحارس ⇒ لا خطة ولا رسم (فشل مغلق).
   let effectivePlan: VisualPlan | null = planForReturn;
   {
-    const firstVerdict = await guardVisualTexts(
-      effectivePlan ? collectVisualPlanTexts(effectivePlan) : [effectiveDescription]
-    );
-    let verdict = firstVerdict;
-    // جولة تصحيح واحدة موجهة بالمخالفات (بنص الأمر) — للخطط فقط: تُعاد الترجمة
-    // البصرية بتوجيه يسمي المخالفات، ثم يعاد الفحصان الحرفي والدلالي معاً.
+    const govCtx: VisualSourceContext = { originalText: description, ...sourceContext };
+    // النسخة الأصلية موقوفة بالمادة (١٠) ⇒ يمنع إنشاء مرئي منها فوراً
+    if (sourceContext?.stopped) {
+      return NextResponse.json(
+        { error: "لم يُعتمد المخرج البصري: النسخة الأصلية موقوفة بموجب المادة (١٠) من وثيقة حوكمة المصادر — لا يُنشأ مرئي منها." },
+        { status: 422 }
+      );
+    }
+    const checkBoth = async (texts: string[]) => {
+      const professional = await guardVisualTexts(texts);
+      const governance = guardVisualSourceGovernance(texts, govCtx);
+      return { professional, governance, ok: professional.ok && governance.ok };
+    };
+    const firstTexts = effectivePlan ? collectVisualPlanTexts(effectivePlan) : [effectiveDescription];
+    let verdict = await checkBoth(firstTexts);
+    // جولة تصحيح واحدة موجهة بمخالفات الشرطين معاً — ثم إعادة الفحوص كلها
     if (!verdict.ok && effectivePlan && apiKey) {
-      console.log("[generate-image:guard] جولة تصحيح —", JSON.stringify(verdict.corrections).slice(0, 400));
+      const allCorrections = [
+        ...(verdict.professional.ok ? [] : verdict.professional.corrections),
+        ...(verdict.governance.ok ? [] : verdict.governance.corrections),
+      ];
+      console.log("[generate-image:guard] جولة تصحيح —", JSON.stringify(allCorrections).slice(0, 400));
       const corrected = await generateVisualPlan(
         apiKey,
-        `${description}\n\nتصحيح امتثال إلزامي (جولة واحدة): الخطة البصرية السابقة رُصدت عليها المخالفات المهنية التالية، أعد بناءها معالجاً كل واحدة بحذف العبارة أو إعادة صياغتها ملتزمة بقواعد السلوك المهني واللائحة التنفيذية:\n${verdict.corrections.join("\n")}`,
+        `${description}\n\nتصحيح إلزامي (جولة واحدة): الخطة البصرية السابقة رُصدت عليها الملاحظات التالية — عالج كل واحدة بحذف العبارة أو إعادة صياغة فكرتها عامةً ملتزمة، وممنوع إدخال أي رقم أو مدة أو عقوبة أو تفصيلة نظامية غير واردة في النص الأصلي:\n${allCorrections.join("\n")}`,
         { channel, audience, purpose, contentType, specialty, source }
       );
       if (corrected) {
-        const recheck = await guardVisualTexts(collectVisualPlanTexts(corrected));
+        const recheck = await checkBoth(collectVisualPlanTexts(corrected));
         if (recheck.ok) {
           effectivePlan = corrected;
           verdict = recheck;
@@ -1442,9 +1473,20 @@ export async function POST(request: Request) {
       }
     }
     if (!verdict.ok) {
-      console.log("[generate-image:guard] منع —", JSON.stringify(verdict.corrections).slice(0, 400));
+      // رسالتا المنع مستقلتان بنوعيهما — لا دمج ولا تحويل بين المخالفتين
+      if (!verdict.professional.ok) {
+        console.log("[generate-image:guard] منع مهني —", JSON.stringify(verdict.professional.corrections).slice(0, 400));
+        return NextResponse.json(
+          { error: `لم يُعتمد المخرج البصري لوجود مخالفة مهنية أو نظامية في نصه. ${verdict.professional.corrections[0]?.replace(/^-\s*/, "") ?? ""} عدّل النص ثم أعد المحاولة.` },
+          { status: 422 }
+        );
+      }
+      const gv = verdict.governance;
+      const govCorrections = gv.ok ? [] : gv.corrections;
+      console.log("[generate-image:guard] منع حوكمة مصادر —", JSON.stringify(govCorrections).slice(0, 400));
+      const declaration = sourceContext?.notice ?? pickNoSourceDeclaration(source);
       return NextResponse.json(
-        { error: `لم يُعتمد المخرج البصري لوجود مخالفة مهنية أو نظامية في نصه. ${verdict.corrections[0]?.replace(/^-\s*/, "") ?? ""} عدّل النص ثم أعد المحاولة.` },
+        { error: `لم يُعتمد المخرج البصري لمخالفة حوكمة المصادر: ${govCorrections[0]?.replace(/^-\s*/, "") ?? ""} ${declaration}` },
         { status: 422 }
       );
     }

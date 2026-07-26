@@ -46,11 +46,14 @@ export function SourcesPanel({
     <div className="mt-5 rounded-xl border border-line bg-white/70 p-4">
       <div className="mb-1 flex items-center gap-2">
         <BookMarked size={16} className="text-palm" aria-hidden="true" />
-        <h3 className="text-sm font-semibold text-ink">المصادر المعتمدة</h3>
+        {/* بأمر مالكة المنصة (أمر الإغلاق النهائي): التحقق الكامل يجري في المراجعة —
+            فمصادر مرحلة الإنشاء تُعرض بتسميتها المرحلية الدقيقة «مصادر مستخدمة»،
+            ولا يوصف مصدر بـ«معتمد» قبل اجتياز التحقق الفعلي (لوحة «مصادر التحقق») */}
+        <h3 className="text-sm font-semibold text-ink">المصادر المستخدمة</h3>
         <span className="rounded-full bg-palm/10 px-2 py-0.5 text-xs font-medium text-palm">{sources.length}</span>
       </div>
       <p className="mb-3 text-xs leading-6 text-ink/50">
-        مصادر موثوقة استند إليها المحتوى — من جهات رسمية ودولية وأكاديمية معتمدة. راجعها للتحقق.
+        مصادر استُخدمت في بناء المحتوى — يكتمل التحقق منها في المراجعة، وتظهر نتيجته في «مصادر التحقق».
       </p>
 
       <ul className="space-y-2">

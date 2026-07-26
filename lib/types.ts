@@ -201,6 +201,10 @@ export type ReviewContext = {
     article10Applied?: boolean;     // هل طُبقت المادة (١٠)؟
     stopped?: boolean;              // هل أوقف المحتوى؟
     unverifiedSource?: boolean;     // مصدر لم يُتحقق من اختصاصه أو إسناده
+    // حالة التحقق المشتقة آلياً من تقرير المدقق الحي (الرافع الفعلي):
+    // approved | rejected_not_authoritative | rejected_not_supported |
+    // verification_failed | unverified
+    verificationStatus?: string;
   };
   reviewStatus?: ReviewReadinessStatus;
 };

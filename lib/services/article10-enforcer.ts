@@ -96,7 +96,7 @@ const CLAIM_PATTERNS: Array<{ category: string; re: RegExp; requires?: RegExp }>
   { category: "معلومة منسوبة إلى جهة حكومية", re: /(اكدت|اكد|اوضحت|اوضح|اعلنت|اعلن|قررت|قرر|صرحت|صرح|بحسب|وفقا ل|طبقا ل)(\s+)?/, requires: GOV_BODY },
 ];
 
-function normalizeClaim(text: string): string {
+export function normalizeClaim(text: string): string {
   return text
     .replace(/[ً-ْـ]/g, "")
     .replace(/[إأآا]/g, "ا")

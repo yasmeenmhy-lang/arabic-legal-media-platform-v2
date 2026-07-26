@@ -15,6 +15,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 import { scanAgainstCorpus } from "@/lib/services/corpus-scan";
 import { governText } from "@/lib/services/governor-gate";
+import { article10Violations, normalizeClaim } from "@/lib/services/article10-enforcer";
 import type { VisualPlan } from "@/lib/visual-translator";
 
 // كل نص سيظهر داخل المرئي — من الخطة البصرية النهائية (المعاد صياغتها)، لا من
@@ -70,4 +71,70 @@ export async function guardVisualTexts(
   if (!verdict.compliant) corrections.push(...verdict.corrections);
 
   return corrections.length === 0 ? { ok: true } : { ok: false, corrections };
+}
+
+// ─── بوابة حوكمة المصادر على النص النهائي للمرئي ─────────────────────────────
+// بأمر مالكة المنصة (أمر الإغلاق النهائي، البند أولاً): لا يكفي أن تكون حوكمة
+// المصادر سرت على النص الأصلي — المترجم البصري يختصر ويعيد الصياغة وقد يضيف
+// دلالة جديدة، فيُفحص النص النهائي الذي سيُرسم أيضاً.
+//
+// شرطا التسليم مستقلان: الامتثال المهني (guardVisualTexts أعلاه) والامتثال
+// لحوكمة المصادر (هذه البوابة) — ومخالفة أحدهما لا تُسجل على أنها الآخر.
+
+// سياق حوكمة المصادر المنقول من النسخة الأصلية — الحد الأدنى اللازم فقط
+export type VisualSourceContext = {
+  // النص الأصلي المحكوم الذي بُني منه المرئي — مرجع مطابقة الادعاءات:
+  // التفصيلة الموجودة فيه حُكمت في مسارها؛ والغائبة عنه «إضافة جديدة» ممنوعة.
+  originalText?: string;
+  // هل النسخة الأصلية موقوفة بالمادة (١٠)؟ ⇒ يمنع إنشاء مرئي منها أصلاً
+  stopped?: boolean;
+  article10Applied?: boolean;
+  officialSourceFound?: boolean;
+  // التصريح المرجعي المرافق للنسخة إن وُجد — يُعاد عرضه مع المنع بحسب النطاق
+  notice?: string;
+};
+
+export type VisualGovernanceVerdict =
+  | { ok: true }
+  | { ok: false; corrections: string[]; blockedByStop?: boolean };
+
+// يفحص نصوص المرئي النهائية بفئات المادة (١٠) الثلاث عشرة، ويطابق كل تفصيلة
+// مرصودة مع النص الأصلي: الواردة فيه حرفياً (بالتطبيع) مرّت بحوكمتها في مسارها؛
+// وغير الواردة «تفصيلة جديدة غير مسندة» أضافها المترجم — تُرصد للتصحيح أو المنع.
+// غياب السياق الأصلي مع وجود ادعاء يحتاج مصدراً ⇒ فشل مغلق (لا مطابقة ممكنة).
+// لا بحث حي داخل مسار المرئي — سياق النسخة الأصلية هو المرجع (بنص الأمر).
+export function guardVisualSourceGovernance(
+  texts: string[],
+  ctx?: VisualSourceContext
+): VisualGovernanceVerdict {
+  // النسخة الأصلية موقوفة بالمادة (١٠) ⇒ لا مرئي منها (بنص الأمر، البند ٦)
+  if (ctx?.stopped) {
+    return {
+      ok: false,
+      blockedByStop: true,
+      corrections: ["- النسخة الأصلية موقوفة بموجب المادة (١٠) من وثيقة حوكمة المصادر — لا يُنشأ مرئي منها."],
+    };
+  }
+  const joined = texts.join(". ").trim();
+  if (!joined) return { ok: true };
+
+  // كل التفاصيل النظامية في نص المرئي — تُرصد دائماً (sourceCount=0) ثم تُطابَق
+  const hits = article10Violations(joined, 0);
+  if (hits.length === 0) return { ok: true };
+
+  const normalizedOriginal = normalizeClaim(ctx?.originalText ?? "");
+  const uncovered = hits.filter((hit) => {
+    // المقتطف المرصود بين «» — إن ورد في الأصل المطبَّع فقد حُكم في مساره
+    const excerpt = hit.match(/«(.+?)»/)?.[1] ?? "";
+    if (!excerpt) return true;
+    return !normalizedOriginal.includes(normalizeClaim(excerpt));
+  });
+  if (uncovered.length === 0) return { ok: true };
+
+  return {
+    ok: false,
+    corrections: uncovered.map((h) =>
+      `- تفصيلة نظامية في نص المرئي غير واردة في النص الأصلي المحكوم (${h}): المترجم البصري ممنوع من إضافة تفصيلة غير مسندة — احذفها أو أعد صياغة الفكرة عامة.`
+    ),
+  };
 }

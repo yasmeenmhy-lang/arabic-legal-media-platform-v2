@@ -2039,10 +2039,10 @@ export default function ContentReviewPage() {
         {savedWebSources.length ? (
           <details className="mt-3 w-full max-w-full overflow-hidden rounded-xl border border-line bg-white p-4" open>
             <summary className="cursor-pointer text-sm font-semibold text-palm">
-              المصادر المعتمدة ({savedWebSources.length})
+              المصادر المستخدمة ({savedWebSources.length})
             </summary>
             <p className="mt-2 text-sm leading-7 text-ink/70">
-              مصادر موثوقة استند إليها المحتوى — من جهات رسمية ودولية وأكاديمية معتمدة. راجعها للتحقق.
+              مصادر استُخدمت في بناء المحتوى — نتيجة التحقق الفعلي منها تظهر في «مصادر التحقق» أدناه.
             </p>
             <ul className="mt-3 space-y-2">
               {savedWebSources.map((item, index) => (
