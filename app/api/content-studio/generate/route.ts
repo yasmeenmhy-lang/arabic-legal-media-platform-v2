@@ -8,7 +8,7 @@ import { verifyCorpusCitations } from "@/lib/services/citation-verifier";
 import { needsResearch, researchClaimsWithExpansion, openAndExtract, nameFailedStage, PIPELINE_STAGES } from "@/lib/services/web-research-service";
 import { isSaudiOfficialUrl } from "@/lib/services/web-research-service";
 import { analyzeIntent } from "@/lib/services/intent-analysis-service";
-import { buildDossier, markUsedSources, provenExcerpts, type SourceDossier } from "@/lib/source-dossier";
+import { buildDossier, markUsedSources, provenExcerpts, computeCompleteness, evidenceUsedInText, type SourceDossier } from "@/lib/source-dossier";
 import { SOURCE_GOVERNANCE, pickNoSourceDeclaration } from "@/lib/source-governance";
 import {
   article10Violations, article10ViolationsWithProof, detectWriterMarker, sanitizeEnforcementForStorage,
@@ -439,6 +439,8 @@ ${briefType
     let riskBlocked = false;
     let lastGov: GovernTextFullResult | null = null;
     let lastCitationIssues: ReturnType<typeof verifyCorpusCitations> = [];
+    // أحكام جوهرية مستخرجة بقيت خارج النص بعد الجولات — فشل مغلق مسمى (بوابة الاكتمال)
+    let lastMissingEssential = 0;
 
     // ★ حارس الحدّ الزمني (بقرار مالكة المنصة لمنع تعليق الصفحة): الطلب الخلفي
     // محدود بـ maxDuration=300 ثانية على الخادم؛ فإن تجاوز الدورة الكاملة (بحث +
@@ -523,25 +525,57 @@ ${briefType
       const proven = dossier.claims.filter((c) => c.status === "مثبت");
       const unproven = dossier.claims.filter((c) => c.status === "غير قابل للجزم" || c.status === "محكوم بالمادة ١٠");
       const generalClaims = dossier.claims.filter((c) => c.status === "عام مشروع");
-      researchSources = dossier.sources.map((s) => ({ title: s.title, url: s.url }));
+      // «المصادر المستخدمة» تُشتق من الملف (مصادر الادعاءات المثبتة) لا من ورود
+      // الرابط داخل المتن — بقرار المالكة: لا روابط مبعثرة في النص ولا مصادر تختفي
+      researchSources = dossier.sources
+        .filter((s) => s.linkedClaimIds.some((id) => proven.some((c) => c.id === id)))
+        .map((s) => ({ title: s.title, url: s.url }));
       enforcement.sourceFound = proven.length > 0;
       enforcement.sources = researchSources;
       console.log("[generate:proof-map]", proven.length, "مثبت /", unproven.length, "بلا إثبات /", generalClaims.length, "عام");
 
-      // [٤] خريطة الادعاء–المصدر تُسلَّم للكاتب — لا تقرير بحث حر (مبدأ الإثبات)
+      // ★ سلوك التسليم عند عدم اكتمال الإثبات (قرار المالكة الملزم):
+      // ادعاء جوهري بلا إثبات ⇒ حجب — لا يخرج النص مسودةً صالحة ولا محتوى عاماً،
+      // ويظهر سبب الإيقاف ومرحلة الإخفاق بدقة (والتقني مميز عن الغياب).
+      const essentialUnproven = unproven.filter((c) => c.essential !== false);
+      if (essentialUnproven.length > 0) {
+        const first = essentialUnproven[0];
+        const failedStage = first.failure
+          ? `${first.failure.stage} — ${first.failure.reason}`
+          : (nameFailedStage(dossier.researchTrace) ?? "تعذر إثبات الادعاء الجوهري");
+        enforcement.article10Applied = true;
+        enforcement.stopped = true;
+        enforcement.generalAllowed = false;
+        enforcement.outcome = `حجب قبل الكتابة: ادعاء جوهري بلا إثبات — ${failedStage}`;
+        console.log("[generate:essential-block]", enforcement.outcome);
+        dossier = { ...dossier, article10: { applied: true, stopped: true, notice: pickNoSourceDeclaration(source), failedStage } };
+        understandStopRef.current = {
+          failedStage,
+          technical: Boolean(first.failure?.technical),
+          technicalReason: first.failure?.reason,
+        };
+        return;
+      }
+
+      // [٤] خريطة الإثبات تُسلَّم للكاتب — الأدلة المستخرجة من الصفحات المفتوحة
+      // أولاً (بمحدداتها وطبيعتها)، والعزو في الموضع بصيغة مهنية لا روابط في المتن
       const provenLines = proven.map((c) => {
         const src = dossier!.sources.find((s) => s.id === c.sourceId);
-        return `- [${c.id}] ${c.text}\n  المقطع الداعم: «${c.supportingExcerpt ?? ""}»\n  المصدر: ${src?.issuer ?? src?.title ?? ""} — ${src?.url ?? ""}`;
+        const evs = (dossier!.evidence ?? []).filter((e) => c.evidenceIds?.includes(e.id));
+        if (evs.length > 0) {
+          return evs.map((e) =>
+            `- [${c.id}] ${c.text}\n  الدليل المستخرج (${e.docKind}${e.locator ? ` — ${e.locator}` : ""}${e.natureLabel ? ` — طبيعته: ${e.natureLabel}` : ""}${e.publishedAt ? ` — التاريخ: ${e.publishedAt}` : ""}) [الصلة: ${e.relevance}]: «${e.text}»\n  الجهة: ${src?.issuer ?? src?.title ?? ""}`
+          ).join("\n");
+        }
+        return `- [${c.id}] ${c.text}\n  المقطع الداعم: «${c.supportingExcerpt ?? ""}»\n  الجهة: ${src?.issuer ?? src?.title ?? ""}`;
       }).join("\n");
-      const unprovenLines = unproven.map((c) => `- [${c.id}] ${c.text}`).join("\n");
+      const supportingUnproven = unproven; // كلها مساندة هنا (الجوهرية حُجبت أعلاه)
+      const unprovenLines = supportingUnproven.map((c) => `- [${c.id}] ${c.text}`).join("\n");
       const generalLines = generalClaims.map((c) => `- [${c.id}] ${c.text}`).join("\n");
-      const linkDirective = wantSource
-        ? "وبما أن المستخدم طلب الدعم بمصدر صراحةً، استشهد بمصدر مثبت فعلاً في النص واذكر رابطه بين قوسين عقب المعلومة."
-        : "واذكر رابط المصدر عند الاستشهاد المباشر به.";
 
-      if (unproven.length > 0) {
-        // ادعاءات بلا إثبات ⇒ المادة (١٠) تسري عليها، والتصريح يظهر — ومرحلة
-        // الإخفاق تُسمى من أثر البحث (الدفعة ج) فتظهر ملاحظةً مرافقة لا مبهمة
+      if (supportingUnproven.length > 0) {
+        // ادعاءات مساندة بلا إثبات ⇒ تُحذف من النص كلياً ويُسلَّم بشفافية مع
+        // منع الجاهزية (قرار المالكة ٢-ب) — «الإفصاح لا يصحح المعلومة غير المثبتة»
         enforcement.article10Applied = true;
         enforcement.generalAllowed = true;
         enforcement.violations = [];
@@ -551,7 +585,7 @@ ${briefType
         dossier = { ...dossier, article10: { applied: true, stopped: false, notice: sourceNote, failedStage } };
       }
 
-      promptText = `${user}\n\n★ خريطة الادعاءات والإثبات (من محرك الفهم — المرجع الوحيد، اكتب على أساسها حصراً):\n${proven.length > 0 ? `\nالادعاءات المثبتة — اكتبها من مقاطعها الداعمة بنسبتها لمصادرها. ${linkDirective} ممنوع أي تفصيلة من ذاكرتك خارجها. وفي قائمة «المصادر» ختام النص لا تدرج أكثر من مصدرين أو ثلاثة:\n${provenLines}` : ""}${unproven.length > 0 ? `\n\nادعاءات تعذر إثباتها — لا تدخل المحتوى تفصيلةً ولا تُعرض حقيقةً (المادة ١٠): اكتب فكرتها عامة مشروعة أو أغفلها، وإن كان الطلب كله لا يُجاب إلا بها فأخرج سطر الإيقاف وحده: ${ARTICLE10_STOP_MARKER}\n${unprovenLines}` : ""}${generalLines ? `\n\nأفكار عامة مشروعة (لا تحتاج مصدراً):\n${generalLines}` : ""}`;
+      promptText = `${user}\n\n★ خريطة الإثبات (المرجع الوحيد للحقيقة — اكتب على أساسها حصراً، ولا تنشئ حقيقة خارجها):\n${proven.length > 0 ? `\nالادعاءات المثبتة بأدلتها المستخرجة من المصادر المفتوحة — اكتب الحقائق منها حصراً:\n${provenLines}\n\nقواعد الكتابة من الأدلة (ملزمة):\n- كل دليل صلته «جوهري» يجب أن يدخل النص بمضمونه مع عزوه في موضعه بصيغة مهنية طبيعية: «وفق المادة (…) من النظام…» أو «بحسب اللائحة التنفيذية…» أو «وفق ما أعلنته (الجهة) بتاريخ…» — بحسب نوع الدليل، ولا تختلق رقم مادة لدليل ليس نصاً نظامياً.\n- لا تضع روابط داخل متن النص إطلاقاً — الروابط في ملف المصادر لا في المقال. وفي ختام النص قائمة «المصادر» بأسماء الجهات والوثائق فقط (مصدران أو ثلاثة كحد أقصى).\n- ميّز بوضوح بين خمس فئات في صياغتك: (١) الحقيقة الرسمية — من الدليل بعزوه فقط؛ (٢) التلخيص — ينقل المعنى دون توسيع؛ (٣) الشرح — يبسط الأثر دون إنشاء حكم جديد؛ (٤) التحليل المهني — مبني على المثبت فقط ويُعرض بصيغة التحليل («ومن الناحية العملية…») لا بصيغة الحقيقة؛ (٥) الرأي — بصفته رأياً مهنياً غير ملزم لا يُنسب للنظام أو الجهة.\n- ممنوع استنتاج آثار غير واردة في الأدلة (بطلان، أهلية، اختصاص جهة، أثر على خدمة، التزام إضافي، نتيجة قضائية): كل أثر كهذا ادعاء مستقل — إن لم يكن له دليل فلا يُذكر إلا تحليلاً احتمالياً صريح الصيغة، أو يُترك.\n- ممنوع أي تفصيلة نظامية من ذاكرتك خارج الأدلة.` : ""}${supportingUnproven.length > 0 ? `\n\nادعاءات مساندة تعذر إثباتها — احذفها من المحتوى كلياً: لا تذكرها ولا تلمح إليها ولا تبقها مع تنبيه (الإفصاح لا يصحح معلومة غير مثبتة). أعد بناء الفكرة بدونها متماسكة غير ناقصة:\n${unprovenLines}\nوإن تعذر بناء محتوى صادق بدونها فأخرج سطر الإيقاف وحده: ${ARTICLE10_STOP_MARKER}` : ""}${generalLines ? `\n\nأفكار عامة مشروعة (لا تحتاج مصدراً):\n${generalLines}` : ""}`;
     };
 
     if (needsResearch(contentType, sourceSpec)) {
@@ -575,6 +609,7 @@ ${briefType
       text: string; truncated: boolean; inflated: boolean; gov: GovernTextFullResult;
       citationIssues: ReturnType<typeof verifyCorpusCitations>;
       article10: string[];
+      missingEssential: number;
       hardLanguageError: boolean; riskBlocked: boolean; deliverable: boolean; corrections: string[];
     };
     // الإشارتان الحرفيتان من الكاتب (إنفاذ المادة ١٠ وفهم الطلب المكتوب بالمعنى):
@@ -623,10 +658,19 @@ ${briefType
       // مبدأ الإثبات (قاعدة المحرك الواحد): التفصيلة تُقبل فقط إن وردت في مقطع
       // داعم لادعاء مثبت في الخريطة — لا لمجرد وجود مصادر في الملف
       const article10 = dossier ? article10ViolationsWithProof(candidateText, proofList) : article10Violations(candidateText, 0);
+      // ★ بوابة اكتمال الاستناد داخل الجولات: حكم جوهري مستخرج لم يدخل النص
+      // يعاد للتصحيح بتوجيه محدد — «كتب تحليلاً ناقصاً» إخفاق لا يُسلَّم (بقرار المالكة)
+      const missingEssentialEvidence = dossier
+        ? (dossier.evidence ?? []).filter((e) =>
+            e.relevance === "جوهري" &&
+            e.linkedClaimIds.some((id) => dossier!.claims.some((c) => c.id === id && c.status === "مثبت")) &&
+            !evidenceUsedInText(e, candidateText))
+        : [];
       const corrections: string[] = [];
       if (inflated) corrections.push(`- تجاوزتَ قالب النوع «${contentType}» وطوله المحدد: النص يجب أن يلتزم بنية هذا النوع وإيجازه — أعد كتابته أقصر ومكتمل المعنى دون قطع.`);
       corrections.push(...citationIssues.map((issue) => `- ${issue.message} صحّح المرجع أو الاقتباس ليطابق المتن الرسمي حرفياً، أو احذف الاستشهاد.`));
       corrections.push(...article10.map((v) => `- مخالفة المادة (١٠) من وثيقة حوكمة المصادر — ${v}: لا مصدر رسمي مرفق لهذه التفصيلة. أعد صياغة الفكرة عامةً مشروعة بلا هذه التفصيلة، وأعد تقييم سلامة النص كاملاً بعد التعديل — لا حذفاً موضعياً يترك نصاً ناقصاً أو مضللاً.`));
+      corrections.push(...missingEssentialEvidence.map((e) => `- حكم جوهري مستخرج من المصدر لم يدخل نصك${e.locator ? ` (${e.locator})` : ""}: أدرج مضمونه بعزوه في موضعه — «${e.text.slice(0, 140)}»`));
       if (risk && gov.contentEval) {
         corrections.push(
           `- حكم المخاطر المهنية على نصك: «${gov.contentEval.risks.level}» — السبب: ${gov.contentEval.risks.explanation} المعالجة الإلزامية: ${gov.contentEval.risks.fix || "أزل مصدر الخطر من الصياغة نفسها"} — وإن كان مصدر الخطر سردَ واقعة استشارة أو موكل أو شخص، فأعد بناء الفكرة مثالاً افتراضياً عاماً معلناً أو نمطاً مجمّعاً بلا واقعة بعينها.`
@@ -635,8 +679,9 @@ ${briefType
       corrections.push(...gov.corrections);
       return {
         text: candidateText, truncated: produced.truncated, inflated, gov, citationIssues, article10,
+        missingEssential: missingEssentialEvidence.length,
         hardLanguageError: hardLang, riskBlocked: risk,
-        deliverable: gov.clean && !inflated && !risk && citationIssues.length === 0 && article10.length === 0,
+        deliverable: gov.clean && !inflated && !risk && citationIssues.length === 0 && article10.length === 0 && missingEssentialEvidence.length === 0,
         corrections,
       };
     };
@@ -654,6 +699,7 @@ ${briefType
       hardLanguageError = candidate.hardLanguageError;
       riskBlocked = candidate.riskBlocked;
       lastCitationIssues = candidate.citationIssues;
+      lastMissingEssential = candidate.missingEssential;
       enforcement.violations = candidate.article10;
       return candidate.gov;
     };
@@ -701,13 +747,23 @@ ${briefType
 
       const winner = candidates.find((c) => c.deliverable);
       if (winner) {
-        enforcement.outcome = enforcement.article10Applied
-          ? "سُلِّم محتوى عام مشروع مع التصريح الإلزامي"
-          : "سُلِّم المحتوى";
-        // «المصادر المعتمدة» = ما استُخدم في النص فعلاً (بقرار المالكة) — لا نتيجة
-        // بحث لم يُستند إليها. المعيار الحتمي: رابط المصدر وارد في النص المسلَّم.
-        const used = researchSources.filter((s) => winner.text.includes(s.url));
-        return { kind: "ok", text: winner.text, truncated: false, gov: winner.gov, sources: used, sourceNote, enforcement, dossier: dossier ? markUsedSources(dossier, winner.text) : undefined };
+        // ★ حكم اكتمال الإثبات يُحسب حتمياً على النص المسلَّم ويسافر في الملف —
+        // ومخرج الإنفاذ يسمي النتيجة من الحكم لا من انطباع (معيار النجاح المعتمد)
+        let deliveredDossier = dossier ? markUsedSources(dossier, winner.text) : undefined;
+        if (deliveredDossier) {
+          const verdict = computeCompleteness(deliveredDossier, winner.text, { unsupportedDetails: winner.article10.map((v) => v.split(":")[0].trim()) });
+          deliveredDossier = { ...deliveredDossier, completeness: verdict };
+          enforcement.outcome = verdict.ready
+            ? "سُلِّم مكتمل الإثبات"
+            : `سُلِّم مع منع الجاهزية — ${verdict.reasons.join(" | ").slice(0, 280)}`;
+        } else {
+          enforcement.outcome = enforcement.article10Applied
+            ? "سُلِّم محتوى عام مشروع مع التصريح الإلزامي"
+            : "سُلِّم المحتوى";
+        }
+        // «المصادر المستخدمة» من الملف (مصادر الادعاءات المثبتة) — لا تختفي لغياب
+        // الرابط من المتن (بقرار المالكة: لا روابط داخل النص أصلاً)
+        return { kind: "ok", text: winner.text, truncated: false, gov: winner.gov, sources: researchSources, sourceNote, enforcement, dossier: deliveredDossier };
       }
 
       // لا مستوفي بعد: يُختار الأقرب (أقل تصحيحات) لجولة تصحيح موضعي
@@ -756,6 +812,14 @@ ${briefType
     if (lastCitationIssues.length > 0) {
       return { kind: "err", error: "تعذّر إنشاء نص باستشهادات دقيقة مطابقة لنصوص قواعد السلوك المهني واللائحة التنفيذية. أعد المحاولة.", enforcement };
     }
+    // ★ بوابة الاكتمال بعد استنفاد الجولات: حكم جوهري مستخرج بقي خارج النص ⇒
+    // «كتب تحليلاً ناقصاً» — حجب بفشل مغلق مسمى بمرحلته (بقرار المالكة)
+    if (lastMissingEssential > 0) {
+      enforcement.stopped = true;
+      enforcement.outcome = `${PIPELINE_STAGES[10]}: أُوقف التسليم — بقي ${lastMissingEssential} حكم جوهري مستخرج خارج النص بعد جولات التصحيح`;
+      console.log("[generate:completeness-block]", enforcement.outcome);
+      return { kind: "err", error: `تعذّر التسليم: المحتوى لم يستوعب الأحكام الجوهرية المستخرجة من المصدر الرسمي بعد جولات التصحيح — فلا يُسلَّم تحليل ناقص.\n\nموضع التوقف: ${PIPELINE_STAGES[10]}`, enforcement, dossier: dossier ?? undefined };
+    }
     // إنفاذ بقية القاعدة الأساسية (بنص مالكة المنصة): المخاطر المهنية من صياغة المنصة
     // والأخطاء اللغوية والإملائية حاجبة للتسليم نهائياً مثل المخالفة النظامية — فشل مغلق
     if (riskBlocked) {
@@ -774,24 +838,36 @@ ${briefType
     if (!clean) {
       console.log("[generate:style-residual] تُسلَّم مع ملاحظة أسلوبية:", JSON.stringify(lastGov?.corrections ?? []).slice(0, 400));
     }
-    enforcement.outcome = enforcement.article10Applied
-      ? "سُلِّم محتوى عام مشروع مع التصريح الإلزامي"
-      : "سُلِّم المحتوى";
-    // «المصادر المعتمدة» = ما استُخدم في النص فعلاً — رابطه وارد في النص المسلَّم
-    return { kind: "ok", text, truncated, gov: lastGov!, sources: researchSources.filter((s) => text.includes(s.url)), sourceNote, enforcement, dossier: dossier ? markUsedSources(dossier, text) : undefined };
+    // حكم الاكتمال على المسار الثاني للتسليم أيضاً — المصدر الواحد للمعيار
+    let deliveredDossier = dossier ? markUsedSources(dossier, text) : undefined;
+    if (deliveredDossier) {
+      const verdict = computeCompleteness(deliveredDossier, text, { unsupportedDetails: enforcement.violations.map((v) => v.split(":")[0].trim()) });
+      deliveredDossier = { ...deliveredDossier, completeness: verdict };
+      enforcement.outcome = verdict.ready
+        ? "سُلِّم مكتمل الإثبات"
+        : `سُلِّم مع منع الجاهزية — ${verdict.reasons.join(" | ").slice(0, 280)}`;
+    } else {
+      enforcement.outcome = enforcement.article10Applied
+        ? "سُلِّم محتوى عام مشروع مع التصريح الإلزامي"
+        : "سُلِّم المحتوى";
+    }
+    // «المصادر المستخدمة» من الملف — لا تختفي لغياب الرابط من المتن
+    return { kind: "ok", text, truncated, gov: lastGov!, sources: researchSources, sourceNote, enforcement, dossier: deliveredDossier };
   }
 
   // يبني تقرير المراجعة الكامل من حكم الإنشاء نفسه (بلا ذكاء ثانٍ مستقل) — يُستدعى فقط
   // بعد نجاح التسليم. أي خطأ هنا لا يُسقط تسليم النص أبداً: يُسجَّل ويُتجاهل فقط
   // (المستخدمة تبقى قادرة على طلب تحليل عادي لاحقاً كالمعتاد).
-  async function buildUnifiedReview(text: string, gov: GovernTextFullResult, enforcement?: Article10Enforcement): Promise<ReviewResult | null> {
+  async function buildUnifiedReview(text: string, gov: GovernTextFullResult, enforcement?: Article10Enforcement, reviewDossier?: SourceDossier): Promise<ReviewResult | null> {
     if (!contentKind || !gov.semanticResult || !gov.contentEval) return null;
     try {
       // نتيجة حوكمة المصادر الحتمية تُمرَّر لقرار النشر قيداً مستقلاً (البند ثانياً) —
       // لا تدخل القاضي ولا المقيّم، والمخالفات المتبقية صفر هنا (النص سُلِّم)،
       // فالسبب الوارد فعلياً: غياب المصدر الحكومي حين طُبقت المادة (١٠).
+      // ملف الإثبات يمر للتقرير فيُحسب اكتمال الاستناد ويدخل قرار النشر بأعداده.
       const context = {
         contentType, channel, audience, purpose, specialty, source, topic,
+        sourceDossier: reviewDossier,
         sourceGovernance: enforcement
           ? {
               violations: enforcement.violations.map((v) => v.split(":")[0].trim()),
@@ -866,7 +942,7 @@ ${briefType
           void setJobPartial(sql, jobId, draft).catch(() => {});
         });
         if (result.kind === "ok") {
-          const review = await buildUnifiedReview(result.text, result.gov, result.enforcement);
+          const review = await buildUnifiedReview(result.text, result.gov, result.enforcement, result.dossier);
           const costUsd = await settleCost();
           await completeJob(
             sql, jobId, result.text, result.truncated,
@@ -924,7 +1000,7 @@ ${briefType
       try {
         const result = await runPipeline((draft) => send({ type: "partial", text: draft }));
         if (result.kind === "ok") {
-          const review = await buildUnifiedReview(result.text, result.gov, result.enforcement);
+          const review = await buildUnifiedReview(result.text, result.gov, result.enforcement, result.dossier);
           send({ type: "result", text: result.text, truncated: result.truncated, review: review ?? undefined, sources: result.sources.length ? result.sources : undefined, sourceNote: result.sourceNote });
         } else {
           send({ type: "error", error: result.error });

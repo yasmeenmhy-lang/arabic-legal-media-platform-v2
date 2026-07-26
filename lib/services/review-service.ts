@@ -22,7 +22,8 @@ import { runSemanticAnalysis } from "@/lib/services/semantic-analysis-service";
 import type { SemanticAnalysisResult } from "@/lib/services/semantic-analysis-service";
 import { evaluateContent } from "@/lib/services/content-evaluation-service";
 import { verifyTextCitations } from "@/lib/services/web-research-service";
-import { mergeVerificationIntoDossier } from "@/lib/source-dossier";
+import { mergeVerificationIntoDossier, computeCompleteness, describeEvidenceState, provenExcerpts } from "@/lib/source-dossier";
+import { article10ViolationsWithProof } from "@/lib/services/article10-enforcer";
 import { buildGovernedRewriteSuggestions } from "@/lib/services/recommendation-service";
 import {
   calculateContentQualityScore,
@@ -242,7 +243,22 @@ export async function buildReviewResult(
   // تقرير التحقق الحي (بصيغته المميزة «غير مطابق») — بلا مساس بالقاضي أو المقيّم
   // أو معادلاتهما، وبلا تحويل بين نوعي المخالفة.
   const unmatchedCitations = (context.verificationBriefing?.match(/«غير مطابق»/g) ?? []).length;
-  const sourceGovernanceReasons = buildSourceGovernanceReasons(context.sourceGovernance, unmatchedCitations);
+  // ★ بوابة اكتمال الإثبات (بقرار المالكة — قناة الحوكمة، لا القاضي ولا المقيّم):
+  // حكم حتمي من ملف النسخة والنص: الادعاءات المحتاجة إثباتاً والمثبت منها وسبب
+  // غير المثبت (التقني مميزاً)، والأحكام الجوهرية المغفلة، والتفاصيل خارج الخريطة.
+  // أسبابه تدخل قرار النشر مسماة، وخلاصته بالأعداد الفعلية تُعرض — لا عبارات عامة.
+  const completenessVerdict = context.sourceDossier
+    ? computeCompleteness(context.sourceDossier, text, {
+        unsupportedDetails: article10ViolationsWithProof(text, provenExcerpts(context.sourceDossier)).map((v) => v.split(":")[0].trim()),
+      })
+    : undefined;
+  const completenessReasons = completenessVerdict && !completenessVerdict.ready
+    ? completenessVerdict.reasons.map((r) => `غير جاهز للنشر بسبب اكتمال الإثبات: ${r}`)
+    : [];
+  const sourceGovernanceReasons = [
+    ...buildSourceGovernanceReasons(context.sourceGovernance, unmatchedCitations),
+    ...completenessReasons,
+  ];
   const publicationDecision = buildPublicationDecision({
     confidence,
     readiness: readinessDecision,
@@ -282,7 +298,14 @@ export async function buildReviewResult(
     // ولا تتحول هذه المصادر تلقائياً إلى مصادر معتمدة.
     verifiedWebSources: context.verificationDetails?.length ? context.verificationDetails : undefined,
     // ملف المصادر بعد دمج نتائج التحقق — يعود مع النتيجة فيُحفظ مع النسخة نفسها
-    sourceDossier: context.sourceDossier,
+    // (ومعه حكم الاكتمال المحسوب على هذا النص)
+    sourceDossier: context.sourceDossier && completenessVerdict
+      ? { ...context.sourceDossier, completeness: completenessVerdict }
+      : context.sourceDossier,
+    // خلاصة الحالة الفعلية للإثبات — تفسير قرار النشر بالأعداد لا بعبارات عامة
+    sourceCompleteness: completenessVerdict
+      ? { verdict: completenessVerdict, summary: describeEvidenceState(completenessVerdict) }
+      : undefined,
     governedRewrites,
     traceability: {
       reviewId: reviewContext.reviewId,

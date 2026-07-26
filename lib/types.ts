@@ -1,4 +1,4 @@
-import type { SourceDossier } from "@/lib/source-dossier";
+import type { SourceDossier, CompletenessVerdict } from "@/lib/source-dossier";
 
 export type RoleName = "LAWYER" | "SUPERVISOR" | "ADMIN" | "DIRECTOR";
 
@@ -432,6 +432,9 @@ export type ReviewResult = {
   /** ملف المصادر بعد دمج نتائج التحقق (قاعدة المحرك الواحد) — يعود مع النتيجة
    * فتحفظه الواجهة مع النسخة نفسها: تحديث حالة لا إعادة بناء */
   sourceDossier?: SourceDossier;
+  /** حكم اكتمال الإثبات وخلاصته بالأعداد الفعلية — تفسير قرار النشر من حالة
+   * الملف لا من عبارات عامة (بقرار المالكة، ضمن حوكمة المصادر لا القاضي) */
+  sourceCompleteness?: { verdict: CompletenessVerdict; summary: string };
   governedRewrites: GovernedRewriteSuggestion[];
   traceability: ReviewTraceability;
   workflow: ReviewWorkflowStep[];

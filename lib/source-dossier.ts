@@ -85,6 +85,8 @@ export type SourceDossier = {
   sources: DossierSource[];
   // الأدلة المستخرجة من الصفحات المفتوحة فعلاً — أساس الكتابة والإنفاذ
   evidence?: ExtractedEvidence[];
+  // حكم اكتمال الإثبات للنص المسلَّم — يُحسب حتمياً ويسافر مع النسخة
+  completeness?: CompletenessVerdict;
   intentSummary?: string;     // خلاصة التمثيل الدلالي
   article10?: { applied: boolean; stopped: boolean; notice?: string; failedStage?: string };
   researchedAt?: string;
@@ -227,6 +229,114 @@ export function provenExcerpts(dossier: SourceDossier): string[] {
     .filter((e) => e.linkedClaimIds.some((id) => provenIds.has(id)))
     .map((e) => e.text);
   return [...fromClaims, ...fromEvidence];
+}
+
+// ─── بوابة اكتمال الإثبات (بقرار المالكة — ضمن حوكمة المصادر، لا القاضي) ─────
+// حكم حتمي بالكود يقارن حالة الملف بالنص النهائي: «لا يعد المحتوى جاهزاً» عند
+// ادعاء بلا إثبات، أو مصدر لم يُفتح، أو حكم جوهري مستخرج أغفله النص، أو تفصيل
+// خارج خريطة الإثبات — مع التمييز الصريح بين «جوهري أُغفل بما يخل» و«صحيح لكنه
+// خارج نطاق الفكرة ولا يلزم ذكره»، وبين التعذر التقني وغياب المصدر.
+export type CompletenessVerdict = {
+  ready: boolean;
+  claimsNeedingProof: number;
+  claimsProven: number;
+  unproven: { id: string; text: string; reason: string; technical: boolean; essential: boolean }[];
+  // أدلة جوهرية مثبتة أغفلها النص — مانع («حكم جوهري أُغفل بما يخل بالمحتوى»)
+  essentialEvidenceUnused: { evidenceId: string; locator?: string }[];
+  // أدلة مساندة لم تُستخدم — «صحيحة لكنها خارج نطاق الفكرة ولا يلزم ذكرها» (لا تمنع)
+  supportingEvidenceUnusedCount: number;
+  // تفاصيل في النص خارج خريطة الإثبات (تسميات فئات فقط — معقّمة)
+  unsupportedDetails: string[];
+  sourcesOpened: number;
+  sourcesFailedTechnically: number;
+  reasons: string[];
+};
+
+// هل استُخدم الدليل في النص فعلاً؟ — كشف حتمي: وروده بمحدده أو بنافذة مطبَّعة من نصه
+function normalizeForMatch(text: string): string {
+  return text
+    .replace(/[ً-ْـ]/g, "")
+    .replace(/[إأآا]/g, "ا")
+    .replace(/ى/g, "ي")
+    .replace(/\s+/g, " ");
+}
+
+export function evidenceUsedInText(evidence: ExtractedEvidence, finalText: string): boolean {
+  const hay = normalizeForMatch(finalText);
+  if (evidence.locator && hay.includes(normalizeForMatch(evidence.locator))) return true;
+  const needle = normalizeForMatch(evidence.text);
+  if (!needle.trim()) return false;
+  const windowSize = 25;
+  if (needle.length <= windowSize) return hay.includes(needle);
+  for (let start = 0; start + windowSize <= needle.length; start += 10) {
+    if (hay.includes(needle.slice(start, start + windowSize))) return true;
+  }
+  return false;
+}
+
+export function computeCompleteness(
+  dossier: SourceDossier,
+  finalText: string,
+  opts?: { unsupportedDetails?: string[] }
+): CompletenessVerdict {
+  const proofClaims = dossier.claims.filter((c) => c.status !== "عام مشروع");
+  const proven = proofClaims.filter((c) => c.status === "مثبت");
+  const unproven = proofClaims
+    .filter((c) => c.status !== "مثبت")
+    .map((c) => ({
+      id: c.id,
+      text: c.text,
+      reason: c.failure?.reason ?? (c.status === "محكوم بالمادة ١٠" ? "لا مصدر حكومي رسمي مختص يثبته" : "لم يكتمل إثباته"),
+      technical: Boolean(c.failure?.technical),
+      essential: c.essential !== false,
+    }));
+  const provenIds = new Set(proven.map((c) => c.id));
+  const relevantEvidence = (dossier.evidence ?? []).filter((e) => e.linkedClaimIds.some((id) => provenIds.has(id)));
+  const unusedEssential = relevantEvidence.filter((e) => e.relevance === "جوهري" && !evidenceUsedInText(e, finalText));
+  const unusedSupporting = relevantEvidence.filter((e) => e.relevance === "مساند" && !evidenceUsedInText(e, finalText));
+  const unsupportedDetails = opts?.unsupportedDetails ?? [];
+  const sourcesOpened = dossier.sources.filter((s) => s.fetchStatus === "فُتح وتحقق").length;
+  const sourcesFailedTechnically = dossier.sources.filter((s) => s.fetchStatus === "تعذر الفتح تقنياً").length;
+
+  const reasons: string[] = [];
+  for (const u of unproven) {
+    reasons.push(
+      u.technical
+        ? `ادعاء ${u.essential ? "جوهري" : "مساند"} لم يثبت لتعذر تقني في فتح مصدره (وليس لغياب المصدر): ${u.reason}`
+        : `ادعاء ${u.essential ? "جوهري" : "مساند"} بلا إثبات: ${u.reason}`
+    );
+  }
+  if (unusedEssential.length > 0) {
+    reasons.push(`حكم جوهري مستخرج أغفله النص بما يخل بالمحتوى (${unusedEssential.map((e) => e.locator ?? e.id).join("، ")})`);
+  }
+  if (unsupportedDetails.length > 0) {
+    reasons.push(`النص يتضمن تفصيلاً خارج خريطة الإثبات: ${unsupportedDetails.join("، ")}`);
+  }
+  return {
+    ready: unproven.length === 0 && unusedEssential.length === 0 && unsupportedDetails.length === 0,
+    claimsNeedingProof: proofClaims.length,
+    claimsProven: proven.length,
+    unproven,
+    essentialEvidenceUnused: unusedEssential.map((e) => ({ evidenceId: e.id, locator: e.locator })),
+    supportingEvidenceUnusedCount: unusedSupporting.length,
+    unsupportedDetails,
+    sourcesOpened,
+    sourcesFailedTechnically,
+    reasons,
+  };
+}
+
+// خلاصة الحالة الفعلية للملف — تُعرض في تفسير قرار النشر بالأعداد لا بعبارات عامة
+export function describeEvidenceState(v: CompletenessVerdict): string {
+  const parts = [
+    `الادعاءات المحتاجة إثباتاً: ${v.claimsNeedingProof} — المثبت منها: ${v.claimsProven}`,
+    v.unproven.length ? `غير المثبت: ${v.unproven.map((u) => `${u.id} (${u.technical ? "تعذر تقني" : u.reason})`).join("، ")}` : "",
+    `المصادر المفتوحة المتحقق منها: ${v.sourcesOpened}${v.sourcesFailedTechnically ? ` — تعذر فتح ${v.sourcesFailedTechnically} تقنياً` : ""}`,
+    v.essentialEvidenceUnused.length ? `أحكام جوهرية أغفلها النص: ${v.essentialEvidenceUnused.length}` : "",
+    v.supportingEvidenceUnusedCount ? `أحكام مساندة صحيحة خارج نطاق الفكرة (لا يلزم ذكرها): ${v.supportingEvidenceUnusedCount}` : "",
+    v.unsupportedDetails.length ? `تفاصيل خارج خريطة الإثبات: ${v.unsupportedDetails.length}` : "",
+  ].filter(Boolean);
+  return parts.join(" · ");
 }
 
 // دمج نتائج تحقق المراجعة في الملف (بالرابط): «مؤكَّد» يرفع الحالة،

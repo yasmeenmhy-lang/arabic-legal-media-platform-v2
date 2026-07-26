@@ -8,7 +8,7 @@ import { describeProviderError } from "@/lib/ai-provider-errors";
 import { researchClaimsWithExpansion, openAndExtract, nameFailedStage, PIPELINE_STAGES } from "@/lib/services/web-research-service";
 import { isSaudiOfficialUrl } from "@/lib/services/web-research-service";
 import { analyzeIntent } from "@/lib/services/intent-analysis-service";
-import { buildDossier, provenExcerpts, markUsedSources, type SourceDossier } from "@/lib/source-dossier";
+import { buildDossier, provenExcerpts, markUsedSources, computeCompleteness, type SourceDossier } from "@/lib/source-dossier";
 import { buildOfficialRuleCorpusText } from "@/lib/rule-corpus-text";
 import { SOURCE_GOVERNANCE, ARTICLE_10_DECLARATION } from "@/lib/source-governance";
 import { article10Violations, article10ViolationsWithProof } from "@/lib/services/article10-enforcer";
@@ -198,22 +198,51 @@ async function runReformulation(data: z.infer<typeof schema>, apiKey: string): P
   if (activeDossier) {
     proofList = provenExcerpts(activeDossier);
     const proven = activeDossier.claims.filter((c) => c.status === "مثبت");
+    const unproven = activeDossier.claims.filter((c) => c.status === "غير قابل للجزم" || c.status === "محكوم بالمادة ١٠");
+    // «المصادر المستخدمة» من الملف (مصادر الادعاءات المثبتة) — لا من ورود الرابط في المتن
     researchSources = activeDossier.sources
-      .filter((s) => s.linkedClaimIds.length > 0)
+      .filter((s) => s.linkedClaimIds.some((id) => proven.some((c) => c.id === id)))
       .map((s) => ({ title: s.title, url: s.url }));
+
+    // ★ سلوك التسليم (قرار المالكة الملزم): ادعاء جوهري بلا إثبات ⇒ حجب —
+    // لا صياغة تُسلَّم، ويظهر سبب الإيقاف ومرحلته بدقة (التقني مميز عن الغياب)
+    const essentialUnproven = unproven.filter((c) => c.essential !== false);
+    if (essentialUnproven.length > 0) {
+      const first = essentialUnproven[0];
+      const failedStage = first.failure
+        ? `${first.failure.stage} — ${first.failure.reason}`
+        : (nameFailedStage(activeDossier.researchTrace) ?? "تعذر إثبات الادعاء الجوهري");
+      console.log("[reformulate:essential-block]", failedStage);
+      const message = first.failure?.technical
+        ? `توقفت الصياغة: ${first.failure.reason}.\n\nموضع التوقف: ${failedStage}`
+        : `${ARTICLE_10_DECLARATION}\n\nموضع التوقف: ${failedStage}`;
+      return { ok: false, status: 422, error: message };
+    }
+
     if (proven.length > 0) {
+      // خريطة الإثبات بالأدلة المستخرجة من الصفحات المفتوحة أولاً — بعزو في الموضع
       const provenLines = proven.map((c) => {
         const src = activeDossier!.sources.find((s) => s.id === c.sourceId);
-        return `- ${c.text}\n  المقطع الداعم: «${c.supportingExcerpt ?? ""}»\n  المصدر: ${src?.issuer ?? src?.title ?? ""} — ${src?.url ?? ""}`;
+        const evs = (activeDossier!.evidence ?? []).filter((e) => c.evidenceIds?.includes(e.id));
+        if (evs.length > 0) {
+          return evs.map((e) =>
+            `- ${c.text}\n  الدليل المستخرج (${e.docKind}${e.locator ? ` — ${e.locator}` : ""}${e.natureLabel ? ` — طبيعته: ${e.natureLabel}` : ""}) [الصلة: ${e.relevance}]: «${e.text}»\n  الجهة: ${src?.issuer ?? src?.title ?? ""}`
+          ).join("\n");
+        }
+        return `- ${c.text}\n  المقطع الداعم: «${c.supportingExcerpt ?? ""}»\n  الجهة: ${src?.issuer ?? src?.title ?? ""}`;
       }).join("\n");
+      const dropLines = unproven.length
+        ? `\nوادعاءات مساندة بلا إثبات — احذفها من الصياغة كلياً ولا تبقها مع تنبيه (الإفصاح لا يصحح معلومة غير مثبتة):\n${unproven.map((c) => `- ${c.text}`).join("\n")}`
+        : "";
       researchBlock = [
         "",
-        "★ خريطة الادعاءات المثبتة المرافقة للنسخة (المرجع الوحيد — مبدأ الإثبات): صحّح أو ادعم من مقاطعها بنسبتها وروابطها. ممنوع الإبقاء على أو إدخال أي تفصيلة نظامية خارجها؛ وما لا إثبات له اعرضه نسبةً عامة صادقة.",
+        "★ خريطة الإثبات المرافقة للنسخة (المرجع الوحيد للحقيقة — لا تنشئ حقيقة خارجها): صحّح أو ادعم من الأدلة أدناه. كل دليل جوهري يدخل الصياغة بمضمونه مع عزوه في موضعه بصيغة مهنية («وفق المادة (…) من النظام…» / «وفق ما أعلنته الجهة بتاريخ…») بحسب نوعه — ولا تختلق رقم مادة لدليل ليس نصاً نظامياً، ولا تضع روابط داخل المتن. ميّز الحقيقة الرسمية عن التلخيص عن الشرح عن التحليل (بصيغته) عن الرأي، وممنوع استنتاج آثار غير واردة (بطلان/اختصاص/التزام/نتيجة قضائية) إلا تحليلاً احتمالياً صريح الصيغة. ممنوع أي تفصيلة نظامية خارج الأدلة.",
         provenLines,
+        dropLines,
       ].join("\n");
     } else if (hasSource || refreshSources) {
-      // ملف بلا ادعاء مثبت — المادة (١٠): التصريح ملاحظةً مستقلة، ومرحلة
-      // الإخفاق تُسمى من أثر البحث (الدفعة ج) وتُحفظ في الملف مع النسخة
+      // ملف بلا ادعاء مثبت (كله مساند متعذر) — المادة (١٠): التصريح ملاحظةً
+      // مستقلة، ومرحلة الإخفاق تُسمى من الأثر وتُحفظ في الملف مع النسخة
       sourceNote = ARTICLE_10_DECLARATION;
       const failedStage = nameFailedStage(activeDossier.researchTrace);
       if (failedStage) console.log("[reformulate:failed-stage]", failedStage);
@@ -383,15 +412,22 @@ async function runReformulation(data: z.infer<typeof schema>, apiKey: string): P
       }
     }
 
-    // «المصادر المعتمدة» = ما استُخدم فعلاً — رابطه وارد في الصياغة المسلَّمة (بقرار المالكة)
-    // الملف يعود مع الصياغة (موسوماً بالاستخدام الفعلي) فيبقى جزءاً من النسخة الجديدة —
-    // قاعدة المحرك الواحد: المصادر تنتقل مع المحتوى ولا تضيع بإعادة الصياغة.
+    // «المصادر المستخدمة» من الملف — لا تختفي لغياب الرابط من متن الصياغة
+    // (بقرار المالكة: لا روابط داخل المتن أصلاً). الملف يعود مع الصياغة موسوماً
+    // بالاستخدام الفعلي ومعه حكم اكتمال الإثبات المحسوب على النص المسلَّم.
+    let deliveredDossier = activeDossier ? markUsedSources(activeDossier, suggestedText) : undefined;
+    if (deliveredDossier) {
+      const verdict = computeCompleteness(deliveredDossier, suggestedText, {
+        unsupportedDetails: article10ViolationsWithProof(suggestedText, proofList).map((v) => v.split(":")[0].trim()),
+      });
+      deliveredDossier = { ...deliveredDossier, completeness: verdict };
+    }
     return {
       ok: true,
       suggestedText,
-      sources: researchSources.filter((s) => suggestedText.includes(s.url)),
+      sources: researchSources,
       sourceNote,
-      dossier: activeDossier ? markUsedSources(activeDossier, suggestedText) : undefined,
+      dossier: deliveredDossier,
     };
   } catch (error) {
     const raw = error instanceof Error ? error.message : "خطأ غير متوقع";
