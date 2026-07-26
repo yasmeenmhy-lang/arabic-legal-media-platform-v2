@@ -1489,6 +1489,12 @@ function toStoredGovernance(gov: ServerGovernance | undefined, notice: string | 
           scriptDuration,
           scriptStyle,
           articleLength,
+          // ★ الملف والمصادر والحوكمة تسافر مع النسخة من هذا الموضع أيضاً —
+          // كان هذا المسار يحفظ التحليل بلا ملف المصادر فتفتح النسخة «بلا مصادر»
+          topic: topic.trim() || undefined,
+          webSources: activeWebSourcesValue,
+          sourceGovernance: generatedGovernance,
+          sourceDossier: result.sourceDossier ?? generatedDossier,
           review: result,
         });
         setContentId(saved.record.id);
@@ -1516,7 +1522,7 @@ function toStoredGovernance(gov: ServerGovernance | undefined, notice: string | 
       const startRes = await fetch("/api/reviews/start", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ contentId, text: trimmed, kind, contentType: contentTypeLabel, channel, audience, purpose, sourceHint: (path === "review" && reviewHasSource && reviewSourceHint.trim()) ? reviewSourceHint.trim() : undefined }),
+        body: JSON.stringify({ contentId, text: trimmed, kind, contentType: contentTypeLabel, channel, audience, purpose, sourceDossier: generatedDossier, sourceHint: (path === "review" && reviewHasSource && reviewSourceHint.trim()) ? reviewSourceHint.trim() : undefined }),
       });
       const startPayload = (await startRes.json().catch(() => ({}))) as { jobId?: string | null; error?: string };
       if (requestId !== reviewRequestIdRef.current) return;
@@ -1537,7 +1543,7 @@ function toStoredGovernance(gov: ServerGovernance | undefined, notice: string | 
         const res = await fetch("/api/reviews", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ text: trimmed, kind, contentType: contentTypeLabel, channel, audience, purpose, sourceHint: (path === "review" && reviewHasSource && reviewSourceHint.trim()) ? reviewSourceHint.trim() : undefined }),
+          body: JSON.stringify({ text: trimmed, kind, contentType: contentTypeLabel, channel, audience, purpose, sourceDossier: generatedDossier, sourceHint: (path === "review" && reviewHasSource && reviewSourceHint.trim()) ? reviewSourceHint.trim() : undefined }),
         });
         if (!res.ok) {
           const payload = await res.json().catch(() => ({})) as { error?: string };
@@ -1578,6 +1584,11 @@ function toStoredGovernance(gov: ServerGovernance | undefined, notice: string | 
           scriptDuration,
           scriptStyle,
           articleLength,
+          // ★ الملف والمصادر والحوكمة تسافر مع النسخة من هذا الموضع أيضاً
+          topic: topic.trim() || undefined,
+          webSources: activeWebSourcesValue,
+          sourceGovernance: generatedGovernance,
+          sourceDossier: result.sourceDossier ?? generatedDossier,
           review: result,
         });
         setContentId(saved.record.id);
