@@ -512,6 +512,36 @@ export async function researchClaimsWithExpansion(
   return { findings, trace };
 }
 
+// ─── مراحل السلسلة السبع وتسمية مرحلة الإخفاق (الدفعة ج) ────────────────────
+// «فكرة ← فهم ← ادعاءات ← إثبات ← محتوى» مفككةً سبع مراحل مسماة — عند أي إخفاق
+// تُسمى مرحلته في السجل وفي الملاحظة المرافقة للمستخدم، فلا إخفاق مبهماً.
+export const PIPELINE_STAGES = [
+  "المرحلة ١: فهم الطلب",
+  "المرحلة ٢: بناء الادعاءات",
+  "المرحلة ٣: البحث الأول",
+  "المرحلة ٤: توسيع البحث",
+  "المرحلة ٥: التثبيت بالفتح",
+  "المرحلة ٦: بناء ملف المصادر",
+  "المرحلة ٧: الكتابة والإنفاذ",
+] as const;
+
+// يشتق اسم مرحلة الإخفاق من أثر البحث — حتمي بالكود، ولا يُخترع إخفاق حيث لا أثر
+export function nameFailedStage(trace: ResearchTraceEntry[] | undefined): string | undefined {
+  if (!trace?.length) return undefined;
+  const round1 = trace.find((e) => e.stage === "البحث الأول");
+  if (round1?.outcome.startsWith("تعذر")) return `${PIPELINE_STAGES[2]} — ${round1.outcome}`;
+  const exhausted = [...trace].reverse().find((e) => e.stage === "استنفاد المحاولات");
+  if (exhausted) {
+    const expanded = trace.some((e) => e.stage === "توسيع البحث");
+    return `${expanded ? PIPELINE_STAGES[3] : PIPELINE_STAGES[2]} — ${exhausted.reason}`;
+  }
+  const fetchRound = [...trace].reverse().find((e) => e.stage === "التثبيت بالفتح");
+  if (fetchRound && fetchRound.outcome.includes("غير مطابق")) {
+    return `${PIPELINE_STAGES[4]} — ${fetchRound.outcome.slice(0, 180)}`;
+  }
+  return undefined;
+}
+
 // ─── التثبيت بالفتح (الدفعة ب): «gov.sa لازم لا كافٍ» ───────────────────────
 // النطاق الحكومي شرط لازم حسمته بوابة السيادة في بناء الملف — وهذه المرحلة تحسم
 // الكفاية: تفتح صفحة المصدر فعلياً (web_fetch) وتتحقق أنها تدعم الادعاء ومقطعه.

@@ -135,6 +135,51 @@ async function ensureJobLogTable(sql: Sql) {
   logEnsured = true;
 }
 
+// ─── سجل تتبع قرار البحث الدائم (الدفعة ج — بقرار مالكة المنصة) ─────────────
+// «تُسجل أسباب كل انتقال من محاولة إلى أخرى حتى يمكن تتبع قرار البحث لاحقاً»:
+// كل جولة بحث (أولى/توسيع/تثبيت بالفتح/استنفاد) تُحفظ صفاً دائماً بعشرة حقول —
+// المعرف، المهمة، المسار، الوقت، ترتيب الجولة، المرحلة، السبب، الادعاءات،
+// النتيجة، الزمن. احتفاظ ٩٠ يوماً (تنظيف انتهازي)، للمشغّل لا واجهة مستخدم له،
+// ولا يحمل نص مطالبات ولا مفاتيح — أسباب رصد موجزة فقط.
+let traceEnsured = false;
+async function ensureResearchTraceTable(sql: Sql) {
+  if (traceEnsured) return;
+  await sql`
+    CREATE TABLE IF NOT EXISTS research_trace (
+      id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+      job_id text NOT NULL,
+      kind text NOT NULL,
+      recorded_at timestamptz NOT NULL DEFAULT now(),
+      round integer,
+      stage text NOT NULL,
+      reason text,
+      claim_ids text,
+      outcome text,
+      duration_ms integer
+    )
+  `;
+  traceEnsured = true;
+}
+
+export async function recordResearchTrace(
+  sql: Sql,
+  jobId: string,
+  kind: "generate" | "reformulate",
+  entries: { stage: string; reason: string; claimIds: string[]; outcome: string; at: string; durationMs?: number }[]
+) {
+  if (!entries.length) return;
+  await ensureResearchTraceTable(sql);
+  await sql`DELETE FROM research_trace WHERE recorded_at < now() - interval '90 days'`;
+  let round = 0;
+  for (const e of entries) {
+    round++;
+    await sql`
+      INSERT INTO research_trace (job_id, kind, round, stage, reason, claim_ids, outcome, duration_ms)
+      VALUES (${jobId}, ${kind}, ${round}, ${e.stage}, ${e.reason}, ${e.claimIds.join("،")}, ${e.outcome}, ${e.durationMs ?? null})
+    `;
+  }
+}
+
 export async function recordJobLog(sql: Sql, entry: {
   jobId: string;
   kind: "generate" | "reformulate";

@@ -2108,6 +2108,13 @@ export default function ContentReviewPage() {
             <p className="mt-2 text-sm leading-7 text-ink/70">
               ما بُني عليه المحتوى من ادعاءات وحال إثبات كل منها — المثبت وحده يستند إلى مصدر بمقطع داعم، وما لم يثبت لا يُعرض في المحتوى حقيقةً.
             </p>
+            {/* تسمية مرحلة الإخفاق (الدفعة ج): عند تعذر الإثبات تُعرض المرحلة التي
+                توقف عندها البحث ملاحظةً مرافقة — لا إخفاق مبهماً */}
+            {savedDossier.article10?.failedStage ? (
+              <p className="mt-1.5 rounded-lg bg-warningSoft px-3 py-2 text-xs leading-6 text-warningDark">
+                <span className="font-semibold">موضع تعذر الإثبات: </span>{savedDossier.article10.failedStage}
+              </p>
+            ) : null}
             <ul className="mt-3 space-y-2">
               {savedDossier.claims.map((claim) => {
                 const src = claim.sourceId ? savedDossier.sources.find((s) => s.id === claim.sourceId) : undefined;

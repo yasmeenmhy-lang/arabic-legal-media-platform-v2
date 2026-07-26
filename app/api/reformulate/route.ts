@@ -5,7 +5,7 @@ import { AI_CONSTITUTION } from "@/lib/governance";
 import { runSemanticAnalysis } from "@/lib/services/semantic-analysis-service";
 import { evaluateContent } from "@/lib/services/content-evaluation-service";
 import { describeProviderError } from "@/lib/ai-provider-errors";
-import { researchClaimsWithExpansion, fetchVerifyDossier } from "@/lib/services/web-research-service";
+import { researchClaimsWithExpansion, fetchVerifyDossier, nameFailedStage, PIPELINE_STAGES } from "@/lib/services/web-research-service";
 import { isSaudiOfficialUrl } from "@/lib/services/web-research-service";
 import { analyzeIntent } from "@/lib/services/intent-analysis-service";
 import { buildDossier, provenExcerpts, markUsedSources, type SourceDossier } from "@/lib/source-dossier";
@@ -17,7 +17,7 @@ import { WRITING_CODE } from "@/lib/writing-code";
 import { NO_SUBSTANCE_MESSAGE, NON_COMPLIANT_MESSAGE, OUT_OF_MANDATE_MESSAGE } from "@/lib/reformulate-messages";
 import { recordUsage, runWithCostMeter, meterCostUsd, currentMeter } from "@/lib/cost-meter";
 import { ledgerDb, deductUsd } from "@/lib/cost-ledger";
-import { completeJob, createJob, failJob, jobsDb, recordJobLog } from "@/lib/content-jobs";
+import { completeJob, createJob, failJob, jobsDb, recordJobLog, recordResearchTrace } from "@/lib/content-jobs";
 import { waitUntil } from "@vercel/functions";
 
 // مدة تنفيذ صريحة على فيرسل — إعادة الصياغة دورة ذكاء كاملة (توليد + حكم)
@@ -188,6 +188,8 @@ async function runReformulation(data: z.infer<typeof schema>, apiKey: string): P
       activeDossier = await fetchVerifyDossier(activeDossier);
       if (refreshSources) activeDossier = { ...activeDossier, refreshedAt: new Date().toISOString() };
     } else if (hasSource) {
+      // إخفاق مسمى بمرحلته (الدفعة ج) — تسري المادة (١٠)
+      console.log(`[reformulate:intent] إخفاق ${PIPELINE_STAGES[0]} — تسري المادة (١٠)`);
       sourceNote = ARTICLE_10_DECLARATION;
     }
   }
@@ -209,8 +211,12 @@ async function runReformulation(data: z.infer<typeof schema>, apiKey: string): P
         provenLines,
       ].join("\n");
     } else if (hasSource || refreshSources) {
-      // ملف بلا ادعاء مثبت — المادة (١٠): التصريح ملاحظةً مستقلة
+      // ملف بلا ادعاء مثبت — المادة (١٠): التصريح ملاحظةً مستقلة، ومرحلة
+      // الإخفاق تُسمى من أثر البحث (الدفعة ج) وتُحفظ في الملف مع النسخة
       sourceNote = ARTICLE_10_DECLARATION;
+      const failedStage = nameFailedStage(activeDossier.researchTrace);
+      if (failedStage) console.log("[reformulate:failed-stage]", failedStage);
+      activeDossier = { ...activeDossier, article10: { applied: true, stopped: false, notice: sourceNote, failedStage } };
     }
   }
 
@@ -441,6 +447,9 @@ export async function POST(request: Request) {
         const costUsd = await settleCost();
         if (r.ok) {
           await completeJob(sql, jobId, r.suggestedText, false, undefined, r.sources.length ? JSON.stringify(r.sources) : undefined, r.sourceNote, costUsd, undefined, r.dossier ? JSON.stringify(r.dossier) : undefined);
+          // سجل تتبع قرار البحث الدائم (الدفعة ج) — أفضل جهد، لا يُسقط المهمة
+          await recordResearchTrace(sql, jobId, "reformulate", r.dossier?.researchTrace ?? [])
+            .catch((error) => console.error("[reformulate:research-trace]", error));
         } else {
           await failJob(sql, jobId, r.error, costUsd);
         }

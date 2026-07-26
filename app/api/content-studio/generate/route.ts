@@ -5,7 +5,7 @@ import { AI_CONSTITUTION } from "@/lib/governance";
 import { buildOfficialRuleCorpusText } from "@/lib/rule-corpus-text";
 import { governTextFull, type GovernTextFullResult } from "@/lib/services/governor-gate";
 import { verifyCorpusCitations } from "@/lib/services/citation-verifier";
-import { needsResearch, researchClaimsWithExpansion, fetchVerifyDossier } from "@/lib/services/web-research-service";
+import { needsResearch, researchClaimsWithExpansion, fetchVerifyDossier, nameFailedStage, PIPELINE_STAGES } from "@/lib/services/web-research-service";
 import { isSaudiOfficialUrl } from "@/lib/services/web-research-service";
 import { analyzeIntent } from "@/lib/services/intent-analysis-service";
 import { buildDossier, markUsedSources, provenExcerpts, type SourceDossier } from "@/lib/source-dossier";
@@ -21,7 +21,7 @@ import { ledgerDb, deductUsd } from "@/lib/cost-ledger";
 import { buildReviewResult } from "@/lib/services/review-service";
 import { enhanceReviewOutput } from "@/lib/services/ai-enhancement-service";
 import { describeProviderError } from "@/lib/ai-provider-errors";
-import { completeJob, createJob, failJob, jobsDb, recordJobLog, setJobPartial } from "@/lib/content-jobs";
+import { completeJob, createJob, failJob, jobsDb, recordJobLog, recordResearchTrace, setJobPartial } from "@/lib/content-jobs";
 import { waitUntil } from "@vercel/functions";
 import { contentKindLabels } from "@/lib/content-types";
 import type { ContentKind, ReviewResult } from "@/lib/types";
@@ -416,7 +416,7 @@ ${briefType
   // الدورة الكاملة: توليد ← بوابة الحاكم ← إعادة كتابة عند الملاحظات — تُرجع نتيجة أو خطأ
   async function runPipeline(onDraft?: (text: string) => void): Promise<
     | { kind: "ok"; text: string; truncated: boolean; gov: GovernTextFullResult; sources: { title: string; url: string }[]; sourceNote?: string; enforcement: Article10Enforcement; dossier?: SourceDossier }
-    | { kind: "err"; error: string; enforcement?: Article10Enforcement }
+    | { kind: "err"; error: string; enforcement?: Article10Enforcement; dossier?: SourceDossier }
   > {
     // المصادر الموثوقة المجلوبة فعلاً — تُرفَع من كتلة البحث لتُعرض للمستخدم كأدلة
     // مرئية (لوحة «المصادر المعتمدة»)، بقرار مالكة المنصة. عرضٌ صرف لا يمسّ الفحص.
@@ -471,11 +471,11 @@ ${briefType
         extraDirectives: [sourceKind && `نوع المصدر المطلوب: ${sourceKind}`, sourceEntity && `الجهة المطلوبة: ${sourceEntity}`, sourceDesc && `وصف المرجع: ${sourceDesc}`].filter(Boolean).join(" | ") || undefined,
       });
       if (!intent) {
-        // إخفاق المرحلة (١): لم يُفهم الطلب — تسري المادة (١٠) وتُسمى المرحلة
-        console.log("[generate:intent] إخفاق مرحلة الفهم — تسري المادة (١٠)");
+        // إخفاق مسمى بمرحلته (تسمية المراحل السبع — الدفعة ج): تسري المادة (١٠)
+        console.log(`[generate:intent] إخفاق ${PIPELINE_STAGES[0]} — تسري المادة (١٠)`);
         enforcement.article10Applied = true;
         enforcement.generalAllowed = true;
-        enforcement.outcome = "إخفاق مرحلة الفهم: لم يُفهم الطلب";
+        enforcement.outcome = `إخفاق ${PIPELINE_STAGES[0]}: لم يُفهم الطلب أو لم تُبنَ ادعاءاته`;
         sourceNote = pickNoSourceDeclaration(source);
         promptText = `${user}\n\n★ تعذر بناء خريطة إثبات لهذا الطلب — تسري المادة (١٠): اكتب محتوى عاماً مشروعاً خالياً من الفئات الثلاث عشرة، أو أخرج سطر الإيقاف وحده إن كان الطلب لا يُجاب إلا بمعلومة رسمية: ${ARTICLE10_STOP_MARKER}`;
         return;
@@ -509,12 +509,15 @@ ${briefType
         : "واذكر رابط المصدر عند الاستشهاد المباشر به.";
 
       if (unproven.length > 0) {
-        // ادعاءات بلا إثبات ⇒ المادة (١٠) تسري عليها، والتصريح يظهر
+        // ادعاءات بلا إثبات ⇒ المادة (١٠) تسري عليها، والتصريح يظهر — ومرحلة
+        // الإخفاق تُسمى من أثر البحث (الدفعة ج) فتظهر ملاحظةً مرافقة لا مبهمة
         enforcement.article10Applied = true;
         enforcement.generalAllowed = true;
         enforcement.violations = [];
         sourceNote = pickNoSourceDeclaration(source);
-        dossier = { ...dossier, article10: { applied: true, stopped: false, notice: sourceNote } };
+        const failedStage = nameFailedStage(dossier.researchTrace);
+        if (failedStage) console.log("[generate:failed-stage]", failedStage);
+        dossier = { ...dossier, article10: { applied: true, stopped: false, notice: sourceNote, failedStage } };
       }
 
       promptText = `${user}\n\n★ خريطة الادعاءات والإثبات (من محرك الفهم — المرجع الوحيد، اكتب على أساسها حصراً):\n${proven.length > 0 ? `\nالادعاءات المثبتة — اكتبها من مقاطعها الداعمة بنسبتها لمصادرها. ${linkDirective} ممنوع أي تفصيلة من ذاكرتك خارجها. وفي قائمة «المصادر» ختام النص لا تدرج أكثر من مصدرين أو ثلاثة:\n${provenLines}` : ""}${unproven.length > 0 ? `\n\nادعاءات تعذر إثباتها — لا تدخل المحتوى تفصيلةً ولا تُعرض حقيقةً (المادة ١٠): اكتب فكرتها عامة مشروعة أو أغفلها، وإن كان الطلب كله لا يُجاب إلا بها فأخرج سطر الإيقاف وحده: ${ARTICLE10_STOP_MARKER}\n${unprovenLines}` : ""}${generalLines ? `\n\nأفكار عامة مشروعة (لا تحتاج مصدراً):\n${generalLines}` : ""}`;
@@ -642,9 +645,9 @@ ${briefType
         enforcement.article10Applied = true;
         enforcement.stopped = true;
         enforcement.generalAllowed = false;
-        enforcement.outcome = "أُوقف الإنشاء: الطلب يتطلب معلومة رسمية ولا مصدر حكومي مختص منشور";
+        enforcement.outcome = `${PIPELINE_STAGES[6]}: أُوقف الإنشاء — الطلب يتطلب معلومة رسمية ولا مصدر حكومي مختص منشور`;
         console.log("[generate:article10] إيقاف —", enforcement.outcome);
-        return { kind: "err", error: pickNoSourceDeclaration(source), enforcement };
+        return { kind: "err", error: pickNoSourceDeclaration(source), enforcement, dossier: dossier ?? undefined };
       }
       const candidates = raw.filter((c): c is Candidate => c !== null && c !== "stop" && c !== "research");
       if (candidates.length === 0) return { kind: "err", error: "لم يُنشأ أي محتوى", enforcement };
@@ -696,9 +699,9 @@ ${briefType
     if (enforcement.violations.length > 0) {
       enforcement.article10Applied = true;
       enforcement.stopped = true;
-      enforcement.outcome = `أُوقف التسليم: بقيت تفاصيل نظامية بلا مصدر بعد ${enforcement.correctionRounds} جولة تصحيح`;
+      enforcement.outcome = `${PIPELINE_STAGES[6]}: أُوقف التسليم — بقيت تفاصيل نظامية بلا مصدر بعد ${enforcement.correctionRounds} جولة تصحيح`;
       console.log("[generate:article10] إيقاف بعد الجولات —", JSON.stringify(enforcement.violations).slice(0, 400));
-      return { kind: "err", error: pickNoSourceDeclaration(source), enforcement };
+      return { kind: "err", error: pickNoSourceDeclaration(source), enforcement, dossier: dossier ?? undefined };
     }
     if (!compliant) {
       return { kind: "err", error: `تعذّر إنشاء نص ملتزم بقواعد السلوك المهني للمحامين واللائحة التنفيذية لنظام المحاماة من هذه المدخلات.${topReason ? ` أبرز سبب: ${topReason}` : ""} أعد المحاولة أو عدّل مدخلات السياق.`, enforcement };
@@ -834,6 +837,9 @@ ${briefType
           await failJob(sql, jobId, result.error, costUsd);
           await persistJobLog(costUsd, result.enforcement);
         }
+        // سجل تتبع قرار البحث الدائم (الدفعة ج) — أفضل جهد، لا يُسقط المهمة
+        await recordResearchTrace(sql, jobId, "generate", result.dossier?.researchTrace ?? [])
+          .catch((error) => console.error("[content-studio/generate:research-trace]", error));
       } catch (error) {
         console.error("[content-studio/generate:job]", error);
         const known = describeProviderError(error instanceof Error ? error.message : "");
