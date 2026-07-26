@@ -14,6 +14,39 @@
 // بأحكام المادة (١٠) لا يُعرض حقيقةً.
 // ─────────────────────────────────────────────────────────────────────────────
 
+// ── نوع الوثيقة الرسمية (بقرار المالكة — الاستخراج بحسب النوع): ─────────────
+// لا يُفترض أن كل مصدر يحتوي مواد مرقمة — لكل نوع منطق استخراج ومحدِّد موضع.
+export type OfficialDocKind =
+  | "نظام أو لائحة"
+  | "أمر أو مرسوم أو قرار"
+  | "إعلان أو خبر حكومي"
+  | "دليل إرشادي"
+  | "صفحة تعريفية"
+  | "إحصاء أو بيان رسمي";
+
+// إخفاق ادعاء بمرحلته وسببه الفعلي — العطل التقني مميز عن غياب المصدر دائماً
+// (بقرار المالكة: «لا يجوز وصف العطل التقني بأنه عدم وجود مصدر»)
+export type ClaimFailure = {
+  stage: string;      // من المراحل الاثنتي عشرة
+  reason: string;     // السبب الفعلي — لا رسالة عامة
+  technical: boolean; // تعذر تقني (الصفحة لم تُفتح) لا غياب للمصدر
+};
+
+// الدليل المستخرج من المصدر المفتوح فعلاً — وحدة الإثبات الفعلية:
+// نص حرفي بمحدد موضعه (مادة/قرار/إعلان/قسم بحسب نوع الوثيقة)، مصنف الصلة
+// («جوهري» يخل غيابه بفكرة المستخدم / «مساند» صحيح لكنه غير لازم).
+export type ExtractedEvidence = {
+  id: string;                  // معرف ثابت (e1, e2...)
+  sourceId: string;
+  docKind: OfficialDocKind;
+  locator?: string;            // «المادة (٧٤)» | «قرار رقم … وتاريخ …» | «إعلان الجهة بتاريخ …» | «القسم …» — لا يُختلق حيث لا يوجد
+  text: string;                // النص الحرفي كما ورد في الصفحة المفتوحة (مضاد الاختلاق يتحقق منه)
+  natureLabel?: string;        // نص نظامي | واقعة معلنة | توجيه إرشادي | بيان تعريفي | إحصاء رسمي
+  relevance: "جوهري" | "مساند";
+  publishedAt?: string;        // تاريخ النشر أو النفاذ متى كان منشوراً (بوابة المستجدات)
+  linkedClaimIds: string[];
+};
+
 // ادعاء مستخرج من فهم الطلب — وحدة الإثبات الأساسية
 export type DossierClaim = {
   id: string;                 // معرف ثابت (c1, c2...)
@@ -21,6 +54,12 @@ export type DossierClaim = {
   status: "مثبت" | "غير قابل للجزم" | "محكوم بالمادة ١٠" | "عام مشروع";
   sourceId?: string;          // المصدر الذي يثبته
   supportingExcerpt?: string; // المقطع الداعم حرفياً من المصدر
+  // هل الادعاء جوهري لتحقيق فكرة المستخدم؟ (يحكم سلوك الحجب/التسليم عند تعذر إثباته)
+  essential?: boolean;
+  // الأدلة المستخرجة التي أثبتته بعد فتح الصفحة فعلياً
+  evidenceIds?: string[];
+  // عند تعذر الإثبات: المرحلة والسبب الفعلي، والتقني مميز عن الغياب
+  failure?: ClaimFailure;
 };
 
 // مصدر في الملف — لا يوجد إلا مربوطاً بادعاء
@@ -33,11 +72,19 @@ export type DossierSource = {
   verificationStatus: "مسند بالتقرير" | "متحقق بالفتح" | "مؤكد بالمراجعة" | "غير مطابق" | "غير متحقق";
   usedInContent: boolean;     // هل استُخدم فعلياً في النص المسلَّم
   linkedClaimIds: string[];   // الادعاءات المستندة إليه
+  // نوع الوثيقة كما صُنف من محتواها المفتوح (لا من عنوانها)
+  docKind?: OfficialDocKind;
+  // قرار اختيار المصدر مسجلاً بسببه (الاختصاص/الأصل/الحداثة) — يُتتبع لاحقاً
+  selectionReason?: string;
+  // حالة الفتح الفعلي — الفتح شرط الإثبات (بقرار المالكة)
+  fetchStatus?: "فُتح وتحقق" | "تعذر الفتح تقنياً" | "لم يُفتح";
 };
 
 export type SourceDossier = {
   claims: DossierClaim[];
   sources: DossierSource[];
+  // الأدلة المستخرجة من الصفحات المفتوحة فعلاً — أساس الكتابة والإنفاذ
+  evidence?: ExtractedEvidence[];
   intentSummary?: string;     // خلاصة التمثيل الدلالي
   article10?: { applied: boolean; stopped: boolean; notice?: string; failedStage?: string };
   researchedAt?: string;
@@ -53,6 +100,9 @@ export type IntentClaim = {
   needsProof: boolean;        // يحتاج إثباتاً بمصدر (بفئات المادة ١٠)
   whyNeedsProof?: string;
   scope: "المملكة" | "دولي" | "عام";
+  // جوهري لتحقيق فكرة المستخدم (تعذر إثباته يستوجب الحجب لا التسليم العام) —
+  // أم مساند يجوز حذفه دون إخلال بالفكرة
+  essential?: boolean;
 };
 
 export type IntentRepresentation = {
@@ -110,11 +160,18 @@ export function buildDossier(
     }
     const f = findings.find((x) => x.claimId === c.id && x.status === "مثبت" && x.url);
     if (!f?.url) {
-      return { id: c.id, text: c.text, status: "غير قابل للجزم" };
+      const failed = findings.find((x) => x.claimId === c.id);
+      return {
+        id: c.id, text: c.text, status: "غير قابل للجزم", essential: c.essential,
+        failure: { stage: "البحث الأول", reason: failed?.reason ?? "لم يُعثر على مصدر رسمي مختص", technical: false },
+      };
     }
     // بوابة السيادة: ادعاء المملكة لا يثبته إلا مصدر حكومي رسمي
     if (c.scope === "المملكة" && !isOfficialUrl(f.url)) {
-      return { id: c.id, text: c.text, status: "محكوم بالمادة ١٠" };
+      return {
+        id: c.id, text: c.text, status: "محكوم بالمادة ١٠", essential: c.essential,
+        failure: { stage: "اختيار المصدر", reason: "المصدر المتاح غير حكومي والادعاء يخص المملكة — لا يثبته إلا مصدر حكومي رسمي", technical: false },
+      };
     }
     let src = sourceByUrl.get(f.url);
     if (!src) {
@@ -132,7 +189,7 @@ export function buildDossier(
       sourceByUrl.set(f.url, src);
     }
     src.linkedClaimIds.push(c.id);
-    return { id: c.id, text: c.text, status: "مثبت", sourceId: src.id, supportingExcerpt: f.excerpt };
+    return { id: c.id, text: c.text, status: "مثبت", sourceId: src.id, supportingExcerpt: f.excerpt, essential: c.essential };
   });
 
   return {
@@ -159,11 +216,17 @@ export function deriveWebSources(dossier: SourceDossier): { title: string; url: 
     .map((s) => ({ title: s.title, url: s.url }));
 }
 
-// المقاطع الداعمة للادعاءات المثبتة — مدخل منفّذ المادة (١٠) بالخريطة
+// المقاطع الداعمة للادعاءات المثبتة — مدخل منفّذ المادة (١٠) بالخريطة.
+// تشمل نصوص الأدلة المستخرجة من الصفحات المفتوحة (الأقوى) ومقاطع الباحث.
 export function provenExcerpts(dossier: SourceDossier): string[] {
-  return dossier.claims
+  const provenIds = new Set(dossier.claims.filter((c) => c.status === "مثبت").map((c) => c.id));
+  const fromClaims = dossier.claims
     .filter((c) => c.status === "مثبت" && c.supportingExcerpt)
     .map((c) => c.supportingExcerpt as string);
+  const fromEvidence = (dossier.evidence ?? [])
+    .filter((e) => e.linkedClaimIds.some((id) => provenIds.has(id)))
+    .map((e) => e.text);
+  return [...fromClaims, ...fromEvidence];
 }
 
 // دمج نتائج تحقق المراجعة في الملف (بالرابط): «مؤكَّد» يرفع الحالة،

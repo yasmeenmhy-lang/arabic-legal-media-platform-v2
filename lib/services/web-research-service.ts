@@ -16,7 +16,8 @@
 // ─────────────────────────────────────────────────────────────────────────────
 import { SOURCE_GOVERNANCE } from "@/lib/source-governance";
 import { recordUsage } from "@/lib/cost-meter";
-import type { IntentRepresentation, ClaimFinding, SourceDossier, ResearchTraceEntry } from "@/lib/source-dossier";
+import { normalizeClaim } from "@/lib/services/article10-enforcer";
+import type { IntentRepresentation, ClaimFinding, SourceDossier, ResearchTraceEntry, OfficialDocKind, ExtractedEvidence, DossierClaim } from "@/lib/source-dossier";
 
 export type ResearchResult = {
   // ملخص عربي للوقائع المتحقق منها، كل واقعة منسوبة لجهتها ورابطها — يُحقن في مطالبة الكاتب
@@ -512,67 +513,144 @@ export async function researchClaimsWithExpansion(
   return { findings, trace };
 }
 
-// ─── مراحل السلسلة السبع وتسمية مرحلة الإخفاق (الدفعة ج) ────────────────────
-// «فكرة ← فهم ← ادعاءات ← إثبات ← محتوى» مفككةً سبع مراحل مسماة — عند أي إخفاق
-// تُسمى مرحلته في السجل وفي الملاحظة المرافقة للمستخدم، فلا إخفاق مبهماً.
+// ─── مراحل الإخفاق الاثنتا عشرة (بقرار المالكة — بأسمائها حرفياً) ────────────
+// عند أي إخفاق تُسمى مرحلته وسببه الفعلي في السجل والملاحظة المرافقة —
+// «ولا تستخدم رسالة عامة إذا كان سبب الإخفاق معروفاً».
 export const PIPELINE_STAGES = [
   "المرحلة ١: فهم الطلب",
-  "المرحلة ٢: بناء الادعاءات",
+  "المرحلة ٢: استخراج الادعاءات",
   "المرحلة ٣: البحث الأول",
   "المرحلة ٤: توسيع البحث",
-  "المرحلة ٥: التثبيت بالفتح",
-  "المرحلة ٦: بناء ملف المصادر",
-  "المرحلة ٧: الكتابة والإنفاذ",
+  "المرحلة ٥: اختيار المصدر",
+  "المرحلة ٦: فتح المصدر",
+  "المرحلة ٧: مطابقة المصدر بالادعاء",
+  "المرحلة ٨: استخراج النصوص أو الأحكام أو الوقائع",
+  "المرحلة ٩: بناء ملف الإثبات",
+  "المرحلة ١٠: الكتابة",
+  "المرحلة ١١: فحص اكتمال الاستناد",
+  "المرحلة ١٢: التحليل وقرار النشر",
 ] as const;
+
+// خرائط أسماء مراحل الأثر إلى المراحل الاثنتي عشرة
+const STAGE_BY_TRACE: Record<string, number> = {
+  "البحث الأول": 2,
+  "توسيع البحث": 3,
+  "اختيار المصدر": 4,
+  "فتح المصدر": 5,
+  "مطابقة المصدر بالادعاء": 6,
+  "استخراج النصوص أو الأحكام أو الوقائع": 7,
+};
 
 // يشتق اسم مرحلة الإخفاق من أثر البحث — حتمي بالكود، ولا يُخترع إخفاق حيث لا أثر
 export function nameFailedStage(trace: ResearchTraceEntry[] | undefined): string | undefined {
   if (!trace?.length) return undefined;
   const round1 = trace.find((e) => e.stage === "البحث الأول");
   if (round1?.outcome.startsWith("تعذر")) return `${PIPELINE_STAGES[2]} — ${round1.outcome}`;
+  // آخر إخفاق مسجل بمرحلة من مراحل الفتح/المطابقة/الاستخراج يقدَّم — الأدق أولاً
+  const failEntry = [...trace].reverse().find((e) => e.stage in STAGE_BY_TRACE && /تعذر|لا تدعم|غير موثوق|أُسقط/.test(e.outcome));
+  if (failEntry) return `${PIPELINE_STAGES[STAGE_BY_TRACE[failEntry.stage]]} — ${failEntry.outcome.slice(0, 200)}`;
   const exhausted = [...trace].reverse().find((e) => e.stage === "استنفاد المحاولات");
   if (exhausted) {
     const expanded = trace.some((e) => e.stage === "توسيع البحث");
     return `${expanded ? PIPELINE_STAGES[3] : PIPELINE_STAGES[2]} — ${exhausted.reason}`;
   }
-  const fetchRound = [...trace].reverse().find((e) => e.stage === "التثبيت بالفتح");
-  if (fetchRound && fetchRound.outcome.includes("غير مطابق")) {
-    return `${PIPELINE_STAGES[4]} — ${fetchRound.outcome.slice(0, 180)}`;
-  }
   return undefined;
 }
 
-// ─── التثبيت بالفتح (الدفعة ب): «gov.sa لازم لا كافٍ» ───────────────────────
-// النطاق الحكومي شرط لازم حسمته بوابة السيادة في بناء الملف — وهذه المرحلة تحسم
-// الكفاية: تفتح صفحة المصدر فعلياً (web_fetch) وتتحقق أنها تدعم الادعاء ومقطعه.
-// «مطابق» يرفع حالة المصدر إلى «متحقق بالفتح»، و«غير مطابق» يُنزل الادعاء إلى
-// «غير قابل للجزم» فيخرج مقطعه من قائمة الإثبات (فلا يغطي تفصيلة في النص)،
-// و«تعذّر الفتح» يُبقي «مسند بالتقرير» بلا اختلاق رفضٍ ولا قبولٍ — وكل ذلك
-// يُدوَّن في أثر البحث. لا ادعاءات مثبتة ⇒ لا نداء إطلاقاً (الأداء والكلفة).
-export async function fetchVerifyDossier(dossier: SourceDossier, timeoutMs = 60_000): Promise<SourceDossier> {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  const proven = dossier.claims.filter((c) => c.status === "مثبت" && c.sourceId).slice(0, 3);
-  if (!apiKey || proven.length === 0) return dossier;
-  const startedAt = Date.now();
-  const trace = [...(dossier.researchTrace ?? [])];
-  const note = (reason: string, outcome: string) =>
-    trace.push({ stage: "التثبيت بالفتح", reason, claimIds: proven.map((c) => c.id), outcome, at: new Date().toISOString(), durationMs: Date.now() - startedAt });
+// ─── فتح المصدر والاستخراج (بقرار المالكة المعتمد — التصور v2) ───────────────
+// «رابط المصدر أو مقتطف نتيجة البحث لا يكفي»: الفتح الفعلي شرط الإثبات.
+// النداء يفتح صفحات المصادر المرشحة (بسقف ٣)، يصنف كل وثيقة من محتواها المفتوح
+// على الأنواع الستة، ويستخرج الأدلة ذات الصلة المباشرة بفكرة المستخدم فقط
+// بمحدد موضع يناسب النوع (مادة/قرار وتاريخ/إعلان وتاريخ/قسم) — لا اختلاق رقم
+// مادة حيث لا مواد. ثم يُطبَّق التقرير حتمياً بالكود مع مضاد الاختلاق:
+// النص المستخرج لا يُقبل إلا إذا ورد فعلاً في محتوى الصفحة المجلوب.
+// الأحكام الثلاثة القاطعة: فُتح ودعم = مثبت · فُتح ولم يدعم = مرفوض بسببه ·
+// تعذر الفتح تقنياً = غير مثبت بسبب تقني مسمى — **لا يوصف أبداً بغياب المصدر**.
 
-  const lines = proven
-    .map((c) => {
-      const src = dossier.sources.find((s) => s.id === c.sourceId);
-      return `- [${c.id}] الادعاء: ${c.text}\n  الرابط: ${src?.url ?? ""}\n  المقطع المسند إليه: «${c.supportingExcerpt ?? ""}»`;
+const DOC_KINDS: OfficialDocKind[] = [
+  "نظام أو لائحة", "أمر أو مرسوم أو قرار", "إعلان أو خبر حكومي",
+  "دليل إرشادي", "صفحة تعريفية", "إحصاء أو بيان رسمي",
+];
+
+// يجمع نصوص الصفحات المجلوبة فعلاً من كتل نتائج web_fetch في رد النموذج —
+// مسح متسامح مع شكل الكتل: يلتقط كل النصوص داخل كتل نتائج الجلب مع روابطها
+export function extractFetchedTexts(content: unknown[]): { url?: string; text: string }[] {
+  const pages: { url?: string; text: string }[] = [];
+  const walk = (node: unknown, insideFetch: boolean, currentUrl?: string): string[] => {
+    if (typeof node === "string") return insideFetch ? [node] : [];
+    if (Array.isArray(node)) return node.flatMap((n) => walk(n, insideFetch, currentUrl));
+    if (!node || typeof node !== "object") return [];
+    const obj = node as Record<string, unknown>;
+    const type = typeof obj.type === "string" ? obj.type : "";
+    const url = typeof obj.url === "string" ? obj.url : currentUrl;
+    const nowInside = insideFetch || type.includes("web_fetch");
+    const texts: string[] = [];
+    for (const key of ["data", "text"]) {
+      if (nowInside && typeof obj[key] === "string" && (obj[key] as string).length > 40) texts.push(obj[key] as string);
+    }
+    for (const value of Object.values(obj)) {
+      if (value && typeof value === "object") texts.push(...walk(value, nowInside, url));
+    }
+    if (!insideFetch && nowInside && texts.length) {
+      pages.push({ url, text: texts.join("\n") });
+      return [];
+    }
+    return texts;
+  };
+  for (const block of content) walk(block, false);
+  return pages;
+}
+
+// مضاد الاختلاق: هل يرد جوهر النص المستخرج (نافذة متصلة مطبَّعة) في نص الصفحة؟
+export function containsNormalizedWindow(pageText: string, extracted: string, windowSize = 25): boolean {
+  const hay = normalizeClaim(pageText);
+  const needle = normalizeClaim(extracted);
+  if (!needle.trim()) return false;
+  if (needle.length <= windowSize) return hay.includes(needle);
+  for (let start = 0; start + windowSize <= needle.length; start += 10) {
+    if (hay.includes(needle.slice(start, start + windowSize))) return true;
+  }
+  return false;
+}
+
+export async function openAndExtract(
+  dossier: SourceDossier,
+  intent: IntentRepresentation,
+  timeoutMs = 90_000
+): Promise<SourceDossier> {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  // المرشح للفتح: مصادر الادعاءات المثبتة من البحث — بسقف ٣ صفحات (الكلفة)
+  const provenClaims = dossier.claims.filter((c) => c.status === "مثبت" && c.sourceId);
+  const targetSources = dossier.sources.filter((s) => provenClaims.some((c) => c.sourceId === s.id)).slice(0, 3);
+  if (provenClaims.length === 0) return dossier;
+  const startedAt = Date.now();
+  if (!apiKey) return failAllOpen(dossier, provenClaims, "خدمة الذكاء غير مهيأة لنداء الفتح", startedAt);
+
+  const sourceLines = targetSources
+    .map((s) => {
+      const linked = provenClaims.filter((c) => c.sourceId === s.id);
+      return `[${s.id}] ${s.url}\n  الادعاءات المسندة إليه:\n${linked.map((c) => `  - [${c.id}] ${c.text}`).join("\n")}`;
     })
     .join("\n");
-  const instruction = `أنت مدقق تثبيت في منصة محتوى قانوني. أمامك ادعاءات أسندها باحث إلى صفحات بعينها. مهمتك الوحيدة: افتح كل رابط فعلياً بأداة web_fetch وتحقق أن الصفحة نفسها تدعم الادعاء والمقطع المسند إليه.
+  const instruction = `أنت محرك استخراج في منصة محتوى قانوني لمحامٍ مرخَّص في المملكة العربية السعودية. افتح كل صفحة من الصفحات التالية فعلياً بأداة web_fetch، ثم صنّفها واستخرج منها — ولا تحكم من الذاكرة أو من العنوان أبداً.
 
-${lines}
+فكرة المستخدم (ميزان الصلة): ${intent.mainTopic}${intent.subTopics.length ? ` — ${intent.subTopics.join("، ")}` : ""}
 
-أخرج لكل بند سطراً واحداً حصراً بهذه الصيغ الحرفية (تُقرأ آلياً):
-[c1] مطابق
-[c1] غير مطابق — سبب موجز (الصفحة لا تتضمن هذا الحكم / المقطع غير موجود / المضمون مختلف)
-[c1] تعذّر الفتح
-ممنوع الحكم من الذاكرة أو من عنوان الصفحة — الحكم مما فتحته فعلاً فقط. لا تكتب شيئاً غير هذه الأسطر.`;
+الصفحات وادعاءاتها:
+${sourceLines}
+
+مهمتك لكل صفحة فُتحت:
+١) صنّف الوثيقة من محتواها على أحد الأنواع الستة حصراً: نظام أو لائحة / أمر أو مرسوم أو قرار / إعلان أو خبر حكومي / دليل إرشادي / صفحة تعريفية / إحصاء أو بيان رسمي.
+٢) استخرج الأدلة ذات الصلة المباشرة بفكرة المستخدم وادعاءاتها فقط — لا كل محتوى الوثيقة. المحدِّد بحسب النوع: للنظام رقم المادة متى كان منشوراً؛ للقرار رقمه وتاريخه؛ للإعلان الجهة والتاريخ؛ للدليل القسم أو الصفحة؛ للصفحة التعريفية بيانها فقط؛ للإحصاء الرقم والفترة. **ممنوع اختلاق رقم مادة إذا كانت الوثيقة إعلاناً أو دليلاً أو صفحة لا تحتوي مواد** — اترك المحدد بما هو منشور فعلاً.
+٣) صنّف صلة كل دليل: «جوهري» إن كان غيابه يخل بفكرة المستخدم، أو «مساند» إن كان صحيحاً ذا صلة لكنه غير لازم لها.
+٤) انقل نص كل دليل حرفياً كما ورد في الصفحة — سيُطابَق آلياً مع محتوى الصفحة، وأي نص غير وارد فيها يُرفض.
+
+أخرج الأسطر التالية حصراً بصيغها الحرفية (تُقرأ آلياً):
+[s1] النوع: نظام أو لائحة — سبب الاعتماد: (الاختصاص/الأصل/الحداثة بإيجاز)
+[e1] عبر s1 — المحدد: المادة (٧٤) — «النص الحرفي كما ورد» — الطبيعة: نص نظامي — الصلة: جوهري — يدعم: c1 — التاريخ: (إن نُشر، وإلا اتركه)
+[c1] الصفحة لا تدعم هذا الادعاء — السبب الفعلي
+[s1] تعذّر الفتح
+لا تكتب شيئاً غير هذه الأسطر.`;
 
   const controller = new AbortController();
   const abortTimer = setTimeout(() => controller.abort(), timeoutMs);
@@ -585,64 +663,160 @@ ${lines}
         headers: { "x-api-key": apiKey, "anthropic-version": "2023-06-01", "content-type": "application/json" },
         body: JSON.stringify({
           model: "claude-sonnet-5",
-          max_tokens: 1024,
+          max_tokens: 3000,
           thinking: { type: "disabled" },
-          tools: [{ type: "web_fetch_20260209", name: "web_fetch", max_uses: proven.length }],
+          tools: [{ type: "web_fetch_20260209", name: "web_fetch", max_uses: targetSources.length }],
           messages: [{ role: "user", content: instruction }],
         }),
       }
     );
     if (!response.ok) {
-      note("فتح صفحات المصادر للتحقق الفعلي", "تعذر النداء — بقيت الحالة «مسند بالتقرير» بلا اختلاق رفض أو قبول");
-      return { ...dossier, researchTrace: trace };
+      return failAllOpen(dossier, provenClaims, `تعذر نداء الفتح (رمز ${response.status})`, startedAt);
     }
     const payload = (await response.json()) as { content?: unknown[]; usage?: unknown };
-    recordUsage(payload.usage, { stage: "مدقق التثبيت بالفتح", model: "claude-sonnet-5", durationMs: Date.now() - startedAt });
-    const report = extractText(payload.content ?? []);
-    return applyFetchVerification(dossier, report, proven.map((c) => c.id));
-  } catch {
-    note("فتح صفحات المصادر للتحقق الفعلي", "انقطاع أو مهلة — بقيت الحالة «مسند بالتقرير»");
-    return { ...dossier, researchTrace: trace };
+    recordUsage(payload.usage, { stage: "فتح المصادر والاستخراج", model: "claude-sonnet-5", durationMs: Date.now() - startedAt });
+    const content = payload.content ?? [];
+    const report = extractText(content);
+    const pages = extractFetchedTexts(content);
+    return applyOpenExtract(dossier, report, pages, targetSources.map((s) => s.id), Date.now() - startedAt);
+  } catch (error) {
+    const reason = error instanceof Error && error.name === "AbortError" ? "انقضت مهلة نداء الفتح" : "انقطاع اتصال أثناء نداء الفتح";
+    return failAllOpen(dossier, provenClaims, reason, startedAt);
   } finally {
     clearTimeout(abortTimer);
   }
 }
 
-// تطبيق تقرير التثبيت على الملف — حتمي بالكود، ويدوّن الأثر
-export function applyFetchVerification(dossier: SourceDossier, report: string, targetIds: string[]): SourceDossier {
-  const verdicts = new Map<string, { verdict: "مطابق" | "غير مطابق" | "تعذّر الفتح"; reason?: string }>();
+// تعذر النداء كله تقنياً ⇒ الفتح شرط الإثبات: الادعاءات تُنزل «غير قابل للجزم»
+// بسبب تقني مسمى بدقة — والتعذر التقني لا يوصف أبداً بأنه عدم وجود مصدر
+function failAllOpen(dossier: SourceDossier, provenClaims: DossierClaim[], reason: string, startedAt: number): SourceDossier {
+  const ids = new Set(provenClaims.map((c) => c.id));
+  return {
+    ...dossier,
+    claims: dossier.claims.map((c) =>
+      ids.has(c.id)
+        ? { ...c, status: "غير قابل للجزم" as const, failure: { stage: "فتح المصدر", reason: `تعذر تقني: ${reason} — المصدر موجود ولم يُفتح في هذه اللحظة`, technical: true } }
+        : c
+    ),
+    sources: dossier.sources.map((s) => (provenClaims.some((c) => c.sourceId === s.id) ? { ...s, fetchStatus: "تعذر الفتح تقنياً" as const } : s)),
+    researchTrace: [
+      ...(dossier.researchTrace ?? []),
+      { stage: "فتح المصدر", reason: "الفتح الفعلي شرط الإثبات", claimIds: [...ids], outcome: `تعذر تقني: ${reason} — لا يُعد ذلك غياباً للمصدر`, at: new Date().toISOString(), durationMs: Date.now() - startedAt },
+    ],
+  };
+}
+
+// تطبيق تقرير الفتح والاستخراج على الملف — حتمي بالكود، بمضاد الاختلاق والأثر
+export function applyOpenExtract(
+  dossier: SourceDossier,
+  report: string,
+  pages: { url?: string; text: string }[],
+  targetSourceIds: string[],
+  durationMs?: number
+): SourceDossier {
+  const combinedPageText = pages.map((p) => p.text).join("\n");
+  const kindBySource = new Map<string, { kind: OfficialDocKind; selectionReason?: string }>();
+  const failedSources = new Set<string>();
+  const unsupported = new Map<string, string>(); // claimId → السبب
+  const evidence: ExtractedEvidence[] = [];
+  const droppedEvidence: string[] = [];
+
   for (const raw of report.split("\n")) {
     const line = raw.trim();
-    const m = line.match(/^\[?(c\d+)\]?\s*(مطابق|غير مطابق|تعذّر الفتح|تعذر الفتح)/);
-    if (!m) continue;
-    const verdict = m[2].startsWith("تعذ") ? "تعذّر الفتح" : (m[2] as "مطابق" | "غير مطابق");
-    verdicts.set(m[1], { verdict, reason: line.split("—").slice(1).join("—").trim() || undefined });
+    // [sN] النوع: ... — سبب الاعتماد: ...
+    const kindMatch = line.match(/^\[?(s\d+)\]?\s*النوع:\s*([^—]+?)(?:—\s*سبب الاعتماد:\s*(.+))?$/);
+    if (kindMatch) {
+      const kindText = kindMatch[2].trim();
+      const kind = DOC_KINDS.find((k) => kindText.includes(k));
+      if (kind) kindBySource.set(kindMatch[1], { kind, selectionReason: kindMatch[3]?.trim() });
+      continue;
+    }
+    // [sN] تعذّر الفتح
+    if (/^\[?s\d+\]?\s*(تعذّر الفتح|تعذر الفتح)/.test(line)) {
+      const sid = line.match(/^\[?(s\d+)\]?/)?.[1];
+      if (sid) failedSources.add(sid);
+      continue;
+    }
+    // [cN] الصفحة لا تدعم هذا الادعاء — السبب
+    const noSupport = line.match(/^\[?(c\d+)\]?\s*الصفحة لا تدعم/);
+    if (noSupport) {
+      unsupported.set(noSupport[1], line.split("—").slice(1).join("—").trim() || "الصفحة تتناول الموضوع ولا تثبت الادعاء نفسه");
+      continue;
+    }
+    // [eN] عبر sM — المحدد: ... — «النص» — الطبيعة: ... — الصلة: ... — يدعم: c1,c2 — التاريخ: ...
+    const evMatch = line.match(/^\[?(e\d+)\]?\s*عبر\s*(s\d+)/);
+    if (evMatch) {
+      const text = line.match(/«(.+?)»/)?.[1] ?? "";
+      const locator = line.match(/المحدد:\s*([^—«]+)/)?.[1]?.trim();
+      const nature = line.match(/الطبيعة:\s*([^—]+)/)?.[1]?.trim();
+      const relevance = /الصلة:\s*جوهري/.test(line) ? "جوهري" as const : "مساند" as const;
+      const publishedAt = line.match(/التاريخ:\s*([^—]+)$/)?.[1]?.trim() || undefined;
+      const supports = [...line.matchAll(/c\d+/g)].map((m) => m[0]);
+      const sourceInfo = kindBySource.get(evMatch[2]);
+      if (!text || !targetSourceIds.includes(evMatch[2])) continue;
+      // ★ مضاد الاختلاق: النص لا يُقبل إلا إذا ورد فعلاً في محتوى الصفحة المجلوب
+      if (!containsNormalizedWindow(combinedPageText, text)) {
+        droppedEvidence.push(`[${evMatch[1]}] أُسقط — النص غير وارد في محتوى الصفحة المجلوب (استخراج غير موثوق)`);
+        continue;
+      }
+      evidence.push({
+        id: `e${evidence.length + 1}`,
+        sourceId: evMatch[2],
+        docKind: sourceInfo?.kind ?? "صفحة تعريفية",
+        locator: locator && locator !== "—" ? locator : undefined,
+        text,
+        natureLabel: nature,
+        relevance,
+        publishedAt,
+        linkedClaimIds: [...new Set(supports)],
+      });
+    }
   }
+
+  // تطبيق الأحكام الثلاثة القاطعة على الادعاءات المستهدفة
+  const supportedIds = new Set(evidence.flatMap((e) => e.linkedClaimIds));
   const claims = dossier.claims.map((c) => {
-    if (!targetIds.includes(c.id)) return c;
-    const v = verdicts.get(c.id);
-    if (v?.verdict === "غير مطابق") return { ...c, status: "غير قابل للجزم" as const };
-    return c;
+    if (c.status !== "مثبت" || !c.sourceId || !targetSourceIds.includes(c.sourceId)) return c;
+    if (failedSources.has(c.sourceId)) {
+      return { ...c, status: "غير قابل للجزم" as const, failure: { stage: "فتح المصدر", reason: "تعذر تقني في فتح صفحة المصدر — المصدر موجود ولم يُفتح في هذه اللحظة", technical: true } };
+    }
+    if (unsupported.has(c.id)) {
+      return { ...c, status: "غير قابل للجزم" as const, failure: { stage: "مطابقة المصدر بالادعاء", reason: unsupported.get(c.id)!, technical: false } };
+    }
+    if (supportedIds.has(c.id)) {
+      return { ...c, evidenceIds: evidence.filter((e) => e.linkedClaimIds.includes(c.id)).map((e) => e.id) };
+    }
+    // الصفحة فُتحت ولم يصدر عنها دليل ولا حكم بعدم الدعم ⇒ لم يكتمل الإثبات بالفتح
+    return { ...c, status: "غير قابل للجزم" as const, failure: { stage: "استخراج النصوص أو الأحكام أو الوقائع", reason: "فُتحت الصفحة ولم يُستخرج منها دليل يثبت هذا الادعاء", technical: false } };
   });
+
   const sources = dossier.sources.map((s) => {
-    const linked = s.linkedClaimIds.filter((id) => targetIds.includes(id));
-    if (!linked.length) return s;
-    const linkedVerdicts = linked.map((id) => verdicts.get(id)?.verdict);
-    if (linkedVerdicts.includes("غير مطابق")) return { ...s, verificationStatus: "غير مطابق" as const };
-    if (linkedVerdicts.includes("مطابق")) return { ...s, verificationStatus: "متحقق بالفتح" as const };
-    return s;
+    if (!targetSourceIds.includes(s.id)) return s;
+    const info = kindBySource.get(s.id);
+    if (failedSources.has(s.id)) return { ...s, fetchStatus: "تعذر الفتح تقنياً" as const, docKind: info?.kind, selectionReason: info?.selectionReason };
+    const hasEvidence = evidence.some((e) => e.sourceId === s.id);
+    const hasUnsupported = s.linkedClaimIds.some((id) => unsupported.has(id));
+    return {
+      ...s,
+      docKind: info?.kind,
+      selectionReason: info?.selectionReason,
+      fetchStatus: "فُتح وتحقق" as const,
+      verificationStatus: hasEvidence ? ("متحقق بالفتح" as const) : hasUnsupported ? ("غير مطابق" as const) : s.verificationStatus,
+    };
   });
-  const summary = targetIds
-    .map((id) => {
-      const v = verdicts.get(id);
-      return `[${id}] ${v ? v.verdict + (v.reason ? ` — ${v.reason}` : "") : "لم يرد حكم — بقي مسنداً بالتقرير"}`;
-    })
-    .join(" | ");
+
+  const targetClaimIds = dossier.claims.filter((c) => c.sourceId && targetSourceIds.includes(c.sourceId)).map((c) => c.id);
+  const outcomeParts = [
+    `أدلة مستخرجة: ${evidence.length} (${evidence.filter((e) => e.relevance === "جوهري").length} جوهري)`,
+    unsupported.size ? `لا تدعم: ${[...unsupported.keys()].join("، ")}` : "",
+    failedSources.size ? `تعذر الفتح تقنياً: ${[...failedSources].join("، ")}` : "",
+    droppedEvidence.length ? droppedEvidence.join(" | ") : "",
+  ].filter(Boolean).join(" | ");
   const trace: ResearchTraceEntry[] = [
     ...(dossier.researchTrace ?? []),
-    { stage: "التثبيت بالفتح", reason: "فتح صفحات المصادر للتحقق أن كلاً منها يدعم ادعاءه فعلاً (النطاق الحكومي لازم لا كافٍ)", claimIds: targetIds, outcome: summary, at: new Date().toISOString() },
+    { stage: "استخراج النصوص أو الأحكام أو الوقائع", reason: "فتح الصفحات فعلياً وتصنيف الوثائق والاستخراج بحسب النوع — الفتح شرط الإثبات", claimIds: targetClaimIds, outcome: outcomeParts || "لا مخرجات", at: new Date().toISOString(), durationMs },
   ];
-  return { ...dossier, claims, sources, researchTrace: trace };
+  return { ...dossier, claims, sources, evidence: [...(dossier.evidence ?? []), ...evidence], researchTrace: trace };
 }
 
 // موجّه تدقيق الإحالات لمسار المراجعة — تحقّق فعلي من صحة ما في النص القائم، لا كتابة.

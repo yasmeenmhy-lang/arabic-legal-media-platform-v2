@@ -5,7 +5,7 @@ import { AI_CONSTITUTION } from "@/lib/governance";
 import { runSemanticAnalysis } from "@/lib/services/semantic-analysis-service";
 import { evaluateContent } from "@/lib/services/content-evaluation-service";
 import { describeProviderError } from "@/lib/ai-provider-errors";
-import { researchClaimsWithExpansion, fetchVerifyDossier, nameFailedStage, PIPELINE_STAGES } from "@/lib/services/web-research-service";
+import { researchClaimsWithExpansion, openAndExtract, nameFailedStage, PIPELINE_STAGES } from "@/lib/services/web-research-service";
 import { isSaudiOfficialUrl } from "@/lib/services/web-research-service";
 import { analyzeIntent } from "@/lib/services/intent-analysis-service";
 import { buildDossier, provenExcerpts, markUsedSources, type SourceDossier } from "@/lib/source-dossier";
@@ -185,7 +185,8 @@ async function runReformulation(data: z.infer<typeof schema>, apiKey: string): P
       const research = intent.claims.some((c) => c.needsProof) ? await researchClaimsWithExpansion(intent) : null;
       activeDossier = buildDossier(intent, research?.findings ?? [], isSaudiOfficialUrl);
       if (research?.trace?.length) activeDossier = { ...activeDossier, researchTrace: research.trace };
-      activeDossier = await fetchVerifyDossier(activeDossier);
+      // الفتح شرط الإثبات (بقرار المالكة): فتح الصفحات فعلياً والاستخراج بنوع الوثيقة
+      activeDossier = await openAndExtract(activeDossier, intent);
       if (refreshSources) activeDossier = { ...activeDossier, refreshedAt: new Date().toISOString() };
     } else if (hasSource) {
       // إخفاق مسمى بمرحلته (الدفعة ج) — تسري المادة (١٠)

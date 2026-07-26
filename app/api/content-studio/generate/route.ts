@@ -5,7 +5,7 @@ import { AI_CONSTITUTION } from "@/lib/governance";
 import { buildOfficialRuleCorpusText } from "@/lib/rule-corpus-text";
 import { governTextFull, type GovernTextFullResult } from "@/lib/services/governor-gate";
 import { verifyCorpusCitations } from "@/lib/services/citation-verifier";
-import { needsResearch, researchClaimsWithExpansion, fetchVerifyDossier, nameFailedStage, PIPELINE_STAGES } from "@/lib/services/web-research-service";
+import { needsResearch, researchClaimsWithExpansion, openAndExtract, nameFailedStage, PIPELINE_STAGES } from "@/lib/services/web-research-service";
 import { isSaudiOfficialUrl } from "@/lib/services/web-research-service";
 import { analyzeIntent } from "@/lib/services/intent-analysis-service";
 import { buildDossier, markUsedSources, provenExcerpts, type SourceDossier } from "@/lib/source-dossier";
@@ -460,6 +460,8 @@ ${briefType
     // مقاطع الادعاءات المثبتة — مدخل منفّذ المادة (١٠) بالخريطة (مبدأ الإثبات:
     // التفصيلة لا تُقبل لوجود مصادر، بل لورودها في مقطع داعم لادعاء مثبت)
     let proofList: string[] = [];
+    // إيقاف من بوابة المستجدات (حجب لا تسليم عام) — بمرحلته وسببه، والتقني مميز
+    const understandStopRef: { current: { failedStage: string; technical: boolean; technicalReason?: string } | null } = { current: null };
 
     // ★ محرك الفهم والإثبات (المرجع المعماري المعتمد): فكرة ← فهم ← ادعاءات ←
     // إثبات ← محتوى. البحث مرحلة تفكير في المنتصف، لا نقطة بداية — ومحرك الفهم
@@ -482,13 +484,42 @@ ${briefType
       }
       // [٢-٣] الإثبات — حلقة البحث المحكومة (توقف فور الإثبات، توسيع مبرر واحد
       // عند الحاجة فقط، كل انتقال مسجل في أثر البحث) ثم بوابة السيادة في البناء،
-      // ثم التثبيت بالفتح الفعلي للصفحات («gov.sa لازم لا كافٍ»)
+      // ثم فتح الصفحات فعلياً والاستخراج بحسب نوع الوثيقة — الفتح شرط الإثبات
+      // (بقرار المالكة: رابط المصدر أو مقتطف نتيجة البحث لا يكفي)
       const needsAnyProof = intent.claims.some((c) => c.needsProof);
       const research = needsAnyProof ? await researchClaimsWithExpansion(intent) : null;
       dossier = buildDossier(intent, research?.findings ?? [], isSaudiOfficialUrl);
       if (research?.trace?.length) dossier = { ...dossier, researchTrace: research.trace };
-      dossier = await fetchVerifyDossier(dossier);
+      dossier = await openAndExtract(dossier, intent);
       proofList = provenExcerpts(dossier);
+
+      // ★ بوابة المستجدات (بقرار المالكة): موضوع حديث لا يُكتب قبل الوصول لمصدره
+      // الرسمي وفتحه والتحقق من تاريخ النشر أو النفاذ — ولا محتوى عام يوحي
+      // بتغطية مستجد لم يُقرأ مصدره. والتعذر التقني يُبين بصفته لا كغياب مصدر.
+      if (intent.recency === "حديث" && needsAnyProof) {
+        const provenNow = dossier.claims.filter((c) => c.status === "مثبت");
+        const datedEvidence = (dossier.evidence ?? []).some(
+          (e) => e.publishedAt && e.linkedClaimIds.some((id) => provenNow.some((c) => c.id === id))
+        );
+        if (provenNow.length === 0 || !datedEvidence) {
+          const technicalFailure = dossier.claims.find((c) => c.failure?.technical);
+          const failedStage = provenNow.length === 0
+            ? (nameFailedStage(dossier.researchTrace) ?? `${PIPELINE_STAGES[5]} — لم يُوصل إلى المصدر الرسمي للمستجد`)
+            : `${PIPELINE_STAGES[7]} — فُتح المصدر ولم يُتحقق من تاريخ النشر أو النفاذ للمستجد`;
+          enforcement.article10Applied = true;
+          enforcement.stopped = true;
+          enforcement.generalAllowed = false;
+          enforcement.outcome = `بوابة المستجدات: أُوقف الإنشاء — ${failedStage}`;
+          console.log("[generate:recency-gate]", enforcement.outcome);
+          dossier = { ...dossier, article10: { applied: true, stopped: true, notice: pickNoSourceDeclaration(source), failedStage } };
+          understandStopRef.current = {
+            failedStage,
+            technical: Boolean(technicalFailure),
+            technicalReason: technicalFailure?.failure?.reason,
+          };
+          return;
+        }
+      }
       const proven = dossier.claims.filter((c) => c.status === "مثبت");
       const unproven = dossier.claims.filter((c) => c.status === "غير قابل للجزم" || c.status === "محكوم بالمادة ١٠");
       const generalClaims = dossier.claims.filter((c) => c.status === "عام مشروع");
@@ -525,6 +556,15 @@ ${briefType
 
     if (needsResearch(contentType, sourceSpec)) {
       await runUnderstandingAndResearch();
+      // بوابة المستجدات أوقفت قبل الكتابة: يظهر للمستخدم سبب الإيقاف ومرحلة
+      // الإخفاق بدقة — والتعذر التقني يُبين بصفته ولا يوصف غياباً للمصدر
+      const stop = understandStopRef.current;
+      if (stop) {
+        const message = stop.technical
+          ? `توقف الإنشاء قبل الكتابة: ${stop.technicalReason ?? "تعذر تقني في فتح صفحة المصدر الرسمي"}.\n\nموضع التوقف: ${stop.failedStage}`
+          : `${pickNoSourceDeclaration(source)}\n\nموضع التوقف: ${stop.failedStage}`;
+        return { kind: "err", error: message, enforcement, dossier: dossier ?? undefined };
+      }
     }
 
     // أربع جولات كحد أقصى (كتابة + ثلاثة تصحيحات) — بوابة «كل المؤشرات بلا استثناء»
@@ -636,6 +676,13 @@ ${briefType
         researchDone = true;
         console.log("[generate:research] طلب مكتوب فُهم بالمعنى — تشغيل محرك الفهم والإثبات");
         await runUnderstandingAndResearch();
+        const stop = understandStopRef.current;
+        if (stop) {
+          const message = stop.technical
+            ? `توقف الإنشاء قبل الكتابة: ${stop.technicalReason ?? "تعذر تقني في فتح صفحة المصدر الرسمي"}.\n\nموضع التوقف: ${stop.failedStage}`
+            : `${pickNoSourceDeclaration(source)}\n\nموضع التوقف: ${stop.failedStage}`;
+          return { kind: "err", error: message, enforcement, dossier: dossier ?? undefined };
+        }
         attempt--; // جولة البحث لا تُحسب من جولات التصحيح
         continue;
       }
@@ -645,7 +692,7 @@ ${briefType
         enforcement.article10Applied = true;
         enforcement.stopped = true;
         enforcement.generalAllowed = false;
-        enforcement.outcome = `${PIPELINE_STAGES[6]}: أُوقف الإنشاء — الطلب يتطلب معلومة رسمية ولا مصدر حكومي مختص منشور`;
+        enforcement.outcome = `${PIPELINE_STAGES[9]}: أُوقف الإنشاء — الطلب يتطلب معلومة رسمية ولا مصدر حكومي مختص منشور`;
         console.log("[generate:article10] إيقاف —", enforcement.outcome);
         return { kind: "err", error: pickNoSourceDeclaration(source), enforcement, dossier: dossier ?? undefined };
       }
@@ -699,7 +746,7 @@ ${briefType
     if (enforcement.violations.length > 0) {
       enforcement.article10Applied = true;
       enforcement.stopped = true;
-      enforcement.outcome = `${PIPELINE_STAGES[6]}: أُوقف التسليم — بقيت تفاصيل نظامية بلا مصدر بعد ${enforcement.correctionRounds} جولة تصحيح`;
+      enforcement.outcome = `${PIPELINE_STAGES[9]}: أُوقف التسليم — بقيت تفاصيل نظامية بلا مصدر بعد ${enforcement.correctionRounds} جولة تصحيح`;
       console.log("[generate:article10] إيقاف بعد الجولات —", JSON.stringify(enforcement.violations).slice(0, 400));
       return { kind: "err", error: pickNoSourceDeclaration(source), enforcement, dossier: dossier ?? undefined };
     }
