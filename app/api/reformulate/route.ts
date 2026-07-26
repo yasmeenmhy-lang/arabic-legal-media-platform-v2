@@ -6,6 +6,7 @@ import { runSemanticAnalysis } from "@/lib/services/semantic-analysis-service";
 import { evaluateContent } from "@/lib/services/content-evaluation-service";
 import { describeProviderError } from "@/lib/ai-provider-errors";
 import { researchTrustedSources } from "@/lib/services/web-research-service";
+import { buildOfficialRuleCorpusText } from "@/lib/rule-corpus-text";
 import { SOURCE_GOVERNANCE, ARTICLE_10_DECLARATION } from "@/lib/source-governance";
 import { article10Violations } from "@/lib/services/article10-enforcer";
 import { countHardLanguageErrors, HARD_LANGUAGE_CATEGORIES } from "@/lib/language-gate";
@@ -204,8 +205,19 @@ async function runReformulation(data: z.infer<typeof schema>, apiKey: string): P
     ? languageIssues.map((i) => `- "${i.excerpt ?? ""}" → ${i.suggestion ?? i.message}`).join("\n")
     : "لا توجد ملاحظات لغوية أو إملائية.";
 
+  // ★★ القاعدة المؤسسة (بأمر مالكة المنصة — ممنوع تجاوزها): قواعد السلوك المهني
+  // واللائحة التنفيذية نقطة الانطلاق لكل مسار. المعيد يقرأ المتن الرسمي كاملاً
+  // أولاً قبل أي إعادة صياغة — كما يقرؤه الكاتب في الإنشاء حرفاً بحرف — فلا
+  // يُصاغ نص ثم يُحاكَم بما لم يره.
   const systemPrompt = [
     AI_CONSTITUTION,
+    "",
+    "## نقطة الانطلاق — المتن الرسمي المعتمد: اقرأه أولاً وأعد الصياغة من داخله",
+    "هذا هو النص الحرفي الكامل لقواعد السلوك المهني للمحامين (٤٧ قاعدة) واللائحة التنفيذية لنظام المحاماة (٩٠ مادة). وهو المتن نفسه الذي تُحاكَم به صياغتك بعد كتابتها، فأعد الصياغة وأنت تراه:",
+    "- لا تكتب ما يخالف قاعدةً منه بالمعنى أو بالمقصد — المخالفة بالمعنى مخالفة ولو أُعيدت صياغتها.",
+    "- وإن استشهدت بقاعدة أو مادة منه فانقلها من نصّها هنا حرفاً بحرف برقمها — ممنوع نقلها من ذاكرتك.",
+    "",
+    buildOfficialRuleCorpusText(),
     "",
     "## وثيقة حوكمة المصادر — دستور أعلى ملزم لكل ما تكتبه",
     SOURCE_GOVERNANCE,
