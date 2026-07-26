@@ -572,6 +572,8 @@ function createDraftRecord(
     scriptDuration?: string; scriptStyle?: string; articleLength?: string;
     // المصادر الموثوقة المرافقة — تنتقل مع المحتوى إلى التحليل التفصيلي
     webSources?: { title: string; url: string }[];
+    // سجل حوكمة المصادر — تصريح المادة (١٠) وسياقه يُحفظان مع النسخة
+    sourceGovernance?: StoredContentVersion["sourceGovernance"];
   },
   // بقرار مالكة المنصة: المرئيات تنتقل مع المحتوى وتُحفظ في السجل فلا تختفي
   visuals: Omit<StoredVisual, "id" | "createdAt">[] = []
@@ -607,6 +609,7 @@ function createDraftRecord(
     updatedAt: timestamp,
     references: [],
     webSources: ctx.webSources,
+    sourceGovernance: ctx.sourceGovernance,
     visuals: stampedVisuals.length ? stampedVisuals : undefined,
   };
   const record: StoredContentRecord = {
@@ -761,6 +764,8 @@ export default function ContentStudioPage() {
   const [generatedText, setGeneratedText] = useState("");
   // المصادر المعتمدة التي جلبها البحث الحي للمحتوى المُنشأ — تُعرض كأدلة مرئية
   const [generatedSources, setGeneratedSources] = useState<Source[]>([]);
+  // سجل حوكمة المصادر للنص المولَّد — يُحفظ مع النسخة وينتقل للمراجعة والتصدير
+  const [generatedGovernance, setGeneratedGovernance] = useState<ReturnType<typeof toStoredGovernance>>(undefined);
   // إشعار المصارحة: طُلب مرجع ولم يُعثر عليه — يُعرض صراحةً بدل الصمت (بقرار المالكة)
   const [generatedSourceNote, setGeneratedSourceNote] = useState("");
   // معاينة المحتوى المقترح بعرض قراءة نظيف بدل صندوق التحرير (بطلب مالكة المنصة)
@@ -1028,7 +1033,28 @@ export default function ContentStudioPage() {
   // وعند العودة يُستأنف تتبع المهمة تلقائياً وتُعرض النتيجة.
   const PENDING_GENERATION_KEY = "lawyer-media:pending-generation";
 
-  function deliverGenerationOutcome(outcome: { text?: string; error?: string; truncated?: boolean; review?: ReviewResult; sources?: Source[]; sourceNote?: string; costUsd?: number; balanceUsd?: number }) {
+
+// ملخص إنفاذ المادة (١٠) القادم من الخادم (معقَّم — تسميات فئات بلا مقتطفات)
+type ServerGovernance = {
+  sourceFound?: boolean; sources?: { title: string; url: string }[];
+  article10Applied?: boolean; generalAllowed?: boolean; stopped?: boolean;
+  violations?: string[]; correctionRounds?: number; outcome?: string;
+};
+// تحويل ملخص الخادم إلى سجل الحوكمة المحفوظ مع النسخة (بقرار مالكة المنصة:
+// التصريح وسياقه يُحفظان فلا يضيعان عند فتح النسخة لاحقاً)
+function toStoredGovernance(gov: ServerGovernance | undefined, notice: string | undefined) {
+  if (!gov && !notice) return undefined;
+  return {
+    notice: notice || undefined,
+    article10Applied: gov?.article10Applied ?? Boolean(notice),
+    article10Decision: gov?.stopped ? "أوقف" : gov?.generalAllowed ? "محتوى عام" : "لا تنطبق",
+    officialSourceFound: gov?.sourceFound ?? false,
+    officialSources: gov?.sources ?? [],
+    enforcementReasons: gov?.violations ?? [],
+  };
+}
+
+  function deliverGenerationOutcome(outcome: { text?: string; error?: string; truncated?: boolean; review?: ReviewResult; sources?: Source[]; sourceNote?: string; sourceGovernance?: ServerGovernance; costUsd?: number; balanceUsd?: number }) {
     setFinalizing(false);
     if (outcome.costUsd !== undefined) setOpCostUsd(outcome.costUsd);
     if (outcome.balanceUsd !== undefined) setOpBalanceUsd(outcome.balanceUsd);
@@ -1036,6 +1062,7 @@ export default function ContentStudioPage() {
       setGeneratedText(outcome.text);
       setGeneratedSources(outcome.sources ?? []);
       setGeneratedSourceNote(outcome.sourceNote ?? "");
+      setGeneratedGovernance(toStoredGovernance(outcome.sourceGovernance, outcome.sourceNote));
       setGenerateError(outcome.truncated ? "النص طويل وقد لا يكون مكتملاً تماماً — راجع نهايته أو أعد الإنشاء." : "");
       setVtSvg("");
       setVtUrl("");
@@ -1048,7 +1075,7 @@ export default function ContentStudioPage() {
     }
   }
 
-  async function pollGenerationJob(jobId: string, onDraft?: (text: string) => void, startedAt?: number): Promise<{ text?: string; error?: string; truncated?: boolean; review?: ReviewResult; sources?: Source[]; sourceNote?: string; costUsd?: number; balanceUsd?: number }> {
+  async function pollGenerationJob(jobId: string, onDraft?: (text: string) => void, startedAt?: number): Promise<{ text?: string; error?: string; truncated?: boolean; review?: ReviewResult; sources?: Source[]; sourceNote?: string; sourceGovernance?: ServerGovernance; costUsd?: number; balanceUsd?: number }> {
     // الحدّ الزمني مطلق من بدء المهمة لا من كل استطلاع — فمهمة ماتت على الخادم لا
     // يُعاد استطلاعها بلا نهاية عند كل تحديث أو دخول (سبب تعليق الصفحة). حدّ الخادم
     // ٣٠٠ ثانية، فأي مهمة تجاوزت نحو ست دقائق ميتة قطعاً. وعند البلوغ نُحرّر المهمة
@@ -1061,13 +1088,13 @@ export default function ContentStudioPage() {
       }
       try {
         const res = await fetch(`/api/content-studio/generate-status?id=${encodeURIComponent(jobId)}`);
-        const data = (await res.json()) as { status?: string; text?: string; error?: string; truncated?: boolean; partial?: string; review?: ReviewResult; sources?: Source[]; sourceNote?: string; costUsd?: number; balanceUsd?: number };
+        const data = (await res.json()) as { status?: string; text?: string; error?: string; truncated?: boolean; partial?: string; review?: ReviewResult; sources?: Source[]; sourceNote?: string; sourceGovernance?: ServerGovernance; costUsd?: number; balanceUsd?: number };
         // بأمر مالكة المنصة: لا تُعرض مسودة قبل اجتياز كل المؤشرات — المسودات
         // الجزئية المعلقة (من نشرات سابقة) تُتجاهل ولا تُعرض
         if (data.status === "done") {
           void fetch(`/api/content-studio/generate-status?id=${encodeURIComponent(jobId)}&ack=1`).catch(() => {});
           try { window.localStorage.removeItem(scopedKey(PENDING_GENERATION_KEY)); } catch { /* بيئة بلا تخزين */ }
-          return { text: data.text ?? "", truncated: data.truncated, review: data.review, sources: data.sources, sourceNote: data.sourceNote, costUsd: data.costUsd, balanceUsd: data.balanceUsd };
+          return { text: data.text ?? "", truncated: data.truncated, review: data.review, sources: data.sources, sourceNote: data.sourceNote, sourceGovernance: data.sourceGovernance, costUsd: data.costUsd, balanceUsd: data.balanceUsd };
         }
         if (data.status === "error" || data.status === "missing") {
           try { window.localStorage.removeItem(scopedKey(PENDING_GENERATION_KEY)); } catch { /* بيئة بلا تخزين */ }
@@ -1194,6 +1221,7 @@ export default function ContentStudioPage() {
     setGenerating(true);
     setGenerateError("");
     setGeneratedSources([]);
+    setGeneratedGovernance(undefined);
     setGeneratedSourceNote("");
     setPreviewGenerated(false);
     try {
@@ -1328,7 +1356,7 @@ export default function ContentStudioPage() {
     let raw = "";
     try { raw = window.localStorage.getItem(scopedKey(PENDING_REVIEW_KEY)) ?? ""; } catch { return; }
     if (!raw) return;
-    let pending: { jobId?: string; at?: number; contentId?: string; body?: string; contentType?: ContentKind; contentTypeLabel?: string; channel?: string; audience?: string; purpose?: string; specialty?: string; charLimit?: number | null; adCta?: string; adStyle?: string; scriptDuration?: string; scriptStyle?: string; articleLength?: string } | null = null;
+    let pending: { jobId?: string; at?: number; contentId?: string; body?: string; contentType?: ContentKind; contentTypeLabel?: string; channel?: string; audience?: string; purpose?: string; specialty?: string; charLimit?: number | null; adCta?: string; adStyle?: string; scriptDuration?: string; scriptStyle?: string; articleLength?: string; webSources?: { title: string; url: string }[]; sourceGovernance?: StoredContentVersion["sourceGovernance"] } | null = null;
     try { pending = JSON.parse(raw); } catch { /* قيمة تالفة */ }
     if (!pending?.jobId) {
       // سجل مُسبق بلا رقم مهمة: خرجت المستخدمة قبل وصول الرد — النص يُستعاد بدل أن
@@ -1400,6 +1428,9 @@ export default function ContentStudioPage() {
           scriptDuration: pending!.scriptDuration ?? "",
           scriptStyle: pending!.scriptStyle ?? "",
           articleLength: pending!.articleLength ?? "",
+          // المصادر وسجل الحوكمة المحفوظان مع الحمولة — لا يضيعان عند الاستئناف
+          webSources: pending!.webSources,
+          sourceGovernance: pending!.sourceGovernance,
           review: result,
         });
         setContentId(saved.record.id);
@@ -1475,7 +1506,7 @@ export default function ContentStudioPage() {
     try {
       window.localStorage.setItem(scopedKey(PENDING_REVIEW_KEY), JSON.stringify({
         at: Date.now(), contentId, body: trimmed, contentType: kind, contentTypeLabel,
-        channel, audience, purpose, specialty, topic: topic.trim() || undefined, webSources: activeWebSourcesValue, charLimit, adCta, adStyle, scriptDuration, scriptStyle, articleLength,
+        channel, audience, purpose, specialty, topic: topic.trim() || undefined, webSources: activeWebSourcesValue, sourceGovernance: generatedGovernance, charLimit, adCta, adStyle, scriptDuration, scriptStyle, articleLength,
       }));
     } catch { /* بيئة بلا تخزين */ }
     try {
@@ -1492,7 +1523,7 @@ export default function ContentStudioPage() {
         try {
           window.localStorage.setItem(scopedKey(PENDING_REVIEW_KEY), JSON.stringify({
             jobId: startPayload.jobId, at: Date.now(), contentId, body: trimmed, contentType: kind, contentTypeLabel,
-            channel, audience, purpose, specialty, topic: topic.trim() || undefined, webSources: activeWebSourcesValue, charLimit, adCta, adStyle, scriptDuration, scriptStyle, articleLength,
+            channel, audience, purpose, specialty, topic: topic.trim() || undefined, webSources: activeWebSourcesValue, sourceGovernance: generatedGovernance, charLimit, adCta, adStyle, scriptDuration, scriptStyle, articleLength,
           }));
         } catch { /* بيئة بلا تخزين — تبقى المتابعة داخل الجلسة فقط */ }
         outcome = await pollReviewJob(startPayload.jobId);
@@ -1700,7 +1731,7 @@ export default function ContentStudioPage() {
           body: activeText,
           contentType: kind,
           contentTypeLabel: contentKindLabels[kind],
-          channel, audience, purpose, specialty, topic: topic.trim() || undefined, webSources: activeWebSourcesValue, charLimit,
+          channel, audience, purpose, specialty, topic: topic.trim() || undefined, webSources: activeWebSourcesValue, sourceGovernance: generatedGovernance, charLimit,
           adCta, adStyle, scriptDuration, scriptStyle, articleLength,
           review,
         });
@@ -1712,7 +1743,7 @@ export default function ContentStudioPage() {
       }
       createDraftRecord(
         activeText,
-        { kind, channel, audience, purpose, specialty, topic: topic.trim() || undefined, webSources: activeWebSourcesValue, charLimit, adCta, adStyle, scriptDuration, scriptStyle, articleLength },
+        { kind, channel, audience, purpose, specialty, topic: topic.trim() || undefined, webSources: activeWebSourcesValue, sourceGovernance: generatedGovernance, charLimit, adCta, adStyle, scriptDuration, scriptStyle, articleLength },
         visuals
       );
       router.push("/content-management");

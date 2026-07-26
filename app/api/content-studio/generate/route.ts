@@ -7,7 +7,11 @@ import { governTextFull, type GovernTextFullResult } from "@/lib/services/govern
 import { verifyCorpusCitations } from "@/lib/services/citation-verifier";
 import { needsResearch, researchTrustedSources } from "@/lib/services/web-research-service";
 import { SOURCE_GOVERNANCE, ARTICLE_10_DECLARATION } from "@/lib/source-governance";
-import { article10Violations, type Article10Enforcement } from "@/lib/services/article10-enforcer";
+import {
+  article10Violations, detectWriterMarker, sanitizeEnforcementForStorage,
+  ARTICLE10_STOP_MARKER, RESEARCH_NEEDED_MARKER,
+  type Article10Enforcement,
+} from "@/lib/services/article10-enforcer";
 import { WRITING_CODE } from "@/lib/writing-code";
 import { recordUsage, runWithCostMeter, meterCostUsd, currentMeter } from "@/lib/cost-meter";
 import { ledgerDb, deductUsd } from "@/lib/cost-ledger";
@@ -445,30 +449,50 @@ ${briefType
     // بالمعنى (إشارة «بحاجة بحث» من الكاتب أدناه). لا قوائم كلمات تقرر بدله.
     // لا تمسّ الفحص إطلاقاً: النص الناتج يمرّ على كل المؤشرات كاملةً.
     const sourceSpec = { wantSource, sourceKind, sourceEntity, sourceDesc };
+    // عدد المصادر الحكومية الرسمية للمملكة العربية السعودية — هو وحده ما يعتدّ به
+    // منفّذ المادة (١٠): التفصيلة النظامية المتعلقة بالمملكة لا يسندها مصدر مقارن.
+    let saudiOfficialCount = 0;
     // بناء مطالبة الكتابة بعد البحث — مشترك بين مسار المفتاح ومسار الطلب المكتوب
     const applyResearchOutcome = (research: Awaited<ReturnType<typeof researchTrustedSources>>) => {
-      if (research) {
-        console.log("[generate:research]", research.sources.length, "مصدر موثوق");
-        researchSources = research.sources; // للعرض كأدلة مرئية للمستخدم
+      if (research && research.saudiOfficialSources.length > 0) {
+        // ★ بوابة السيادة المرجعية (بقرار المالكة): وُجد مصدر حكومي رسمي للمملكة —
+        // هو السند الحصري للشأن المتعلق بها؛ والمقارن يُسلَّم مفصولاً بحظر صريح.
+        console.log("[generate:research]", research.saudiOfficialSources.length, "مصدر حكومي رسمي +", research.comparativeSources.length, "مقارن");
+        researchSources = research.sources; // القائمة المسندة — تُرشَّح لاحقاً لما استُخدم فعلاً
+        saudiOfficialCount = research.saudiOfficialSources.length;
         enforcement.sourceFound = true;
-        enforcement.sources = research.sources;
+        enforcement.sources = research.saudiOfficialSources;
         // قاعدة ثابتة بقرار مالكة المنصة: مصدران أو ثلاثة كحدٍّ أعلى مطلق — لا أكثر.
-        const sourceLines = research.sources.slice(0, 3).map((s) => `- ${s.title}: ${s.url}`).join("\n");
+        const officialLines = research.saudiOfficialSources.slice(0, 3).map((s) => `- ${s.title}: ${s.url}`).join("\n");
+        const comparativeLines = research.comparativeSources.slice(0, Math.max(0, 3 - research.saudiOfficialSources.length)).map((s) => `- ${s.title}: ${s.url}`).join("\n");
         // حين طلب المستخدم المصدر صراحةً: إلزام الكاتب بذكر الرابط في النص عند الاستشهاد.
         const linkDirective = wantSource
           ? "وبما أن المستخدم طلب الدعم بمصدر صراحةً، يجب أن تستشهد بأحد هذه المصادر فعلاً في النص وتذكر رابطه بين قوسين عقب المعلومة المستمدة منه."
           : "واذكر رابط المصدر في النص عند الاستشهاد المباشر به.";
-        promptText = `${user}\n\n★ مصادر موثوقة مجلوبة من البحث الحي وفق وثيقة حوكمة المصادر — استند إليها حصراً عند أي حكم نظامي أو رقم أو دراسة أو إحصائية، وانسب المعلومة لجهتها باسمها. ${linkDirective} ممنوع الاستشهاد برقم مادة أو دراسة أو إحصائية من ذاكرتك خارج هذه المصادر؛ وما لا تجد له سنداً هنا اعرضه نسبةً عامة صادقة دون رقم مخترع. وفي قائمة «المصادر» ختام النص لا تُدرج أكثر من مصدرين أو ثلاثة كحدٍّ أعلى مطلق — اختر الأوثق والأقرب صلةً ولا تُطوّل القائمة.\n\nتقرير المصادر:\n${research.briefing}\n\nقائمة الروابط للاستشهاد:\n${sourceLines}`;
+        promptText = `${user}\n\n★ مصادر مجلوبة من البحث الحي وفق وثيقة حوكمة المصادر. ${linkDirective} ممنوع الاستشهاد برقم مادة أو دراسة أو إحصائية من ذاكرتك خارج هذه المصادر؛ وما لا تجد له سنداً هنا اعرضه نسبةً عامة صادقة دون رقم مخترع. وفي قائمة «المصادر» ختام النص لا تُدرج أكثر من مصدرين أو ثلاثة كحدٍّ أعلى مطلق.\n\nالمصادر الحكومية الرسمية للمملكة العربية السعودية — السند الحصري لأي شأن يتعلق بالمملكة (المادتان ٣ و٦):\n${officialLines}${comparativeLines ? `\n\nمصادر دولية/مقارنة — تخضع للباب الثاني، ويحظر إثبات أو تفسير أي شأن يتعلق بالمملكة العربية السعودية بها، ولا تُستخدم إلا للمقارنة الصريحة مع الفصل التام (المادة ١١):\n${comparativeLines}` : ""}\n\nتقرير المصادر:\n${research.briefing}`;
+      } else if (research) {
+        // مصادر مقارنة فقط بلا مصدر حكومي للمملكة ⇒ الشأن المتعلق بالمملكة بلا سند:
+        // تسري المادة (١٠) عليه، والمقارن يبقى للمقارنة الصريحة وحدها.
+        console.log("[generate:research] لا مصدر حكومياً رسمياً —", research.comparativeSources.length, "مقارن فقط؛ تسري المادة (١٠)");
+        researchSources = research.sources;
+        saudiOfficialCount = 0;
+        enforcement.sourceFound = false;
+        enforcement.article10Applied = true;
+        enforcement.generalAllowed = true;
+        sourceNote = ARTICLE_10_DECLARATION;
+        const comparativeLines = research.comparativeSources.slice(0, 3).map((s) => `- ${s.title}: ${s.url}`).join("\n");
+        promptText = `${user}\n\n★ لم يُعثر على مصدر حكومي رسمي للمملكة العربية السعودية — تسري المادة (١٠): إن كان الطلب لا يُجاب إلا بحكم نظامي أو تفسير رسمي أو اختصاص جهة أو إجراء حكومي أو قرار أو سياسة رسمية فأخرج سطر الإيقاف حرفياً وحده: ${ARTICLE10_STOP_MARKER} — وإلا فاكتب محتوى عاماً مشروعاً خالياً من المحظورات الثلاثة عشر.\n\nمصادر دولية/مقارنة عُثر عليها — تخضع للباب الثاني، ويحظر قطعياً إثبات أو تفسير أي شأن يتعلق بالمملكة العربية السعودية بها؛ لا تُستخدم إلا إن كان طلب المستخدم مقارنة دولية صريحة، مع الفصل التام (المادة ١١):\n${comparativeLines}\n\nتقرير المصادر:\n${research.briefing}`;
       } else {
         // إنفاذ المادة (١٠) — بقرار المالكة: المصارحة في كل حالة غياب مصدر، لا صمت.
         // التصريح الحرفي يُعرض ملاحظةً مستقلة أعلى المحتوى، والكاتب يُقيَّد بالمحتوى
         // العام المجرد (بلا حكم ولا مدة ولا عقوبة ولا نسبة ولا رقم)، والمنفّذ
         // البرمجي أدناه يفحص الناتج حتمياً.
         console.log("[generate:research] لا مصدر رسمي — تفعيل المادة (١٠)");
+        saudiOfficialCount = 0;
         enforcement.article10Applied = true;
         enforcement.generalAllowed = true;
         sourceNote = ARTICLE_10_DECLARATION;
-        promptText = `${user}\n\n★ لم يُعثر على مصدر رسمي معتمد لهذا الطلب — تسري المادة (١٠) من وثيقة حوكمة المصادر: إن كان الطلب لا يُجاب إلا بحكم نظامي أو تفسير رسمي أو اختصاص جهة أو إجراء حكومي أو قرار أو سياسة رسمية فأخرج سطر الإيقاف حرفياً وحده: [[إيقاف-المادة-10]] — وإلا فاكتب محتوى عاماً مشروعاً لا يتضمن أياً من المحظورات الثلاثة عشر في المادة (١٠)، وأحِل القارئ إلى المصادر الرسمية.`;
+        promptText = `${user}\n\n★ لم يُعثر على مصدر رسمي معتمد لهذا الطلب — تسري المادة (١٠) من وثيقة حوكمة المصادر: إن كان الطلب لا يُجاب إلا بحكم نظامي أو تفسير رسمي أو اختصاص جهة أو إجراء حكومي أو قرار أو سياسة رسمية فأخرج سطر الإيقاف حرفياً وحده: ${ARTICLE10_STOP_MARKER} — وإلا فاكتب محتوى عاماً مشروعاً لا يتضمن أياً من المحظورات الثلاثة عشر في المادة (١٠)، وأحِل القارئ إلى المصادر الرسمية.`;
       }
     };
     if (needsResearch(contentType, sourceSpec)) {
@@ -491,9 +515,10 @@ ${briefType
     const produceAndJudge = async (prompt: string): Promise<Candidate | "stop" | "research" | null> => {
       const produced = await produceComplete(prompt);
       if (!produced.text) return null;
-      const flat = produced.text.trim();
-      if (flat.includes("[[إيقاف-المادة-10]]")) return "stop";
-      if (flat.includes("[[بحاجة-بحث]]")) return "research";
+      // الإشارات الداخلية تُلتقط قبل أي فحص أو تسليم — لا تصل المستخدم ولا السجل أبداً
+      const marker = detectWriterMarker(produced.text);
+      if (marker === "stop") return "stop";
+      if (marker === "research") return "research";
       const candidateText = produced.text;
       const inflated = !isOpenLength && produced.truncated;
       // بوابة الحاكم — حصن حتمي + عمق دلالي + جودة اللغة؛ نتائجها الخام تُبقى
@@ -527,7 +552,8 @@ ${briefType
       // ★ المنفّذ البرمجي الحتمي للمادة (١٠) — بقرار المالكة الملزم: عند غياب
       // المصدر الرسمي، أي تفصيلة نظامية (رقم مادة، مدة، عقوبة، نسبة، أثر) تُرصد
       // بالكود وتحجب التسليم وتُعاد لدورة التصحيح بتحديد المخالفة بدقة.
-      const article10 = article10Violations(candidateText, researchSources.length);
+      // بوابة السيادة: العدد المعتدّ به هو المصادر الحكومية الرسمية للمملكة وحدها
+      const article10 = article10Violations(candidateText, saudiOfficialCount);
       const corrections: string[] = [];
       if (inflated) corrections.push(`- تجاوزتَ قالب النوع «${contentType}» وطوله المحدد: النص يجب أن يلتزم بنية هذا النوع وإيجازه — أعد كتابته أقصر ومكتمل المعنى دون قطع.`);
       corrections.push(...citationIssues.map((issue) => `- ${issue.message} صحّح المرجع أو الاقتباس ليطابق المتن الرسمي حرفياً، أو احذف الاستشهاد.`));
@@ -602,7 +628,10 @@ ${briefType
         enforcement.outcome = enforcement.article10Applied
           ? "سُلِّم محتوى عام مشروع مع التصريح الإلزامي"
           : "سُلِّم المحتوى";
-        return { kind: "ok", text: winner.text, truncated: false, gov: winner.gov, sources: researchSources, sourceNote, enforcement };
+        // «المصادر المعتمدة» = ما استُخدم في النص فعلاً (بقرار المالكة) — لا نتيجة
+        // بحث لم يُستند إليها. المعيار الحتمي: رابط المصدر وارد في النص المسلَّم.
+        const used = researchSources.filter((s) => winner.text.includes(s.url));
+        return { kind: "ok", text: winner.text, truncated: false, gov: winner.gov, sources: used, sourceNote, enforcement };
       }
 
       // لا مستوفي بعد: يُختار الأقرب (أقل تصحيحات) لجولة تصحيح موضعي
@@ -672,7 +701,8 @@ ${briefType
     enforcement.outcome = enforcement.article10Applied
       ? "سُلِّم محتوى عام مشروع مع التصريح الإلزامي"
       : "سُلِّم المحتوى";
-    return { kind: "ok", text, truncated, gov: lastGov!, sources: researchSources, sourceNote, enforcement };
+    // «المصادر المعتمدة» = ما استُخدم في النص فعلاً — رابطه وارد في النص المسلَّم
+    return { kind: "ok", text, truncated, gov: lastGov!, sources: researchSources.filter((s) => text.includes(s.url)), sourceNote, enforcement };
   }
 
   // يبني تقرير المراجعة الكامل من حكم الإنشاء نفسه (بلا ذكاء ثانٍ مستقل) — يُستدعى فقط
@@ -735,7 +765,8 @@ ${briefType
             cacheReadTokens: m.cacheReadTokens, cacheWriteTokens: m.cacheWriteTokens,
             searches: m.searches, costUsd,
             callLogJson: JSON.stringify(m.callLog),
-            enforcementJson: enforcement ? JSON.stringify(enforcement) : undefined,
+            // تعقيم قبل الحفظ الدائم (بقرار المالكة): تسميات الفئات فقط، لا مقتطفات نص
+            enforcementJson: enforcement ? JSON.stringify(sanitizeEnforcementForStorage(enforcement)) : undefined,
           });
         } catch (error) {
           console.error("[content-studio/generate:job-log]", error);
@@ -754,6 +785,8 @@ ${briefType
             result.sources.length ? JSON.stringify(result.sources) : undefined,
             result.sourceNote,
             costUsd,
+            // ملخص الإنفاذ المعقَّم — يعود للواجهة ليُحفظ مع النسخة في السجل
+            JSON.stringify(sanitizeEnforcementForStorage(result.enforcement)),
           );
           await persistJobLog(costUsd, result.enforcement);
         } else {

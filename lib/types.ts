@@ -190,6 +190,8 @@ export type ReviewContext = {
   // نتائج التحقّق الحيّ من المصادر الموثوقة لإحالات النص (تُحقن في حكم الامتثال والمخاطر) — تُملأ داخلياً في المراجعة
   verificationBriefing?: string;
   verificationSources?: { title: string; url: string }[];
+  // ما تحقق منه فعلاً لكل مصدر (سطر المدقق الحرفي) — وحده يُعرض «مصدر تحقق»
+  verificationDetails?: { title: string; url: string; note: string }[];
   reviewStatus?: ReviewReadinessStatus;
 };
 
@@ -403,9 +405,10 @@ export type ReviewResult = {
     articleTextExcerpt: string;
     sourceUrl: string;
   }>;
-  /** مصادر التحقق الحي التي عُثر عليها فعلاً أثناء تدقيق إحالات النص (بقرار
-   * مالكة المنصة: تُعرض ولا تُرمى) — مميزة عن مصادر الإنشاء المعتمدة */
-  verifiedWebSources?: { title: string; url: string }[];
+  /** مصادر التحقق الحي (بقرار مالكة المنصة): لا يُدرج إلا مصدر فُتح وأسند إليه
+   * المدقق نتيجة تحقق فعلية — note هي ما تحقق منه حرفياً من تقريره. نتيجة البحث
+   * المجردة لا تُعد مصدر تحقق، ولا تتحول هذه المصادر تلقائياً إلى مصادر معتمدة */
+  verifiedWebSources?: { title: string; url: string; note?: string }[];
   governedRewrites: GovernedRewriteSuggestion[];
   traceability: ReviewTraceability;
   workflow: ReviewWorkflowStep[];

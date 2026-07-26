@@ -77,6 +77,18 @@ export type StoredContentVersion = {
   // بقرار مالكة المنصة تنتقل مع المحتوى إلى التحليل التفصيلي، فيراها المحامي
   // مثبتة مع نتيجته. كانت تُعرض في الاستديو فقط وتضيع بمغادرة الصفحة.
   webSources?: { title: string; url: string }[];
+  // ★ سجل حوكمة المصادر للنسخة (بقرار مالكة المنصة في المراجعة قبل النشر):
+  // تصريح المادة (١٠) وسياق إنفاذها يُحفظان مع النسخة فلا يضيع سياق المصارحة
+  // عند فتحها لاحقاً — يظهر التصريح عند الفتح والمراجعة والتقرير والتصدير
+  // بوصفه ملاحظة مرافقة لا جزءاً من متن المحتوى.
+  sourceGovernance?: {
+    notice?: string;               // sourceGovernanceNotice — تصريح المادة (١٠) الحرفي
+    article10Applied?: boolean;    // هل طُبقت المادة (١٠)؟
+    article10Decision?: string;    // «محتوى عام» / «أوقف» / «لا تنطبق»
+    officialSourceFound?: boolean; // هل وُجد مصدر حكومي رسمي مختص؟
+    officialSources?: { title: string; url: string }[];
+    enforcementReasons?: string[]; // تسميات فئات الرصد — معقَّمة بلا مقتطفات
+  };
   visuals?: StoredVisual[];
   approvedAt?: string;
   approvedBy?: string;
@@ -166,6 +178,7 @@ function normalizeStoredRecords(value: unknown): StoredContentRecord[] {
         purpose: typeof version.purpose === "string" ? version.purpose : "التثقيف",
         references: Array.isArray(version.references) ? version.references : [],
         webSources: Array.isArray(version.webSources) ? version.webSources : undefined,
+        sourceGovernance: version.sourceGovernance && typeof version.sourceGovernance === "object" ? version.sourceGovernance : undefined,
         visuals,
         analysis
       } as StoredContentVersion];
@@ -332,6 +345,7 @@ export function referencesFromReview(review: ReviewResult): ProfessionalOfficial
 type StoredContextExtras = {
   topic?: string;
   webSources?: { title: string; url: string }[];
+  sourceGovernance?: StoredContentVersion["sourceGovernance"];
   specialty?: string;
   charLimit?: number | null;
   adCta?: string;
@@ -356,6 +370,8 @@ function applyContextExtras(version: StoredContentVersion, extras: StoredContext
     }
     version.webSources = merged;
   }
+  // سجل الحوكمة يخص النسخة بعينها — يُستبدل بالوارد ولا يُمحى بغيابه
+  if (extras.sourceGovernance !== undefined) version.sourceGovernance = extras.sourceGovernance;
   version.specialty = extras.specialty;
   version.charLimit = extras.charLimit ?? null;
   version.adCta = extras.adCta;

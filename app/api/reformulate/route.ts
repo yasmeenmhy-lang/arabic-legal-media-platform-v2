@@ -161,6 +161,9 @@ async function runReformulation(data: z.infer<typeof schema>, apiKey: string): P
   let researchSources: { title: string; url: string }[] = [];
   // إشعار المصارحة: أقرّ المستخدم بمرجع ولم يُعثر على مطابق — يُبلَّغ صراحةً لا صمتاً
   let sourceNote: string | undefined;
+  // بوابة السيادة: العدد المعتدّ به في منفّذ المادة (١٠) هو المصادر الحكومية
+  // الرسمية للمملكة العربية السعودية وحدها — لا مجمل نتائج البحث.
+  let saudiOfficialCount = 0;
   if (hasSource) {
     const hint = (sourceHint ?? "").trim();
     const research = await researchTrustedSources({
@@ -174,6 +177,7 @@ async function runReformulation(data: z.infer<typeof schema>, apiKey: string): P
     });
     if (research) {
       researchSources = research.sources; // للعرض كأدلة مرئية
+      saudiOfficialCount = research.saudiOfficialSources.length;
       const sourceLines = research.sources.map((s) => `- ${s.title}: ${s.url}`).join("\n");
       researchBlock = [
         "",
@@ -313,7 +317,7 @@ async function runReformulation(data: z.infer<typeof schema>, apiKey: string): P
     // ★ المنفّذ البرمجي الحتمي للمادة (١٠) على الصياغة النهائية — بقرار المالكة
     // الملزم: لا مصدر ⇒ لا تفصيلة نظامية. تُرصد بالكود، وتُمنح جولة تصحيح محددة،
     // فإن بقيت لا تُسلَّم الصياغة ويُعرض التصريح فقط.
-    let a10 = article10Violations(suggestedText, researchSources.length);
+    let a10 = article10Violations(suggestedText, saudiOfficialCount);
     if (a10.length > 0) {
       const a10Prompt = [
         "النص التالي اقترحته أنت، لكن الفحص البرمجي رصد فيه تفاصيل نظامية بلا مصدر رسمي مرفق — وهذا محظور بالمادة (١٠) من وثيقة حوكمة المصادر:",
@@ -328,7 +332,7 @@ async function runReformulation(data: z.infer<typeof schema>, apiKey: string): P
       ].join("\n");
       const fixed = await callModel(apiKey, systemPrompt, a10Prompt);
       if (fixed && !isOutOfMandateOutput(fixed) && !isNonSubstantiveOutput(fixed)) {
-        const fixedA10 = article10Violations(fixed, researchSources.length);
+        const fixedA10 = article10Violations(fixed, saudiOfficialCount);
         const fixedVerification = await verifySuggestion(fixed, context);
         if (fixedA10.length === 0 && fixedVerification.clean) {
           suggestedText = fixed;
@@ -341,7 +345,8 @@ async function runReformulation(data: z.infer<typeof schema>, apiKey: string): P
       }
     }
 
-    return { ok: true, suggestedText, sources: researchSources, sourceNote };
+    // «المصادر المعتمدة» = ما استُخدم فعلاً — رابطه وارد في الصياغة المسلَّمة (بقرار المالكة)
+    return { ok: true, suggestedText, sources: researchSources.filter((s) => suggestedText.includes(s.url)), sourceNote };
   } catch (error) {
     const raw = error instanceof Error ? error.message : "خطأ غير متوقع";
     // أخطاء المزود المعروفة (رصيد/مفتاح/ضغط) تُعرض بالعربية بسببها وإجرائها — لا بنصها الإنجليزي الخام

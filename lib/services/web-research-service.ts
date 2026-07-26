@@ -22,7 +22,30 @@ export type ResearchResult = {
   briefing: string;
   // المصادر المجلوبة فعلاً (عنوان + رابط) — للعرض في المحتوى وللتتبع
   sources: { title: string; url: string }[];
+  // ★ بوابة السيادة المرجعية الحتمية (بقرار مالكة المنصة في المراجعة قبل النشر):
+  // «لا تكفي شارة النطاق وحدها للحكم بالاختصاص أو الاعتماد» لكن الفصل الحتمي
+  // الأول واجب — المصادر الحكومية الرسمية للمملكة العربية السعودية (.gov.sa)
+  // وحدها سند الشأن المتعلق بالمملكة؛ وما سواها مصادر مقارنة/دولية تخضع للباب
+  // الثاني ولا يجوز إثبات شأن يتعلق بالمملكة بها. الاختصاص الموضوعي والأصالة
+  // (المادتان ٣ و٤) يحكم بهما الباحث والمدقق بالمعنى وفق الوثيقة المحقونة.
+  saudiOfficialSources: { title: string; url: string }[];
+  comparativeSources: { title: string; url: string }[];
+  // لمسار التحقق: ما الذي تحقق منه لكل مصدر — السطر الحرفي من تقرير المدقق الذي
+  // أسند إليه. المصدر الذي لم يُسند إليه شيء في التقرير «نتيجة بحث مجردة» ولا يُعد
+  // مصدر تحقق (بقرار المالكة).
+  details?: { title: string; url: string; note: string }[];
 };
+
+// هل الرابط لجهة حكومية رسمية في المملكة العربية السعودية؟ (النطاق .gov.sa لا
+// تملكه إلا جهة حكومية فيها — فحص حتمي بالكود)
+export function isSaudiOfficialUrl(url: string): boolean {
+  try {
+    const host = new URL(url).hostname.toLowerCase();
+    return host === "gov.sa" || host.endsWith(".gov.sa");
+  } catch {
+    return false;
+  }
+}
 
 // مواصفات المصدر التي يطلبها المستخدم (اختيارية كلها) — تُوجّه البحث بدقة
 export type SourceSpec = {
@@ -163,15 +186,31 @@ async function callWebSearch(instruction: string, timeoutMs?: number): Promise<R
     // عدّاد التكلفة الداخلي مع السجل التفصيلي (يشمل عدد عمليات البحث)
     recordUsage(payload.usage, { stage: "بحث المصادر", model: "claude-sonnet-5", durationMs: Date.now() - calledAt });
     const content = payload.content ?? [];
-    const sources = extractSources(content).slice(0, MAX_SOURCES_TO_WRITER);
+    const rawSources = extractSources(content);
     const briefing = extractText(content);
     // لا مصادر مجلوبة أو تقرير فارغ ⇒ لا فائدة من الحقن.
     // (حُذف بقرار المالكة فحصُ تضمُّن عبارة «لا توجد مصادر موثوقة» — كان يُسقط
     // تقريراً ناجحاً بمصادره الحقيقية لمجرد ورود العبارة عن نقطة واحدة فيه.)
-    if (sources.length === 0 || !briefing) {
+    if (rawSources.length === 0 || !briefing) {
       return null;
     }
-    return { briefing, sources };
+    // ★ بوابة الإسناد الفعلي (بقرار المالكة): «نتيجة البحث المجردة لا تُعد مصدراً» —
+    // يُقدَّم المصدر الذي أسند إليه الباحث واقعةً في تقريره (رابطه وارد في التقرير
+    // حرفياً)، فهو ما فُتح وقُرئ ونُقل منه فعلاً. وإن لم يوثِّق الباحث الروابط في
+    // تقريره تبقى القائمة الخام بحدها الأقصى (لا نُسقط بحثاً ناجحاً لشكل التقرير).
+    const cited = rawSources.filter((s) => briefing.includes(s.url));
+    const base = (cited.length > 0 ? cited : rawSources).slice(0, MAX_SOURCES_TO_WRITER);
+    // بوابة السيادة المرجعية: فصل حتمي بين الحكومي الرسمي للمملكة وبين ما سواه
+    const saudiOfficialSources = base.filter((s) => isSaudiOfficialUrl(s.url));
+    const comparativeSources = base.filter((s) => !isSaudiOfficialUrl(s.url));
+    // ما الذي تحقق منه لكل مصدر مُسنَد: السطر الحرفي من التقرير الحامل لرابطه
+    const details = cited.slice(0, MAX_SOURCES_TO_WRITER).map((s) => {
+      const line = briefing
+        .split("\n")
+        .find((l) => l.includes(s.url));
+      return { title: s.title, url: s.url, note: (line ?? "").replace(/^[-•\s]+/, "").trim() };
+    }).filter((d) => d.note.length > 0);
+    return { briefing, sources: base, saudiOfficialSources, comparativeSources, details };
   } catch {
     return null;
   } finally {

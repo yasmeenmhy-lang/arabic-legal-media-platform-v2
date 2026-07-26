@@ -243,6 +243,9 @@ export default function ContentReviewPage() {
   // بقرار مالكة المنصة: المصادر الموثوقة المجلوبة عند الإنشاء تنتقل مع المحتوى
   // وتُعرض مثبتة في التحليل التفصيلي — كانت تُعرض في الاستديو وحده فتضيع
   const [savedWebSources, setSavedWebSources] = useState<{ title: string; url: string }[]>([]);
+  // سجل حوكمة المصادر المحفوظ مع النسخة — تصريح المادة (١٠) يظهر عند الفتح
+  // والمراجعة والتصدير ملاحظةً مرافقة، فلا يضيع سياق المصارحة (بقرار المالكة)
+  const [savedGovernance, setSavedGovernance] = useState<{ notice?: string; article10Applied?: boolean; article10Decision?: string; officialSourceFound?: boolean; officialSources?: { title: string; url: string }[]; enforcementReasons?: string[] } | null>(null);
   const [approved, setApproved] = useState(false);
   const [approving, setApproving] = useState(false);
   const [saveLaterMsg, setSaveLaterMsg] = useState("");
@@ -502,6 +505,7 @@ export default function ContentReviewPage() {
     const version = record?.versions.find((item) => item.version === versionNumber);
     setSavedVisuals(version?.visuals ?? []);
     setSavedWebSources(version?.webSources ?? []);
+    setSavedGovernance(version?.sourceGovernance ?? null);
   }, [contentId, versionNumber]);
 
   // حارس تسلسل الطلبات: يمنع استجابة متأخرة من طلب تحليل قديم من الكتابة فوق نتيجة
@@ -1058,7 +1062,11 @@ export default function ContentReviewPage() {
   function downloadWord() {
     if (!report) return;
     const findings = sortedFindings.map((item) => `<h3>${item.title}</h3><p><b>الدليل:</b> ${item.evidence}</p><p><b>المرجع:</b> ${item.sourceDocument} — ${item.legalReference}</p><p><b>الإجراء:</b> ${item.suggestedSaferWording}</p>`).join("");
-    const html = `<html dir="rtl"><meta charset="utf-8"><body><h1>تقرير توصية النشر</h1><h2>${review?.publicationDecision.label}</h2><p>${review?.publicationDecision.reason}</p>${findings}</body></html>`;
+    // تصريح المادة (١٠) يرافق التصدير ملاحظةً مستقلة لا جزءاً من متن المحتوى (بقرار المالكة)
+    const governanceNote = savedGovernance?.notice
+      ? `<p><b>ملاحظة حوكمة المصادر المرافقة:</b> ${savedGovernance.notice}</p>`
+      : "";
+    const html = `<html dir="rtl"><meta charset="utf-8"><body><h1>تقرير توصية النشر</h1><h2>${review?.publicationDecision.label}</h2><p>${review?.publicationDecision.reason}</p>${governanceNote}${findings}</body></html>`;
     downloadBlob("تقرير-توصية-النشر.doc", "application/msword;charset=utf-8", html);
     setMessage("تم تنزيل تقرير Word.");
   }
@@ -2018,6 +2026,15 @@ export default function ContentReviewPage() {
             </div>
           </details>
         ) : null}
+        {/* ★ تصريح المادة (١٠) المحفوظ مع النسخة — ملاحظة مرافقة أعلى المحتوى، لا جزء
+            من متنه (بقرار المالكة): يظهر عند الفتح من السجل فلا تبدو المادة موثقة وهي
+            صيغت بلا مصدر رسمي */}
+        {savedGovernance?.notice ? (
+          <div className="mt-3 rounded-xl border border-warning/40 bg-warningSoft px-4 py-3">
+            <p className="text-sm font-semibold leading-6 text-warningDark">ملاحظة حوكمة المصادر المرافقة لهذه النسخة</p>
+            <p className="mt-1 text-sm leading-7 text-warningDark">{savedGovernance.notice}</p>
+          </div>
+        ) : null}
         {/* المصادر الموثوقة المرافقة للمحتوى — مثبتة مفتوحة، فهي دليل النص لا زينة */}
         {savedWebSources.length ? (
           <details className="mt-3 w-full max-w-full overflow-hidden rounded-xl border border-line bg-white p-4" open>
@@ -2066,6 +2083,12 @@ export default function ContentReviewPage() {
                   >
                     {item.title || item.url}
                   </a>
+                  {item.note ? (
+                    <p className="mt-1 text-xs leading-6 text-ink/70">
+                      <span className="font-semibold text-info">ما تحقق منه: </span>
+                      {item.note}
+                    </p>
+                  ) : null}
                   <span className="mt-1 block break-all text-xs text-ink/50">{item.url}</span>
                 </li>
               ))}

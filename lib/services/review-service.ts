@@ -268,10 +268,10 @@ export async function buildReviewResult(
     executiveRegulationCompliance: compliance.executiveRegulationCompliance,
     legalRiskAssessment,
     referencesPanel: compliance.referencesPanel,
-    // ★ بقرار مالكة المنصة: مصادر التحقق الحي التي عُثر عليها فعلاً تُحمل مع
-    // النتيجة وتُعرض — لا تُجمع ثم تُرمى. تُعرض مميزةً عن مصادر الإنشاء المعتمدة
-    // (هذه «تُحُقِّق منها» لا «استُند إليها»)، ولا يُنشأ منها رابط لم يُجلب فعلاً.
-    verifiedWebSources: context.verificationSources?.length ? context.verificationSources : undefined,
+    // ★ بقرار مالكة المنصة: لا يُعرض «مصدر تحقق» إلا ما فُتح وأسند إليه المدقق
+    // نتيجة فعلية في تقريره (note) — نتيجة البحث المجردة لا تُعد مصدر تحقق،
+    // ولا تتحول هذه المصادر تلقائياً إلى مصادر معتمدة.
+    verifiedWebSources: context.verificationDetails?.length ? context.verificationDetails : undefined,
     governedRewrites,
     traceability: {
       reviewId: reviewContext.reviewId,
@@ -310,7 +310,12 @@ export async function reviewContent(text: string, kind: ContentKind = "post", co
     timeoutMs: 45_000
   });
   if (verification?.briefing) {
-    ctx = { ...context, verificationBriefing: verification.briefing, verificationSources: verification.sources };
+    ctx = {
+      ...context,
+      verificationBriefing: verification.briefing,
+      verificationSources: verification.sources,
+      verificationDetails: verification.details,
+    };
   }
   // متتابعتان لا متوازيتان — بقرار مالكة المنصة: «الامتثال عنصر أساسي في قياس
   // المخاطر». كانتا تعملان معاً فيقيس محرّك المخاطر الأثر وهو لا يعلم بما رُصد،

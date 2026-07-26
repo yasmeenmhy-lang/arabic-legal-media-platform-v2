@@ -46,7 +46,13 @@ export async function GET(request: Request) {
     if (job.sources_json) {
       try { sources = JSON.parse(job.sources_json); } catch { sources = undefined; }
     }
-    return NextResponse.json({ status: "done", text: job.result_text ?? "", truncated: job.truncated, review, sources, sourceNote: job.source_note ?? undefined, ...(await ownerCostFields(job.cost_usd)) });
+    // ملخص إنفاذ المادة (١٠) المعقَّم — تحفظه الواجهة مع النسخة في السجل فلا يضيع
+    // سياق المصارحة عند فتح النسخة لاحقاً (بقرار المالكة في المراجعة قبل النشر)
+    let sourceGovernance: unknown;
+    if (job.enforcement_json) {
+      try { sourceGovernance = JSON.parse(job.enforcement_json); } catch { sourceGovernance = undefined; }
+    }
+    return NextResponse.json({ status: "done", text: job.result_text ?? "", truncated: job.truncated, review, sources, sourceNote: job.source_note ?? undefined, sourceGovernance, ...(await ownerCostFields(job.cost_usd)) });
   }
   if (job.status === "error") return NextResponse.json({ status: "error", error: job.error ?? "تعذر إنشاء المحتوى — حاول مرة أخرى.", ...(await ownerCostFields(job.cost_usd)) });
   return NextResponse.json({ status: "pending", partial: job.partial_text ?? undefined });

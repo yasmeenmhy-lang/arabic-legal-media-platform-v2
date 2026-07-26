@@ -24,6 +24,9 @@ export type ContentJob = {
   source_note: string | null;
   // تكلفة العملية بالدولار (عدّاد داخلي لمالكة المنصة وحدها — لا يُعرض لغيرها)
   cost_usd: number | null;
+  // ملخص إنفاذ المادة (١٠) المعقَّم (تسميات الفئات بلا مقتطفات) — يعود للواجهة
+  // فيُحفظ مع النسخة في السجل ويظهر تصريحها عند الفتح والمراجعة والتصدير
+  enforcement_json: string | null;
 };
 
 export function jobsDb() {
@@ -59,6 +62,7 @@ export async function ensureJobsTable(sql: Sql) {
   await sql`ALTER TABLE content_jobs ADD COLUMN IF NOT EXISTS sources_json text`;
   await sql`ALTER TABLE content_jobs ADD COLUMN IF NOT EXISTS source_note text`;
   await sql`ALTER TABLE content_jobs ADD COLUMN IF NOT EXISTS cost_usd double precision`;
+  await sql`ALTER TABLE content_jobs ADD COLUMN IF NOT EXISTS enforcement_json text`;
   ensured = true;
 }
 
@@ -73,8 +77,8 @@ export async function createJob(sql: Sql, id: string) {
   await sql`DELETE FROM content_jobs WHERE created_at < now() - interval '1 day'`;
 }
 
-export async function completeJob(sql: Sql, id: string, text: string, truncated: boolean, reviewJson?: string, sourcesJson?: string, sourceNote?: string, costUsd?: number) {
-  await sql`UPDATE content_jobs SET status = 'done', result_text = ${text}, truncated = ${truncated}, review_json = ${reviewJson ?? null}, sources_json = ${sourcesJson ?? null}, source_note = ${sourceNote ?? null}, cost_usd = ${costUsd ?? null}, updated_at = now() WHERE id = ${id}`;
+export async function completeJob(sql: Sql, id: string, text: string, truncated: boolean, reviewJson?: string, sourcesJson?: string, sourceNote?: string, costUsd?: number, enforcementJson?: string) {
+  await sql`UPDATE content_jobs SET status = 'done', result_text = ${text}, truncated = ${truncated}, review_json = ${reviewJson ?? null}, sources_json = ${sourcesJson ?? null}, source_note = ${sourceNote ?? null}, cost_usd = ${costUsd ?? null}, enforcement_json = ${enforcementJson ?? null}, updated_at = now() WHERE id = ${id}`;
 }
 
 export async function failJob(sql: Sql, id: string, error: string, costUsd?: number) {
@@ -87,7 +91,7 @@ export async function getJob(sql: Sql, id: string): Promise<ContentJob | null> {
   // أطول من حدّ الخادم (٣٠٠ ثانية) بهامش أمان ⇒ قُتلت في منتصفها ولن تكتمل أبداً.
   // نُعلّمها فاشلة عند أول استعلام بعد ذلك، فتُنهي الواجهة انتظارها بدل التعليق الأبدي.
   await sql`UPDATE content_jobs SET status = 'error', error = ${"تعذّر إكمال الإنشاء في الوقت المتاح — أعد المحاولة."}, updated_at = now() WHERE id = ${id} AND status = 'pending' AND created_at < now() - interval '6 minutes'`;
-  const rows = (await sql`SELECT id, status, result_text, partial_text, error, truncated, review_json, sources_json, source_note, cost_usd FROM content_jobs WHERE id = ${id}`) as ContentJob[];
+  const rows = (await sql`SELECT id, status, result_text, partial_text, error, truncated, review_json, sources_json, source_note, cost_usd, enforcement_json FROM content_jobs WHERE id = ${id}`) as ContentJob[];
   return rows[0] ?? null;
 }
 
@@ -142,6 +146,9 @@ export async function recordJobLog(sql: Sql, entry: {
   enforcementJson?: string;
 }) {
   await ensureJobLogTable(sql);
+  // سياسة الاحتفاظ (بقرار المالكة في المراجعة قبل النشر): تسعون يوماً — تنظيف
+  // انتهازي عند كل إدراج يمنع النمو غير المحدود، والقياس التشغيلي لا يحتاج أقدم.
+  await sql`DELETE FROM job_cost_log WHERE executed_at < now() - interval '90 days'`;
   await sql`
     INSERT INTO job_cost_log (job_id, kind, duration_ms, calls, input_tokens, output_tokens, cache_read_tokens, cache_write_tokens, searches, cost_usd, call_log_json, enforcement_json)
     VALUES (${entry.jobId}, ${entry.kind}, ${entry.durationMs}, ${entry.calls}, ${entry.inputTokens}, ${entry.outputTokens}, ${entry.cacheReadTokens}, ${entry.cacheWriteTokens}, ${entry.searches}, ${entry.costUsd}, ${entry.callLogJson ?? null}, ${entry.enforcementJson ?? null})
