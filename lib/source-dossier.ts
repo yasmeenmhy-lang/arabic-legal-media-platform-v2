@@ -87,12 +87,24 @@ export type SourceDossier = {
   evidence?: ExtractedEvidence[];
   // حكم اكتمال الإثبات للنص المسلَّم — يُحسب حتمياً ويسافر مع النسخة
   completeness?: CompletenessVerdict;
+  // الملفات السابقة عند التحديث الصريح (بقرار المالكة: ثلاث نسخ بحد أقصى،
+  // بتاريخ الاستبدال وسببه وطالبه وملخص الفروقات — ولا تُعدل النسخة بعد حفظها)
+  previousDossiers?: DossierArchiveEntry[];
   intentSummary?: string;     // خلاصة التمثيل الدلالي
   article10?: { applied: boolean; stopped: boolean; notice?: string; failedStage?: string };
   researchedAt?: string;
   refreshedAt?: string;       // آخر تحديث بطلب صريح من المستخدم
   // أثر قرار البحث (جولاته وأسباب الانتقال بينها ونتائجها) — يسافر مع النسخة
   researchTrace?: ResearchTraceEntry[];
+};
+
+// نسخة مؤرشفة من ملف الإثبات — تُحفظ عند التحديث الصريح ولا تُعدل بعد حفظها
+export type DossierArchiveEntry = {
+  replacedAt: string;    // تاريخ الاستبدال
+  reason: string;        // سبب التحديث
+  requestedBy: string;   // المستخدم أو العملية التي طلبت التحديث
+  diffSummary: string;   // ملخص الفروقات في المصادر والادعاءات وحالات التحقق
+  dossier: SourceDossier; // النسخة السابقة كما كانت (بلا أرشيفها المتداخل)
 };
 
 // ── التمثيل الدلالي — مخرج محرك الفهم (المرجع الأول، لا يُتجاوز) ──
@@ -337,6 +349,48 @@ export function describeEvidenceState(v: CompletenessVerdict): string {
     v.unsupportedDetails.length ? `تفاصيل خارج خريطة الإثبات: ${v.unsupportedDetails.length}` : "",
   ].filter(Boolean);
   return parts.join(" · ");
+}
+
+// ─── أرشفة الملف السابق عند التحديث الصريح (بقرار المالكة) ───────────────────
+// النسخة الحالية + ثلاث سابقة بحد أقصى؛ عند التجاوز تُحذف الأقدم فقط.
+// كل نسخة سابقة تحمل: تاريخ الاستبدال، سبب التحديث، طالبه، وملخص الفروقات —
+// ولا تُعدل بعد حفظها (تُخزن كما كانت، منزوعة الأرشيف المتداخل فلا تتضخم).
+export function summarizeDossierDiff(oldD: SourceDossier, newD: SourceDossier): string {
+  const oldUrls = new Set(oldD.sources.map((s) => s.url));
+  const newUrls = new Set(newD.sources.map((s) => s.url));
+  const added = [...newUrls].filter((u) => !oldUrls.has(u)).length;
+  const removed = [...oldUrls].filter((u) => !newUrls.has(u)).length;
+  const provenOld = oldD.claims.filter((c) => c.status === "مثبت").length;
+  const provenNew = newD.claims.filter((c) => c.status === "مثبت").length;
+  const changedVerification = newD.sources.filter((s) => {
+    const prev = oldD.sources.find((o) => o.url === s.url);
+    return prev && prev.verificationStatus !== s.verificationStatus;
+  }).length;
+  return [
+    `المصادر: ${added} أُضيف، ${removed} أُزيل`,
+    `الادعاءات المثبتة: ${provenOld} ← ${provenNew}`,
+    changedVerification ? `حالات تحقق تغيرت: ${changedVerification}` : "",
+  ].filter(Boolean).join(" · ");
+}
+
+export function archivePreviousDossier(
+  newDossier: SourceDossier,
+  previous: SourceDossier,
+  reason: string,
+  requestedBy: string
+): SourceDossier {
+  const entry: DossierArchiveEntry = {
+    replacedAt: new Date().toISOString(),
+    reason,
+    requestedBy,
+    diffSummary: summarizeDossierDiff(previous, newDossier),
+    // النسخة السابقة كما كانت — منزوعة أرشيفها المتداخل فقط (منع التضخم التكراري)
+    dossier: { ...previous, previousDossiers: undefined },
+  };
+  const carried = [...(previous.previousDossiers ?? []), entry];
+  // الحد الأقصى ثلاث نسخ سابقة — تُحذف الأقدم فقط عند التجاوز
+  const kept = carried.slice(-3);
+  return { ...newDossier, previousDossiers: kept };
 }
 
 // دمج نتائج تحقق المراجعة في الملف (بالرابط): «مؤكَّد» يرفع الحالة،

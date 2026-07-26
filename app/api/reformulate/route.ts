@@ -8,7 +8,7 @@ import { describeProviderError } from "@/lib/ai-provider-errors";
 import { researchClaimsWithExpansion, openAndExtract, nameFailedStage, PIPELINE_STAGES } from "@/lib/services/web-research-service";
 import { isSaudiOfficialUrl } from "@/lib/services/web-research-service";
 import { analyzeIntent } from "@/lib/services/intent-analysis-service";
-import { buildDossier, provenExcerpts, markUsedSources, computeCompleteness, type SourceDossier } from "@/lib/source-dossier";
+import { buildDossier, provenExcerpts, markUsedSources, computeCompleteness, archivePreviousDossier, type SourceDossier } from "@/lib/source-dossier";
 import { buildOfficialRuleCorpusText } from "@/lib/rule-corpus-text";
 import { SOURCE_GOVERNANCE, ARTICLE_10_DECLARATION } from "@/lib/source-governance";
 import { article10Violations, article10ViolationsWithProof } from "@/lib/services/article10-enforcer";
@@ -187,7 +187,28 @@ async function runReformulation(data: z.infer<typeof schema>, apiKey: string): P
       if (research?.trace?.length) activeDossier = { ...activeDossier, researchTrace: research.trace };
       // الفتح شرط الإثبات (بقرار المالكة): فتح الصفحات فعلياً والاستخراج بنوع الوثيقة
       activeDossier = await openAndExtract(activeDossier, intent);
-      if (refreshSources) activeDossier = { ...activeDossier, refreshedAt: new Date().toISOString() };
+      if (refreshSources) {
+        activeDossier = { ...activeDossier, refreshedAt: new Date().toISOString() };
+        // ★ التحديث الصريح يؤرشف الملف السابق (بقرار المالكة): تاريخ الاستبدال
+        // وسببه وطالبه وملخص الفروقات — ثلاث نسخ بحد أقصى ولا تُعدل بعد حفظها،
+        // وأثر التحديث المختصر يدخل سجل البحث الدائم مع بقية الجولات
+        if (sourceDossier) {
+          activeDossier = archivePreviousDossier(
+            activeDossier,
+            sourceDossier,
+            (sourceHint ?? "").trim() ? `تحديث بطلب المستخدم — توجيهه: ${(sourceHint ?? "").trim()}` : "تحديث المصادر بطلب صريح من المستخدم",
+            "المستخدم — مفتاح «تحديث المصادر»"
+          );
+          const diff = activeDossier.previousDossiers?.[activeDossier.previousDossiers.length - 1]?.diffSummary ?? "";
+          activeDossier = {
+            ...activeDossier,
+            researchTrace: [
+              ...(activeDossier.researchTrace ?? []),
+              { stage: "تحديث المصادر", reason: "طلب صريح من المستخدم — أُرشف الملف السابق بتاريخه", claimIds: [], outcome: diff || "لا فروقات جوهرية", at: new Date().toISOString() },
+            ],
+          };
+        }
+      }
     } else if (hasSource) {
       // إخفاق مسمى بمرحلته (الدفعة ج) — تسري المادة (١٠)
       console.log(`[reformulate:intent] إخفاق ${PIPELINE_STAGES[0]} — تسري المادة (١٠)`);

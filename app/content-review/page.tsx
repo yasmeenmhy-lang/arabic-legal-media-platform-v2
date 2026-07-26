@@ -80,7 +80,7 @@ import { scopedKey } from "@/lib/user-scope";
 import { Search } from "lucide-react";
 import { saveLatestReviewSnapshot } from "@/components/review-context-summary";
 import { riskDisplayLabel, type ContentKind, type ReviewResult, type RiskLevel } from "@/lib/types";
-import type { SourceDossier } from "@/lib/source-dossier";
+import { describeEvidenceState, evidenceUsedInText, type SourceDossier } from "@/lib/source-dossier";
 import { FindingsList } from "@/components/content-review/FindingCard";
 import {
   ComplianceIndicatorCard,
@@ -1080,11 +1080,19 @@ export default function ContentReviewPage() {
     const governanceNote = savedGovernance?.notice
       ? `<p><b>ملاحظة حوكمة المصادر المرافقة:</b> ${savedGovernance.notice}</p>`
       : "";
-    // ملحق الادعاءات ومصادرها من ملف مصادر النسخة — المرجع الوحيد (قاعدة المحرك الواحد)
+    // ملحق خريطة الاستناد من ملف الإثبات — المرجع الوحيد: الادعاء ومصدره وموضع
+    // الإثبات (المحدد) والنص الداعم وحالة التحقق، وحالة الاكتمال بالأعداد
+    const completenessLine = savedDossier?.completeness
+      ? `<p><b>حالة الإثبات:</b> ${savedDossier.completeness.ready ? "مكتمل" : "غير مكتمل"} — ${describeEvidenceState(savedDossier.completeness)}</p>`
+      : "";
     const dossierAnnex = savedDossier?.claims?.length
-      ? `<h2>الادعاءات ومصادرها</h2>${savedDossier.claims.map((claim) => {
+      ? `<h2>الادعاءات ومصادرها</h2>${completenessLine}${savedDossier.claims.map((claim) => {
           const src = claim.sourceId ? savedDossier.sources.find((s) => s.id === claim.sourceId) : undefined;
-          return `<p><b>${claim.status}:</b> ${claim.text}${claim.supportingExcerpt ? `<br/><b>المقطع الداعم:</b> «${claim.supportingExcerpt}»` : ""}${src ? `<br/><b>المصدر:</b> ${src.title} — ${src.url} (${src.verificationStatus})` : ""}</p>`;
+          const evs = (savedDossier.evidence ?? []).filter((e) => claim.evidenceIds?.includes(e.id));
+          const evidenceLines = evs.map((e) =>
+            `<br/><b>الدليل (${e.docKind}${e.locator ? ` — ${e.locator}` : ""}${e.natureLabel ? ` — ${e.natureLabel}` : ""}) [${e.relevance}]:</b> «${e.text}»`
+          ).join("");
+          return `<p><b>${claim.status}:</b> ${claim.text}${evidenceLines || (claim.supportingExcerpt ? `<br/><b>المقطع الداعم:</b> «${claim.supportingExcerpt}»` : "")}${claim.failure ? `<br/><b>${claim.failure.stage}:</b> ${claim.failure.reason}${claim.failure.technical ? " (تعذر تقني — ليس غياباً للمصدر)" : ""}` : ""}${src ? `<br/><b>المصدر:</b> ${src.title} — ${src.url} (${src.verificationStatus})` : ""}</p>`;
         }).join("")}`
       : "";
     const html = `<html dir="rtl"><meta charset="utf-8"><body><h1>تقرير توصية النشر</h1><h2>${review?.publicationDecision.label}</h2><p>${review?.publicationDecision.reason}</p>${governanceNote}${findings}${dossierAnnex}</body></html>`;
@@ -2108,16 +2116,24 @@ export default function ContentReviewPage() {
             <p className="mt-2 text-sm leading-7 text-ink/70">
               ما بُني عليه المحتوى من ادعاءات وحال إثبات كل منها — المثبت وحده يستند إلى مصدر بمقطع داعم، وما لم يثبت لا يُعرض في المحتوى حقيقةً.
             </p>
-            {/* تسمية مرحلة الإخفاق (الدفعة ج): عند تعذر الإثبات تُعرض المرحلة التي
+            {/* تسمية مرحلة الإخفاق: عند تعذر الإثبات تُعرض المرحلة التي
                 توقف عندها البحث ملاحظةً مرافقة — لا إخفاق مبهماً */}
             {savedDossier.article10?.failedStage ? (
               <p className="mt-1.5 rounded-lg bg-warningSoft px-3 py-2 text-xs leading-6 text-warningDark">
                 <span className="font-semibold">موضع تعذر الإثبات: </span>{savedDossier.article10.failedStage}
               </p>
             ) : null}
+            {/* حالة الإثبات الفعلية بالأعداد — تفسير من الملف لا عبارات عامة */}
+            {savedDossier.completeness ? (
+              <p className={`mt-1.5 rounded-lg px-3 py-2 text-xs leading-6 ${savedDossier.completeness.ready ? "bg-palm/10 text-palm" : "bg-warningSoft text-warningDark"}`}>
+                <span className="font-semibold">{savedDossier.completeness.ready ? "الإثبات مكتمل: " : "الإثبات غير مكتمل: "}</span>
+                {describeEvidenceState(savedDossier.completeness)}
+              </p>
+            ) : null}
             <ul className="mt-3 space-y-2">
               {savedDossier.claims.map((claim) => {
                 const src = claim.sourceId ? savedDossier.sources.find((s) => s.id === claim.sourceId) : undefined;
+                const claimEvidence = (savedDossier.evidence ?? []).filter((e) => claim.evidenceIds?.includes(e.id));
                 const statusStyle =
                   claim.status === "مثبت" ? "bg-palm/10 text-palm" :
                   claim.status === "عام مشروع" ? "bg-surface text-ink/70" :
@@ -2128,7 +2144,30 @@ export default function ContentReviewPage() {
                       <p className="text-sm font-medium leading-6 text-ink">{claim.text}</p>
                       <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-semibold ${statusStyle}`}>{claim.status}</span>
                     </div>
-                    {claim.supportingExcerpt ? (
+                    {/* سبب تعذر الإثبات بمرحلته — والتقني مميز صراحةً عن غياب المصدر */}
+                    {claim.failure ? (
+                      <p className="mt-1.5 text-xs leading-6 text-warningDark">
+                        <span className="font-semibold">{claim.failure.stage}: </span>{claim.failure.reason}
+                        {claim.failure.technical ? " (تعذر تقني — ليس غياباً للمصدر)" : ""}
+                      </p>
+                    ) : null}
+                    {/* خريطة الاستناد: الدليل المستخرج بمحدد موضعه وطبيعته ونصه الداعم
+                        وحالة تحققه وموضع استخدامه في المحتوى (بقرار المالكة) */}
+                    {claimEvidence.length > 0 ? claimEvidence.map((e) => (
+                      <div key={e.id} className="mt-1.5 rounded-md border border-line bg-white p-2.5">
+                        <p className="text-xs font-semibold leading-5 text-ink">
+                          {e.docKind}{e.locator ? ` — ${e.locator}` : ""}{e.natureLabel ? ` — ${e.natureLabel}` : ""}
+                          <span className={`mr-2 rounded-full px-2 py-0.5 text-[11px] ${e.relevance === "جوهري" ? "bg-palm/10 text-palm" : "bg-surface text-ink/60"}`}>{e.relevance}</span>
+                        </p>
+                        <p className="mt-1 text-xs leading-6 text-ink/75">
+                          <span className="font-semibold">النص الداعم: </span>«{e.text}»
+                        </p>
+                        <p className="mt-1 text-[11px] leading-5 text-ink/55">
+                          {evidenceUsedInText(e, text) ? "مستخدم في هذا المحتوى" : "غير مستخدم في هذا المحتوى"}
+                          {e.publishedAt ? ` · التاريخ: ${e.publishedAt}` : ""}
+                        </p>
+                      </div>
+                    )) : claim.supportingExcerpt ? (
                       <p className="mt-1.5 text-xs leading-6 text-ink/70">
                         <span className="font-semibold">المقطع الداعم: </span>«{claim.supportingExcerpt}»
                       </p>
@@ -2138,13 +2177,26 @@ export default function ContentReviewPage() {
                         <a href={src.url} target="_blank" rel="noopener noreferrer" className="text-xs font-semibold text-ink underline decoration-line underline-offset-4 hover:text-palm focus-ring">
                           {src.title || src.url}
                         </a>
-                        <span className="mr-2 text-xs text-ink/50">({src.verificationStatus})</span>
+                        <span className="mr-2 text-xs text-ink/50">({src.verificationStatus}{src.fetchStatus ? ` — ${src.fetchStatus}` : ""})</span>
                       </div>
                     ) : null}
                   </li>
                 );
               })}
             </ul>
+            {/* أثر تحديث المصادر: الملفات السابقة بتاريخها وسببها وملخص فروقاتها */}
+            {savedDossier.previousDossiers?.length ? (
+              <div className="mt-3 rounded-lg border border-line bg-surface p-3">
+                <p className="text-xs font-semibold text-ink/70">تحديثات المصادر السابقة ({savedDossier.previousDossiers.length})</p>
+                <ul className="mt-1.5 space-y-1">
+                  {savedDossier.previousDossiers.map((entry, index) => (
+                    <li key={index} className="text-[11px] leading-5 text-ink/60">
+                      {new Date(entry.replacedAt).toLocaleDateString("ar-SA")} — {entry.reason} — {entry.diffSummary}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
           </details>
         ) : null}
         {/* ★ بقرار مالكة المنصة: مصادر التحقق الحي تُعرض ولا تُرمى — مميزة بوضوح عن
