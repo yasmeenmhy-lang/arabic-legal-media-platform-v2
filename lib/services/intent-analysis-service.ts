@@ -49,7 +49,7 @@ ${SOURCE_GOVERNANCE}
   "candidateAuthorities": ["فرضيات الجهات المختصة بالاستدلال"],
   "candidateOfficialTerms": ["فرضيات المصطلح الرسمي المحتمل"],
   "claims": [
-    { "id": "c1", "text": "نص الادعاء المستقل", "needsProof": true|false, "whyNeedsProof": "الفئة من الثلاث عشرة إن احتاج", "scope": "المملكة" | "دولي" | "عام", "essential": true|false }
+    { "id": "c1", "text": "نص الادعاء المستقل", "needsProof": true|false, "whyNeedsProof": "الفئة من الثلاث عشرة إن احتاج", "scope": "المملكة" | "دولي" | "عام", "essential": true|false, "regulatory": true|false }
   ]
 }
 
@@ -57,7 +57,8 @@ ${SOURCE_GOVERNANCE}
 - فكك مضمون المحتوى المتوقع إلى ادعاءات مستقلة قابلة للتحقق كل على حدة (٢ إلى ٦ ادعاءات).
 - needsProof=true لكل ادعاء يقع في فئة من الثلاث عشرة؛ وneedsProof=false للفكرة العامة المشروعة.
 - scope="المملكة" لأي ادعاء يتعلق بأنظمتها أو جهاتها — ولا يثبته لاحقاً إلا مصدر حكومي رسمي فيها.
-- essential=true إذا كان الادعاء جوهرياً لتحقيق فكرة المستخدم — غيابه يجعل المحتوى ناقصاً أو مضللاً؛ وessential=false إذا كان مسانداً يمكن حذفه دون إخلال بالفكرة.`;
+- essential=true إذا كان الادعاء جوهرياً لتحقيق فكرة المستخدم — غيابه يجعل المحتوى ناقصاً أو مضللاً؛ وessential=false إذا كان مسانداً يمكن حذفه دون إخلال بالفكرة.
+- regulatory=true إذا كان الادعاء حكماً أو إجراءً أو التزاماً أو عقوبة أو مدة أو اختصاصاً نظامياً يخص جهات المملكة (لا يثبته إلا مصدر حكومي)؛ وregulatory=false إذا كان معلومة بحثية أو إحصائية أو أكاديمية أو صحفية عامة (تقبل دراسة أو بحثاً أو مقالة موثوقة بنسبتها الصريحة).`;
 
 // تحليل النية — نداء واحد صغير. فشله = فشل مرحلة الفهم (المرحلة ١ من مراحل
 // الإخفاق السبع) ويُبلَّغ باسمها؛ لا سقوط صامت لمسار قديم (قاعدة المحرك الواحد).
@@ -125,6 +126,8 @@ export function parseIntent(raw: string): IntentRepresentation | null {
         scope: c.scope === "دولي" || c.scope === "عام" ? c.scope : "المملكة",
         // غياب الحقل في مخرج قديم/ناقص ⇒ يُعامل جوهرياً احتياطاً (الأشد أماناً)
         essential: c.essential === undefined ? true : Boolean(c.essential),
+        // غياب الصفة ⇒ نظامي احتياطاً (الأشد أماناً — لا يثبته إلا حكومي)
+        regulatory: c.regulatory === undefined ? true : Boolean(c.regulatory),
       }));
     if (claims.length === 0) return null;
     return {
