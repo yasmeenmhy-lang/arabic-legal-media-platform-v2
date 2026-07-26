@@ -268,6 +268,10 @@ export async function buildReviewResult(
     executiveRegulationCompliance: compliance.executiveRegulationCompliance,
     legalRiskAssessment,
     referencesPanel: compliance.referencesPanel,
+    // ★ بقرار مالكة المنصة: مصادر التحقق الحي التي عُثر عليها فعلاً تُحمل مع
+    // النتيجة وتُعرض — لا تُجمع ثم تُرمى. تُعرض مميزةً عن مصادر الإنشاء المعتمدة
+    // (هذه «تُحُقِّق منها» لا «استُند إليها»)، ولا يُنشأ منها رابط لم يُجلب فعلاً.
+    verifiedWebSources: context.verificationSources?.length ? context.verificationSources : undefined,
     governedRewrites,
     traceability: {
       reviewId: reviewContext.reviewId,

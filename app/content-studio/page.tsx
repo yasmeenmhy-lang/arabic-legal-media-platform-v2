@@ -724,8 +724,9 @@ export default function ContentStudioPage() {
   const [imageGenError, setImageGenError] = useState("");
   const [imageGenSvg, setImageGenSvg] = useState("");
   const [charLimit, setCharLimit] = useState<number | null>(null);
-  // تعزيز بمرجع موثّق (بقرار مالكة المنصة) — مفتاح المستخدم للمصادر غير المستندة
-  // لواقعة (ابتكر من الذكاء، أخرى، مناسبات)؛ أما المستندة لواقعة فتوثيقها تلقائي.
+  // تعزيز بمرجع موثّق (بقرارات الاعتماد النهائية الملزمة) — مفتاح المستخدم هو
+  // القرار الوحيد، ويُحترم في الاتجاهين. وضعه الافتراضي يتبع نوع المحتوى
+  // (المفعّل افتراضياً أدناه)، وللمستخدم قلبه متى شاء.
   const [wantSource, setWantSource] = useState(false);
   // إسناد مرجعي اختياري في المراجعة — يُعين تحرّي الذكاء (والقاعدة تتحرّى دائماً بلا اعتماد عليه)
   const [reviewHasSource, setReviewHasSource] = useState(false);
@@ -822,6 +823,16 @@ export default function ContentStudioPage() {
   // Action feedback
   const [actionMsg, setActionMsg] = useState("");
 
+  // الوضع الافتراضي لمفتاح «تعزيز بمصدر» بحسب النوع (بقرارات الاعتماد النهائية):
+  // مشغّل في التحليلية والمعرفية (مقال، منشور، نص فيديو، رسم توضيحي، حملة، محتوى
+  // بصري)، مطفأ في الموجزة (إعلان، تعليق، تصريح، يوميات...) — وللمستخدم قلبه،
+  // وقلبه يُحترم في الاتجاهين.
+  useEffect(() => {
+    if (!kind) return;
+    const onByDefault = new Set<ContentKind>(["article", "post", "script", "infographic", "campaign", "visual_content"]);
+    setWantSource(onByDefault.has(kind));
+  }, [kind]);
+
   // بقرارها: المصادر تتبع التخصص ونوع المحتوى — مصدر لم يعد متاحاً يُلغى اختياره تلقائياً
   useEffect(() => {
     const typeLabel = kind ? contentKindLabels[kind] : "";
@@ -852,23 +863,13 @@ export default function ContentStudioPage() {
     (a, b) => Number(isConditionalSource(a.key)) - Number(isConditionalSource(b.key))
   );
   const advancedIsOpen = advancedOpen || charLimit !== null || Boolean(channel);
-  // «دعم بمصدر» متاح فقط للأنواع المعرفية التي قد تستند لواقعة خارجية — يُخفى في
-  // الأنواع الموجزة والتعريفية والشخصية (نفس قائمة الاستبعاد في الخادم).
-  const NO_SOURCE_LABELS = new Set([
-    "إعلان مهني", "تعليق", "يوميات", "تصريح", "وسم", "عنوان",
-    "محتوى بصري", "تصدير اجتماعي", "حملة", "خطة نشر",
-  ]);
+  // «تعزيز بمصدر» — بقرارات الاعتماد النهائية الملزمة: المفتاح يظهر في كل الأنواع
+  // إلا «خطة نشر» (جدول مواعيد لا نص موضوعي)، وقرار المستخدم فيه يُحترم في
+  // الاتجاهين: «نعم» تبحث المنصة، و«لا» لا تبحث — لا تشغيل قسري ولا قوائم خفية.
+  const NO_SOURCE_LABELS = new Set(["خطة نشر"]);
   const canSupportSource = Boolean(kind) && !NO_SOURCE_LABELS.has(kind ? contentKindLabels[kind] : "");
-  // مصادر مستندة لواقعة خارجية بطبيعتها → يُوثَّق المحتوى بمرجعها تلقائياً (بلا مفتاح).
-  // «ابتكر من الذكاء» و«أخرى» و«المناسبات» لا مصدر خارجي حتمي لها → مفتاح اختياري واحد.
-  const AUTO_SOURCED_KEYS = new Set([
-    "global-news", "local-news", "rulings", "regulations",
-    "statistics", "academic", "deals", "bar-updates",
-  ]);
-  const isAutoSourced = AUTO_SOURCED_KEYS.has(source);
-  // wantSource الفعّال المُرسَل للخادم: تلقائي للمصادر المستندة لواقعة، أو بمفتاح
-  // المستخدم لغيرها — وكله مشروط بنوع محتوى مؤهل.
-  const effectiveWantSource = canSupportSource && (isAutoSourced || wantSource);
+  // wantSource الفعّال المُرسَل للخادم: مفتاح المستخدم وحده — مشروطاً بنوع مؤهل.
+  const effectiveWantSource = canSupportSource && wantSource;
   const activeText = path === "create" ? generatedText : reviewText;
   // نوع المحتوى هو مصدر الحقيقة الوحيد — قسم بصري رئيسي واحد فقط لكل نوع:
   // «رسم توضيحي»: قسم «إعداد المرئيات والمخططات» وامتداده التوليدي (النوع من الإعداد، بلا اختيار مكرر)
@@ -3615,25 +3616,17 @@ export default function ContentStudioPage() {
             />
           </div>
 
-          {/* تعزيز بمرجع موثّق (بقرار مالكة المنصة) — جزء من منطق المصدر، بلا تشتيت:
-              • المصادر المستندة لواقعة (أنظمة، دراسة، أحكام...) → توثيق تلقائي، ملاحظة فقط.
-              • «ابتكر من الذكاء» وغيرها → مفتاح واحد اختياري.
-              • يظهر فقط للأنواع المعرفية المؤهلة، وبعد اختيار المصدر. */}
-          {canSupportSource && source && isAutoSourced && (
-            <div className="mb-4 flex items-start gap-2 rounded-lg border border-palm/25 bg-mint px-4 py-3">
-              <BookOpen size={16} className="mt-0.5 shrink-0 text-palm" aria-hidden="true" />
-              <p className="text-xs leading-6 text-palm">
-                هذا المصدر يستند إلى مرجع رسمي، فيُوثَّق المحتوى تلقائياً بمرجعه من المصادر المعتمدة ويُدرَج رابطه — دون خطوة إضافية.
-              </p>
-            </div>
-          )}
-          {canSupportSource && source && !isAutoSourced && (
+          {/* تعزيز بمصدر (بقرارات الاعتماد النهائية الملزمة) — مفتاح واحد ظاهر في كل
+              الأنواع المؤهلة، وقرار المستخدم فيه هو المرجع الوحيد ويُحترم في
+              الاتجاهين. وضعه الافتراضي يتبع النوع (مشغّل في التحليلية، مطفأ في
+              الموجزة)، والبحث محكوم بوثيقة حوكمة المصادر في الخادم. */}
+          {canSupportSource && source && (
             <div className="mb-4 rounded-lg border border-line bg-paper/40 p-4">
               <label className="flex cursor-pointer items-start justify-between gap-3">
                 <span>
-                  <span className="text-sm font-medium text-ink/85">تعزيز المحتوى بمرجع موثّق</span>
+                  <span className="text-sm font-medium text-ink/85">تعزيز المحتوى بمصادر ومراجع موثّقة</span>
                   <span className="mt-0.5 block text-xs leading-5 text-ink/50">
-                    خيار اختياري لهذا المصدر. عند التفعيل، يُستند إلى مرجع موثّق من المصادر المعتمدة ويُوثَّق برابطه الرسمي؛ وإذا تعذّر إيجاد مرجع مطابق، يُنبَّه إلى ذلك ويُعرض المحتوى بنسبة عامة دقيقة دون افتراض.
+                    عند التفعيل، تبحث المنصة في المصادر الرسمية المعتمدة ويُستند إليها بروابطها. وإذا لم يوجد مصدر رسمي، يُصرَّح بذلك أعلى المحتوى ولا يُذكر أي حكم أو رقم أو مدة بلا مصدر. وعند الإيقاف لا تبحث المنصة — وتبقى قواعد حوكمة المصادر ملزمة في الحالين.
                   </span>
                 </span>
                 <button

@@ -403,6 +403,9 @@ export type ReviewResult = {
     articleTextExcerpt: string;
     sourceUrl: string;
   }>;
+  /** مصادر التحقق الحي التي عُثر عليها فعلاً أثناء تدقيق إحالات النص (بقرار
+   * مالكة المنصة: تُعرض ولا تُرمى) — مميزة عن مصادر الإنشاء المعتمدة */
+  verifiedWebSources?: { title: string; url: string }[];
   governedRewrites: GovernedRewriteSuggestion[];
   traceability: ReviewTraceability;
   workflow: ReviewWorkflowStep[];

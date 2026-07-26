@@ -174,7 +174,7 @@ async function requestAnthropicJson(input: AIProviderRequest) {
     return null;
   }
   const data = await response.json() as { content?: Array<{ type?: string; text?: string }>; usage?: unknown };
-  recordUsage(data.usage); // عدّاد التكلفة الداخلي
+  recordUsage(data.usage, { stage: "تحسين التقرير", model: "claude-sonnet-5" }); // عدّاد التكلفة الداخلي
   const content = data.content?.find((item) => item.type === "text")?.text;
   if (!content) {
     logAIEnhancement("fallback", { reason: "anthropic response missing text content" });

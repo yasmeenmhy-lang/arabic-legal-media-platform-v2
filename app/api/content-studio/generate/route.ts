@@ -6,13 +6,15 @@ import { buildOfficialRuleCorpusText } from "@/lib/rule-corpus-text";
 import { governTextFull, type GovernTextFullResult } from "@/lib/services/governor-gate";
 import { verifyCorpusCitations } from "@/lib/services/citation-verifier";
 import { needsResearch, researchTrustedSources } from "@/lib/services/web-research-service";
+import { SOURCE_GOVERNANCE, ARTICLE_10_DECLARATION } from "@/lib/source-governance";
+import { article10Violations, type Article10Enforcement } from "@/lib/services/article10-enforcer";
 import { WRITING_CODE } from "@/lib/writing-code";
 import { recordUsage, runWithCostMeter, meterCostUsd, currentMeter } from "@/lib/cost-meter";
 import { ledgerDb, deductUsd } from "@/lib/cost-ledger";
 import { buildReviewResult } from "@/lib/services/review-service";
 import { enhanceReviewOutput } from "@/lib/services/ai-enhancement-service";
 import { describeProviderError } from "@/lib/ai-provider-errors";
-import { completeJob, createJob, failJob, jobsDb, setJobPartial } from "@/lib/content-jobs";
+import { completeJob, createJob, failJob, jobsDb, recordJobLog, setJobPartial } from "@/lib/content-jobs";
 import { waitUntil } from "@vercel/functions";
 import { contentKindLabels } from "@/lib/content-types";
 import type { ContentKind, ReviewResult } from "@/lib/types";
@@ -276,11 +278,21 @@ ${WRITING_CODE}
 قبل إخراج النص النهائي، راجع ذاتياً: هل يحتوي النص على أي من المحظورات أعلاه، أو نقلٍ غير منسوب لصاحبه، أو أي خطأ إملائي أو نحوي؟ إذا وجدت أي منها فأزلها وعدّل حتى يخلو النص منها تماماً.
 
 أخرج النص النهائي فقط جاهزاً للنشر دون مقدمات أو شرح إضافي.
+
+## وثيقة حوكمة المصادر — دستور أعلى ملزم لكل ما تكتبه
+${SOURCE_GOVERNANCE}
+
+## إنفاذ المادة (١٠) في كتابتك — قواعد تشغيلية ملزمة
+- **إن أُرفقت لك مصادر موثوقة في هذا الطلب**: فاكتب التفاصيل النظامية منها حصراً بنسبتها لجهتها، ولا تضف تفصيلة من ذاكرتك.
+- **وإن لم تُرفق لك مصادر**: فممنوع منعاً باتاً أن يتضمن نصك أياً من: حكم نظامي، تفسير نظامي، اختصاص جهة، إجراء حكومي، مدة، مهلة، عقوبة، نسبة، رقم، متطلب نظامي، التزام نظامي، استثناء نظامي، أو أي معلومة يفترض أنها صادرة عن جهة حكومية. اكتب الفكرة العامة المشروعة وأحِل القارئ إلى المصادر الرسمية. (يستثنى من ذلك الاستشهاد بالمتن الرسمي المرفق أدناه — فمصدره حاضر.)
+- **وإن كان طلب المستخدم نفسه لا يُجاب إلا بحكم نظامي أو تفسير رسمي أو اختصاص جهة أو إجراء حكومي أو قرار أو سياسة رسمية، ولم تُرفق لك مصادر**: فلا تكتب محتوى أصلاً — أخرج هذا السطر وحده حرفياً بلا أي إضافة: [[إيقاف-المادة-10]]
+- **وإن طلب المستخدم في فكرته المكتوبة تعزيز المحتوى بمصادر أو مراجع أو توثيق** — بأي صياغة يفهم منها هذا القصد بوضوح، لا بمجرد كلمات عامة محتملة — **ولم تُرفق لك مصادر في هذا الطلب**: فلا تكتب محتوى — أخرج هذا السطر وحده حرفياً بلا أي إضافة: [[بحاجة-بحث]]
+
 ## المتن الرسمي المعتمد — اكتب من داخله لا من ذاكرتك
 هذا هو النص الحرفي الكامل لقواعد السلوك المهني للمحامين (٤٧ قاعدة) واللائحة التنفيذية لنظام المحاماة ١٤٤٦هـ (٩٠ مادة). وهو المتن نفسه الذي يُحاكَم به نصّك بعد كتابته، فاكتب وأنت تراه:
 - **لا تكتب ما يخالف قاعدةً منه بالمعنى أو بالمقصد** — المخالفة بالمعنى مخالفة ولو أُعيدت صياغتها أو تجنّبت لفظاً بعينه.
 - **وإن استشهدت بقاعدة أو مادة منه فانقلها من نصّها هنا حرفاً بحرف** برقمها — ممنوع نقلها من ذاكرتك أو إعادة صياغتها.
-- **وما ليس في هذا المتن من أنظمة المملكة الأخرى**: لا تذكر منه اسم نظام ولا رقم مادة ولا مدة ولا عقوبة إلا من مصدر موثوق مرفق لك في هذا الطلب. وإن لم يُرفق لك مصدر، فاكتب الفكرة عامةً صادقةً بلا اسم نظام ولا رقم، وأحِل القارئ إلى مراجعة تفاصيل حالته في مصادرها الرسمية.
+- **وما ليس في هذا المتن من أنظمة المملكة العربية السعودية الأخرى**: لا تذكر منه اسم نظام ولا رقم مادة ولا مدة ولا عقوبة إلا من مصدر موثوق مرفق لك في هذا الطلب — وفق وثيقة حوكمة المصادر أعلاه.
 
 ${officialRuleCorpus}
 
@@ -326,6 +338,7 @@ ${briefType
   // استدعاء واحد لـSonnet — يعيد النص وسبب التوقف لكشف القطع
   const key: string = apiKey;
   async function callSonnet(messages: { role: "user" | "assistant"; content: string }[]) {
+    const callStartedAt = Date.now(); // زمن الاستدعاء للسجل التفصيلي
     // سقف زمني لكل نداء نموذج (يمنع نداءً معلّقاً من إيقاف الطلب كله فتعلق الواجهة)
     const ctrl = new AbortController();
     const t = setTimeout(() => ctrl.abort(), 150_000);
@@ -359,7 +372,8 @@ ${briefType
       throw new Error(`upstream ${response.status} ${body.slice(0, 200)}`);
     }
     const payload = (await response.json()) as { content?: { type: string; text: string }[]; stop_reason?: string; usage?: unknown };
-    recordUsage(payload.usage); // عدّاد التكلفة الداخلي — قياس صرف
+    // عدّاد التكلفة الداخلي مع السجل التفصيلي — قياس صرف
+    recordUsage(payload.usage, { stage: "الكاتب", model: "claude-sonnet-5", durationMs: Date.now() - callStartedAt });
     const text = payload.content?.find((c) => c.type === "text")?.text ?? "";
     return { text, stopReason: payload.stop_reason };
   }
@@ -392,15 +406,21 @@ ${briefType
 
   // الدورة الكاملة: توليد ← بوابة الحاكم ← إعادة كتابة عند الملاحظات — تُرجع نتيجة أو خطأ
   async function runPipeline(onDraft?: (text: string) => void): Promise<
-    | { kind: "ok"; text: string; truncated: boolean; gov: GovernTextFullResult; sources: { title: string; url: string }[]; sourceNote?: string }
-    | { kind: "err"; error: string }
+    | { kind: "ok"; text: string; truncated: boolean; gov: GovernTextFullResult; sources: { title: string; url: string }[]; sourceNote?: string; enforcement: Article10Enforcement }
+    | { kind: "err"; error: string; enforcement?: Article10Enforcement }
   > {
     // المصادر الموثوقة المجلوبة فعلاً — تُرفَع من كتلة البحث لتُعرض للمستخدم كأدلة
     // مرئية (لوحة «المصادر المعتمدة»)، بقرار مالكة المنصة. عرضٌ صرف لا يمسّ الفحص.
     let researchSources: { title: string; url: string }[] = [];
     // إشعار المصارحة (بقرار مالكة المنصة): طُلب مصدر ولم يُعثر عليه — يُبلَّغ المستخدم
-    // في الواجهة صراحةً بدل صمتٍ يوحي بأن طلبه تُجوهل.
+    // في الواجهة صراحةً بدل صمتٍ يوحي بأن طلبه تُجوهل. وعند غياب المصدر الرسمي
+    // يكون نصه تصريح المادة (١٠) الحرفي — ملاحظة مستقلة أعلى المحتوى لا تُدمج فيه.
     let sourceNote: string | undefined;
+    // سجل إنفاذ المادة (١٠) — بقرار المالكة: يُخزَّن مع المهمة في السجل الدائم
+    const enforcement: Article10Enforcement = {
+      sourceFound: false, sources: [], article10Applied: false, generalAllowed: false,
+      stopped: false, violations: [], correctionRounds: 0, outcome: "",
+    };
     let promptText = user;
     let text = "";
     let truncated = false;
@@ -420,30 +440,39 @@ ${briefType
     const startedAt = Date.now();
     const DEADLINE_MS = 240_000; // نتوقف عند ٢٤٠ ثانية، وباقي الستين لبناء التقرير والحفظ
 
-    // ★ طبقة البحث الحي (بقرار مالكة المنصة): مرة واحدة مشتركة قبل السباق — مشروطة
-    // (لا تُستدعى إلا حين يحتاجها المصدر أو الموضوع)، فتُجلب مصادر موثوقة حقيقية
-    // يستند إليها الكاتب بدل التخمين. لا تمسّ الفحص إطلاقاً: النص الناتج يمرّ على
-    // كل المؤشرات كاملةً. فشلها لا يُسقط التوليد — يكمل الكاتب بضوابطه الحالية.
+    // ★ طبقة البحث الحي (بقرارات الاعتماد النهائية الملزمة): مرة واحدة مشتركة قبل
+    // السباق — قرار المستخدم وحده يشغّلها: المفتاح «تعزيز بمصدر»، أو طلبه المكتوب
+    // بالمعنى (إشارة «بحاجة بحث» من الكاتب أدناه). لا قوائم كلمات تقرر بدله.
+    // لا تمسّ الفحص إطلاقاً: النص الناتج يمرّ على كل المؤشرات كاملةً.
     const sourceSpec = { wantSource, sourceKind, sourceEntity, sourceDesc };
-    if (needsResearch(source, topic, contentType, sourceSpec)) {
-      const research = await researchTrustedSources({ specialty, source, topic, contentType, spec: sourceSpec });
+    // بناء مطالبة الكتابة بعد البحث — مشترك بين مسار المفتاح ومسار الطلب المكتوب
+    const applyResearchOutcome = (research: Awaited<ReturnType<typeof researchTrustedSources>>) => {
       if (research) {
         console.log("[generate:research]", research.sources.length, "مصدر موثوق");
         researchSources = research.sources; // للعرض كأدلة مرئية للمستخدم
+        enforcement.sourceFound = true;
+        enforcement.sources = research.sources;
         // قاعدة ثابتة بقرار مالكة المنصة: مصدران أو ثلاثة كحدٍّ أعلى مطلق — لا أكثر.
         const sourceLines = research.sources.slice(0, 3).map((s) => `- ${s.title}: ${s.url}`).join("\n");
         // حين طلب المستخدم المصدر صراحةً: إلزام الكاتب بذكر الرابط في النص عند الاستشهاد.
         const linkDirective = wantSource
           ? "وبما أن المستخدم طلب الدعم بمصدر صراحةً، يجب أن تستشهد بأحد هذه المصادر فعلاً في النص وتذكر رابطه بين قوسين عقب المعلومة المستمدة منه."
           : "واذكر رابط المصدر في النص عند الاستشهاد المباشر به.";
-        promptText = `${user}\n\n★ مصادر موثوقة مجلوبة من البحث الحي في جهات رسمية وأكاديمية معتبرة — استند إليها حصراً عند أي حكم نظامي أو رقم أو دراسة أو إحصائية، وانسب المعلومة لجهتها باسمها. ${linkDirective} ممنوع الاستشهاد برقم مادة أو دراسة أو إحصائية من ذاكرتك خارج هذه المصادر؛ وما لا تجد له سنداً هنا اعرضه نسبةً عامة صادقة دون رقم مخترع. وفي قائمة «المصادر» ختام النص لا تُدرج أكثر من مصدرين أو ثلاثة كحدٍّ أعلى مطلق — اختر الأوثق والأقرب صلةً ولا تُطوّل القائمة.\n\nتقرير المصادر:\n${research.briefing}\n\nقائمة الروابط للاستشهاد:\n${sourceLines}`;
-      } else if (wantSource) {
-        // المصارحة (بقرار المالكة): طلب المستخدم مصدراً ولم يُعثر على مطابق موثوق —
-        // يُوجَّه الكاتب للأمانة (نسبة عامة صادقة، لا اختلاق)، ويُبلَّغ المستخدم بذلك.
-        console.log("[generate:research] لا مصدر موثوق مطابق للطلب");
-        sourceNote = "طُلب تعزيز المحتوى بمرجع موثّق، ولم يُعثر على مصدر مطابق في المصادر المعتمدة — صيغ المحتوى بنسبة عامة صادقة دون اختلاق مرجع. يمكنك إعادة المحاولة بوصف أدق للمرجع.";
-        promptText = `${user}\n\n★ طلب المستخدم دعم المحتوى بمصدر، ولم يُعثر على مصدر موثوق مطابق للمواصفات في المصادر المعتمدة. لا تختلق مصدراً ولا رقماً ولا دراسة إطلاقاً — اكتب المحتوى بنسبة عامة صادقة (اتجاهات معروفة، أحكام عامة دون رقم مخترع)، وأشر بإيجاز مهني إلى أن التفاصيل تُراجَع في مصادرها الرسمية.`;
+        promptText = `${user}\n\n★ مصادر موثوقة مجلوبة من البحث الحي وفق وثيقة حوكمة المصادر — استند إليها حصراً عند أي حكم نظامي أو رقم أو دراسة أو إحصائية، وانسب المعلومة لجهتها باسمها. ${linkDirective} ممنوع الاستشهاد برقم مادة أو دراسة أو إحصائية من ذاكرتك خارج هذه المصادر؛ وما لا تجد له سنداً هنا اعرضه نسبةً عامة صادقة دون رقم مخترع. وفي قائمة «المصادر» ختام النص لا تُدرج أكثر من مصدرين أو ثلاثة كحدٍّ أعلى مطلق — اختر الأوثق والأقرب صلةً ولا تُطوّل القائمة.\n\nتقرير المصادر:\n${research.briefing}\n\nقائمة الروابط للاستشهاد:\n${sourceLines}`;
+      } else {
+        // إنفاذ المادة (١٠) — بقرار المالكة: المصارحة في كل حالة غياب مصدر، لا صمت.
+        // التصريح الحرفي يُعرض ملاحظةً مستقلة أعلى المحتوى، والكاتب يُقيَّد بالمحتوى
+        // العام المجرد (بلا حكم ولا مدة ولا عقوبة ولا نسبة ولا رقم)، والمنفّذ
+        // البرمجي أدناه يفحص الناتج حتمياً.
+        console.log("[generate:research] لا مصدر رسمي — تفعيل المادة (١٠)");
+        enforcement.article10Applied = true;
+        enforcement.generalAllowed = true;
+        sourceNote = ARTICLE_10_DECLARATION;
+        promptText = `${user}\n\n★ لم يُعثر على مصدر رسمي معتمد لهذا الطلب — تسري المادة (١٠) من وثيقة حوكمة المصادر: إن كان الطلب لا يُجاب إلا بحكم نظامي أو تفسير رسمي أو اختصاص جهة أو إجراء حكومي أو قرار أو سياسة رسمية فأخرج سطر الإيقاف حرفياً وحده: [[إيقاف-المادة-10]] — وإلا فاكتب محتوى عاماً مشروعاً لا يتضمن أياً من المحظورات الثلاثة عشر في المادة (١٠)، وأحِل القارئ إلى المصادر الرسمية.`;
       }
+    };
+    if (needsResearch(contentType, sourceSpec)) {
+      applyResearchOutcome(await researchTrustedSources({ specialty, source, topic, contentType, spec: sourceSpec }));
     }
 
     // أربع جولات كحد أقصى (كتابة + ثلاثة تصحيحات) — بوابة «كل المؤشرات بلا استثناء»
@@ -453,11 +482,18 @@ ${briefType
     type Candidate = {
       text: string; truncated: boolean; inflated: boolean; gov: GovernTextFullResult;
       citationIssues: ReturnType<typeof verifyCorpusCitations>;
+      article10: string[];
       hardLanguageError: boolean; riskBlocked: boolean; deliverable: boolean; corrections: string[];
     };
-    const produceAndJudge = async (prompt: string): Promise<Candidate | null> => {
+    // الإشارتان الحرفيتان من الكاتب (إنفاذ المادة ١٠ وفهم الطلب المكتوب بالمعنى):
+    // «إيقاف» = الطلب لا يُجاب إلا بمعلومة رسمية ولا مصدر ⇒ التصريح فقط بلا محتوى.
+    // «بحاجة بحث» = المستخدم طلب التعزيز بمصادر كتابةً والمفتاح مطفأ ⇒ يُشغَّل البحث.
+    const produceAndJudge = async (prompt: string): Promise<Candidate | "stop" | "research" | null> => {
       const produced = await produceComplete(prompt);
       if (!produced.text) return null;
+      const flat = produced.text.trim();
+      if (flat.includes("[[إيقاف-المادة-10]]")) return "stop";
+      if (flat.includes("[[بحاجة-بحث]]")) return "research";
       const candidateText = produced.text;
       const inflated = !isOpenLength && produced.truncated;
       // بوابة الحاكم — حصن حتمي + عمق دلالي + جودة اللغة؛ نتائجها الخام تُبقى
@@ -488,9 +524,14 @@ ${briefType
       }
       // المتحقق الحتمي من الاستشهادات بالمتن المعتمد — برمجي قطعي، حاجب للتسليم
       const citationIssues = verifyCorpusCitations(candidateText);
+      // ★ المنفّذ البرمجي الحتمي للمادة (١٠) — بقرار المالكة الملزم: عند غياب
+      // المصدر الرسمي، أي تفصيلة نظامية (رقم مادة، مدة، عقوبة، نسبة، أثر) تُرصد
+      // بالكود وتحجب التسليم وتُعاد لدورة التصحيح بتحديد المخالفة بدقة.
+      const article10 = article10Violations(candidateText, researchSources.length);
       const corrections: string[] = [];
       if (inflated) corrections.push(`- تجاوزتَ قالب النوع «${contentType}» وطوله المحدد: النص يجب أن يلتزم بنية هذا النوع وإيجازه — أعد كتابته أقصر ومكتمل المعنى دون قطع.`);
       corrections.push(...citationIssues.map((issue) => `- ${issue.message} صحّح المرجع أو الاقتباس ليطابق المتن الرسمي حرفياً، أو احذف الاستشهاد.`));
+      corrections.push(...article10.map((v) => `- مخالفة المادة (١٠) من وثيقة حوكمة المصادر — ${v}: لا مصدر رسمي مرفق لهذه التفصيلة. أعد صياغة الفكرة عامةً مشروعة بلا هذه التفصيلة، وأعد تقييم سلامة النص كاملاً بعد التعديل — لا حذفاً موضعياً يترك نصاً ناقصاً أو مضللاً.`));
       if (risk && gov.contentEval) {
         corrections.push(
           `- حكم المخاطر المهنية على نصك: «${gov.contentEval.risks.level}» — السبب: ${gov.contentEval.risks.explanation} المعالجة الإلزامية: ${gov.contentEval.risks.fix || "أزل مصدر الخطر من الصياغة نفسها"} — وإن كان مصدر الخطر سردَ واقعة استشارة أو موكل أو شخص، فأعد بناء الفكرة مثالاً افتراضياً عاماً معلناً أو نمطاً مجمّعاً بلا واقعة بعينها.`
@@ -498,9 +539,9 @@ ${briefType
       }
       corrections.push(...gov.corrections);
       return {
-        text: candidateText, truncated: produced.truncated, inflated, gov, citationIssues,
+        text: candidateText, truncated: produced.truncated, inflated, gov, citationIssues, article10,
         hardLanguageError: hardLang, riskBlocked: risk,
-        deliverable: gov.clean && !inflated && !risk && citationIssues.length === 0,
+        deliverable: gov.clean && !inflated && !risk && citationIssues.length === 0 && article10.length === 0,
         corrections,
       };
     };
@@ -518,8 +559,12 @@ ${briefType
       hardLanguageError = candidate.hardLanguageError;
       riskBlocked = candidate.riskBlocked;
       lastCitationIssues = candidate.citationIssues;
+      enforcement.violations = candidate.article10;
       return candidate.gov;
     };
+
+    // هل جرى البحث فعلاً؟ يمنع تكرار دورة «بحاجة بحث» إلى ما لا نهاية
+    let researchDone = needsResearch(contentType, sourceSpec);
 
     for (let attempt = 0; attempt < 4; attempt++) {
       // سباق المرشحين (بقرار مالكة المنصة للتسريع ورفع حظ التسليم): كل جولة —
@@ -527,17 +572,43 @@ ${briefType
       // بالتوازي، وأول مستوفٍ يُسلَّم فوراً. تعدد المرشح في كل جولة يعالج
       // تذبذب حكم المقيم (نفس النص الصحيح قد يُحكم عليه بملاحظة في قراءة دون أخرى)
       // دون أي تخفيف للبوابة؛ نسختان لا ثلاث موازنةً لاستهلاك رصيد الاشتراك
-      const candidates = (
-        await Promise.all([produceAndJudge(promptText), produceAndJudge(promptText)])
-      ).filter((c): c is Candidate => c !== null);
-      if (candidates.length === 0) return { kind: "err", error: "لم يُنشأ أي محتوى" };
+      const raw = await Promise.all([produceAndJudge(promptText), produceAndJudge(promptText)]);
+
+      // ★ إشارة «بحاجة بحث» — فهم الطلب المكتوب بالمعنى (بقرار المالكة): المستخدم
+      // طلب التعزيز بمصادر في فكرته والمفتاح مطفأ ⇒ يُشغَّل البحث لهذه المهمة فقط
+      // ثم تُعاد الكتابة بالمصادر. مرة واحدة لا تتكرر.
+      if (raw.some((c) => c === "research") && !researchDone) {
+        researchDone = true;
+        console.log("[generate:research] طلب مكتوب فُهم بالمعنى — تشغيل البحث");
+        applyResearchOutcome(await researchTrustedSources({ specialty, source, topic, contentType, spec: sourceSpec }));
+        attempt--; // جولة البحث لا تُحسب من جولات التصحيح
+        continue;
+      }
+      // ★ إشارة «إيقاف المادة (١٠)» — الطلب لا يُجاب إلا بمعلومة رسمية ولا مصدر:
+      // بقرار المالكة يتوقف النظام ويعرض التصريح فقط، ويُسجَّل السبب في السجل.
+      if (raw.some((c) => c === "stop")) {
+        enforcement.article10Applied = true;
+        enforcement.stopped = true;
+        enforcement.generalAllowed = false;
+        enforcement.outcome = "أُوقف الإنشاء: الطلب يتطلب معلومة رسمية ولا مصدر حكومي مختص منشور";
+        console.log("[generate:article10] إيقاف —", enforcement.outcome);
+        return { kind: "err", error: ARTICLE_10_DECLARATION, enforcement };
+      }
+      const candidates = raw.filter((c): c is Candidate => c !== null && c !== "stop" && c !== "research");
+      if (candidates.length === 0) return { kind: "err", error: "لم يُنشأ أي محتوى", enforcement };
 
       const winner = candidates.find((c) => c.deliverable);
-      if (winner) return { kind: "ok", text: winner.text, truncated: false, gov: winner.gov, sources: researchSources, sourceNote };
+      if (winner) {
+        enforcement.outcome = enforcement.article10Applied
+          ? "سُلِّم محتوى عام مشروع مع التصريح الإلزامي"
+          : "سُلِّم المحتوى";
+        return { kind: "ok", text: winner.text, truncated: false, gov: winner.gov, sources: researchSources, sourceNote, enforcement };
+      }
 
       // لا مستوفي بعد: يُختار الأقرب (أقل تصحيحات) لجولة تصحيح موضعي
       const best = [...candidates].sort((a, b) => a.corrections.length - b.corrections.length)[0];
       lastGov = adoptCandidateState(best);
+      enforcement.correctionRounds = attempt + 1;
       // حارس الحدّ الزمني: إن قاربنا الميزانية لا نبدأ جولة تصحيح جديدة (قد تطول
       // فتتجاوز حدّ الخادم وتُقتل المهمة وتعلق الواجهة). نتوقف الآن ونخرج بالفشل
       // الواضح أدناه (رسالة «أعد المحاولة») بدل الصمت — البوابة تبقى كما هي بلا
@@ -564,19 +635,29 @@ ${briefType
     // لا يُسلَّم نص خارج إطار الحاكم ولا نص باستشهاد لا يطابق المتن الرسمي (فشل مغلق).
     // الرسالة تحمل أبرز سبب فعلي (بلغة القاضي المهنية) — لا انتظار طويلاً ثم رفض مبهم
     const topReason = (lastGov?.corrections[0] ?? "").replace(/^-\s*/, "").slice(0, 180);
+    // ★ إنفاذ المادة (١٠) بعد استنفاد الجولات — بقرار المالكة الملزم: «إذا استمرت
+    // المخالفة بعد استنفاد جولات التصحيح المعتمدة، فلا يُسلَّم النص، ويعرض تصريح
+    // المادة (١٠) فقط، مع تسجيل سبب الإيقاف في السجل».
+    if (enforcement.violations.length > 0) {
+      enforcement.article10Applied = true;
+      enforcement.stopped = true;
+      enforcement.outcome = `أُوقف التسليم: بقيت تفاصيل نظامية بلا مصدر بعد ${enforcement.correctionRounds} جولة تصحيح`;
+      console.log("[generate:article10] إيقاف بعد الجولات —", JSON.stringify(enforcement.violations).slice(0, 400));
+      return { kind: "err", error: ARTICLE_10_DECLARATION, enforcement };
+    }
     if (!compliant) {
-      return { kind: "err", error: `تعذّر إنشاء نص ملتزم بقواعد السلوك المهني للمحامين واللائحة التنفيذية لنظام المحاماة من هذه المدخلات.${topReason ? ` أبرز سبب: ${topReason}` : ""} أعد المحاولة أو عدّل مدخلات السياق.` };
+      return { kind: "err", error: `تعذّر إنشاء نص ملتزم بقواعد السلوك المهني للمحامين واللائحة التنفيذية لنظام المحاماة من هذه المدخلات.${topReason ? ` أبرز سبب: ${topReason}` : ""} أعد المحاولة أو عدّل مدخلات السياق.`, enforcement };
     }
     if (lastCitationIssues.length > 0) {
-      return { kind: "err", error: "تعذّر إنشاء نص باستشهادات دقيقة مطابقة لنصوص قواعد السلوك المهني واللائحة التنفيذية. أعد المحاولة." };
+      return { kind: "err", error: "تعذّر إنشاء نص باستشهادات دقيقة مطابقة لنصوص قواعد السلوك المهني واللائحة التنفيذية. أعد المحاولة.", enforcement };
     }
     // إنفاذ بقية القاعدة الأساسية (بنص مالكة المنصة): المخاطر المهنية من صياغة المنصة
     // والأخطاء اللغوية والإملائية حاجبة للتسليم نهائياً مثل المخالفة النظامية — فشل مغلق
     if (riskBlocked) {
-      return { kind: "err", error: "تعذّر إنشاء نص خالٍ من المخاطر المهنية من هذه المدخلات. أعد المحاولة أو عدّل مدخلات السياق." };
+      return { kind: "err", error: "تعذّر إنشاء نص خالٍ من المخاطر المهنية من هذه المدخلات. أعد المحاولة أو عدّل مدخلات السياق.", enforcement };
     }
     if (hardLanguageError) {
-      return { kind: "err", error: "تعذّر إنشاء نص خالٍ من الأخطاء اللغوية والإملائية. أعد المحاولة." };
+      return { kind: "err", error: "تعذّر إنشاء نص خالٍ من الأخطاء اللغوية والإملائية. أعد المحاولة.", enforcement };
     }
     // ★ بقرار مالكة المنصة: «خلاص الأسلوب لا يحجب».
     // كان بقاء الملاحظة الأسلوبية يحجب التسليم كالمخالفة تماماً، فيُرفض نصّ اجتاز
@@ -588,7 +669,10 @@ ${briefType
     if (!clean) {
       console.log("[generate:style-residual] تُسلَّم مع ملاحظة أسلوبية:", JSON.stringify(lastGov?.corrections ?? []).slice(0, 400));
     }
-    return { kind: "ok", text, truncated, gov: lastGov!, sources: researchSources, sourceNote };
+    enforcement.outcome = enforcement.article10Applied
+      ? "سُلِّم محتوى عام مشروع مع التصريح الإلزامي"
+      : "سُلِّم المحتوى";
+    return { kind: "ok", text, truncated, gov: lastGov!, sources: researchSources, sourceNote, enforcement };
   }
 
   // يبني تقرير المراجعة الكامل من حكم الإنشاء نفسه (بلا ذكاء ثانٍ مستقل) — يُستدعى فقط
@@ -627,6 +711,7 @@ ${briefType
     const work = (async () => {
       // عدّاد التكلفة الداخلي (لمالكة المنصة وحدها): يلفّ الدورة كاملة — كل نداء ذكاء
       // يُسجَّل، والتكلفة تُخزَّن مع المهمة وتُخصم من دفتر الرصيد. قياسٌ صرف لا يمسّ المنطق.
+      const jobStartedAt = Date.now();
       await runWithCostMeter(async () => {
       // خصم التكلفة من دفتر الرصيد — أفضل جهد، لا يُسقط المهمة
       const settleCost = async (): Promise<number> => {
@@ -634,6 +719,27 @@ ${briefType
         const costUsd = m ? meterCostUsd(m) : 0;
         try { const l = ledgerDb(); if (l && costUsd > 0) await deductUsd(l, costUsd); } catch { /* دفتر اختياري */ }
         return costUsd;
+      };
+      // ★ السجل الدائم (بقرار المالكة الملزم): لكل مهمة — الاستدعاءات تفصيلاً
+      // (المرحلة والنموذج والتوكنز والكاش وتكلفة كل استدعاء وزمنه)، والإجمالي،
+      // وزمن التنفيذ، وسجل إنفاذ المادة (١٠). أفضل جهد: فشله لا يُسقط المهمة.
+      const persistJobLog = async (costUsd: number, enforcement?: Article10Enforcement) => {
+        try {
+          const m = currentMeter();
+          if (!m) return;
+          await recordJobLog(sql, {
+            jobId, kind: "generate",
+            durationMs: Date.now() - jobStartedAt,
+            calls: m.calls,
+            inputTokens: m.inputTokens, outputTokens: m.outputTokens,
+            cacheReadTokens: m.cacheReadTokens, cacheWriteTokens: m.cacheWriteTokens,
+            searches: m.searches, costUsd,
+            callLogJson: JSON.stringify(m.callLog),
+            enforcementJson: enforcement ? JSON.stringify(enforcement) : undefined,
+          });
+        } catch (error) {
+          console.error("[content-studio/generate:job-log]", error);
+        }
       };
       try {
         const result = await runPipeline((draft) => {
@@ -649,15 +755,18 @@ ${briefType
             result.sourceNote,
             costUsd,
           );
+          await persistJobLog(costUsd, result.enforcement);
         } else {
           const costUsd = await settleCost();
           await failJob(sql, jobId, result.error, costUsd);
+          await persistJobLog(costUsd, result.enforcement);
         }
       } catch (error) {
         console.error("[content-studio/generate:job]", error);
         const known = describeProviderError(error instanceof Error ? error.message : "");
         const costUsd = await settleCost().catch(() => 0);
         await failJob(sql, jobId, known ?? "تعذر الاتصال بخدمة الذكاء الاصطناعي — حاول مرة أخرى.", costUsd).catch(() => {});
+        await persistJobLog(costUsd).catch(() => {});
       }
       });
     })();

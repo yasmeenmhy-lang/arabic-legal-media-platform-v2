@@ -2044,6 +2044,34 @@ export default function ContentReviewPage() {
             </ul>
           </details>
         ) : null}
+        {/* ★ بقرار مالكة المنصة: مصادر التحقق الحي تُعرض ولا تُرمى — مميزة بوضوح عن
+            المصادر المعتمدة أعلاه: هذه عُثر عليها أثناء تدقيق إحالات النص (تحقُّق)،
+            لا مصادر استند إليها الإنشاء (اعتماد). لا أكورديون فارغاً: لا مصادر ⇒ لا يظهر. */}
+        {review?.verifiedWebSources?.length ? (
+          <details className="mt-3 w-full max-w-full overflow-hidden rounded-xl border border-line bg-white p-4" open>
+            <summary className="cursor-pointer text-sm font-semibold text-info">
+              مصادر التحقق ({review.verifiedWebSources.length})
+            </summary>
+            <p className="mt-2 text-sm leading-7 text-ink/70">
+              مصادر رسمية عُثر عليها أثناء التحقق الحي من إحالات هذا النص وأرقامه — للاطلاع والمقارنة، وهي غير المصادر المعتمدة التي استند إليها المحتوى.
+            </p>
+            <ul className="mt-3 space-y-2">
+              {review.verifiedWebSources.map((item, index) => (
+                <li key={`${item.url}-${index}`} className="rounded-lg border border-line bg-surface p-3">
+                  <a
+                    href={item.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block text-sm font-semibold leading-6 text-ink underline decoration-line underline-offset-4 hover:text-palm focus-ring"
+                  >
+                    {item.title || item.url}
+                  </a>
+                  <span className="mt-1 block break-all text-xs text-ink/50">{item.url}</span>
+                </li>
+              ))}
+            </ul>
+          </details>
+        ) : null}
         {/* بقرار مالكة المنصة: المرئيات المحفوظة تنتقل مع المحتوى وتظهر في المراجعة القانونية مع إصدارها */}
         {savedVisuals.length ? (
           <details className="mt-3 rounded-xl border border-line bg-white p-4" open>

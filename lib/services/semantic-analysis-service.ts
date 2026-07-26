@@ -556,7 +556,7 @@ async function callHolisticJudge(
     return { ok: false, reason };
   }
 
-  recordUsage(message.usage); // عدّاد التكلفة الداخلي — قياس صرف
+  recordUsage(message.usage, { stage: "القاضي الدلالي", model: "claude-sonnet-5" }); // عدّاد التكلفة الداخلي — قياس صرف
 
   const rawText = message.content
     .filter((block) => block.type === "text")

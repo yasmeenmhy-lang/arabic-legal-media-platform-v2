@@ -94,3 +94,62 @@ export async function getJob(sql: Sql, id: string): Promise<ContentJob | null> {
 export async function deleteJob(sql: Sql, id: string) {
   await sql`DELETE FROM content_jobs WHERE id = ${id}`;
 }
+
+// ─── السجل الدائم للتكلفة والإنفاذ (بقرار مالكة المنصة النهائي الملزم) ───────
+// «أضيف سجلاً دائماً لكل مهمة»: معرف المهمة، وقت التنفيذ، عدد الاستدعاءات،
+// النموذج والتوكنز والكاش وتكلفة كل استدعاء (call_log_json)، التكلفة الإجمالية،
+// زمن التنفيذ — بحيث تكون التكلفة الفعلية قابلة للقياس بعد الإطلاق.
+// ويُلحق به سجل إنفاذ المادة (١٠) — «يجب تسجيل نتيجة الإنفاذ في السجل».
+//
+// جدول مستقل دائم (لا يُنظَّف): أرقامٌ ومقتطفات رصدٍ قصيرة فقط، لا نص محتوى —
+// فمبدأ «لا أرشفة دائمة لأي نص» في جدول المهام أعلاه يبقى قائماً.
+
+let logEnsured = false;
+async function ensureJobLogTable(sql: Sql) {
+  if (logEnsured) return;
+  await sql`
+    CREATE TABLE IF NOT EXISTS job_cost_log (
+      job_id text PRIMARY KEY,
+      kind text NOT NULL,
+      executed_at timestamptz NOT NULL DEFAULT now(),
+      duration_ms integer,
+      calls integer,
+      input_tokens integer,
+      output_tokens integer,
+      cache_read_tokens integer,
+      cache_write_tokens integer,
+      searches integer,
+      cost_usd double precision,
+      call_log_json text,
+      enforcement_json text
+    )
+  `;
+  logEnsured = true;
+}
+
+export async function recordJobLog(sql: Sql, entry: {
+  jobId: string;
+  kind: "generate" | "reformulate";
+  durationMs: number;
+  calls: number;
+  inputTokens: number;
+  outputTokens: number;
+  cacheReadTokens: number;
+  cacheWriteTokens: number;
+  searches: number;
+  costUsd: number;
+  callLogJson?: string;
+  enforcementJson?: string;
+}) {
+  await ensureJobLogTable(sql);
+  await sql`
+    INSERT INTO job_cost_log (job_id, kind, duration_ms, calls, input_tokens, output_tokens, cache_read_tokens, cache_write_tokens, searches, cost_usd, call_log_json, enforcement_json)
+    VALUES (${entry.jobId}, ${entry.kind}, ${entry.durationMs}, ${entry.calls}, ${entry.inputTokens}, ${entry.outputTokens}, ${entry.cacheReadTokens}, ${entry.cacheWriteTokens}, ${entry.searches}, ${entry.costUsd}, ${entry.callLogJson ?? null}, ${entry.enforcementJson ?? null})
+    ON CONFLICT (job_id) DO UPDATE SET
+      duration_ms = EXCLUDED.duration_ms, calls = EXCLUDED.calls,
+      input_tokens = EXCLUDED.input_tokens, output_tokens = EXCLUDED.output_tokens,
+      cache_read_tokens = EXCLUDED.cache_read_tokens, cache_write_tokens = EXCLUDED.cache_write_tokens,
+      searches = EXCLUDED.searches, cost_usd = EXCLUDED.cost_usd,
+      call_log_json = EXCLUDED.call_log_json, enforcement_json = EXCLUDED.enforcement_json
+  `;
+}

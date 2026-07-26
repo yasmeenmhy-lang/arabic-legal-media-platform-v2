@@ -36,6 +36,21 @@ export type UsageLike = {
   server_tool_use?: { web_search_requests?: number };
 };
 
+// سطر واحد في السجل التفصيلي — لكل استدعاء ذكاء على حدة (بقرار مالكة المنصة:
+// «أضيف سجلاً دائماً لكل مهمة» — المرحلة والنموذج والتوكنز والكاش والتكلفة والزمن)
+export type CallLogEntry = {
+  stage: string;         // المرحلة (بحث/كاتب/قاضٍ/مقيّم/تحسين...)
+  model: string;         // النموذج المستخدم
+  inputTokens: number;
+  outputTokens: number;
+  cacheReadTokens: number;
+  cacheWriteTokens: number;
+  searches: number;
+  costUsd: number;       // تكلفة هذا الاستدعاء وحده
+  durationMs: number;    // زمن الاستدعاء
+  at: string;            // وقت التنفيذ
+};
+
 export type CostMeter = {
   inputTokens: number;
   outputTokens: number;
@@ -43,12 +58,13 @@ export type CostMeter = {
   cacheWriteTokens: number;
   searches: number;
   calls: number;
+  callLog: CallLogEntry[];
 };
 
 const store = new AsyncLocalStorage<CostMeter>();
 
 export function newMeter(): CostMeter {
-  return { inputTokens: 0, outputTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0, searches: 0, calls: 0 };
+  return { inputTokens: 0, outputTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0, searches: 0, calls: 0, callLog: [] };
 }
 
 // يفتح عدّاداً لهذا المسار وينفّذ العمل داخله — يرجع ناتج العمل والعدّاد معاً
@@ -65,7 +81,8 @@ export function currentMeter(): CostMeter | null {
 
 // تسجيل استهلاك نداء واحد — يُستدعى من كل خدمة بعد قراءة رد المزوّد.
 // متسامح تماماً: usage ناقص أو عدّاد غير مفتوح ⇒ لا شيء يحدث.
-export function recordUsage(usage: unknown) {
+// meta اختياري (توافق خلفي): يضيف سطراً في السجل التفصيلي بالمرحلة والنموذج والزمن.
+export function recordUsage(usage: unknown, meta?: { stage: string; model: string; durationMs?: number }) {
   const m = store.getStore();
   if (!m || !usage || typeof usage !== "object") return;
   const u = usage as UsageLike;
@@ -75,6 +92,25 @@ export function recordUsage(usage: unknown) {
   m.cacheReadTokens += u.cache_read_input_tokens ?? 0;
   m.cacheWriteTokens += u.cache_creation_input_tokens ?? 0;
   m.searches += u.server_tool_use?.web_search_requests ?? 0;
+  if (meta) {
+    const p = pricesNow();
+    const inputTokens = u.input_tokens ?? 0;
+    const outputTokens = u.output_tokens ?? 0;
+    const cacheReadTokens = u.cache_read_input_tokens ?? 0;
+    const cacheWriteTokens = u.cache_creation_input_tokens ?? 0;
+    const searches = u.server_tool_use?.web_search_requests ?? 0;
+    m.callLog.push({
+      stage: meta.stage,
+      model: meta.model,
+      inputTokens, outputTokens, cacheReadTokens, cacheWriteTokens, searches,
+      costUsd:
+        inputTokens * p.input + outputTokens * p.output +
+        cacheReadTokens * p.cacheRead + cacheWriteTokens * p.cacheWrite +
+        searches * p.perSearch,
+      durationMs: meta.durationMs ?? 0,
+      at: new Date().toISOString(),
+    });
+  }
 }
 
 // التكلفة الإجمالية بالدولار — من الأسعار الرسمية وعدّادات الاستهلاك الفعلية.

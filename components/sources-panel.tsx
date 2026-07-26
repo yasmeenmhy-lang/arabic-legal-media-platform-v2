@@ -17,7 +17,9 @@ export type Source = { title: string; url: string };
 
 const BADGE: Record<SourceCategory, string> = {
   "حكومي": "bg-emerald-50 text-emerald-700 border-emerald-200",
-  "دولي": "bg-sky-50 text-sky-700 border-sky-200",
+  "حكومي أجنبي": "bg-teal-50 text-teal-700 border-teal-200",
+  "منظمة دولية": "bg-sky-50 text-sky-700 border-sky-200",
+  "منظمة": "bg-cyan-50 text-cyan-700 border-cyan-200",
   "أكاديمي": "bg-violet-50 text-violet-700 border-violet-200",
   "موثّق": "bg-slate-50 text-slate-600 border-slate-200",
 };

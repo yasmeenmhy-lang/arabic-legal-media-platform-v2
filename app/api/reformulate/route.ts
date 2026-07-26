@@ -5,13 +5,15 @@ import { AI_CONSTITUTION } from "@/lib/governance";
 import { runSemanticAnalysis } from "@/lib/services/semantic-analysis-service";
 import { evaluateContent } from "@/lib/services/content-evaluation-service";
 import { describeProviderError } from "@/lib/ai-provider-errors";
-import { mentionsSource, researchTrustedSources } from "@/lib/services/web-research-service";
+import { researchTrustedSources } from "@/lib/services/web-research-service";
+import { SOURCE_GOVERNANCE, ARTICLE_10_DECLARATION } from "@/lib/source-governance";
+import { article10Violations } from "@/lib/services/article10-enforcer";
 import { countHardLanguageErrors, HARD_LANGUAGE_CATEGORIES } from "@/lib/language-gate";
 import { WRITING_CODE } from "@/lib/writing-code";
 import { NO_SUBSTANCE_MESSAGE, NON_COMPLIANT_MESSAGE, OUT_OF_MANDATE_MESSAGE } from "@/lib/reformulate-messages";
 import { recordUsage, runWithCostMeter, meterCostUsd, currentMeter } from "@/lib/cost-meter";
 import { ledgerDb, deductUsd } from "@/lib/cost-ledger";
-import { completeJob, createJob, failJob, jobsDb } from "@/lib/content-jobs";
+import { completeJob, createJob, failJob, jobsDb, recordJobLog } from "@/lib/content-jobs";
 import { waitUntil } from "@vercel/functions";
 
 // مدة تنفيذ صريحة على فيرسل — إعادة الصياغة دورة ذكاء كاملة (توليد + حكم)
@@ -73,7 +75,7 @@ async function callModel(apiKey: string, systemPrompt: string, userPrompt: strin
       throw new Error(err.error?.message ?? "تعذر إنشاء الصياغة المقترحة");
     }
     const data = await response.json() as { content?: Array<{ type?: string; text?: string }>; stop_reason?: string; usage?: unknown };
-    recordUsage(data.usage); // عدّاد التكلفة الداخلي
+    recordUsage(data.usage, { stage: "معيد الصياغة", model: "claude-sonnet-5" }); // عدّاد التكلفة الداخلي
     const part = data.content?.find((item) => item.type === "text")?.text ?? "";
     full += part;
     stopReason = data.stop_reason;
@@ -150,16 +152,16 @@ async function runReformulation(data: z.infer<typeof schema>, apiKey: string): P
   const { text, contentType, channel, audience, purpose, charLimit, findings, languageIssues, hasSource, sourceHint } = data;
   const context = { contentType, channel, audience, purpose };
 
-  // ★ طبقة البحث الحي في التحسين (بقرار مالكة المنصة): تعمل فقط إن كان النص المُحسَّن
-  // يتضمن مصدراً أو مرجعاً أو دراسة — يُكشف تلقائياً أو يُقرّه المستخدم (hasSource).
-  // فتُجلب مصادر موثوقة حقيقية يستند إليها التحسين بدل إبقاء تخمين النص الأصلي.
+  // ★ طبقة البحث الحي في التحسين (بقرارات الاعتماد النهائية الملزمة): قرار
+  // المستخدم وحده يشغّلها — إقراره بالمصدر (hasSource) من واجهة المراجعة. حُذفت
+  // قائمة كلمات الكشف التلقائي (mentionsSource): لا قاضي خفياً من كلمات.
   // لا تمسّ الفحص: الصياغة المحسّنة تمرّ على المؤشرات كاملةً. فشلها لا يوقف التحسين.
   let researchBlock = "";
   // المصادر المعتمدة المجلوبة — تُعاد للواجهة لعرضها كأدلة مرئية (لوحة «المصادر المعتمدة»)
   let researchSources: { title: string; url: string }[] = [];
   // إشعار المصارحة: أقرّ المستخدم بمرجع ولم يُعثر على مطابق — يُبلَّغ صراحةً لا صمتاً
   let sourceNote: string | undefined;
-  if (hasSource || mentionsSource(text)) {
+  if (hasSource) {
     const hint = (sourceHint ?? "").trim();
     const research = await researchTrustedSources({
       contentType,
@@ -181,8 +183,10 @@ async function runReformulation(data: z.infer<typeof schema>, apiKey: string): P
         "قائمة الروابط للاستشهاد:",
         sourceLines,
       ].join("\n");
-    } else if (hasSource) {
-      sourceNote = "طُلب تعزيز الصياغة بمرجع موثّق، ولم يُعثر على مصدر مطابق في المصادر المعتمدة — صيغ النص بنسبة عامة صادقة دون اختلاق مرجع. يمكنك إعادة المحاولة بوصف أدق للمرجع أو رابطه.";
+    } else {
+      // إنفاذ المادة (١٠): طُلب المصدر ولم يوجد — التصريح الإلزامي يُعرض ملاحظةً
+      // مستقلة أعلى الصياغة، والمنفّذ البرمجي أدناه يمنع بقاء تفصيلة نظامية بلا مصدر.
+      sourceNote = ARTICLE_10_DECLARATION;
     }
   }
 
@@ -199,7 +203,12 @@ async function runReformulation(data: z.infer<typeof schema>, apiKey: string): P
   const systemPrompt = [
     AI_CONSTITUTION,
     "",
-    "أنت محرر متخصص في ضبط ما ينشره المحامي باسمه المهني مهما كان موضوعه، وفق قواعد السلوك المهني ونظام المحاماة في المملكة ولائحته التنفيذية — فهذه القواعد تحكم كل ما ينشره المحامي باسمه لا منشوراته القانونية وحدها.",
+    "## وثيقة حوكمة المصادر — دستور أعلى ملزم لكل ما تكتبه",
+    SOURCE_GOVERNANCE,
+    "",
+    "إنفاذ المادة (١٠) في صياغتك: إن لم تُرفق لك مصادر موثوقة في هذا الطلب، فلا تُبقِ في الصياغة ولا تُدخل عليها أي تفصيلة نظامية بلا مصدر — لا رقم مادة ولا مدة ولا مهلة ولا عقوبة ولا نسبة — واعرض الفكرة عامةً مشروعة. (يستثنى الاستشهاد بقواعد السلوك المهني واللائحة التنفيذية لنظام المحاماة — فمتنهما معتمد في المنصة.)",
+    "",
+    "أنت محرر متخصص في ضبط ما ينشره المحامي باسمه المهني مهما كان موضوعه، وفق قواعد السلوك المهني ونظام المحاماة في المملكة العربية السعودية ولائحته التنفيذية — فهذه القواعد تحكم كل ما ينشره المحامي باسمه لا منشوراته القانونية وحدها.",
     "",
     "مهمتك إعادة كتابة النص بحيث يكون النص المُخرَج خالياً تماماً من المخالفات القانونية والمهنية التالية:",
     "المحظورات الصريحة التي يجب أن يخلو منها النص المقترح:",
@@ -301,7 +310,37 @@ async function runReformulation(data: z.infer<typeof schema>, apiKey: string): P
       return { ok: false, status: 422, error: NON_COMPLIANT_MESSAGE };
     }
 
-    // حارس نطاق المملكة الحتمي على النص النهائي المنشور
+    // ★ المنفّذ البرمجي الحتمي للمادة (١٠) على الصياغة النهائية — بقرار المالكة
+    // الملزم: لا مصدر ⇒ لا تفصيلة نظامية. تُرصد بالكود، وتُمنح جولة تصحيح محددة،
+    // فإن بقيت لا تُسلَّم الصياغة ويُعرض التصريح فقط.
+    let a10 = article10Violations(suggestedText, researchSources.length);
+    if (a10.length > 0) {
+      const a10Prompt = [
+        "النص التالي اقترحته أنت، لكن الفحص البرمجي رصد فيه تفاصيل نظامية بلا مصدر رسمي مرفق — وهذا محظور بالمادة (١٠) من وثيقة حوكمة المصادر:",
+        ...a10.map((v) => `- ${v}`),
+        "",
+        "أعد كتابته حاذفاً هذه التفاصيل ومعيداً صياغة أفكارها عامةً مشروعة، وأعد تقييم سلامة النص كاملاً بعد التعديل — لا حذفاً موضعياً يترك نصاً ناقصاً أو مضللاً.",
+        "",
+        "النص المقترح السابق:",
+        suggestedText,
+        "",
+        "أخرج النص المُصحح فقط دون أي تعليق.",
+      ].join("\n");
+      const fixed = await callModel(apiKey, systemPrompt, a10Prompt);
+      if (fixed && !isOutOfMandateOutput(fixed) && !isNonSubstantiveOutput(fixed)) {
+        const fixedA10 = article10Violations(fixed, researchSources.length);
+        const fixedVerification = await verifySuggestion(fixed, context);
+        if (fixedA10.length === 0 && fixedVerification.clean) {
+          suggestedText = fixed;
+          a10 = fixedA10;
+        }
+      }
+      if (a10.length > 0) {
+        console.log("[reformulate:article10] إيقاف —", JSON.stringify(a10).slice(0, 400));
+        return { ok: false, status: 422, error: ARTICLE_10_DECLARATION };
+      }
+    }
+
     return { ok: true, suggestedText, sources: researchSources, sourceNote };
   } catch (error) {
     const raw = error instanceof Error ? error.message : "خطأ غير متوقع";
@@ -327,12 +366,31 @@ export async function POST(request: Request) {
     await createJob(sql, jobId);
     const work = (async () => {
       // عدّاد التكلفة الداخلي — التكلفة تُخزَّن مع المهمة وتُخصم من دفتر الرصيد
+      const jobStartedAt = Date.now();
       await runWithCostMeter(async () => {
       const settleCost = async (): Promise<number> => {
         const m = currentMeter();
         const costUsd = m ? meterCostUsd(m) : 0;
         try { const l = ledgerDb(); if (l && costUsd > 0) await deductUsd(l, costUsd); } catch { /* دفتر اختياري */ }
         return costUsd;
+      };
+      // السجل الدائم (بقرار المالكة): لكل مهمة — الاستدعاءات تفصيلاً والإجمالي والزمن
+      const persistJobLog = async (costUsd: number) => {
+        try {
+          const m = currentMeter();
+          if (!m) return;
+          await recordJobLog(sql, {
+            jobId, kind: "reformulate",
+            durationMs: Date.now() - jobStartedAt,
+            calls: m.calls,
+            inputTokens: m.inputTokens, outputTokens: m.outputTokens,
+            cacheReadTokens: m.cacheReadTokens, cacheWriteTokens: m.cacheWriteTokens,
+            searches: m.searches, costUsd,
+            callLogJson: JSON.stringify(m.callLog),
+          });
+        } catch (error) {
+          console.error("[reformulate:job-log]", error);
+        }
       };
       try {
         const r = await runReformulation(parsed.data, apiKey);
@@ -342,10 +400,12 @@ export async function POST(request: Request) {
         } else {
           await failJob(sql, jobId, r.error, costUsd);
         }
+        await persistJobLog(costUsd);
       } catch (error) {
         const raw = error instanceof Error ? error.message : "خطأ غير متوقع";
         const costUsd = await settleCost().catch(() => 0);
         await failJob(sql, jobId, describeProviderError(raw) ?? raw, costUsd).catch(() => {});
+        await persistJobLog(costUsd).catch(() => {});
       }
       });
     })();

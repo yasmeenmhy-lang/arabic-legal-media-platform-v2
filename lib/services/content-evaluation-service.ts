@@ -356,7 +356,7 @@ export async function evaluateContent(
         messages: [{ role: "user", content: `${buildContextLine(context)}«${text}»${complianceSection}` }]
       });
 
-      recordUsage(message.usage); // عدّاد التكلفة الداخلي — قياس صرف
+      recordUsage(message.usage, { stage: "مقيّم اللغة والمخاطر", model: "claude-sonnet-5" }); // عدّاد التكلفة الداخلي — قياس صرف
 
       if (message.stop_reason === "max_tokens") {
         throw new Error("response truncated at max_tokens — JSON incomplete");
