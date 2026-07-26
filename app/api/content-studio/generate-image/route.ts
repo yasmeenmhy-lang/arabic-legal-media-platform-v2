@@ -4,6 +4,7 @@ import { badRequest } from "@/lib/api";
 import { KINGDOM_STYLE_RULE } from "@/lib/governance";
 import { generatePremiumImage, generatePremiumVariants, providerStatus, verifyOpenAIKey } from "@/lib/image-providers";
 import { generateVisualPlan, planToEngineDescription, type VisualPlan } from "@/lib/visual-translator";
+import { scanAgainstCorpus } from "@/lib/services/corpus-scan";
 
 // توليد الصور عبر مزودين خارجيين قد يستغرق حتى دقيقة (ثلاث نسخ = أطول قليلاً)
 export const maxDuration = 120;
@@ -1410,6 +1411,29 @@ export async function POST(request: Request) {
           rtlArabicNotes: "",
         }
       : null);
+  // ★★ القاعدة المؤسسة (بأمر مالكة المنصة — ممنوع تجاوزها): لا يخرج من المنصة
+  // نصٌ مخالف لقواعد السلوك المهني واللائحة التنفيذية — حتى داخل المرئيات.
+  // المترجم البصري يعيد صياغة النص نصوصاً قصيرة تُرسم، فتُفحص كلها هنا فحصاً
+  // حتمياً بالطبقة الأولى (متن القواعد المخزّن — كود صرف بلا تكلفة) قبل أي
+  // رسم أو إرجاع خطة. فشل مغلق: عبارة مخالفة ⇒ لا مرئي، برسالة تسمي العبارة
+  // ومرجعها ليُعدَّل النص.
+  const visualTexts: string[] = planForReturn
+    ? [
+        planForReturn.title, planForReturn.subtitle, planForReturn.shortVisualCopy,
+        planForReturn.centralMessage,
+        ...planForReturn.keySections.flatMap((s) => [s.heading, ...(s.bullets ?? []), s.stat ?? ""]),
+      ].filter((t): t is string => Boolean(t && t.trim()))
+    : [effectiveDescription];
+  const visualScan = scanAgainstCorpus(visualTexts.join(". "));
+  if (visualScan.hits.length > 0) {
+    const first = visualScan.hits[0];
+    console.log("[generate-image:founding-rule]", JSON.stringify(visualScan.hits.map((h) => h.trigger)).slice(0, 300));
+    return NextResponse.json(
+      { error: `تعذر إنتاج المرئي: نصه يتضمن عبارة مخالفة لقواعد السلوك المهني («${first.excerpt.slice(0, 60)}» — ${first.legalReference}). عدّل النص ثم أعد المحاولة.` },
+      { status: 422 }
+    );
+  }
+
   if (planOnly) {
     if (!planForReturn) return NextResponse.json({ error: "تعذر توليد الخطة البصرية — حاول مجدداً" }, { status: 502 });
     return NextResponse.json({ visualPlan: planForReturn });
