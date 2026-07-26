@@ -189,10 +189,25 @@ async function runReformulation(data: z.infer<typeof schema>, apiKey: string): P
       activeDossier = await openAndExtract(activeDossier, intent);
       if (refreshSources) {
         activeDossier = { ...activeDossier, refreshedAt: new Date().toISOString() };
-        // ★ التحديث الصريح يؤرشف الملف السابق (بقرار المالكة): تاريخ الاستبدال
-        // وسببه وطالبه وملخص الفروقات — ثلاث نسخ بحد أقصى ولا تُعدل بعد حفظها،
-        // وأثر التحديث المختصر يدخل سجل البحث الدائم مع بقية الجولات
-        if (sourceDossier) {
+        // ★ (بقرار المالكة): فشل الشبكة يمس التحقق الحالي فقط ولا يمحو المعرفة —
+        // إن أخفقت إعادة البناء تقنياً (لا رفضاً موضوعياً) وكان للنسخة ملف سابق
+        // بادعاءات مثبتة، يُبقى الملف السابق «آخر نسخة متحقق منها» كما هو،
+        // مع ملاحظة صريحة أن إعادة التحقق الحالية تعذرت تقنياً.
+        const rebuiltProven = activeDossier.claims.some((c) => c.status === "مثبت");
+        const previousProven = Boolean(sourceDossier?.claims.some((c) => c.status === "مثبت"));
+        const rebuildTechnical =
+          activeDossier.sources.some((s) => s.fetchStatus === "تعذر الفتح تقنياً") ||
+          (activeDossier.researchTrace ?? []).some((e) => e.outcome.startsWith("تعذر تنفيذ البحث"));
+        if (sourceDossier && !rebuiltProven && previousProven && rebuildTechnical) {
+          activeDossier = {
+            ...sourceDossier,
+            researchTrace: [
+              ...(sourceDossier.researchTrace ?? []),
+              { stage: "تحديث المصادر", reason: "تعذرت إعادة التحقق تقنياً — المعرفة السابقة لا تُمحى بعطل شبكي", claimIds: [], outcome: "أُبقيت آخر نسخة متحقق منها كما هي، ويمكن إعادة المحاولة لاحقاً", at: new Date().toISOString() },
+            ],
+          };
+          sourceNote = "ملاحظة: تعذرت إعادة التحقق من المصادر تقنياً في هذه اللحظة — عُرضت آخر نسخة متحقق منها من مصادر هذه النسخة، ويمكن طلب التحديث مجدداً لاحقاً.";
+        } else if (sourceDossier) {
           activeDossier = archivePreviousDossier(
             activeDossier,
             sourceDossier,

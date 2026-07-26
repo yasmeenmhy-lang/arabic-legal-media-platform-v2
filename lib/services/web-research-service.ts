@@ -689,21 +689,17 @@ ${sourceLines}
   }
 }
 
-// تعذر النداء كله تقنياً ⇒ الفتح شرط الإثبات: الادعاءات تُنزل «غير قابل للجزم»
-// بسبب تقني مسمى بدقة — والتعذر التقني لا يوصف أبداً بأنه عدم وجود مصدر
+// تعذر النداء كله تقنياً ⇒ (بقرار المالكة): العطل الشبكي يمس التحقق الحالي فقط
+// ولا يمحو المعرفة السابقة — الادعاءات تبقى مثبتة بإسناد تقرير البحث «مسند
+// بالتقرير»، وحالة الفتح وحدها تسجل التعذر، ويُعاد التحقق لاحقاً.
 function failAllOpen(dossier: SourceDossier, provenClaims: DossierClaim[], reason: string, startedAt: number): SourceDossier {
   const ids = new Set(provenClaims.map((c) => c.id));
   return {
     ...dossier,
-    claims: dossier.claims.map((c) =>
-      ids.has(c.id)
-        ? { ...c, status: "غير قابل للجزم" as const, failure: { stage: "فتح المصدر", reason: `تعذر تقني: ${reason} — المصدر موجود ولم يُفتح في هذه اللحظة`, technical: true } }
-        : c
-    ),
     sources: dossier.sources.map((s) => (provenClaims.some((c) => c.sourceId === s.id) ? { ...s, fetchStatus: "تعذر الفتح تقنياً" as const } : s)),
     researchTrace: [
       ...(dossier.researchTrace ?? []),
-      { stage: "فتح المصدر", reason: "الفتح الفعلي شرط الإثبات", claimIds: [...ids], outcome: `تعذر تقني: ${reason} — لا يُعد ذلك غياباً للمصدر`, at: new Date().toISOString(), durationMs: Date.now() - startedAt },
+      { stage: "فتح المصدر", reason: "العطل الشبكي يمس التحقق الحالي فقط — المعرفة السابقة لا تُمحى", claimIds: [...ids], outcome: `تعذر تقني: ${reason} — أُبقي الإسناد «مسند بالتقرير» ويمكن إعادة التحقق لاحقاً`, at: new Date().toISOString(), durationMs: Date.now() - startedAt },
     ],
   };
 }
@@ -775,12 +771,16 @@ export function applyOpenExtract(
     }
   }
 
-  // تطبيق الأحكام الثلاثة القاطعة على الادعاءات المستهدفة
+  // تطبيق الأحكام على الادعاءات المستهدفة — (بقرار المالكة): التعذر التقني
+  // والغموض يمسان التحقق الحالي فقط ولا يمحوان الإسناد السابق؛ الرفض الصريح
+  // وحده («الصفحة لا تدعم») يُنزل الادعاء.
   const supportedIds = new Set(evidence.flatMap((e) => e.linkedClaimIds));
+  const noVerdict: string[] = [];
   const claims = dossier.claims.map((c) => {
     if (c.status !== "مثبت" || !c.sourceId || !targetSourceIds.includes(c.sourceId)) return c;
     if (failedSources.has(c.sourceId)) {
-      return { ...c, status: "غير قابل للجزم" as const, failure: { stage: "فتح المصدر", reason: "تعذر تقني في فتح صفحة المصدر — المصدر موجود ولم يُفتح في هذه اللحظة", technical: true } };
+      // تعذر الفتح تقنياً ⇒ يبقى الادعاء مثبتاً بإسناد التقرير — حالة الفتح وحدها تتغير
+      return c;
     }
     if (unsupported.has(c.id)) {
       return { ...c, status: "غير قابل للجزم" as const, failure: { stage: "مطابقة المصدر بالادعاء", reason: unsupported.get(c.id)!, technical: false } };
@@ -788,8 +788,9 @@ export function applyOpenExtract(
     if (supportedIds.has(c.id)) {
       return { ...c, evidenceIds: evidence.filter((e) => e.linkedClaimIds.includes(c.id)).map((e) => e.id) };
     }
-    // الصفحة فُتحت ولم يصدر عنها دليل ولا حكم بعدم الدعم ⇒ لم يكتمل الإثبات بالفتح
-    return { ...c, status: "غير قابل للجزم" as const, failure: { stage: "استخراج النصوص أو الأحكام أو الوقائع", reason: "فُتحت الصفحة ولم يُستخرج منها دليل يثبت هذا الادعاء", technical: false } };
+    // فُتحت الصفحة ولم يصدر حكم ولا دليل ⇒ غموضٌ لا رفضٌ: يبقى «مسند بالتقرير»
+    noVerdict.push(c.id);
+    return c;
   });
 
   const sources = dossier.sources.map((s) => {
@@ -811,7 +812,8 @@ export function applyOpenExtract(
   const outcomeParts = [
     `أدلة مستخرجة: ${evidence.length} (${evidence.filter((e) => e.relevance === "جوهري").length} جوهري)`,
     unsupported.size ? `لا تدعم: ${[...unsupported.keys()].join("، ")}` : "",
-    failedSources.size ? `تعذر الفتح تقنياً: ${[...failedSources].join("، ")}` : "",
+    failedSources.size ? `تعذر الفتح تقنياً (بقي الإسناد بالتقرير): ${[...failedSources].join("، ")}` : "",
+    noVerdict.length ? `بلا حكم (بقي مسنداً بالتقرير): ${noVerdict.join("، ")}` : "",
     droppedEvidence.length ? droppedEvidence.join(" | ") : "",
   ].filter(Boolean).join(" | ");
   const trace: ResearchTraceEntry[] = [

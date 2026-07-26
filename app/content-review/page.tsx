@@ -2177,7 +2177,11 @@ export default function ContentReviewPage() {
                         <a href={src.url} target="_blank" rel="noopener noreferrer" className="text-xs font-semibold text-ink underline decoration-line underline-offset-4 hover:text-palm focus-ring">
                           {src.title || src.url}
                         </a>
-                        <span className="mr-2 text-xs text-ink/50">({src.verificationStatus}{src.fetchStatus ? ` — ${src.fetchStatus}` : ""})</span>
+                        <span className="mr-2 text-xs text-ink/50">
+                          ({src.fetchStatus === "تعذر الفتح تقنياً"
+                            ? `آخر نسخة متحقق منها: ${src.verificationStatus} — تعذرت إعادة التحقق تقنياً`
+                            : `${src.verificationStatus}${src.fetchStatus ? ` — ${src.fetchStatus}` : ""}`})
+                        </span>
                       </div>
                     ) : null}
                   </li>
