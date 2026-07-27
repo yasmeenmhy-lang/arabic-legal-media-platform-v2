@@ -2608,7 +2608,8 @@ function toStoredGovernance(gov: ServerGovernance | undefined, notice: string | 
           </summary>
           <div className="pt-5">
 
-        {/* مؤشّر المراحل — يوضّح كم أُنجز وكم بقي، والخطوات السابقة قابلة للنقر للرجوع */}
+        {/* مؤشّر المراحل — كل الخطوات قابلة للنقر للانتقال المباشر (بقرار المالكة)،
+            وزر «التالي» باقٍ كما هو؛ اكتمال الحقول المطلوبة يُفحص عند التوليد لا هنا */}
         <div className="mb-5">
           <div className="mb-2 flex items-center justify-between text-xs">
             <span className="font-semibold text-ink">خطوة {frameStep} من {FRAME_TOTAL} · {frameLabels[frameStep - 1]}</span>
@@ -2627,9 +2628,8 @@ function toStoredGovernance(gov: ServerGovernance | undefined, notice: string | 
                 <button
                   key={lbl}
                   type="button"
-                  disabled={n > frameStep}
-                  onClick={() => { if (n < frameStep) setFrameStep(n); }}
-                  className={`rounded-full px-2.5 py-1 text-[11px] font-medium transition ${current ? "bg-palm text-white" : done ? "bg-mint text-palm hover:bg-mintDeep" : "bg-paper text-ink/35"}`}
+                  onClick={() => setFrameStep(n)}
+                  className={`rounded-full px-2.5 py-1 text-[11px] font-medium transition focus-ring ${current ? "bg-palm text-white" : done ? "bg-mint text-palm hover:bg-mintDeep" : "bg-paper text-ink/55 hover:bg-mint/40 hover:text-palm"}`}
                 >
                   {n}. {lbl}
                 </button>
