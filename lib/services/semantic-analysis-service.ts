@@ -16,6 +16,7 @@ import {
   type CorpusHit,
 } from "@/lib/services/corpus-scan";
 import { AUTHORITIES_RULE, KINGDOM_STYLE_RULE, PLATFORM_SUPREME_RULE } from "@/lib/governance";
+import { LEADERSHIP_PRAISE_RULE } from "@/lib/leadership-praise-rule";
 import {
   arabicSeverity,
   businessSeverityForFinding,
@@ -92,6 +93,8 @@ function buildHolisticSystem(entries: typeof legalKnowledgeEntries): string {
 
 ${AUTHORITIES_RULE}
 ${KINGDOM_STYLE_RULE}
+
+${LEADERSHIP_PRAISE_RULE}
 
 ## السياق الثابت
 هذه المنصة مخصصة للمحامين المرخصين حصراً. النص الذي سيصلك في رسالة المستخدم كتبه محامٍ ويريد نشره على وسائل التواصل الاجتماعي — سواء كان منشوراً، تغريدة، تعليقاً، رداً، أو إعلاناً.
