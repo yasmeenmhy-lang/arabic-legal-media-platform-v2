@@ -63,7 +63,7 @@ function IndicatorShell({ id, title, tone, badge, defaultOpen = false, staticSum
         onClick={() => hasDetails && setOpen((o) => !o)}
         disabled={!hasDetails}
         aria-expanded={hasDetails ? open : undefined}
-        className="lm-response flex w-full items-start justify-between gap-3 text-right focus-ring disabled:cursor-default"
+        className="flex w-full items-start justify-between gap-3 text-right focus-ring disabled:cursor-default"
       >
         <span className="min-w-0">
           <span className="mb-3 block text-xs font-bold uppercase tracking-wider text-slate-400">{title}</span>
@@ -73,8 +73,7 @@ function IndicatorShell({ id, title, tone, badge, defaultOpen = false, staticSum
           <ChevronDown size={18} className={`mt-1 shrink-0 text-slate-400 transition-transform ${open ? "rotate-180" : ""}`} aria-hidden="true" />
         ) : null}
       </button>
-      {/* المبدأ (٧): التفاصيل تنبثق من رأس البطاقة — موضع الضغط */}
-      {hasDetails && open ? <div className="lm-emerge mt-4">{children}</div> : null}
+      {hasDetails && open ? <div className="mt-4">{children}</div> : null}
     </Panel>
   );
 }

@@ -54,8 +54,7 @@ export function Button({
     <button
       disabled={disabled}
       className={clsx(
-        // المبدأ (١) الاستجابة: ردّ فعل عند ضغط المؤشر لا عند رفعه — 100ms ease-out
-        "lm-response inline-flex items-center justify-center font-medium transition-colors",
+        "inline-flex items-center justify-center font-medium transition-colors",
         "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-palm",
         "disabled:opacity-40 disabled:cursor-not-allowed",
         btnVariant[variant],
@@ -88,7 +87,7 @@ export function IconButton({
       aria-label={label}
       title={label}
       className={clsx(
-        "lm-response inline-flex items-center justify-center font-medium transition-colors rounded-lg",
+        "inline-flex items-center justify-center font-medium transition-colors rounded-lg",
         "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-palm",
         "disabled:opacity-40 disabled:cursor-not-allowed",
         size === "sm" ? "h-8 w-8" : size === "lg" ? "h-11 w-11" : "h-10 w-10",
@@ -135,8 +134,7 @@ export function PageHeader({
         <div className="flex min-w-0 flex-1 items-center gap-4">
           <div className="min-w-0 max-w-full flex-1">
             {eyebrow ? <p className="mb-2 text-xs font-normal text-palm">{eyebrow}</p> : null}
-            {/* المبدأ (١٥): العنوان الكبير تباعد سالب (-0.02em) وارتفاع سطر ضيق */}
-            <h2 className="lm-display text-lg font-semibold text-ink sm:text-xl">{title}</h2>
+            <h2 className="text-lg font-semibold leading-8 text-ink sm:text-xl sm:leading-9">{title}</h2>
             {description ? <p className="mt-2 max-w-4xl text-sm leading-7 text-ink/65">{description}</p> : null}
           </div>
           {illustration ? <div className="w-[160px] shrink-0 sm:w-[220px]">{illustration}</div> : null}
@@ -220,7 +218,7 @@ export function ButtonLink({
     <Link
       href={href}
       className={clsx(
-        "lm-response inline-flex cursor-pointer items-center justify-center gap-2 font-medium transition",
+        "inline-flex cursor-pointer items-center justify-center gap-2 font-medium transition",
         "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-palm",
         btnVariant[variant],
         btnSize["md"],
@@ -267,10 +265,9 @@ export function Panel({
 }
 
 export function SectionTitle({ title, subtitle }: { title: string; subtitle?: string }) {
-  // المبدأ (١٥) الطباعة: التباعد بحسب الحجم — عناوين الأقسام تباعد سالب طفيف
   return (
     <div className="mb-4 flex max-w-full flex-col gap-1">
-      <h3 className="lm-title text-base font-semibold text-ink">{title}</h3>
+      <h3 className="text-base font-normal text-ink">{title}</h3>
       {subtitle ? <p className="text-xs leading-6 text-ink/55">{subtitle}</p> : null}
     </div>
   );

@@ -686,7 +686,7 @@ export default function ContentManagementPage() {
                       setExpanded(isOpen ? undefined : record.id);
                       if (isOpen) setDetailsId(undefined);
                     }}
-                    className={`lm-response w-full flex items-center gap-3 px-4 py-3.5 text-right transition focus-ring ${isOpen ? "bg-paper" : "hover:bg-paper/60"}`}
+                    className={`w-full flex items-center gap-3 px-4 py-3.5 text-right transition focus-ring ${isOpen ? "bg-paper" : "hover:bg-paper/60"}`}
                   >
                     <span className="shrink-0 grid h-7 w-7 place-items-center rounded-full bg-mint text-[11px] font-bold text-palm tabular-nums">{serialById.get(record.id) ?? index + 1}</span>
                     <div className="min-w-0 flex-1">
@@ -698,7 +698,7 @@ export default function ContentManagementPage() {
                   </button>
 
                   {isOpen && (
-                    <div id={`acc-panel-${record.id}`} role="region" className="lm-emerge">
+                    <div id={`acc-panel-${record.id}`} role="region">
                       <div className="px-4 pb-4 bg-paper/60">
                         <div className="grid grid-cols-2 gap-x-4 gap-y-3 mb-4">
                           <div>

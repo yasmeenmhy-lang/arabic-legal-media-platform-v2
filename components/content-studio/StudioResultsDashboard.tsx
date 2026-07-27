@@ -83,8 +83,7 @@ export function StudioResultsDashboard({ review, text, visuals = [], onEdit, onS
   ];
 
   return (
-    // المبدأ (٤): نابض الواجهة بقيم Apple (damping 1.0 / response 0.4) — النتيجة تظهر بعد فعل المستخدم
-    <section aria-labelledby="studio-results-title" className="lm-spring space-y-5">
+    <section aria-labelledby="studio-results-title" className="space-y-5">
       <div className={`grid items-stretch gap-4 ${visuals.length ? "lg:grid-cols-2" : ""}`}>
         <Panel>
           {/* نص المحتوى أوكورديون مغلق — هذه شاشة استعراض، فالمؤشرات هي المقدَّمة */}
