@@ -178,9 +178,12 @@ export default function ContentManagementPage() {
   const [filter, setFilter] = useState<"all" | "drafts" | "approved">("all");
   // فلتر المخاطر (بقرار المالكة: الفلاتر تعمل فعلاً لا شكلاً) — يدور: الكل ← لا يوجد ← منخفض ← متوسط ← مرتفع
   const [riskFilter, setRiskFilter] = useState<"all" | "safe" | "low" | "medium" | "high">("all");
+  // فلتر الامتثال بالضغط على عموده — يدور: الكل ← ملتزم ← غير ملتزم
+  const [complianceFilter, setComplianceFilter] = useState<"all" | "ok" | "issues">("all");
+  // الترتيب بالضغط على الأعمدة: الرقم (تسلسلي تنازلي/تصاعدي) أو التاريخ (الأحدث/الأقدم تحديثاً)
+  const [sortMode, setSortMode] = useState<"serial" | "serialAsc" | "updatedDesc" | "updatedAsc">("serial");
   // بحث بقائمة منسدلة في السجل — متوائم مع مركز التخطيط
   const [search, setSearch] = useState("");
-  const [searchFocus, setSearchFocus] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState<string>();
   const [loaded, setLoaded] = useState(false);
   // حالة المزامنة السحابية — يراها المستخدم فيعرف أن سجله محفوظ ومتاح على أجهزته
@@ -277,34 +280,41 @@ export default function ContentManagementPage() {
     return "high";
   }, []);
 
+  // حالة امتثال النسخة الحالية — لفلتر عمود الامتثال
+  const complianceKeyOf = useCallback((record: StoredContentRecord): "ok" | "issues" | "none" => {
+    const current = record.versions.find((v) => v.version === record.currentVersion) ?? record.versions.at(-1);
+    const analysis = current?.analysis ? normalizeReviewResult(current.analysis) : undefined;
+    if (!analysis) return "none";
+    return (analysis.findings ?? []).length === 0 ? "ok" : "issues";
+  }, []);
+
   const filteredRecords = useMemo(() => records.filter((record) => {
     if (filter === "approved" && !record.approvedVersion) return false;
     if (filter === "drafts" && record.status === "معتمد") return false;
     if (riskFilter !== "all" && riskKeyOf(record) !== riskFilter) return false;
+    if (complianceFilter !== "all" && complianceKeyOf(record) !== complianceFilter) return false;
     if (search.trim()) {
       const version = record.versions.find((v) => v.version === record.currentVersion) ?? record.versions.at(-1);
       return smartMatch(search, [record.title, version?.body, version?.contentTypeLabel, version?.channel, version?.audience, version?.purpose]);
     }
     return true;
   })
-    // ★ (بقرار المالكة — «الترقيم عشوائي»): الترتيب بترتيب الإنشاء تنازلياً نفسه
-    // الذي يُبنى منه الرقم الثابت — فتقرأ الأرقام متسلسلة (٤٨، ٤٧، ٤٦...) دائماً،
-    // وهو ثابت على كل الأجهزة (createdAt مُزامَن) كالترتيب السابق بالتحديث.
+    // ★ (بقرار المالكة — جدول ذكي): الافتراضي بترتيب الإنشاء تنازلياً نفسه الذي
+    // يُبنى منه الرقم الثابت (١٣٣، ١٣٢...)، والضغط على عمود الرقم يعكسه، وعلى
+    // عمود التاريخ يرتب بالأحدث/الأقدم تحديثاً — والكل ثابت مزامَن بين الأجهزة.
     .sort((a, b) => {
-      const byCreated = String(b.createdAt ?? "").localeCompare(String(a.createdAt ?? ""));
-      return byCreated !== 0 ? byCreated : String(b.id).localeCompare(String(a.id));
-    }), [filter, riskFilter, riskKeyOf, records, search]);
+      if (sortMode === "updatedDesc" || sortMode === "updatedAsc") {
+        const byUpdated = String(a.updatedAt ?? "").localeCompare(String(b.updatedAt ?? ""));
+        const dir = sortMode === "updatedDesc" ? -byUpdated : byUpdated;
+        if (dir !== 0) return dir;
+      }
+      const byCreated = String(a.createdAt ?? "").localeCompare(String(b.createdAt ?? ""));
+      const base = byCreated !== 0 ? byCreated : String(a.id).localeCompare(String(b.id));
+      return sortMode === "serialAsc" || sortMode === "updatedAsc" ? base : -base;
+    }), [filter, riskFilter, riskKeyOf, complianceFilter, complianceKeyOf, sortMode, records, search]);
 
   // نتائج القائمة المنسدلة — كل السجل بالتركيز، ويُصفّى بالكتابة
-  const searchMatches = useMemo(() => records.filter((record) => {
-    if (!search.trim()) return true;
-    const version = record.versions.find((v) => v.version === record.currentVersion) ?? record.versions.at(-1);
-    return smartMatch(search, [record.title, version?.body, version?.contentTypeLabel, version?.channel, version?.audience, version?.purpose]);
-  }).sort((a, b) => {
-    // نفس ترتيب القائمة (الإنشاء تنازلياً) — فلا يتناقض ترقيم نتائج البحث مع السجل
-    const byCreated = String(b.createdAt ?? "").localeCompare(String(a.createdAt ?? ""));
-    return byCreated !== 0 ? byCreated : String(b.id).localeCompare(String(a.id));
-  }), [records, search]);
+  // (أُلغيت القائمة المنسدلة للبحث — التصفية الحية المباشرة حلت محلها بقرار المالكة)
 
   // رقم ثابت لكل محتوى بترتيب الإنشاء — لا يتغيّر بالفلترة أو الترتيب أو الجهاز (createdAt مُزامَن)
   const serialById = useMemo(() => {
@@ -594,45 +604,25 @@ export default function ContentManagementPage() {
         {transferMsg ? <p className="w-full text-sm text-palm">{transferMsg}</p> : null}
       </div>
 
-      {/* بحث بقائمة منسدلة في السجل — يظهر فقط عند وجود محتوى */}
+      {/* بحث حي مباشر (بقرار المالكة — «طريقة البحث ليست عملية»): الكتابة تصفي
+          الجدول والقائمة فوراً بلا قوائم منسدلة، مع عدّاد النتائج داخل الصندوق */}
       {records.length > 0 ? (
-        <div className="relative">
-          <div className="flex items-center gap-2 rounded-lg border border-line bg-white px-3 py-2.5 shadow-sm">
-            <Search size={15} className="shrink-0 text-ink/40" />
-            <input
-              type="text"
-              placeholder="بحث"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              onFocus={() => setSearchFocus(true)}
-              onBlur={() => setTimeout(() => setSearchFocus(false), 150)}
-              className="flex-1 bg-transparent text-sm outline-none placeholder:text-ink/35"
-            />
-            {search ? (
-              <button type="button" onClick={() => setSearch("")} className="text-ink/35 transition hover:text-ink/70" aria-label="مسح البحث">
-                <X size={14} />
-              </button>
-            ) : null}
-            <ChevronDown size={15} className={`shrink-0 text-ink/40 transition-transform ${searchFocus ? "rotate-180" : ""}`} aria-hidden="true" />
-          </div>
-          {searchFocus ? (
-            <div className="absolute inset-x-0 top-full z-30 mt-1 max-h-72 overflow-y-auto rounded-lg border border-line bg-white shadow-lg">
-              {searchMatches.length ? (
-                searchMatches.slice(0, 12).map((record) => (
-                  <button
-                    key={record.id}
-                    type="button"
-                    onMouseDown={(e) => { e.preventDefault(); setExpanded(record.id); setSearchFocus(false); setSearch(""); }}
-                    className="flex w-full items-center gap-2.5 border-b border-line/50 px-3 py-2.5 text-right transition last:border-b-0 hover:bg-mint/30"
-                  >
-                    <span className="min-w-0 flex-1 truncate text-sm text-ink">{recordDisplayTitle(record)}</span>
-                    <StatusBadge tone={record.approvedVersion ? "good" : "gold"}>{record.approvedVersion ? "معتمد" : "مسودة"}</StatusBadge>
-                  </button>
-                ))
-              ) : (
-                <p className="px-3 py-3 text-sm text-ink/50">لا نتائج مطابقة.</p>
-              )}
-            </div>
+        <div className="flex items-center gap-2 rounded-lg border border-line bg-white px-3 py-2.5 shadow-sm">
+          <Search size={15} className="shrink-0 text-ink/40" />
+          <input
+            type="text"
+            placeholder="بحث في السجل — تصفية فورية"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="flex-1 bg-transparent text-sm outline-none placeholder:text-ink/35"
+          />
+          {search.trim() ? (
+            <span className="shrink-0 text-xs text-ink/45">{filteredRecords.length} نتيجة</span>
+          ) : null}
+          {search ? (
+            <button type="button" onClick={() => setSearch("")} className="text-ink/35 transition hover:text-ink/70" aria-label="مسح البحث">
+              <X size={14} />
+            </button>
           ) : null}
         </div>
       ) : null}
@@ -649,12 +639,23 @@ export default function ContentManagementPage() {
           </button>
         ))}
         <span className="my-1 w-px shrink-0 bg-line" aria-hidden="true" />
-        {/* فلتر المخاطر الفعلي — زر دوار يعمل على الجوال والحاسب */}
+        {/* فلاتر وترتيب فعلية — أزرار دوارة تعمل على الجوال والحاسب (بقرار المالكة) */}
         <button type="button" onClick={() => setRiskFilter((v) => v === "all" ? "safe" : v === "safe" ? "low" : v === "low" ? "medium" : v === "medium" ? "high" : "all")}
           aria-pressed={riskFilter !== "all"}
           className={`shrink-0 inline-flex items-center gap-1.5 rounded-lg px-4 py-2.5 text-sm font-medium transition focus-ring ${riskFilter !== "all" ? "bg-mint text-palm" : "text-ink/70 hover:bg-paper hover:text-ink"}`}>
           <Filter size={13} aria-hidden="true" />
           المخاطر: {riskFilter === "all" ? "الكل" : riskFilter === "safe" ? "لا يوجد" : riskFilter === "low" ? "منخفض" : riskFilter === "medium" ? "متوسط" : "مرتفع"}
+        </button>
+        <button type="button" onClick={() => setComplianceFilter((v) => v === "all" ? "ok" : v === "ok" ? "issues" : "all")}
+          aria-pressed={complianceFilter !== "all"}
+          className={`shrink-0 inline-flex items-center gap-1.5 rounded-lg px-4 py-2.5 text-sm font-medium transition focus-ring ${complianceFilter !== "all" ? "bg-mint text-palm" : "text-ink/70 hover:bg-paper hover:text-ink"}`}>
+          <Filter size={13} aria-hidden="true" />
+          الامتثال: {complianceFilter === "all" ? "الكل" : complianceFilter === "ok" ? "ملتزم" : "غير ملتزم"}
+        </button>
+        <button type="button" onClick={() => setSortMode((v) => v === "serial" ? "updatedDesc" : v === "updatedDesc" ? "updatedAsc" : "serial")}
+          aria-pressed={sortMode !== "serial"}
+          className={`shrink-0 inline-flex items-center gap-1.5 rounded-lg px-4 py-2.5 text-sm font-medium transition focus-ring ${sortMode !== "serial" ? "bg-mint text-palm" : "text-ink/70 hover:bg-paper hover:text-ink"}`}>
+          الترتيب: {sortMode === "serial" ? "بالرقم" : sortMode === "updatedDesc" ? "الأحدث تحديثاً" : sortMode === "updatedAsc" ? "الأقدم تحديثاً" : "بالرقم تصاعدياً"}
         </button>
       </nav>
 
@@ -756,16 +757,26 @@ export default function ContentManagementPage() {
             <table className="w-full border-collapse text-sm">
               <thead>
                 <tr className="border-b border-line bg-paper text-right text-xs text-inkTertiary">
-                  <th className="px-4 py-3 font-semibold w-10">#</th>
+                  {/* جدول ذكي (بقرار المالكة): كل عمود يفلتر أو يرتب بالضغط عليه */}
+                  <th className="px-4 py-3 font-semibold w-10">
+                    <button type="button" onClick={() => setSortMode((v) => v === "serialAsc" ? "serial" : "serialAsc")}
+                      className="inline-flex items-center gap-0.5 focus-ring" title="ترتيب بالرقم">
+                      #{sortMode === "serialAsc" ? " ▲" : sortMode === "serial" ? " ▼" : ""}
+                    </button>
+                  </th>
                   <th className="px-4 py-3 font-semibold">العنوان</th>
                   <th className="px-4 py-3 font-semibold">
-                    {/* أيقونتا الفلتر تعملان فعلاً (بقرار المالكة): الحالة تدور على مرشحاتها */}
                     <button type="button" onClick={() => setFilter((v) => v === "all" ? "drafts" : v === "drafts" ? "approved" : "all")}
                       className="inline-flex items-center gap-1 focus-ring" title="تصفية بالحالة">
                       الحالة <Filter size={11} className={filter !== "all" ? "text-palm" : "opacity-40"} />
                     </button>
                   </th>
-                  <th className="px-4 py-3 font-semibold">الامتثال</th>
+                  <th className="px-4 py-3 font-semibold">
+                    <button type="button" onClick={() => setComplianceFilter((v) => v === "all" ? "ok" : v === "ok" ? "issues" : "all")}
+                      className="inline-flex items-center gap-1 focus-ring" title="تصفية بالامتثال">
+                      الامتثال{complianceFilter === "ok" ? ": ملتزم" : complianceFilter === "issues" ? ": غير ملتزم" : ""} <Filter size={11} className={complianceFilter !== "all" ? "text-palm" : "opacity-40"} />
+                    </button>
+                  </th>
                   <th className="px-4 py-3 font-semibold">
                     <button type="button" onClick={() => setRiskFilter((v) => v === "all" ? "safe" : v === "safe" ? "low" : v === "low" ? "medium" : v === "medium" ? "high" : "all")}
                       className="inline-flex items-center gap-1 focus-ring" title="تصفية بالمخاطر">
@@ -773,7 +784,12 @@ export default function ContentManagementPage() {
                     </button>
                   </th>
                   <th className="px-4 py-3 font-semibold">الإصدارات</th>
-                  <th className="px-4 py-3 font-semibold">آخر تحديث</th>
+                  <th className="px-4 py-3 font-semibold">
+                    <button type="button" onClick={() => setSortMode((v) => v === "updatedDesc" ? "updatedAsc" : "updatedDesc")}
+                      className="inline-flex items-center gap-1 focus-ring" title="ترتيب بالأحدث أو الأقدم تحديثاً">
+                      آخر تحديث{sortMode === "updatedDesc" ? " ▼" : sortMode === "updatedAsc" ? " ▲" : ""}
+                    </button>
+                  </th>
                   <th className="px-4 py-3 font-semibold">الإجراءات</th>
                 </tr>
               </thead>
