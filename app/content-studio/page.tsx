@@ -2593,7 +2593,7 @@ function toStoredGovernance(gov: ServerGovernance | undefined, notice: string | 
     <div className="content-review-window space-y-6">
       <PageHeader
         eyebrow="مركز المحتوى الإعلامي والإعلاني"
-        title={path === "review" ? "مراجعة المحتوى المهني" : path === "create" ? "إنشاء المحتوى المهني" : "إعداد المحتوى المهني"}
+        title={path === "review" ? "مراجعة المحتوى المهني" : path === "create" ? "إنشاء المحتوى المهني" : "إنشاء ومراجعة المحتوى المهني"}
         illustration={path ? undefined : <p className="text-center text-xl font-semibold leading-9 text-palm">مرحباً بك</p>}
         action={path ? <Button variant="secondary-gray" onClick={goBackOneStage} leadingIcon={<ArrowRight size={16} />}>رجوع</Button> : undefined}
       />
