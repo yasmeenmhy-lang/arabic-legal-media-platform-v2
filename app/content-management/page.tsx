@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { CalendarDays, CheckCircle2, ChevronDown, ChevronLeft, ExternalLink, FileCheck2, FileClock, FileText, Filter, FolderOpen, History, Image as ImageIcon, Megaphone, MessageCircle, PenLine, RotateCcw, Search, Send, Share2, ShieldCheck, Tag, Trash2, Video, X } from "lucide-react";
 import { InstagramIcon, LinkedInIcon, SnapchatIcon, TikTokIcon, XIcon, YouTubeIcon, socialBrandStyles } from "@/components/social-icons";
@@ -176,6 +176,8 @@ export default function ContentManagementPage() {
   const [expanded, setExpanded] = useState<string>();
   const [detailsId, setDetailsId] = useState<string>();
   const [filter, setFilter] = useState<"all" | "drafts" | "approved">("all");
+  // فلتر المخاطر (بقرار المالكة: الفلاتر تعمل فعلاً لا شكلاً) — يدور: الكل ← لا يوجد ← منخفض ← متوسط ← مرتفع
+  const [riskFilter, setRiskFilter] = useState<"all" | "safe" | "low" | "medium" | "high">("all");
   // بحث بقائمة منسدلة في السجل — متوائم مع مركز التخطيط
   const [search, setSearch] = useState("");
   const [searchFocus, setSearchFocus] = useState(false);
@@ -263,20 +265,35 @@ export default function ContentManagementPage() {
   const acceptance = counts.all ? Math.round((counts.approved / counts.all) * 100) : 0;
 
 
+  // مفتاح مخاطر النسخة الحالية للسجل — بنفس معيار العرض الموحد (hasNoRisks)
+  const riskKeyOf = useCallback((record: StoredContentRecord): "safe" | "low" | "medium" | "high" | "none" => {
+    const current = record.versions.find((v) => v.version === record.currentVersion) ?? record.versions.at(-1);
+    const analysis = current?.analysis ? normalizeReviewResult(current.analysis) : undefined;
+    const rb = riskBadgeFor(analysis);
+    if (!rb) return "none";
+    if (rb.label === "لا يوجد مخاطر") return "safe";
+    if (rb.label === "منخفض") return "low";
+    if (rb.label === "متوسط") return "medium";
+    return "high";
+  }, []);
+
   const filteredRecords = useMemo(() => records.filter((record) => {
     if (filter === "approved" && !record.approvedVersion) return false;
     if (filter === "drafts" && record.status === "معتمد") return false;
+    if (riskFilter !== "all" && riskKeyOf(record) !== riskFilter) return false;
     if (search.trim()) {
       const version = record.versions.find((v) => v.version === record.currentVersion) ?? record.versions.at(-1);
       return smartMatch(search, [record.title, version?.body, version?.contentTypeLabel, version?.channel, version?.audience, version?.purpose]);
     }
     return true;
   })
-    // ترتيب ثابت بالأحدث تحديثاً — نفس الترتيب على كل الأجهزة بعد المزامنة (لا يتبع ترتيب المصفوفة المحلي)
+    // ★ (بقرار المالكة — «الترقيم عشوائي»): الترتيب بترتيب الإنشاء تنازلياً نفسه
+    // الذي يُبنى منه الرقم الثابت — فتقرأ الأرقام متسلسلة (٤٨، ٤٧، ٤٦...) دائماً،
+    // وهو ثابت على كل الأجهزة (createdAt مُزامَن) كالترتيب السابق بالتحديث.
     .sort((a, b) => {
-      const byUpdated = String(b.updatedAt ?? "").localeCompare(String(a.updatedAt ?? ""));
-      return byUpdated !== 0 ? byUpdated : String(a.id).localeCompare(String(b.id));
-    }), [filter, records, search]);
+      const byCreated = String(b.createdAt ?? "").localeCompare(String(a.createdAt ?? ""));
+      return byCreated !== 0 ? byCreated : String(b.id).localeCompare(String(a.id));
+    }), [filter, riskFilter, riskKeyOf, records, search]);
 
   // نتائج القائمة المنسدلة — كل السجل بالتركيز، ويُصفّى بالكتابة
   const searchMatches = useMemo(() => records.filter((record) => {
@@ -284,8 +301,9 @@ export default function ContentManagementPage() {
     const version = record.versions.find((v) => v.version === record.currentVersion) ?? record.versions.at(-1);
     return smartMatch(search, [record.title, version?.body, version?.contentTypeLabel, version?.channel, version?.audience, version?.purpose]);
   }).sort((a, b) => {
-    const byUpdated = String(b.updatedAt ?? "").localeCompare(String(a.updatedAt ?? ""));
-    return byUpdated !== 0 ? byUpdated : String(a.id).localeCompare(String(b.id));
+    // نفس ترتيب القائمة (الإنشاء تنازلياً) — فلا يتناقض ترقيم نتائج البحث مع السجل
+    const byCreated = String(b.createdAt ?? "").localeCompare(String(a.createdAt ?? ""));
+    return byCreated !== 0 ? byCreated : String(b.id).localeCompare(String(a.id));
   }), [records, search]);
 
   // رقم ثابت لكل محتوى بترتيب الإنشاء — لا يتغيّر بالفلترة أو الترتيب أو الجهاز (createdAt مُزامَن)
@@ -630,6 +648,14 @@ export default function ContentManagementPage() {
             {label}
           </button>
         ))}
+        <span className="my-1 w-px shrink-0 bg-line" aria-hidden="true" />
+        {/* فلتر المخاطر الفعلي — زر دوار يعمل على الجوال والحاسب */}
+        <button type="button" onClick={() => setRiskFilter((v) => v === "all" ? "safe" : v === "safe" ? "low" : v === "low" ? "medium" : v === "medium" ? "high" : "all")}
+          aria-pressed={riskFilter !== "all"}
+          className={`shrink-0 inline-flex items-center gap-1.5 rounded-lg px-4 py-2.5 text-sm font-medium transition focus-ring ${riskFilter !== "all" ? "bg-mint text-palm" : "text-ink/70 hover:bg-paper hover:text-ink"}`}>
+          <Filter size={13} aria-hidden="true" />
+          المخاطر: {riskFilter === "all" ? "الكل" : riskFilter === "safe" ? "لا يوجد" : riskFilter === "low" ? "منخفض" : riskFilter === "medium" ? "متوسط" : "مرتفع"}
+        </button>
       </nav>
 
       {filteredRecords.length === 0 ? empty : (
@@ -733,11 +759,18 @@ export default function ContentManagementPage() {
                   <th className="px-4 py-3 font-semibold w-10">#</th>
                   <th className="px-4 py-3 font-semibold">العنوان</th>
                   <th className="px-4 py-3 font-semibold">
-                    <span className="inline-flex items-center gap-1">الحالة <Filter size={11} className="opacity-40" /></span>
+                    {/* أيقونتا الفلتر تعملان فعلاً (بقرار المالكة): الحالة تدور على مرشحاتها */}
+                    <button type="button" onClick={() => setFilter((v) => v === "all" ? "drafts" : v === "drafts" ? "approved" : "all")}
+                      className="inline-flex items-center gap-1 focus-ring" title="تصفية بالحالة">
+                      الحالة <Filter size={11} className={filter !== "all" ? "text-palm" : "opacity-40"} />
+                    </button>
                   </th>
                   <th className="px-4 py-3 font-semibold">الامتثال</th>
                   <th className="px-4 py-3 font-semibold">
-                    <span className="inline-flex items-center gap-1">المخاطر <Filter size={11} className="opacity-40" /></span>
+                    <button type="button" onClick={() => setRiskFilter((v) => v === "all" ? "safe" : v === "safe" ? "low" : v === "low" ? "medium" : v === "medium" ? "high" : "all")}
+                      className="inline-flex items-center gap-1 focus-ring" title="تصفية بالمخاطر">
+                      المخاطر <Filter size={11} className={riskFilter !== "all" ? "text-palm" : "opacity-40"} />
+                    </button>
                   </th>
                   <th className="px-4 py-3 font-semibold">الإصدارات</th>
                   <th className="px-4 py-3 font-semibold">آخر تحديث</th>
