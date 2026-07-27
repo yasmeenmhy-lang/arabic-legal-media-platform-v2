@@ -140,6 +140,11 @@ export function StudioResultsDashboard({ review, text, visuals = [], onEdit, onS
               <h2 id="studio-results-title" className="text-base font-bold text-ink">توصية النشر</h2>
               <StatusBadge tone={decisionTone}>{unavailable ? "تعذّر التحليل" : review.publicationDecision.label}</StatusBadge>
             </div>
+            {/* سبب المنع يُعرض مع اللون — فلا تظهر توصية حمراء بلا تفسير بينما
+                المؤشرات خضراء (كحالة منع الجاهزية لعدم اكتمال الإثبات) */}
+            {!unavailable && review.publicationDecision.outcome !== "RECOMMENDED" && review.publicationDecision.reason ? (
+              <p className="mt-1.5 max-w-xl text-xs leading-5 text-ink/60">{review.publicationDecision.reason}</p>
+            ) : null}
           </div>
           <Button variant="secondary-gray" onClick={onEdit}>تعديل النص</Button>
         </div>

@@ -2,7 +2,8 @@ import type { ReviewResult, RiskAffectedParty, RiskLevel } from "@/lib/types";
 import {
   buildConfidence,
   buildPublicationDecision,
-  buildReadinessDecision
+  buildReadinessDecision,
+  buildSourceGovernanceReasons
 } from "@/lib/services/decision-support-service";
 import { calculateContentQualityScore } from "@/lib/services/scoring-service";
 import { countAdvisoryLanguageIssues, languageGateReason } from "@/lib/language-gate";
@@ -137,12 +138,33 @@ export function normalizeReviewResult(review: ReviewResult): ReviewResult {
       approved,
       findings: review.findings
     });
+    // ★ (بقرار المالكة — إصلاح انقلاب الأحمر إلى الأخضر عند إعادة الفتح): قرار
+    // النشر الأصلي بُني أيضاً على أسباب حوكمة المصادر واكتمال الإثبات («منع
+    // الجاهزية» لغير المثبت) — إعادة البناء هنا كانت تسقطها فيخضرّ القرار عند
+    // كل فتح. تُعاد الأسباب نفسها من المحفوظ مع النسخة فيثبت الحكم بين الفتحات.
+    const completenessVerdict = review.sourceCompleteness?.verdict ?? review.sourceDossier?.completeness;
+    const completenessReasons = completenessVerdict && !completenessVerdict.ready
+      ? completenessVerdict.reasons.map((r) => `غير جاهز للنشر بسبب اكتمال الإثبات: ${r}`)
+      : [];
+    // أسباب الحوكمة تُشتق من ملف المصادر المحفوظ مع النسخة (المادة ١٠ وحالة الإثبات)
+    const dossierGov = review.sourceDossier?.article10?.applied
+      ? {
+          article10Applied: true,
+          stopped: review.sourceDossier.article10.stopped,
+          officialSourceFound: review.sourceDossier.claims?.some((c) => c.status === "مثبت") ?? false,
+        }
+      : undefined;
+    const sourceGovernanceReasons = [
+      ...buildSourceGovernanceReasons(dossierGov, 0),
+      ...completenessReasons,
+    ];
     const publicationDecision = buildPublicationDecision({
       confidence,
       readiness: readinessDecision,
       findings: review.findings,
       riskLevel,
-      languageIssuesCount: review.languageQuality?.issues?.length ?? 0
+      languageIssuesCount: review.languageQuality?.issues?.length ?? 0,
+      sourceGovernanceReasons
     });
 
     return {
