@@ -1108,8 +1108,11 @@ function toStoredGovernance(gov: ServerGovernance | undefined, notice: string | 
       try {
         const res = await fetch(`/api/content-studio/generate-status?id=${encodeURIComponent(jobId)}`);
         const data = (await res.json()) as { status?: string; text?: string; error?: string; truncated?: boolean; partial?: string; review?: ReviewResult; sources?: Source[]; sourceNote?: string; sourceGovernance?: ServerGovernance; sourceDossier?: SourceDossier; costUsd?: number; balanceUsd?: number };
-        // بأمر مالكة المنصة: لا تُعرض مسودة قبل اجتياز كل المؤشرات — المسودات
-        // الجزئية المعلقة (من نشرات سابقة) تُتجاهل ولا تُعرض
+        // ★ (بقرار المالكة المحدث — «ليش ما يعرضه وهو يحلل»): أثناء الإنشاء النشط
+        // تُعرض المسودة حية فور استقرارها موسومة «تحقق نهائي يجري الآن — قد يُحدَّث
+        // النص تلقائياً»، فيقرأ المستخدم بينما القاضي والمقيّم يعملان. ويبقى منع
+        // المسودات المعلقة من جلسات سابقة كما هو: الاستئناف لا يمرر onDraft أصلاً.
+        if (data.status === "pending" && data.partial && onDraft) onDraft(data.partial);
         if (data.status === "done") {
           void fetch(`/api/content-studio/generate-status?id=${encodeURIComponent(jobId)}&ack=1`).catch(() => {});
           try { window.localStorage.removeItem(scopedKey(PENDING_GENERATION_KEY)); } catch { /* بيئة بلا تخزين */ }

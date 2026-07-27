@@ -735,11 +735,16 @@ ${briefType
         }
         // «المصادر المستخدمة» من الملف (مصادر الادعاءات المثبتة) — لا تختفي لغياب
         // الرابط من المتن (بقرار المالكة: لا روابط داخل النص أصلاً)
+        // ★ (بقرار المالكة — «ليش ما يعرضه وهو يحلل»): النص المعتمد يُبث فوراً
+        // فيقرؤه المستخدم بينما التحليل الموحد يجري — بوسم «تحقق نهائي يجري الآن»
+        onDraft?.(winner.text);
         return { kind: "ok", text: winner.text, truncated: false, gov: winner.gov, sources: researchSources, sourceNote, enforcement, dossier: deliveredDossier };
       }
 
-      // لا مستوفي بعد: يُختار الأقرب (أقل تصحيحات) لجولة تصحيح موضعي
+      // لا مستوفي بعد: يُختار الأقرب (أقل تصحيحات) لجولة تصحيح موضعي —
+      // ومسودته تُبث للعرض الحي (الواجهة توسمها «قد يُحدَّث النص تلقائياً»)
       const best = [...candidates].sort((a, b) => a.corrections.length - b.corrections.length)[0];
+      onDraft?.(best.text);
       lastGov = adoptCandidateState(best);
       enforcement.correctionRounds = attempt + 1;
       // حارس الحدّ الزمني: إن قاربنا الميزانية لا نبدأ جولة تصحيح جديدة (قد تطول
@@ -825,6 +830,7 @@ ${briefType
         : "سُلِّم المحتوى";
     }
     // «المصادر المستخدمة» من الملف — لا تختفي لغياب الرابط من المتن
+    onDraft?.(text);
     return { kind: "ok", text, truncated, gov: lastGov!, sources: researchSources, sourceNote, enforcement, dossier: deliveredDossier };
   }
 
