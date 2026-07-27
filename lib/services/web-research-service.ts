@@ -499,9 +499,19 @@ export async function researchClaimsWithExpansion(
       if (!unprovenIds.has(f2.claimId)) continue;
       const claim = proofClaims.find((c) => c.id === f2.claimId);
       if (!claim) continue;
-      const f2Proves = f2.status === "مثبت" && f2.url && (claim.scope !== "المملكة" || isSaudiOfficialUrl(f2.url));
+      // معيار القبول نفسه في الجولتين (claimProven): البحثي بنطاق المملكة يقبله
+      // الموثوق — كان الشرط هنا أشد من معيار الإثبات نفسه فيُهدر ما يثبت فعلاً
+      const f2Proves = f2.status === "مثبت" && f2.url && (claim.scope !== "المملكة" || claim.regulatory === false || isSaudiOfficialUrl(f2.url));
       if (f2Proves) {
-        findings = [...findings.filter((f) => f.claimId !== f2.claimId), f2];
+        // ★ الأصل لا يُنسى (بقرار المالكة — جذر حالة هيئة السوق): ما وجده الباحث
+        // أولاً من موقع الجهة ورُفض لمجرد أن رسميته لم تثبت بعد، يُحفظ مرشحَ أصلٍ
+        // مع النتيجة الحكومية البديلة — فيُسترد فور ثبوت الرسمية بشهادة صفحة
+        // حكومية مفتوحة، بلا أي بحث إضافي.
+        const prev = findings.find((f) => f.claimId === f2.claimId);
+        const enriched = prev?.status === "مثبت" && prev.url && !isSaudiOfficialUrl(prev.url)
+          ? { ...f2, originCandidate: { url: prev.url, excerpt: prev.excerpt, issuer: prev.issuer, docType: prev.docType, title: prev.title } }
+          : f2;
+        findings = [...findings.filter((f) => f.claimId !== f2.claimId), enriched];
       } else if (!findings.some((f) => f.claimId === f2.claimId)) {
         findings = [...findings, f2];
       }
@@ -981,7 +991,18 @@ export async function pursueAttestedOrigins(
 
   let mergedFindings = findings;
   let huntOutcome = "";
-  if (!recoverable && missingOrigins.length > 0 && targetClaims.length > 0) {
+
+  // استرداد الأصل المحفوظ من جولات البحث نفسها («الأصل لا يُنسى») — بلا أي نداء
+  const candidateFindings: ClaimFinding[] = findings.flatMap((f) => {
+    const oc = f.originCandidate;
+    if (!oc?.url || !attested.has(hostOf(oc.url)) || sourceHosts.has(hostOf(oc.url))) return [];
+    return [{ claimId: f.claimId, status: "مثبت" as const, url: oc.url, excerpt: oc.excerpt, issuer: oc.issuer, docType: oc.docType, title: oc.title ?? oc.url }];
+  });
+  if (!recoverable && candidateFindings.length > 0) {
+    const replaced = new Set(candidateFindings.map((f) => f.claimId));
+    mergedFindings = [...candidateFindings, ...findings.filter((f) => !replaced.has(f.claimId))];
+    huntOutcome = `استُرد الأصل الذي وجده البحث أولاً لدى الجهة: ${[...new Set(candidateFindings.map((f) => hostOf(f.url!)))].join("، ")}`;
+  } else if (!recoverable && missingOrigins.length > 0 && targetClaims.length > 0) {
     const hunt = await researchClaimsRound(buildOriginHuntInstruction(intent, targetClaims, missingOrigins), "طلب الأصل", timeoutMs);
     const originFindings = (hunt?.findings ?? []).filter(
       (f) => f.status === "مثبت" && f.url && extendedOfficial(f.url) && !sourceHosts.has(hostOf(f.url))
