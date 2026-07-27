@@ -17,7 +17,8 @@
 import { SOURCE_GOVERNANCE } from "@/lib/source-governance";
 import { recordUsage } from "@/lib/cost-meter";
 import { normalizeClaim } from "@/lib/services/article10-enforcer";
-import type { IntentRepresentation, ClaimFinding, SourceDossier, ResearchTraceEntry, OfficialDocKind, ExtractedEvidence, DossierClaim, DossierSource } from "@/lib/source-dossier";
+import type { IntentRepresentation, IntentClaim, ClaimFinding, SourceDossier, ResearchTraceEntry, OfficialDocKind, ExtractedEvidence, DossierClaim, DossierSource } from "@/lib/source-dossier";
+import { buildDossier } from "@/lib/source-dossier";
 
 export type ResearchResult = {
   // ملخص عربي للوقائع المتحقق منها، كل واقعة منسوبة لجهتها ورابطها — يُحقن في مطالبة الكاتب
@@ -919,6 +920,105 @@ export function applyOpenExtract(
     researchTrace: trace,
     attestedOfficialDomains: attested.size ? [...attested] : dossier.attestedOfficialDomains,
   };
+}
+
+// موجه جولة «طلب الأصل» — بحث واحد موجّه عن أصل المعلومة في موقع الجهة الذي
+// شهدت له صفحة حكومية مفتوحة (المادة ٤: الأصل لا الناقل). القبول محكوم بالكود:
+// لا يُقبل من مخرجه إلا رابط على نطاق مثبت الرسمية أو حكومي.
+function buildOriginHuntInstruction(intent: IntentRepresentation, claims: IntentClaim[], origins: string[]): string {
+  return `أنت باحث قانوني موثوق لمنصة محتوى قانوني لمحامٍ مرخَّص في المملكة العربية السعودية. هذه جولة «طلب الأصل»: ثبتت رسميةُ مواقع الجهات التالية بشهادة صفحة حكومية مفتوحة فعلاً: ${origins.join("، ")} — والمطلوب أصل المعلومة في موقع الجهة نفسه، لا صفحة ناقلة عنها.
+
+الموضوع: ${intent.mainTopic}${intent.subTopics.length ? ` — ${intent.subTopics.join("، ")}` : ""}
+
+الادعاءات — ابحث عن أصل كل معلومة في موقع جهتها نفسه (بحدود عمليتي بحث إجمالاً، وتوقف فور العثور):
+${claims.map((c) => `- [${c.id}] ${c.text}`).join("\n")}
+
+قواعد الإخراج الملزمة (تُقرأ آلياً — التزم الصيغة حرفياً):
+لكل ادعاء سطر واحد يبدأ بمعرفه:
+[c1] مثبت — «المقطع الداعم منقولاً حرفياً من المصدر» — الجهة المصدرة — نوع الوثيقة — الرابط الكامل
+أو:
+[c1] لم يُعثر — سبب موجز
+
+- لا يُكتب «مثبت» إلا برابط من مواقع الجهات المذكورة أعلاه أو موقع حكومي رسمي.
+- ممنوع منعاً باتاً اختلاق رابط أو مقطع أو جهة. انقل المقطع كما ورد حرفياً.
+- لا تكتب شيئاً غير هذه الأسطر.`;
+}
+
+// ★ إتمام «الرسمية بالإثبات» — «الأصل لا الناقل» فعلاً لا وصفاً. حالتان:
+// ١) استرداد: البحث سبق أن وجد رابطاً في موقع الجهة ورُفض لمجرد النطاق ⇒ يُعاد
+//    بناء الملف بالمعيار الموسّع ويُفتح الأصل — بلا أي نداء بحث إضافي.
+// ٢) طلب الأصل: البحث لم يمر بموقع الجهة أصلاً (أثبت بصفحة البوابة الناقلة
+//    مباشرة) ⇒ جولة بحث واحدة موجهة لأصل المعلومة في موقع الجهة المثبت رسميته،
+//    فإن وُجد قُدِّم على الناقل وفُتح واستُخرج منه.
+// لا قوائم يدوية إطلاقاً: النطاقات كلها من شهادة صفحات حكومية مفتوحة فعلاً.
+export async function pursueAttestedOrigins(
+  dossier: SourceDossier,
+  intent: IntentRepresentation,
+  findings: ClaimFinding[],
+  timeoutMs = 60_000
+): Promise<SourceDossier> {
+  const attested = new Set(dossier.attestedOfficialDomains ?? []);
+  if (attested.size === 0) return dossier;
+  const extendedOfficial = (u: string) => isSaudiOfficialUrl(u) || attested.has(hostOf(u));
+
+  // الحالة ١: استرداد من نتائج البحث القائمة
+  const recoverable = dossier.claims.some((c) => {
+    if (c.status !== "محكوم بالمادة ١٠") return false;
+    const f = findings.find((x) => x.claimId === c.id && x.status === "مثبت" && x.url);
+    return Boolean(f?.url && attested.has(hostOf(f.url)));
+  });
+
+  // الحالة ٢: الشهادة قائمة ولا مصدر من موقع الجهة نفسه
+  const sourceHosts = new Set(dossier.sources.map((s) => hostOf(s.url)));
+  const missingOrigins = [...attested].filter((h) => !sourceHosts.has(h)).slice(0, 3);
+  // الادعاءات المستهدفة بالمعنى (من محرك الفهم): ما يخص المملكة ويحتاج إثباتاً
+  // وليس مصدره الحالي موقعَ جهة مثبت — سواء أكان نظامياً أم معلومة منسوبة لجهة
+  const targetClaims = intent.claims.filter((c) => {
+    if (!c.needsProof || c.scope !== "المملكة") return false;
+    const current = findings.find((x) => x.claimId === c.id && x.status === "مثبت" && x.url);
+    return !current?.url || !attested.has(hostOf(current.url));
+  });
+
+  let mergedFindings = findings;
+  let huntOutcome = "";
+  if (!recoverable && missingOrigins.length > 0 && targetClaims.length > 0) {
+    const hunt = await researchClaimsRound(buildOriginHuntInstruction(intent, targetClaims, missingOrigins), "طلب الأصل", timeoutMs);
+    const originFindings = (hunt?.findings ?? []).filter(
+      (f) => f.status === "مثبت" && f.url && extendedOfficial(f.url) && !sourceHosts.has(hostOf(f.url))
+    );
+    if (originFindings.length > 0) {
+      const replaced = new Set(originFindings.map((f) => f.claimId));
+      mergedFindings = [...originFindings, ...findings.filter((f) => !replaced.has(f.claimId))];
+      huntOutcome = `عُثر على الأصل لدى الجهة: ${originFindings.map((f) => hostOf(f.url!)).join("، ")}`;
+    } else {
+      // لا أصل من الجولة — والعطل التقني لا يوصف غياباً (بقرار المالكة): يُميز
+      // تعذر تنفيذ الجولة عن بحثٍ نُفذ ولم يجد أصلاً منشوراً
+      const outcome = hunt === null
+        ? `تعذر تنفيذ جولة طلب الأصل تقنياً — بقي المصدر الحكومي الناقل سنداً، ويمكن إعادة المحاولة لاحقاً`
+        : `لم يُعثر على أصل منشور لدى الجهة (${missingOrigins.join("، ")}) — بقي المصدر الحكومي الناقل سنداً`;
+      return {
+        ...dossier,
+        researchTrace: [
+          ...(dossier.researchTrace ?? []),
+          { stage: "اختيار المصدر", reason: "طلب الأصل: شهدت صفحة حكومية لموقع جهة ليس ضمن المصادر — بُحث عن أصل المعلومة لديه", claimIds: targetClaims.map((c) => c.id), outcome, at: new Date().toISOString() },
+        ],
+      };
+    }
+  }
+  if (!recoverable && !huntOutcome) return dossier;
+
+  const prevTrace = dossier.researchTrace ?? [];
+  console.log("[origin-pursuit]", huntOutcome || "استرداد من نتائج البحث القائمة", "—", [...attested].join("، "));
+  let rebuilt = buildDossier(intent, mergedFindings, extendedOfficial);
+  rebuilt = {
+    ...rebuilt,
+    attestedOfficialDomains: [...attested],
+    researchTrace: [
+      ...prevTrace,
+      { stage: "اختيار المصدر", reason: "الرسمية بالإثبات: صفحة حكومية مفتوحة شهدت حرفياً لنطاق موقع الجهة — يُقدَّم الأصل على الناقل (المادة ٤)", claimIds: [], outcome: huntOutcome || `نطاقات مثبتة الرسمية: ${[...attested].join("، ")}`, at: new Date().toISOString() },
+    ],
+  };
+  return openAndExtract(rebuilt, intent);
 }
 
 // موجّه تدقيق الإحالات لمسار المراجعة — تحقّق فعلي من صحة ما في النص القائم، لا كتابة.

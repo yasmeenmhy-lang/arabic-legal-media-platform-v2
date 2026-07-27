@@ -5,7 +5,7 @@ import { AI_CONSTITUTION } from "@/lib/governance";
 import { buildOfficialRuleCorpusText } from "@/lib/rule-corpus-text";
 import { governTextFull, type GovernTextFullResult } from "@/lib/services/governor-gate";
 import { verifyCorpusCitations } from "@/lib/services/citation-verifier";
-import { needsResearch, researchClaimsWithExpansion, openAndExtract, nameFailedStage, hostOf, PIPELINE_STAGES } from "@/lib/services/web-research-service";
+import { needsResearch, researchClaimsWithExpansion, openAndExtract, pursueAttestedOrigins, nameFailedStage, PIPELINE_STAGES } from "@/lib/services/web-research-service";
 import { isSaudiOfficialUrl } from "@/lib/services/web-research-service";
 import { analyzeIntent } from "@/lib/services/intent-analysis-service";
 import { buildDossier, markUsedSources, provenExcerpts, computeCompleteness, evidenceUsedInText, type SourceDossier } from "@/lib/source-dossier";
@@ -495,28 +495,7 @@ ${briefType
       // ★ «الرسمية بالإثبات» (بقرار المالكة — جذرياً بلا قوائم): إذا شهدت صفحة
       // حكومية مفتوحة لنطاق موقع جهة (كموقع هيئة السوق المالية)، تُعاد معايرة
       // الادعاءات التي حُكمت لمجرد النطاق، ويُفتح أصل الجهة ويُستخرج منه.
-      const attestedHosts = new Set(dossier.attestedOfficialDomains ?? []);
-      if (attestedHosts.size > 0 && research) {
-        const recoverable = dossier.claims.some((c) => {
-          if (c.status !== "محكوم بالمادة ١٠") return false;
-          const f = research.findings.find((x) => x.claimId === c.id && x.status === "مثبت" && x.url);
-          return Boolean(f?.url && attestedHosts.has(hostOf(f.url)));
-        });
-        if (recoverable) {
-          const prevTrace = dossier.researchTrace ?? [];
-          console.log("[generate:attested-official]", [...attestedHosts].join("، "));
-          dossier = buildDossier(intent, research.findings, (u) => isSaudiOfficialUrl(u) || attestedHosts.has(hostOf(u)));
-          dossier = {
-            ...dossier,
-            attestedOfficialDomains: [...attestedHosts],
-            researchTrace: [
-              ...prevTrace,
-              { stage: "اختيار المصدر", reason: "الرسمية بالإثبات: صفحة حكومية مفتوحة شهدت حرفياً لنطاق موقع الجهة — يُقدَّم الأصل على الناقل", claimIds: [], outcome: `نطاقات مثبتة الرسمية: ${[...attestedHosts].join("، ")}`, at: new Date().toISOString() },
-            ],
-          };
-          dossier = await openAndExtract(dossier, intent);
-        }
-      }
+      if (research) dossier = await pursueAttestedOrigins(dossier, intent, research.findings);
       proofList = provenExcerpts(dossier);
 
       // بقرار المالكة الأخير قبل الجولة: المستجد الذي لم يُفتح مصدره لا يُحجب —
