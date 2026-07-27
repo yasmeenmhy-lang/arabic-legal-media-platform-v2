@@ -1461,7 +1461,10 @@ function toStoredGovernance(gov: ServerGovernance | undefined, notice: string | 
     setReview(null);
     setImprovedTextAI("");
     setImprovedError("");
-    const contentTypeLabel = contentKindLabels[kind];
+    // ★ (بقرار المالكة): المراجعة السريعة بلا إطار — لا تُنسب للنص صفة نوع لم
+    // يخترها المستخدم («منشور توعوي» ونحوه): التسمية والسياق «نص للمراجعة» محايد،
+    // فلا يحاكم القاضي النص بمقتضيات نوعٍ مفترض ولا يظهر في السجل نوع مزعوم.
+    const contentTypeLabel = path === "review" ? "نص للمراجعة" : contentKindLabels[kind];
     const trimmed = text.trim();
 
     // توحيد القرار: النص نفسه حرفياً الذي وُلِّد وحُكم عليه بالامتثال لحظة الإنشاء —
@@ -2572,9 +2575,10 @@ function toStoredGovernance(gov: ServerGovernance | undefined, notice: string | 
   useEffect(() => {
     if (path !== "review") return;
     setFrameStep(FRAME_TOTAL);
+    // سياق محايد حقاً — لا يدّعي نوعاً ولا غرضاً توعوياً لم يختره المستخدم
     setKind((v) => v || "post");
-    setAudience((v) => v || "الجمهور العام");
-    setPurpose((v) => v || "تثقيف الجمهور حول موضوع نظامي");
+    setAudience((v) => v || "عام");
+    setPurpose((v) => v || "مراجعة النص قانونياً");
     setSpecialty((v) => v || "عام — لا يقتصر على تخصص محدد");
   }, [path]);
 
