@@ -236,6 +236,19 @@ export default function ContentReviewPage() {
   const [purpose, setPurpose] = useState("");
   const [review, setReview] = useState<ReviewResult | null>(null);
   const [loading, setLoading] = useState(false);
+  // ★ (بقرار المالكة): عدّاد تقدّم في زر التحليل — يعرف المستخدم كم بقي بدل
+  // انتظار أعمى. تقديري زمنياً كعدّاد الإنشاء: يتصاعد ويتباطأ قرب النهاية
+  // فلا يبلغ ١٠٠٪ إلا باكتمال النتيجة فعلاً (المدة المعتادة نحو ٤٥ ثانية).
+  const [analyzePct, setAnalyzePct] = useState(0);
+  useEffect(() => {
+    if (!loading) { setAnalyzePct(0); return; }
+    const start = Date.now();
+    const id = setInterval(() => {
+      const elapsed = Date.now() - start;
+      setAnalyzePct(Math.min(95, Math.round(95 * (1 - Math.exp(-elapsed / 18_000)))));
+    }, 350);
+    return () => clearInterval(id);
+  }, [loading]);
   const [message, setMessage] = useState("");
   const [contentId, setContentId] = useState<string>();
   const [versionNumber, setVersionNumber] = useState<number>();
@@ -2263,7 +2276,8 @@ export default function ContentReviewPage() {
         ) : null}
         <div className={`mt-4 flex flex-wrap gap-3 ${hasSelectedContent ? "" : "hidden"}`}>
           {/* أزرار العمل تظهر مع المحتوى المختار؛ وبعد ظهور النتائج يصبح زر التحليل «إعادة التحليل» بلا حاجة لدخول وضع التعديل */}
-          <Button size="lg" onClick={() => runReview(false)} disabled={loading || !canAnalyze} leadingIcon={loading ? <DgaSpinner size="sm" tone="violet" /> : <FileText size={17} />}>{loading ? "جار التحليل..." : review || contentId ? "إعادة التحليل" : "تحليل المحتوى"}</Button>
+          {/* عدّاد التقدم داخل الزر أثناء التحليل (بقرار المالكة) */}
+          <Button size="lg" onClick={() => runReview(false)} disabled={loading || !canAnalyze} leadingIcon={loading ? <DgaSpinner size="sm" tone="violet" /> : <FileText size={17} />}>{loading ? `جارٍ التحليل… ${analyzePct}%` : review || contentId ? "إعادة التحليل" : "تحليل المحتوى"}</Button>
           {review && !isEditing ? <Button variant="secondary" onClick={beginEditing} leadingIcon={<Edit3 size={16} />}>تعديل</Button> : null}
           {isEditing && contentId ? <Button variant="secondary" onClick={saveEdits} disabled={loading || text.trim().length < 5} leadingIcon={<Save size={16} />}>حفظ التعديلات</Button> : null}
           {isEditing ? <Button variant="secondary-gray" onClick={cancelEditing} disabled={loading} leadingIcon={<AlertTriangle size={16} />}>إلغاء</Button> : null}
