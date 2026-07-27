@@ -471,8 +471,11 @@ export async function researchClaimsWithExpansion(
   // مبرر التوسيع: أسباب فشل كل ادعاء في الجولة الأولى (بلفظ الباحث أو الخفض الحتمي)
   const failureNotes = unproven1.map((c) => {
     const f = findings.find((x) => x.claimId === c.id);
-    const nonOfficial = f?.status === "مثبت" && f.url && c.scope === "المملكة" && !isSaudiOfficialUrl(f.url);
-    return `[${c.id}] ${nonOfficial ? "عُثر على مصدر غير حكومي فقط — والادعاء يخص المملكة فلا يثبته إلا مصدر حكومي رسمي" : f?.reason ?? "لم يُعثر على نتيجة"}`;
+    // ★ تصحيح التوجيه (بقرار المالكة — «الرسمية بالإثبات»): المصدر الذي لم تثبت
+    // رسميته بعد لا يوصف «غير حكومي» — قد يكون موقع الجهة نفسها؛ والتوجيه الصحيح
+    // لجولة التوسيع: اطلب الأصل الحكومي أو صفحة حكومية تشهد لموقع الجهة.
+    const unattested = f?.status === "مثبت" && f.url && c.scope === "المملكة" && !isSaudiOfficialUrl(f.url);
+    return `[${c.id}] ${unattested ? "عُثر على مصدر لم تثبت رسميته بعد — والادعاء نظامي بنطاق المملكة: ابحث عن أصل المعلومة في موقع حكومي، أو عن صفحة حكومية رسمية تعرّف بالجهة وموقعها الإلكتروني" : f?.reason ?? "لم يُعثر على نتيجة"}`;
   });
   const r2Start = Date.now();
   note(
