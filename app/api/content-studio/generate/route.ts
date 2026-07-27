@@ -493,8 +493,8 @@ ${briefType
       dossier = await openAndExtract(dossier, intent);
 
       // ★ «الرسمية بالإثبات» (بقرار المالكة — جذرياً بلا قوائم): إذا شهدت صفحة
-      // حكومية مفتوحة لنطاق موقع جهة (كموقع هيئة السوق المالية)، تُعاد معايرة
-      // الادعاءات التي حُكمت لمجرد النطاق، ويُفتح أصل الجهة ويُستخرج منه.
+      // حكومية مفتوحة لنطاق موقع أي جهة، تُعاد معايرة الادعاءات التي حُكمت
+      // لمجرد النطاق، ويُفتح موقع الجهة الأصل ويُستخرج منه.
       if (research) dossier = await pursueAttestedOrigins(dossier, intent, research.findings);
       proofList = provenExcerpts(dossier);
 
