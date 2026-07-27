@@ -252,8 +252,10 @@ export async function buildReviewResult(
         unsupportedDetails: article10ViolationsWithProof(text, provenExcerpts(context.sourceDossier)).map((v) => v.split(":")[0].trim()),
       })
     : undefined;
+  // (بقرار المالكة — «ماهذا»): سبب واحد ملخص بالأعداد لا سبب مكرر لكل ادعاء —
+  // التفصيل ادعاءً ادعاءً موضعه خريطة الاستناد، وقرار النشر يقرأ بجملة واحدة
   const completenessReasons = completenessVerdict && !completenessVerdict.ready
-    ? completenessVerdict.reasons.map((r) => `غير جاهز للنشر بسبب اكتمال الإثبات: ${r}`)
+    ? [`غير جاهز للنشر — اكتمال الإثبات: ${describeEvidenceState(completenessVerdict)}`]
     : [];
   const sourceGovernanceReasons = [
     ...buildSourceGovernanceReasons(context.sourceGovernance, unmatchedCitations),

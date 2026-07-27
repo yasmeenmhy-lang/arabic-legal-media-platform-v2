@@ -1,5 +1,6 @@
 "use client";
 
+import { compressToUTF16, decompressFromUTF16 } from "lz-string";
 import type { SourceDossier } from "@/lib/source-dossier";
 import type { ContentKind, ProfessionalOfficialReference, ReviewResult } from "@/lib/types";
 import { adoptLegacyKey, scopedKey } from "@/lib/user-scope";
@@ -240,12 +241,37 @@ export function importContentRecords(payload: unknown): { added: number; updated
   return { added, updated, skipped };
 }
 
+// ★ ضغط التخزين المحلي (بقرار المالكة — سجل الجوال أصغر من اللابتوب لنفس الحساب):
+// ذاكرة سفاري على الجوال ضيقة فكان الملاذ الأخير يسقط السجلات الأقدم محلياً،
+// فيختلف العدد والترقيم بين الأجهزة. النص العربي ينضغط لثلث حجمه أو أقل، فيتسع
+// الجوال للسجل كاملاً وتتطابق الأعداد والأرقام. التوافق محفوظ: القراءة تفهم
+// الصيغتين (المضغوطة بسابقة lz: والقديمة غير المضغوطة).
+const LZ_PREFIX = "lz:";
+function encodeRecordsPayload(records: StoredContentRecord[]): string {
+  const json = JSON.stringify(records);
+  try {
+    return LZ_PREFIX + compressToUTF16(json);
+  } catch {
+    return json;
+  }
+}
+function decodeRecordsPayload(raw: string | null): unknown {
+  if (!raw) return [];
+  if (raw.startsWith(LZ_PREFIX)) {
+    return JSON.parse(decompressFromUTF16(raw.slice(LZ_PREFIX.length)) || "[]");
+  }
+  return JSON.parse(raw);
+}
+function writeRecords(key: string, records: StoredContentRecord[]) {
+  window.localStorage.setItem(key, encodeRecordsPayload(records));
+}
+
 // بقرارها: كل حساب يرى سجلاته فقط — المفتاح معزول باسم الحساب الداخل، مع تبنّي بيانات ما قبل العزل مرة واحدة
 export function loadContentRecords(): StoredContentRecord[] {
   if (typeof window === "undefined") return [];
   try {
     adoptLegacyKey(CONTENT_RECORDS_KEY);
-    return normalizeStoredRecords(JSON.parse(window.localStorage.getItem(scopedKey(CONTENT_RECORDS_KEY)) ?? "[]"));
+    return normalizeStoredRecords(decodeRecordsPayload(window.localStorage.getItem(scopedKey(CONTENT_RECORDS_KEY))));
   } catch {
     return [];
   }
@@ -255,7 +281,7 @@ export function saveContentRecords(records: StoredContentRecord[]) {
   if (typeof window === "undefined") return;
   const key = scopedKey(CONTENT_RECORDS_KEY);
   try {
-    window.localStorage.setItem(key, JSON.stringify(records));
+    writeRecords(key, records);
   } catch {
     // امتلاء حصة تخزين المتصفح — كان الحفظ يفشل هنا بصمت فيضيع التحليل رغم ظهوره
     // على الشاشة. الآن يُخفَّف الحمل تدريجياً (الأقدم أولاً) حتى ينجح الحفظ:
@@ -270,14 +296,14 @@ export function saveContentRecords(records: StoredContentRecord[]) {
           if (version.visuals.length === 0) version.visuals = undefined;
         }
       }
-      try { window.localStorage.setItem(key, JSON.stringify(records)); saved = true; break; } catch { /* واصل التخفيف */ }
+      try { writeRecords(key, records); saved = true; break; } catch { /* واصل التخفيف */ }
     }
     if (!saved) {
       for (const record of oldestFirst) {
         for (const version of record.versions) {
           if (version.analysis?.aiEnhancement) version.analysis = { ...version.analysis, aiEnhancement: undefined };
         }
-        try { window.localStorage.setItem(key, JSON.stringify(records)); saved = true; break; } catch { /* واصل التخفيف */ }
+        try { writeRecords(key, records); saved = true; break; } catch { /* واصل التخفيف */ }
       }
     }
     if (!saved) {
@@ -285,7 +311,7 @@ export function saveContentRecords(records: StoredContentRecord[]) {
       for (const record of records) {
         for (const version of record.versions) version.visuals = undefined;
       }
-      try { window.localStorage.setItem(key, JSON.stringify(records)); saved = true; } catch { /* واصل */ }
+      try { writeRecords(key, records); saved = true; } catch { /* واصل */ }
     }
     // ملاحظة معمارية بأمر مالكة المنصة: تجريد النسخ من أحكامها ممنوع — النسخة بلا
     // حكمها تُفتح لاحقاً فتُعاد للحكم من جديد وحكم النموذج متقلب فيخترع ملاحظات على
@@ -299,9 +325,9 @@ export function saveContentRecords(records: StoredContentRecord[]) {
         newestFirst.pop();
         records.length = 0;
         records.push(...newestFirst);
-        try { window.localStorage.setItem(key, JSON.stringify(records)); saved = true; } catch { /* أسقط واحداً آخر */ }
+        try { writeRecords(key, records); saved = true; } catch { /* أسقط واحداً آخر */ }
       }
-      if (!saved) window.localStorage.setItem(key, JSON.stringify(records)); // إن فشل حتى هذا: خطأ صريح — لا فشل صامت
+      if (!saved) writeRecords(key, records); // إن فشل حتى هذا: خطأ صريح — لا فشل صامت
     }
   }
   window.dispatchEvent(new Event("lawyer-media:records-updated"));

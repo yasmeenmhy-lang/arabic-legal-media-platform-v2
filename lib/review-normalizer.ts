@@ -8,6 +8,7 @@ import {
 import { calculateContentQualityScore } from "@/lib/services/scoring-service";
 import { countAdvisoryLanguageIssues, languageGateReason } from "@/lib/language-gate";
 import { partiesToRiskLevel } from "@/lib/risk-parties";
+import { describeEvidenceState } from "@/lib/source-dossier";
 
 // تطبيع التحليلات المحفوظة وقت العرض: القواعد الحالية تُطبَّق على كل نسخة
 // محفوظة أو مشاركة — قديمة أو جديدة — بدل عرض قرارات محسوبة بقواعد قديمة.
@@ -143,8 +144,9 @@ export function normalizeReviewResult(review: ReviewResult): ReviewResult {
     // الجاهزية» لغير المثبت) — إعادة البناء هنا كانت تسقطها فيخضرّ القرار عند
     // كل فتح. تُعاد الأسباب نفسها من المحفوظ مع النسخة فيثبت الحكم بين الفتحات.
     const completenessVerdict = review.sourceCompleteness?.verdict ?? review.sourceDossier?.completeness;
+    // سبب واحد ملخص بالأعداد (بقرار المالكة) — التفصيل موضعه خريطة الاستناد
     const completenessReasons = completenessVerdict && !completenessVerdict.ready
-      ? completenessVerdict.reasons.map((r) => `غير جاهز للنشر بسبب اكتمال الإثبات: ${r}`)
+      ? [`غير جاهز للنشر — اكتمال الإثبات: ${describeEvidenceState(completenessVerdict)}`]
       : [];
     // أسباب الحوكمة تُشتق من ملف المصادر المحفوظ مع النسخة (المادة ١٠ وحالة الإثبات)
     const dossierGov = review.sourceDossier?.article10?.applied
