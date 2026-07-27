@@ -1450,7 +1450,14 @@ export default function ContentReviewPage() {
                     const v = r.versions.find((x) => x.version === r.currentVersion) ?? r.versions.at(-1);
                     return v?.topic?.trim() || deriveContentTitle(v?.body ?? "") || r.title;
                   };
-                  const matches = savedRecords.filter((r) => !query || prefixMatch(query, titleOf(r)));
+                  // ★ (بقرار المالكة): الترتيب الافتراضي بالأحدث إنشاءً — نفس ترتيب
+                  // السجل، ثابت على كل الأجهزة (createdAt مُزامَن)
+                  const matches = savedRecords
+                    .filter((r) => !query || prefixMatch(query, titleOf(r)))
+                    .sort((a, b) => {
+                      const byCreated = String(b.createdAt ?? "").localeCompare(String(a.createdAt ?? ""));
+                      return byCreated !== 0 ? byCreated : String(b.id).localeCompare(String(a.id));
+                    });
                   return matches.length ? matches.map((r) => (
                     <button
                       key={r.id}
