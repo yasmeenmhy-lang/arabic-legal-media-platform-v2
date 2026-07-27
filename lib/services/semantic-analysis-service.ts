@@ -18,6 +18,7 @@ import {
 import { AUTHORITIES_RULE, KINGDOM_STYLE_RULE, PLATFORM_SUPREME_RULE } from "@/lib/governance";
 import { LEADERSHIP_PRAISE_RULE } from "@/lib/leadership-praise-rule";
 import { MEDIA_LAW_ARTICLE_5 } from "@/lib/media-law-article5";
+import { LEGAL_DRAFTING_LANGUAGE } from "@/lib/legal-drafting-language";
 import {
   arabicSeverity,
   businessSeverityForFinding,
@@ -98,6 +99,8 @@ ${KINGDOM_STYLE_RULE}
 ${LEADERSHIP_PRAISE_RULE}
 
 ${MEDIA_LAW_ARTICLE_5}
+
+${LEGAL_DRAFTING_LANGUAGE}
 
 ## السياق الثابت
 هذه المنصة مخصصة للمحامين المرخصين حصراً. النص الذي سيصلك في رسالة المستخدم كتبه محامٍ ويريد نشره على وسائل التواصل الاجتماعي — سواء كان منشوراً، تغريدة، تعليقاً، رداً، أو إعلاناً.
