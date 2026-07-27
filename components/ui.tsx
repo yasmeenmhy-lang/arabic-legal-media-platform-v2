@@ -261,8 +261,7 @@ export function Panel({
   // القصّ أفقي فقط (overflow-x-clip): يمنع تجاوز المحتوى العريض عرض البطاقة كما كان،
   // ويسمح في الوقت نفسه للقوائم المنسدلة بالظهور كاملةً خارج حدّ البطاقة بدل قصّها
   // (كان overflow-hidden يقصّ قائمة البحث المنسدلة عند حافة البطاقة السفلية).
-  // lm-rise: حركة دخول مضبوطة (مبادئ Apple بقرار المالكة) — تحترم تفضيل تقليل الحركة
-  return <section {...props} className={clsx("lm-rise w-full max-w-full overflow-x-clip rounded-lg border border-line bg-white p-4 shadow-sm sm:p-5", className)}>{children}</section>;
+  return <section {...props} className={clsx("w-full max-w-full overflow-x-clip rounded-lg border border-line bg-white p-4 shadow-sm sm:p-5", className)}>{children}</section>;
 }
 
 export function SectionTitle({ title, subtitle }: { title: string; subtitle?: string }) {

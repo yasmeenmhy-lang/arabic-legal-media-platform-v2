@@ -159,9 +159,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </aside>
 
       <div className="w-full max-w-full overflow-x-hidden">
-        {/* خامة شفافة ضبابية واحدة (مبادئ Apple بقرار المالكة) — طبقة واحدة لا تراكم،
-            مع تراجع آمن لخلفية مصمتة إن لم يدعم المتصفح الضبابية */}
-        <header className="sticky top-0 z-40 border-b border-line bg-white supports-[backdrop-filter]:bg-white/70 supports-[backdrop-filter]:backdrop-blur-xl supports-[backdrop-filter]:backdrop-saturate-150">
+        <header className="sticky top-0 z-40 border-b border-line bg-white/95 backdrop-blur">
           <div className="flex min-h-16 max-w-full items-center justify-between gap-3 px-4 sm:gap-4 sm:px-8">
             <div className="flex min-w-0 items-center gap-3">
               <button
@@ -192,7 +190,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       {pathname !== "/login" && !navOpen ? (
         <nav
           aria-label="التنقّل السريع"
-          className="fixed inset-x-0 bottom-0 z-40 flex items-end justify-around border-t border-line bg-white px-1 pb-1.5 pt-1 supports-[backdrop-filter]:bg-white/70 supports-[backdrop-filter]:backdrop-blur-xl supports-[backdrop-filter]:backdrop-saturate-150 sm:hidden"
+          className="fixed inset-x-0 bottom-0 z-40 flex items-end justify-around border-t border-line bg-white/95 px-1 pb-1.5 pt-1 backdrop-blur sm:hidden"
         >
           <button
             type="button"

@@ -131,17 +131,3 @@ h3 {
 ::selection {
   background: rgba(45, 106, 90, 0.16);
 }
-
-/* ── لمسات التصميم المستوحاة من مبادئ Apple (بقرار المالكة — «خلينا نجربها») ──
-   حركة دخول مضبوطة قصيرة: البطاقة «تنمو من فعل المستخدم» بارتفاع ست نقاط وتلاشٍ
-   خفيف — لا استعراض؛ وتُعطَّل كلياً لمن فضّل تقليل الحركة في نظامه. */
-@keyframes lm-rise {
-  from { opacity: 0; transform: translateY(6px); }
-  to { opacity: 1; transform: none; }
-}
-.lm-rise {
-  animation: lm-rise 280ms cubic-bezier(0.22, 1, 0.36, 1) both;
-}
-@media (prefers-reduced-motion: reduce) {
-  .lm-rise { animation: none; }
-}
