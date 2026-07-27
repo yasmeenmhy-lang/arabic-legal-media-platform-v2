@@ -236,17 +236,18 @@ export default function ContentReviewPage() {
   const [purpose, setPurpose] = useState("");
   const [review, setReview] = useState<ReviewResult | null>(null);
   const [loading, setLoading] = useState(false);
-  // ★ (بقرار المالكة): عدّاد تقدّم في زر التحليل — يعرف المستخدم كم بقي بدل
-  // انتظار أعمى. تقديري زمنياً كعدّاد الإنشاء: يتصاعد ويتباطأ قرب النهاية
-  // فلا يبلغ ١٠٠٪ إلا باكتمال النتيجة فعلاً (المدة المعتادة نحو ٤٥ ثانية).
+  // ★ (بقرار المالكة): عدّاد طبيعي من ١ إلى ١٠٠ بخطى منتظمة — لا تسارع ولا تباطؤ.
+  // يمشي على المدة المعتادة للتحليل (نحو ٤٥ ثانية)؛ فإن طال التحليل عنها انتظر
+  // عند ٩٩٪ حتى تصل النتيجة فعلاً، ثم يُكمل ١٠٠٪ (لا يقفز للمئة قبل الاكتمال).
+  const ANALYZE_EST_MS = 45_000;
   const [analyzePct, setAnalyzePct] = useState(0);
   useEffect(() => {
     if (!loading) { setAnalyzePct(0); return; }
     const start = Date.now();
     const id = setInterval(() => {
       const elapsed = Date.now() - start;
-      setAnalyzePct(Math.min(95, Math.round(95 * (1 - Math.exp(-elapsed / 18_000)))));
-    }, 350);
+      setAnalyzePct(Math.min(99, Math.max(1, Math.round((elapsed / ANALYZE_EST_MS) * 100))));
+    }, 300);
     return () => clearInterval(id);
   }, [loading]);
   const [message, setMessage] = useState("");
