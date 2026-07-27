@@ -533,10 +533,12 @@ export default function ContentManagementPage() {
                 {snapshot.byType.map(([label, count], i) => {
                   const c = CALM[i % CALM.length];
                   return (
-                    <div key={label} className="flex grow basis-[calc(50%-0.25rem)] items-center justify-between gap-1.5 rounded-xl border border-line bg-paper px-3 py-2.5 sm:basis-[calc(33.333%-0.5rem)] lg:basis-0">
-                      <div className="flex min-w-0 items-baseline gap-1.5">
-                        <span className="truncate text-xs font-medium text-ink/70">{label}</span>
-                        <span className={`text-base font-bold tabular-nums ${c.fg}`}>{count}</span>
+                    // (بقرار المالكة): سطر واحد دائماً — العدد لا ينزل تحت الاسم مهما
+                    // ضاقت البطاقة: منع الالتفاف، والعدد لا ينكمش، وحد أدنى لعرض البطاقة
+                    <div key={label} className="flex grow basis-[calc(50%-0.25rem)] items-center justify-between gap-1.5 rounded-xl border border-line bg-paper px-3 py-2.5 sm:basis-[calc(33.333%-0.5rem)] lg:min-w-[8.5rem] lg:basis-0">
+                      <div className="flex min-w-0 flex-nowrap items-baseline gap-1.5">
+                        <span className="truncate whitespace-nowrap text-xs font-medium text-ink/70">{label}</span>
+                        <span className={`shrink-0 whitespace-nowrap text-base font-bold tabular-nums ${c.fg}`}>{count}</span>
                       </div>
                       <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-lg ${c.bg} ${c.fg}`}>{typeIcon(label)}</span>
                     </div>
