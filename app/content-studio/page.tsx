@@ -2594,7 +2594,8 @@ function toStoredGovernance(gov: ServerGovernance | undefined, notice: string | 
       <PageHeader
         eyebrow="مركز المحتوى الإعلامي والإعلاني"
         title={path === "review" ? "مراجعة المحتوى المهني" : path === "create" ? "إنشاء المحتوى المهني" : "إنشاء ومراجعة المحتوى المهني"}
-        illustration={path ? undefined : <p className="text-center text-xl font-semibold leading-9 text-palm">مرحباً بك</p>}
+        // (بقرار المالكة): «مرحباً بك» بعرضها الطبيعي فقط — كانت تحجز عرضاً ثابتاً يزاحم العنوان فينكسر سطرين
+        illustration={path ? undefined : <p className="whitespace-nowrap text-center text-xl font-semibold leading-9 text-palm">مرحباً بك</p>}
         action={path ? <Button variant="secondary-gray" onClick={goBackOneStage} leadingIcon={<ArrowRight size={16} />}>رجوع</Button> : undefined}
       />
 
