@@ -2,6 +2,7 @@ import { z } from "zod";
 import { NextResponse } from "next/server";
 import { badRequest, ok } from "@/lib/api";
 import { AI_CONSTITUTION } from "@/lib/governance";
+import { LEADERSHIP_PRAISE_PIPELINE_NOTE } from "@/lib/leadership-praise-rule";
 import { runSemanticAnalysis } from "@/lib/services/semantic-analysis-service";
 import { evaluateContent } from "@/lib/services/content-evaluation-service";
 import { describeProviderError } from "@/lib/ai-provider-errors";
@@ -305,6 +306,9 @@ async function runReformulation(data: z.infer<typeof schema>, apiKey: string): P
   // يُصاغ نص ثم يُحاكَم بما لم يره.
   const systemPrompt = [
     AI_CONSTITUTION,
+    "",
+    LEADERSHIP_PRAISE_PIPELINE_NOTE,
+    "وعليه في إعادة صياغتك: الثناء أو الإشادة بالقيادة الواردان في النص يبقيان بمعناهما ولقبهما — لا يُحذفان بوصفهما ادعاءً بلا إثبات أو حشواً، ولا يُشترط لهما مصدر، ولا يُعاد صوغ لقب التوقير ولا يُستبدل به الاسم الرسمي.",
     "",
     "## نقطة الانطلاق — المتن الرسمي المعتمد: اقرأه أولاً وأعد الصياغة من داخله",
     "هذا هو النص الحرفي الكامل لقواعد السلوك المهني للمحامين (٤٧ قاعدة) واللائحة التنفيذية لنظام المحاماة (٩٠ مادة). وهو المتن نفسه الذي تُحاكَم به صياغتك بعد كتابتها، فأعد الصياغة وأنت تراه:",

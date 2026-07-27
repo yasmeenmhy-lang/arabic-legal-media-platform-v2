@@ -19,6 +19,7 @@ import { recordUsage } from "@/lib/cost-meter";
 import { normalizeClaim } from "@/lib/services/article10-enforcer";
 import type { IntentRepresentation, IntentClaim, ClaimFinding, SourceDossier, ResearchTraceEntry, OfficialDocKind, ExtractedEvidence, DossierClaim, DossierSource } from "@/lib/source-dossier";
 import { buildDossier } from "@/lib/source-dossier";
+import { LEADERSHIP_PRAISE_PIPELINE_NOTE } from "@/lib/leadership-praise-rule";
 
 export type ResearchResult = {
   // ملخص عربي للوقائع المتحقق منها، كل واقعة منسوبة لجهتها ورابطها — يُحقن في مطالبة الكاتب
@@ -1065,6 +1066,9 @@ function buildVerificationInstruction(context: { text: string; specialty?: strin
 تحكم تدقيقَك وثيقة حوكمة المصادر التالية حرفياً — وأخصّها للتدقيق: ما تعلق بالمملكة العربية السعودية لا يُثبَت إلا من جهة حكومية مختصة فيها، والأصل يُقدَّم على الناقل، والمصادر المحظورة في المادة (٨) والقواعد المانعة لا يُعتد بها:
 
 ${SOURCE_GOVERNANCE}
+
+${LEADERSHIP_PRAISE_PIPELINE_NOTE}
+وعليه في تدقيقك: عبارة الثناء أو الإشادة بالقيادة ليست «واقعة منسوبة» تُدقق ولا تُعلَّم «تعذّر التحقّق» — تجاوزها بلا بند. ودقق الواقعة المحددة القابلة للإثبات المنسوبة للقيادة كسائر الوقائع.
 
 —
 

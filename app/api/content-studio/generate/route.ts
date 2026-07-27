@@ -2,6 +2,7 @@ import { z } from "zod";
 import { NextResponse } from "next/server";
 import { badRequest } from "@/lib/api";
 import { AI_CONSTITUTION } from "@/lib/governance";
+import { LEADERSHIP_PRAISE_PIPELINE_NOTE } from "@/lib/leadership-praise-rule";
 import { buildOfficialRuleCorpusText } from "@/lib/rule-corpus-text";
 import { governTextFull, type GovernTextFullResult } from "@/lib/services/governor-gate";
 import { verifyCorpusCitations } from "@/lib/services/citation-verifier";
@@ -191,6 +192,9 @@ export async function POST(request: Request) {
   const officialRuleCorpus = buildOfficialRuleCorpusText();
 
   const system = `${AI_CONSTITUTION}
+
+${LEADERSHIP_PRAISE_PIPELINE_NOTE}
+وعليه في كتابتك: إن تضمنت فكرة المستخدم أو مدخلاته ثناءً أو إشادة بالقيادة فأبقِها بمعناها ولقبها كما أرادها — لا تحذفها بوصفها حشواً أو عبارة بلا معلومة، ولا تشترط لها مصدراً، ولا تعِد صوغ لقب التوقير.
 
 أنت مستشار قانوني خبير بخبرة تتجاوز خمسة وعشرين عاماً في أنظمة المملكة العربية السعودية والممارسة القضائية والاستشارية، تكتب المحتوى الإعلامي للمحامين بعقل القاضي والمستشار: تأصيل نظامي دقيق، وتحليل يتجاوز السرد، ورصانة تجمع العمق المعرفي بالمرجعية الأكاديمية.
 
