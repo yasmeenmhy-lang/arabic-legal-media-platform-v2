@@ -17,7 +17,7 @@
 import { SOURCE_GOVERNANCE } from "@/lib/source-governance";
 import { recordUsage } from "@/lib/cost-meter";
 import { normalizeClaim } from "@/lib/services/article10-enforcer";
-import type { IntentRepresentation, ClaimFinding, SourceDossier, ResearchTraceEntry, OfficialDocKind, ExtractedEvidence, DossierClaim } from "@/lib/source-dossier";
+import type { IntentRepresentation, ClaimFinding, SourceDossier, ResearchTraceEntry, OfficialDocKind, ExtractedEvidence, DossierClaim, DossierSource } from "@/lib/source-dossier";
 
 export type ResearchResult = {
   // ملخص عربي للوقائع المتحقق منها، كل واقعة منسوبة لجهتها ورابطها — يُحقن في مطالبة الكاتب
@@ -336,38 +336,53 @@ async function researchClaimsRound(
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) return null;
   const calledAt = Date.now();
-  const controller = new AbortController();
-  const abortTimer = setTimeout(() => controller.abort(), timeoutMs ?? 90_000);
-  try {
-    const response = await fetch(
-      `${process.env.ANTHROPIC_BASE_URL ?? "https://api.anthropic.com"}/v1/messages`,
-      {
-        method: "POST",
-        signal: controller.signal,
-        headers: { "x-api-key": apiKey, "anthropic-version": "2023-06-01", "content-type": "application/json" },
-        body: JSON.stringify({
-          model: "claude-sonnet-5",
-          max_tokens: 2048,
-          thinking: { type: "disabled" },
-          tools: [{ type: "web_search_20260209", name: "web_search", max_uses: 3 }],
-          messages: [{ role: "user", content: instruction }],
-        }),
+  const budget = timeoutMs ?? 90_000;
+  // ★ معالجة جذرية: توقف أداة البحث المؤقت في منتصف عملها ليس «لا نتيجة» —
+  // يُتابَع الرد نفسه حتى يكتمل فعلاً (كان التوقف المؤقت يُحسب فراغاً فيخرج
+  // «تعذر تنفيذ البحث» بلا سبب حقيقي)
+  const messages: { role: "user" | "assistant"; content: unknown }[] = [{ role: "user", content: instruction }];
+  const collected: unknown[] = [];
+  for (let round = 0; round < 4; round++) {
+    const remaining = budget - (Date.now() - calledAt);
+    if (remaining < 5_000) break;
+    const controller = new AbortController();
+    const abortTimer = setTimeout(() => controller.abort(), remaining);
+    try {
+      const response = await fetch(
+        `${process.env.ANTHROPIC_BASE_URL ?? "https://api.anthropic.com"}/v1/messages`,
+        {
+          method: "POST",
+          signal: controller.signal,
+          headers: { "x-api-key": apiKey, "anthropic-version": "2023-06-01", "content-type": "application/json" },
+          body: JSON.stringify({
+            model: "claude-sonnet-5",
+            max_tokens: 2048,
+            thinking: { type: "disabled" },
+            tools: [{ type: "web_search_20260209", name: "web_search", max_uses: 3 }],
+            messages,
+          }),
+        }
+      );
+      if (!response.ok) return null;
+      const payload = (await response.json()) as { content?: unknown[]; usage?: unknown; stop_reason?: string };
+      recordUsage(payload.usage, { stage, model: "claude-sonnet-5", durationMs: Date.now() - calledAt });
+      collected.push(...(payload.content ?? []));
+      if (payload.stop_reason === "pause_turn") {
+        messages.push({ role: "assistant", content: payload.content ?? [] });
+        continue;
       }
-    );
-    if (!response.ok) return null;
-    const payload = (await response.json()) as { content?: unknown[]; usage?: unknown };
-    recordUsage(payload.usage, { stage, model: "claude-sonnet-5", durationMs: Date.now() - calledAt });
-    const content = payload.content ?? [];
-    const raw = extractSources(content);
-    const briefing = extractText(content);
-    if (!briefing) return null;
-    const urls = new Set(raw.map((s) => s.url));
-    return { briefing, findings: parseClaimFindings(briefing, urls), rawUrls: [...urls] };
-  } catch {
-    return null;
-  } finally {
-    clearTimeout(abortTimer);
+      break;
+    } catch {
+      return null;
+    } finally {
+      clearTimeout(abortTimer);
+    }
   }
+  const raw = extractSources(collected);
+  const briefing = extractText(collected);
+  if (!briefing) return null;
+  const urls = new Set(raw.map((s) => s.url));
+  return { briefing, findings: parseClaimFindings(briefing, urls), rawUrls: [...urls] };
 }
 
 export async function researchClaims(intent: IntentRepresentation, timeoutMs?: number): Promise<ClaimResearchResult | null> {
@@ -630,20 +645,19 @@ export async function openAndExtract(
   const startedAt = Date.now();
   if (!apiKey) return failAllOpen(dossier, provenClaims, "خدمة الذكاء غير مهيأة لنداء الفتح", startedAt);
 
-  const sourceLines = targetSources
-    .map((s) => {
-      const linked = provenClaims.filter((c) => c.sourceId === s.id);
-      return `[${s.id}] ${s.url}\n  الادعاءات المسندة إليه:\n${linked.map((c) => `  - [${c.id}] ${c.text}`).join("\n")}`;
-    })
-    .join("\n");
-  const instruction = `أنت محرك استخراج في منصة محتوى قانوني لمحامٍ مرخَّص في المملكة العربية السعودية. افتح كل صفحة من الصفحات التالية فعلياً بأداة web_fetch، ثم صنّفها واستخرج منها — ولا تحكم من الذاكرة أو من العنوان أبداً.
+  // ★ معالجة جذرية (بقرار المالكة — «زيادة الوقت ليست معالجة»): كل مصدر يُفتح
+  // في نداء مستقل — فشل صفحة لا يُسقط أخواتها، وحمولة كل نداء صغيرة فيكتمل
+  // بطبيعته. والتوقف المؤقت لأداة الجلب يُتابَع حتى الاكتمال لا يُحكم به فراغاً.
+  const perSourceInstruction = (s: DossierSource, linked: DossierClaim[]) => `أنت محرك استخراج في منصة محتوى قانوني لمحامٍ مرخَّص في المملكة العربية السعودية. افتح الصفحة التالية فعلياً بأداة web_fetch، ثم صنّفها واستخرج منها — ولا تحكم من الذاكرة أو من العنوان أبداً.
 
 فكرة المستخدم (ميزان الصلة): ${intent.mainTopic}${intent.subTopics.length ? ` — ${intent.subTopics.join("، ")}` : ""}
 
-الصفحات وادعاءاتها:
-${sourceLines}
+الصفحة وادعاءاتها:
+[${s.id}] ${s.url}
+  الادعاءات المسندة إليه:
+${linked.map((c) => `  - [${c.id}] ${c.text}`).join("\n")}
 
-مهمتك لكل صفحة فُتحت:
+مهمتك للصفحة إذا فُتحت:
 ١) صنّف الوثيقة من محتواها على أحد الأنواع الثمانية حصراً: نظام أو لائحة / أمر أو مرسوم أو قرار / إعلان أو خبر حكومي / دليل إرشادي / صفحة تعريفية / إحصاء أو بيان رسمي / دراسة أو بحث علمي / مقالة أو تقرير صحفي.
 ٢) استخرج الأدلة ذات الصلة المباشرة بفكرة المستخدم وادعاءاتها فقط — لا كل محتوى الوثيقة. المحدِّد بحسب النوع: للنظام رقم المادة متى كان منشوراً؛ للقرار رقمه وتاريخه؛ للإعلان الجهة والتاريخ؛ للدليل القسم أو الصفحة؛ للصفحة التعريفية بيانها فقط؛ للإحصاء الرقم والفترة؛ **للدراسة: الجهة الناشرة أو الباحث وعنوان الدراسة وسنة النشر (ونطاق العينة متى نُشر)؛ وللمقالة الصحفية: الناشر والكاتب والتاريخ**. نتيجة الدراسة والمقالة تُستخرج بطبيعتها («نتيجة دراسة» / «مقالة صحفية») ولا تُقدَّم أبداً كأنها حكم نظامي. **ممنوع اختلاق رقم مادة إذا كانت الوثيقة ليست نظاماً ذا مواد** — اترك المحدد بما هو منشور فعلاً.
 ٣) صنّف صلة كل دليل: «جوهري» إن كان غيابه يخل بفكرة المستخدم، أو «مساند» إن كان صحيحاً ذا صلة لكنه غير لازم لها.
@@ -653,41 +667,95 @@ ${sourceLines}
 [s1] النوع: نظام أو لائحة — سبب الاعتماد: (الاختصاص/الأصل/الحداثة بإيجاز)
 [e1] عبر s1 — المحدد: المادة (٧٤) — «النص الحرفي كما ورد» — الطبيعة: نص نظامي — الصلة: جوهري — يدعم: c1 — التاريخ: (إن نُشر، وإلا اتركه)
 [c1] الصفحة لا تدعم هذا الادعاء — السبب الفعلي
-[s1] تعذّر الفتح
+[${s.id}] تعذّر الفتح
 لا تكتب شيئاً غير هذه الأسطر.`;
 
-  const controller = new AbortController();
-  const abortTimer = setTimeout(() => controller.abort(), timeoutMs);
-  try {
-    const response = await fetch(
-      `${process.env.ANTHROPIC_BASE_URL ?? "https://api.anthropic.com"}/v1/messages`,
-      {
-        method: "POST",
-        signal: controller.signal,
-        headers: { "x-api-key": apiKey, "anthropic-version": "2023-06-01", "content-type": "application/json" },
-        body: JSON.stringify({
-          model: "claude-sonnet-5",
-          max_tokens: 3000,
-          thinking: { type: "disabled" },
-          tools: [{ type: "web_fetch_20260209", name: "web_fetch", max_uses: targetSources.length }],
-          messages: [{ role: "user", content: instruction }],
-        }),
-      }
-    );
-    if (!response.ok) {
-      return failAllOpen(dossier, provenClaims, `تعذر نداء الفتح (رمز ${response.status})`, startedAt);
+  const reports: string[] = [];
+  const allPages: { url?: string; text: string }[] = [];
+  for (const src of targetSources) {
+    const linked = provenClaims.filter((c) => c.sourceId === src.id);
+    const one = await callOpenOnce(apiKey, perSourceInstruction(src, linked), timeoutMs);
+    if (one) {
+      reports.push(one.report);
+      allPages.push(...one.pages);
+    } else {
+      // فشل نداء هذه الصفحة وحده — يُدوَّن تعذر فتحها ولا يُسقط بقية الصفحات
+      reports.push(`[${src.id}] تعذّر الفتح`);
     }
-    const payload = (await response.json()) as { content?: unknown[]; usage?: unknown };
-    recordUsage(payload.usage, { stage: "فتح المصادر والاستخراج", model: "claude-sonnet-5", durationMs: Date.now() - startedAt });
-    const content = payload.content ?? [];
-    const report = extractText(content);
-    const pages = extractFetchedTexts(content);
-    return applyOpenExtract(dossier, report, pages, targetSources.map((s) => s.id), Date.now() - startedAt);
-  } catch (error) {
-    const reason = error instanceof Error && error.name === "AbortError" ? "انقضت مهلة فتح صفحة المصدر" : "انقطع الاتصال أثناء فتح صفحة المصدر";
-    return failAllOpen(dossier, provenClaims, reason, startedAt);
-  } finally {
-    clearTimeout(abortTimer);
+  }
+  return applyOpenExtract(dossier, reports.join("\n"), allPages, targetSources.map((s) => s.id), Date.now() - startedAt);
+}
+
+// نداء فتح صفحة واحدة — مع متابعة «التوقف المؤقت» لأداة الجلب حتى الاكتمال
+// (التوقف المؤقت ليس فراغاً)، وسقفٍ لمحتوى الصفحة المجلوب يتراجع تلقائياً إن لم
+// تدعمه البيئة. يعيد التقرير النصي ونصوص الصفحات المجلوبة، أو null عند الفشل.
+let maxContentTokensSupported = true;
+async function callOpenOnce(
+  apiKey: string,
+  instruction: string,
+  timeoutMs: number
+): Promise<{ report: string; pages: { url?: string; text: string }[] } | null> {
+  const startedAt = Date.now();
+  const messages: { role: "user" | "assistant"; content: unknown }[] = [{ role: "user", content: instruction }];
+  const collected: unknown[] = [];
+  for (let round = 0; round < 4; round++) {
+    const remaining = timeoutMs - (Date.now() - startedAt);
+    if (remaining < 5_000) break;
+    const controller = new AbortController();
+    const abortTimer = setTimeout(() => controller.abort(), remaining);
+    try {
+      const fetchTool: Record<string, unknown> = { type: "web_fetch_20260209", name: "web_fetch", max_uses: 1 };
+      // سقف محتوى الصفحة — معالجة جذرية لصفحات اللوائح الضخمة؛ يتراجع مرة واحدة
+      // إن رفضته البيئة (لا يعطل الفتح أبداً)
+      if (maxContentTokensSupported) fetchTool.max_content_tokens = 60_000;
+      const response = await fetch(
+        `${process.env.ANTHROPIC_BASE_URL ?? "https://api.anthropic.com"}/v1/messages`,
+        {
+          method: "POST",
+          signal: controller.signal,
+          headers: { "x-api-key": apiKey, "anthropic-version": "2023-06-01", "content-type": "application/json" },
+          body: JSON.stringify({
+            model: "claude-sonnet-5",
+            max_tokens: 2000,
+            thinking: { type: "disabled" },
+            tools: [fetchTool],
+            messages,
+          }),
+        }
+      );
+      if (!response.ok) {
+        if (response.status === 400 && maxContentTokensSupported) {
+          // البيئة لا تدعم سقف المحتوى — تراجع دائم داخل هذه العملية وأعد النداء
+          maxContentTokensSupported = false;
+          continue;
+        }
+        return null;
+      }
+      const payload = (await response.json()) as { content?: unknown[]; usage?: unknown; stop_reason?: string };
+      recordUsage(payload.usage, { stage: "فتح المصادر والاستخراج", model: "claude-sonnet-5", durationMs: Date.now() - startedAt });
+      collected.push(...(payload.content ?? []));
+      if (payload.stop_reason === "pause_turn") {
+        // أداة الجلب توقفت مؤقتاً في منتصف عملها — نتابع الرد نفسه حتى يكتمل
+        messages.push({ role: "assistant", content: payload.content ?? [] });
+        continue;
+      }
+      return { report: extractText(collected), pages: extractFetchedTexts(collected) };
+    } catch {
+      return null;
+    } finally {
+      clearTimeout(abortTimer);
+    }
+  }
+  // اكتمل جزئياً عبر جولات المتابعة دون ختام — ما جُمع خير من الفراغ
+  return collected.length ? { report: extractText(collected), pages: extractFetchedTexts(collected) } : null;
+}
+
+// مضيف الرابط — للتحقق الحتمي من «الرسمية بالإثبات»
+export function hostOf(url: string): string {
+  try {
+    return new URL(url).hostname.toLowerCase().replace(/^www\./, "");
+  } catch {
+    return "";
   }
 }
 
@@ -810,19 +878,44 @@ export function applyOpenExtract(
     };
   });
 
+  // ★ «الرسمية بالإثبات» (بقرار المالكة — جذرياً بلا قوائم): صفحة حكومية
+  // (gov.sa) مفتوحة فعلاً وورد في نصها المجلوب نطاق موقع سعودي آخر حرفياً ⇒
+  // ذلك النطاق مُثبَت الرسمية (الصفحة الحكومية تشهد له)، فيجوز فتح أصل الجهة
+  // (كموقع هيئة السوق المالية) بدل الاكتفاء بصفحات الدليل.
+  const attested = new Set(dossier.attestedOfficialDomains ?? []);
+  for (const page of pages) {
+    const pageHost = page.url ? hostOf(page.url) : "";
+    if (!pageHost || !(pageHost === "gov.sa" || pageHost.endsWith(".gov.sa"))) continue;
+    for (const m of page.text.matchAll(/\b(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+sa\b/gi)) {
+      const host = m[0].toLowerCase().replace(/^www\./, "");
+      if (host === "gov.sa" || host.endsWith(".gov.sa") || host === pageHost) continue;
+      attested.add(host);
+    }
+  }
+
   const targetClaimIds = dossier.claims.filter((c) => c.sourceId && targetSourceIds.includes(c.sourceId)).map((c) => c.id);
   const outcomeParts = [
     `أدلة مستخرجة: ${evidence.length} (${evidence.filter((e) => e.relevance === "جوهري").length} جوهري)`,
     unsupported.size ? `لا تدعم: ${[...unsupported.keys()].join("، ")}` : "",
     failedSources.size ? `تعذر الفتح تقنياً (بقي الإسناد بالتقرير): ${[...failedSources].join("، ")}` : "",
     noVerdict.length ? `بلا حكم (بقي مسنداً بالتقرير): ${noVerdict.join("، ")}` : "",
+    attested.size > (dossier.attestedOfficialDomains?.length ?? 0)
+      ? `أثبتت صفحة حكومية رسميةَ نطاقات: ${[...attested].filter((h) => !(dossier.attestedOfficialDomains ?? []).includes(h)).join("، ")}`
+      : "",
     droppedEvidence.length ? droppedEvidence.join(" | ") : "",
   ].filter(Boolean).join(" | ");
   const trace: ResearchTraceEntry[] = [
     ...(dossier.researchTrace ?? []),
     { stage: "استخراج النصوص أو الأحكام أو الوقائع", reason: "فتح الصفحات فعلياً وتصنيف الوثائق والاستخراج بحسب النوع — الفتح شرط الإثبات", claimIds: targetClaimIds, outcome: outcomeParts || "لا مخرجات", at: new Date().toISOString(), durationMs },
   ];
-  return { ...dossier, claims, sources, evidence: [...(dossier.evidence ?? []), ...evidence], researchTrace: trace };
+  return {
+    ...dossier,
+    claims,
+    sources,
+    evidence: [...(dossier.evidence ?? []), ...evidence],
+    researchTrace: trace,
+    attestedOfficialDomains: attested.size ? [...attested] : dossier.attestedOfficialDomains,
+  };
 }
 
 // موجّه تدقيق الإحالات لمسار المراجعة — تحقّق فعلي من صحة ما في النص القائم، لا كتابة.

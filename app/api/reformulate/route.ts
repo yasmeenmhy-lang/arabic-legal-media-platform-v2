@@ -5,7 +5,7 @@ import { AI_CONSTITUTION } from "@/lib/governance";
 import { runSemanticAnalysis } from "@/lib/services/semantic-analysis-service";
 import { evaluateContent } from "@/lib/services/content-evaluation-service";
 import { describeProviderError } from "@/lib/ai-provider-errors";
-import { researchClaimsWithExpansion, openAndExtract, nameFailedStage, PIPELINE_STAGES } from "@/lib/services/web-research-service";
+import { researchClaimsWithExpansion, openAndExtract, nameFailedStage, hostOf, PIPELINE_STAGES } from "@/lib/services/web-research-service";
 import { isSaudiOfficialUrl } from "@/lib/services/web-research-service";
 import { analyzeIntent } from "@/lib/services/intent-analysis-service";
 import { buildDossier, provenExcerpts, markUsedSources, computeCompleteness, archivePreviousDossier, type SourceDossier } from "@/lib/source-dossier";
@@ -187,6 +187,30 @@ async function runReformulation(data: z.infer<typeof schema>, apiKey: string): P
       if (research?.trace?.length) activeDossier = { ...activeDossier, researchTrace: research.trace };
       // الفتح شرط الإثبات (بقرار المالكة): فتح الصفحات فعلياً والاستخراج بنوع الوثيقة
       activeDossier = await openAndExtract(activeDossier, intent);
+      // ★ الرسمية بالإثبات: إن شهدت صفحة حكومية مفتوحة لنطاق موقع الجهة، يُعاد
+      // بناء الملف بالمعيار الموسّع (الحكومي أو المُثبت رسميةً) ويُفتح من جديد —
+      // يُقدَّم موقع الجهة الأصل على الصفحة الناقلة، بلا أي قائمة يدوية.
+      const attestedHosts = new Set(activeDossier.attestedOfficialDomains ?? []);
+      if (attestedHosts.size > 0 && research) {
+        const recoverable = activeDossier.claims.some((c) => {
+          if (c.status !== "محكوم بالمادة ١٠") return false;
+          const f = research.findings.find((x) => x.claimId === c.id && x.status === "مثبت" && x.url);
+          return Boolean(f?.url && attestedHosts.has(hostOf(f.url)));
+        });
+        if (recoverable) {
+          const prevTrace = activeDossier.researchTrace ?? [];
+          activeDossier = buildDossier(intent, research.findings, (u) => isSaudiOfficialUrl(u) || attestedHosts.has(hostOf(u)));
+          activeDossier = {
+            ...activeDossier,
+            attestedOfficialDomains: [...attestedHosts],
+            researchTrace: [
+              ...prevTrace,
+              { stage: "اختيار المصدر", reason: "الرسمية بالإثبات: صفحة حكومية مفتوحة شهدت حرفياً لنطاق موقع الجهة — يُقدَّم الأصل على الناقل", claimIds: [], outcome: `نطاقات مثبتة الرسمية: ${[...attestedHosts].join("، ")}`, at: new Date().toISOString() },
+            ],
+          };
+          activeDossier = await openAndExtract(activeDossier, intent);
+        }
+      }
       if (refreshSources) {
         activeDossier = { ...activeDossier, refreshedAt: new Date().toISOString() };
         // ★ (بقرار المالكة): فشل الشبكة يمس التحقق الحالي فقط ولا يمحو المعرفة —
@@ -245,7 +269,11 @@ async function runReformulation(data: z.infer<typeof schema>, apiKey: string): P
     // توضح الحال (والتقني مبين بصفته لا كغياب مصدر)، والجاهزية تُمنع حتى المعالجة.
     if (unproven.length > 0) {
       const technicalFailure = unproven.find((c) => c.failure?.technical);
-      sourceNote = technicalFailure
+      // ★ صيغة الحالة المختلطة: إن ثبت بعضٌ وتعذر بعضٌ فالملاحظة تصف الواقع بدقة —
+      // لا تصريح «لا مصدر» يكذّب المصادر المعروضة، ولا سكوت يوحي بإثبات الكل.
+      sourceNote = proven.length > 0
+        ? "استُند في بعض معلومات هذا المحتوى إلى المصادر الرسمية المبينة، وما لم يتوافر له مصدر متحقق منه لم يُذكر جزماً."
+        : technicalFailure
         ? "ملاحظة: تعذر تقنياً الوصول إلى المصدر الرسمي أثناء إعداد هذه الصياغة، فلم تُدرج أي تفاصيل نظامية — المصدر قد يكون موجوداً ولم يُتحقق منه في هذه اللحظة. يمكنك إعادة المحاولة أو طلب تحديث المصادر."
         : ARTICLE_10_DECLARATION;
       const failedStage = unproven[0].failure
