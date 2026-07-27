@@ -5,7 +5,7 @@ import { BookMarked, ChevronDown, FileText, Image as ImageIcon } from "lucide-re
 import { Button, ButtonLink, Panel, StatusBadge } from "@/components/ui";
 import { PreviewToggleButton, ReadingPreview } from "@/components/text-preview";
 import { QUOTE_INTEGRITY_NOTICE } from "@/lib/quote-notice";
-import { riskDisplayLabel, type ReviewResult } from "@/lib/types";
+import { riskDisplayLabel, hasNoRisks, type ReviewResult } from "@/lib/types";
 
 type VisualPreview = { imageUrl?: string; svg?: string; label: string };
 type Props = {
@@ -41,12 +41,16 @@ const chipText: Record<Tone, string> = {
   neutral: "text-slate-600",
 };
 
-function riskTone(review: ReviewResult): Tone {
-  if (review.analysisMode === "pattern-only" || review.evaluationIncomplete) return "neutral";
+// سلم المالكة: مرتفع أحمر، متوسط برتقالي، منخفض أصفر فاتح، ولا مخاطر أخضر
+// بلفظه «لا يوجد مخاطر» — المعيار العددي نفسه في كل الشاشات (hasNoRisks)
+function riskChip(review: ReviewResult): { value: string; tone: Tone } {
+  if (review.analysisMode === "pattern-only" || review.evaluationIncomplete) return { value: "—", tone: "neutral" };
+  const parties = review.riskScoreExplanation?.affectedParties ?? [];
+  if (hasNoRisks(review.riskLevel, parties.length, review.findings.length)) return { value: "لا يوجد مخاطر", tone: "good" };
   const label = riskDisplayLabel(review.riskLevel);
-  if (["بالغ", "حرج", "مرتفع"].includes(label)) return "danger";
-  if (label === "متوسط") return "gold";
-  return "good";
+  if (label === "مرتفع") return { value: label, tone: "danger" };
+  if (label === "متوسط") return { value: label, tone: "warning" };
+  return { value: label, tone: "gold" };
 }
 
 export function StudioResultsDashboard({ review, text, visuals = [], onEdit, onSaveDraft, onPublish, actionMessage, detailedAnalysisAvailable = true }: Props) {
@@ -72,7 +76,7 @@ export function StudioResultsDashboard({ review, text, visuals = [], onEdit, onS
   // رقائق مصغّرة (بلا «توصية النشر» — هي العنوان) — نظرة سريعة لا شاشة كاملة
   const summaryChips: Array<{ label: string; value: string; tone: Tone }> = [
     { label: "الامتثال", value: unavailable ? "—" : review.findings.length === 0 ? "ملتزم" : "غير ملتزم", tone: complianceTone },
-    { label: "المخاطر", value: unavailable ? "—" : riskDisplayLabel(review.riskLevel), tone: riskTone(review) },
+    { label: "المخاطر", ...(() => { const r = riskChip(review); return { value: r.value, tone: r.tone }; })() },
     { label: "الجوانب المهنية", value: unavailable ? "—" : review.professionalismScore >= 80 ? "مستوفٍ" : "يتطلب تحسيناً", tone: professionalTone },
     { label: "اللغة", value: unavailable ? "—" : hardLanguageIssues.length > 0 || !review.languageQuality.passed ? "يحتاج تصحيحًا" : softLanguageIssues.length > 0 ? `${softLanguageIssues.length} ملاحظة أسلوبية` : "سليم لغويًا", tone: languageTone },
     { label: "الجاهزية", value: unavailable ? "—" : review.readinessDecision.level, tone: readinessTone },

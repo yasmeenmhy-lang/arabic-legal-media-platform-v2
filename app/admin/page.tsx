@@ -1,5 +1,5 @@
 import { Activity, BarChart3, ShieldAlert, Users } from "lucide-react";
-import { riskDisplayLabel } from "@/lib/types";
+import { riskDisplay, riskDisplayLabel } from "@/lib/types";
 import { BarList, CircularGauge, DataTable, KpiGrid, PageHeader, Panel, SectionTitle, StatusBadge } from "@/components/ui";
 import { isAdminAuthenticated } from "@/lib/admin-auth";
 import { getAdminInsights } from "@/lib/services/admin-service";
@@ -65,7 +65,7 @@ export default async function AdminPage() {
           <DataTable
             headers={["المستوى", "عدد القواعد", "أبرز فئة مخاطر"]}
             rows={insights.riskPatternAnalysis.map((item) => [
-              <StatusBadge key={item.level} tone={item.level === "مرتفع" ? "gold" : item.level === "متوسط" ? "neutral" : "good"}>{riskDisplayLabel(item.level)}</StatusBadge>,
+              <StatusBadge key={item.level} tone={riskDisplay(item.level).tone}>{riskDisplayLabel(item.level)}</StatusBadge>,
               `${item.ruleCount}`,
               item.topCategory
             ])}

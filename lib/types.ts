@@ -11,6 +11,29 @@ export function riskDisplayLabel(level: RiskLevel | undefined | null): string {
   return "مرتفع";
 }
 
+// ★ سلم عرض المخاطر (بقرار مالكة المنصة): مرتفع فأعلى أحمر، متوسط برتقالي،
+// منخفض أصفر فاتح، وانعدام المخاطر أخضر بلفظه «لا يوجد مخاطر» لا «منخفض».
+// طبقة عرض بحتة — قيم المقيّم ومعادلاته لا تُمس.
+export type RiskDisplayTone = "danger" | "warning" | "gold" | "good" | "neutral";
+export function riskDisplay(
+  level: RiskLevel | undefined | null,
+  opts?: { noRisks?: boolean; failed?: boolean }
+): { label: string; tone: RiskDisplayTone } {
+  if (opts?.failed) return { label: "تعذّر التقييم", tone: "neutral" };
+  if (!level) return { label: "—", tone: "neutral" };
+  if (opts?.noRisks) return { label: "لا يوجد مخاطر", tone: "good" };
+  const label = riskDisplayLabel(level);
+  if (label === "مرتفع") return { label, tone: "danger" };
+  if (label === "متوسط") return { label, tone: "warning" };
+  return { label, tone: "gold" };
+}
+
+// انعدام المخاطر يُحكم به بالأعداد لا بالعبارات: مستوى منخفض بلا جهات متضررة
+// وبلا مخالفات مرصودة — المعيار نفسه في كل شاشة فلا تتناقض الألوان بين الصفحات.
+export function hasNoRisks(level: RiskLevel | undefined | null, affectedPartiesCount: number, findingsCount: number): boolean {
+  return level === "منخفض" && affectedPartiesCount === 0 && findingsCount === 0;
+}
+
 export type RiskAffectedParty = "الموكل" | "المحامي" | "المهنة";
 
 export type BusinessSeverity = "critical" | "high" | "medium" | "low";

@@ -3,7 +3,7 @@
 import { useState, type ReactNode } from "react";
 import { Award, ChevronDown, Scale, User } from "lucide-react";
 import { CircularGauge, DgaBlockquote, Panel, ProgressBar, StatusBadge } from "@/components/ui";
-import { riskDisplayLabel, type ReviewResult, type RiskAffectedParty, type RiskLevel } from "@/lib/types";
+import { riskDisplayLabel, hasNoRisks, type ReviewResult, type RiskAffectedParty, type RiskLevel } from "@/lib/types";
 
 function sevTag(severity: "critical" | "high" | "medium" | "low") {
   if (severity === "critical") return { label: "حرج", cls: "bg-red-100 text-red-800" };
@@ -78,10 +78,12 @@ function IndicatorShell({ id, title, tone, badge, defaultOpen = false, staticSum
   );
 }
 
+// سلم المالكة: مرتفع أحمر، متوسط برتقالي، منخفض أصفر فاتح — والأخضر محجوز
+// لانعدام المخاطر وحده (تحكمه hasNoRisks في البطاقة نفسها)
 export function riskKpiTone(risk: RiskLevel) {
   if (risk === "بالغ" || risk === "حرج" || risk === "مرتفع") return "danger" as const;
-  if (risk === "متوسط") return "gold" as const;
-  return "good" as const;
+  if (risk === "متوسط") return "warning" as const;
+  return "gold" as const;
 }
 
 export function languageKpiTone(value: number) {
@@ -194,10 +196,11 @@ export function RiskIndicatorCard({ review, staticSummary }: { review: ReviewRes
   if (review.analysisMode === "pattern-only") return <DegradedNotice id="risk" title="المخاطر" />;
   // تقييم متعذر ≠ منخفض: يُعرض محايداً رمادياً لا أخضر
   const assessmentFailed = (review.riskScoreExplanation.explanation ?? "").includes("تعذّر");
-  const tone = assessmentFailed ? ("neutral" as const) : riskKpiTone(review.riskLevel);
   const parties = review.riskScoreExplanation.affectedParties ?? [];
-  // بقرار مالكة المنصة: انعدام المخاطر يُسمى «لا توجد مخاطر» لا «منخفضة»
-  const noRisks = !assessmentFailed && riskDisplayLabel(review.riskLevel) === "منخفض" && parties.length === 0 && review.findings.length === 0;
+  // بقرار مالكة المنصة: انعدام المخاطر يُسمى «لا يوجد مخاطر» ويُعرض أخضر —
+  // والأخضر محجوز له وحده؛ منخفض أصفر فاتح، متوسط برتقالي، مرتفع أحمر
+  const noRisks = !assessmentFailed && hasNoRisks(review.riskLevel, parties.length, review.findings.length);
+  const tone = assessmentFailed ? ("neutral" as const) : noRisks ? ("good" as const) : riskKpiTone(review.riskLevel);
   // ثلاثة مستويات معتمدة فقط — بعدد الجهات المتضررة
   const riskLevels = ["منخفض", "متوسط", "مرتفع"];
   const activeCount = assessmentFailed || noRisks ? 0 : riskLevels.indexOf(riskDisplayLabel(review.riskLevel)) + 1;
@@ -214,10 +217,10 @@ export function RiskIndicatorCard({ review, staticSummary }: { review: ReviewRes
       tone={tone}
       badge={
         <span className="flex items-center gap-2.5">
-          <StatusBadge tone={tone}>{assessmentFailed ? "تعذّر التقييم" : noRisks ? "لا توجد مخاطر" : riskDisplayLabel(review.riskLevel)}</StatusBadge>
+          <StatusBadge tone={tone}>{assessmentFailed ? "تعذّر التقييم" : noRisks ? "لا يوجد مخاطر" : riskDisplayLabel(review.riskLevel)}</StatusBadge>
           <span className="flex gap-1.5">
             {riskLevels.map((_, i) => (
-              <span key={i} className={`inline-block h-2.5 w-2.5 rounded-full ${i < activeCount ? (tone === "good" ? "bg-green-400" : tone === "gold" ? "bg-amber-400" : "bg-red-500") : "bg-slate-200"}`} />
+              <span key={i} className={`inline-block h-2.5 w-2.5 rounded-full ${i < activeCount ? (tone === "gold" ? "bg-amber-300" : tone === "warning" ? "bg-[#F79009]" : "bg-red-500") : "bg-slate-200"}`} />
             ))}
           </span>
         </span>

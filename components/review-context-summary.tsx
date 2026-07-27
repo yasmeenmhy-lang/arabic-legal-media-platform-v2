@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ExternalLink } from "lucide-react";
 import { DgaBlockquote, Panel, StatusBadge } from "@/components/ui";
-import { riskDisplayLabel } from "@/lib/types";
+import { riskDisplay, riskDisplayLabel } from "@/lib/types";
 import type { ReviewFinding, ReviewResult, RiskLevel } from "@/lib/types";
 import { scopedKey } from "@/lib/user-scope";
 
@@ -320,7 +320,8 @@ export function ReviewRiskSection() {
           <p className="text-base font-normal text-ink">مؤشرات المخاطر لهذه المراجعة</p>
           <p className="mt-1 text-xs leading-6 text-ink/55">تعرض هذه الشاشة مستوى المخاطر وسبب التصنيف فقط.</p>
         </div>
-        <StatusBadge tone={["بالغ", "حرج", "مرتفع"].includes(snapshot.risk.level) ? "gold" : snapshot.risk.level === "متوسط" ? "neutral" : "good"}>{riskDisplayLabel(snapshot.risk.level as RiskLevel)}</StatusBadge>
+        {/* سلم المالكة: مرتفع أحمر، متوسط برتقالي، منخفض أصفر فاتح */}
+        <StatusBadge tone={riskDisplay(snapshot.risk.level as RiskLevel).tone}>{riskDisplayLabel(snapshot.risk.level as RiskLevel)}</StatusBadge>
       </div>
       <div className="grid gap-4 lg:grid-cols-3">
         <FieldBlock label="مستوى المخاطر">{riskDisplayLabel(snapshot.risk.level as RiskLevel)}</FieldBlock>

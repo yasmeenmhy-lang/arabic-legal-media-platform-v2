@@ -17,7 +17,7 @@ import {
 import { updateVersionVisual, deleteVersionVisual } from "@/lib/content-record-store";
 import { deleteRecordFromCloud, scheduleCloudPush } from "@/lib/records-cloud-sync";
 import { EditableSavedVisual } from "@/components/editable-visual";
-import { riskDisplayLabel, type ReviewResult, type RiskLevel } from "@/lib/types";
+import { riskDisplay, hasNoRisks, type ReviewResult, type RiskLevel } from "@/lib/types";
 import { normalizeReviewResult } from "@/lib/review-normalizer";
 import { smartMatch } from "@/lib/arabic-search";
 
@@ -68,11 +68,12 @@ function displayStatus(storedStatus: string, analysis?: ReviewResult): { label: 
   return { label: statusLabel(storedStatus), tone: storedStatus === "معتمد" ? "good" : "neutral" };
 }
 
-function riskTone(level?: RiskLevel): "good" | "gold" | "danger" | "neutral" {
-  if (!level) return "neutral";
-  if (level === "منخفض") return "good";
-  if (level === "متوسط") return "gold";
-  return "danger";
+// سلم المالكة: مرتفع أحمر، متوسط برتقالي، منخفض أصفر فاتح، ولا مخاطر أخضر بلفظه
+function riskBadgeFor(analysis?: { riskLevel?: RiskLevel; riskScoreExplanation?: { affectedParties?: unknown[] }; findings?: unknown[] } | null): { label: string; tone: "good" | "gold" | "warning" | "danger" | "neutral" } | null {
+  const level = analysis?.riskLevel;
+  if (!level) return null;
+  const parties = analysis?.riskScoreExplanation?.affectedParties ?? [];
+  return riskDisplay(level, { noRisks: hasNoRisks(level, parties.length, (analysis?.findings ?? []).length) });
 }
 
 // ── لوحة السجل (سنابشوت) — بطاقات مصغّرة بدرجات هادئة من كود المنصات (أيقونات ناعمة لا مملوءة صارخة) ──
@@ -355,7 +356,7 @@ export default function ContentManagementPage() {
                       ? <span className={cTone === "good" ? "text-green-700" : "text-red-600"}>{cLabel}</span>
                       : "—"}
                   </div>
-                  <div className="rounded bg-paper p-2">المخاطر: {riskDisplayLabel(version.analysis?.riskLevel)}</div>
+                  <div className="rounded bg-paper p-2">المخاطر: {riskBadgeFor(version.analysis)?.label ?? "—"}</div>
                   <div className="rounded bg-paper p-2">فرص التحسين: {version.analysis?.languageQuality.issues.length ?? 0}</div>
                 </div>
                 {version.approvedAt && (
@@ -683,9 +684,9 @@ export default function ContentManagementPage() {
                           </div>
                           <div>
                             <p className="text-[10px] font-semibold text-ink/40 mb-1">المخاطر</p>
-                            {risk
-                              ? <StatusBadge tone={riskTone(risk)}>{riskDisplayLabel(risk)}</StatusBadge>
-                              : <span className="text-xs text-ink/40">—</span>}
+                            {(() => { const rb = riskBadgeFor(analysis); return rb
+                              ? <StatusBadge tone={rb.tone}>{rb.label}</StatusBadge>
+                              : <span className="text-xs text-ink/40">—</span>; })()}
                           </div>
                           <div>
                             <p className="text-[10px] font-semibold text-ink/40 mb-1">الإصدارات</p>
@@ -771,9 +772,9 @@ export default function ContentManagementPage() {
                             : <span className="text-ink/40">—</span>}
                         </td>
                         <td className="px-4 py-4">
-                          {risk
-                            ? <StatusBadge tone={riskTone(risk)}>{riskDisplayLabel(risk)}</StatusBadge>
-                            : <span className="text-ink/40">—</span>}
+                          {(() => { const rb = riskBadgeFor(analysis); return rb
+                            ? <StatusBadge tone={rb.tone}>{rb.label}</StatusBadge>
+                            : <span className="text-ink/40">—</span>; })()}
                         </td>
                         <td className="px-4 py-4 text-ink/70">{record.versions.length}</td>
                         <td className="px-4 py-4 text-xs text-ink/50">{formatDate(record.updatedAt)}</td>
