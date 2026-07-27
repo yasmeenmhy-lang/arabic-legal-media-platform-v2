@@ -6,6 +6,7 @@ import { getAdminInsights } from "@/lib/services/admin-service";
 import { formatDualDateTime } from "@/lib/dates";
 import { AdminLoginForm } from "./login-form";
 import { AdminLogoutButton } from "./logout-button";
+import { PerformanceDashboard } from "./performance-dashboard";
 import { ScoringProfileAdmin } from "@/components/scoring-profile-admin";
 import { getScoringProfiles } from "@/lib/scoring-profiles";
 
@@ -40,6 +41,9 @@ export default async function AdminPage() {
         description="نشاط المستخدمين، توزيع أنواع المحتوى، تحليل أنماط المخاطر، الاتجاهات الأسبوعية والشهرية، ورؤى حول سلوك المحامين داخل المنصة. وصول مخصص للإدارة فقط."
         action={<AdminLogoutButton />}
       />
+
+      {/* ★ تقارير المنصة عند المدير فقط (بقرار مالكة المنصة) — أداء فعلي من سجل المحتوى */}
+      <PerformanceDashboard />
 
       <KpiGrid
         items={[
