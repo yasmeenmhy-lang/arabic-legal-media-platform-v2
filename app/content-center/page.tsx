@@ -3471,20 +3471,23 @@ function toStoredGovernance(gov: ServerGovernance | undefined, notice: string | 
 
       {/* ── 2. Path selection ── */}
       {!path && (
-        <div>
-          <p className="mb-3 text-sm font-semibold text-ink">كيف تريد البدء؟</p>
+        // قسم «كيف تريد البدء؟» في منتصف الشاشة رأسياً (بقرار مالكة المنصة) —
+        // الحاسب والآيباد فقط، والجوال يبقى بتسلسله العلوي كما هو.
+        <div className="md:flex md:min-h-[calc(100vh-20rem)] md:flex-col md:justify-center">
+          <p className="mb-3 text-sm font-semibold text-ink md:mb-5 md:text-base lg:text-lg">كيف تريد البدء؟</p>
           {/* auto-rows-fr يوحّد ارتفاع البطاقتين مهما اختلف طول الوصف */}
-          <div className="grid auto-rows-fr gap-4 md:grid-cols-2">
+          {/* تكبير البطاقتين على الحاسب والآيباد (بقرار مالكة المنصة) — الجوال كما هو */}
+          <div className="grid auto-rows-fr gap-4 md:grid-cols-2 md:gap-6">
             <button
               type="button"
               onClick={() => { setReview(null); setContentId(undefined); setPath("review"); setFrameStep(1); }}
-              className="flex flex-col items-start gap-3 rounded-xl border border-line border-r-2 border-r-palm bg-white p-6 text-right shadow-sm transition hover:shadow-md focus-ring"
+              className="flex flex-col items-start gap-3 rounded-xl border border-line border-r-2 border-r-palm bg-white p-6 text-right shadow-sm transition hover:shadow-md focus-ring md:gap-5 md:p-10 lg:p-12"
             >
-              <span className="grid h-14 w-14 place-items-center rounded-full bg-mint text-palm">
-                <FileCheck2 size={26} aria-hidden="true" />
+              <span className="grid h-14 w-14 place-items-center rounded-full bg-mint text-palm md:h-20 md:w-20 lg:h-24 lg:w-24">
+                <FileCheck2 size={26} aria-hidden="true" className="md:h-9 md:w-9 lg:h-11 lg:w-11" />
               </span>
-              <span className="text-lg font-semibold text-ink">مراجعة محتوى</span>
-              <span className="text-sm leading-6 text-ink/60">
+              <span className="text-lg font-semibold text-ink md:text-2xl lg:text-3xl">مراجعة محتوى</span>
+              <span className="text-sm leading-6 text-ink/60 md:text-base md:leading-7 lg:text-lg lg:leading-8">
                 أدخل نصاً جاهزاً وراجعه قانونياً عبر محرك التحليل.
               </span>
             </button>
@@ -3492,13 +3495,13 @@ function toStoredGovernance(gov: ServerGovernance | undefined, notice: string | 
             <button
               type="button"
               onClick={startCreatePath}
-              className="flex flex-col items-start gap-3 rounded-xl border border-line border-r-2 border-r-violet bg-white p-6 text-right shadow-sm transition hover:shadow-md focus-ring"
+              className="flex flex-col items-start gap-3 rounded-xl border border-line border-r-2 border-r-violet bg-white p-6 text-right shadow-sm transition hover:shadow-md focus-ring md:gap-5 md:p-10 lg:p-12"
             >
-              <span className="grid h-14 w-14 place-items-center rounded-full bg-violetSoft text-violet">
-                <Sparkles size={26} aria-hidden="true" />
+              <span className="grid h-14 w-14 place-items-center rounded-full bg-violetSoft text-violet md:h-20 md:w-20 lg:h-24 lg:w-24">
+                <Sparkles size={26} aria-hidden="true" className="md:h-9 md:w-9 lg:h-11 lg:w-11" />
               </span>
-              <span className="text-lg font-semibold text-ink">إنشاء محتوى</span>
-              <span className="text-sm leading-6 text-ink/60">
+              <span className="text-lg font-semibold text-ink md:text-2xl lg:text-3xl">إنشاء محتوى</span>
+              <span className="text-sm leading-6 text-ink/60 md:text-base md:leading-7 lg:text-lg lg:leading-8">
                 الذكاء الاصطناعي يُنشئ المحتوى بناءً على المصدر وإطار المحتوى، ثم يراجعه قانونياً.
               </span>
             </button>

@@ -1352,16 +1352,16 @@ export default function ContentReviewPage() {
         className={
           hasSelectedContent
             ? "w-full max-w-full overflow-x-clip rounded-lg border border-line bg-white p-4 shadow-sm sm:p-5"
-            : "w-full max-w-full overflow-x-clip rounded-xl border border-line border-r-2 border-r-palm bg-white px-6 py-10 shadow-sm sm:px-8 sm:py-12"
+            : "w-full max-w-full overflow-x-clip rounded-xl border border-line border-r-2 border-r-palm bg-white px-6 py-10 shadow-sm sm:px-8 sm:py-12 md:px-12 md:py-16 lg:px-16 lg:py-20"
         }
       >
         {hasSelectedContent ? <SectionTitle title="1. إدخال المحتوى" /> : null}
         <div>
         {hasSelectedContent ? null : (
-          <div className="mb-7 flex items-center gap-4">
-            <h2 className="min-w-0 flex-1 text-lg font-semibold text-ink">اختر المحتوى</h2>
-            <span className="grid h-16 w-16 shrink-0 place-items-center rounded-full bg-mint text-palm">
-              <Search size={30} />
+          <div className="mb-7 flex items-center gap-4 md:mb-10">
+            <h2 className="min-w-0 flex-1 text-lg font-semibold text-ink md:text-2xl lg:text-3xl">اختر المحتوى</h2>
+            <span className="grid h-16 w-16 shrink-0 place-items-center rounded-full bg-mint text-palm md:h-20 md:w-20 lg:h-24 lg:w-24">
+              <Search size={30} className="md:h-9 md:w-9 lg:h-11 lg:w-11" />
             </span>
           </div>
         )}
