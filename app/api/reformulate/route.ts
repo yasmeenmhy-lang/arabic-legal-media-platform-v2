@@ -11,7 +11,7 @@ import { isSaudiOfficialUrl } from "@/lib/services/web-research-service";
 import { analyzeIntent } from "@/lib/services/intent-analysis-service";
 import { buildDossier, provenExcerpts, markUsedSources, computeCompleteness, archivePreviousDossier, type SourceDossier } from "@/lib/source-dossier";
 import { buildOfficialRuleCorpusText } from "@/lib/rule-corpus-text";
-import { SOURCE_GOVERNANCE, ARTICLE_10_DECLARATION } from "@/lib/source-governance";
+import { SOURCE_GOVERNANCE, ARTICLE_10_DECLARATION, INTENT_TECHNICAL_FAILURE_NOTE } from "@/lib/source-governance";
 import { article10Violations, article10ViolationsWithProof } from "@/lib/services/article10-enforcer";
 import { countHardLanguageErrors, HARD_LANGUAGE_CATEGORIES } from "@/lib/language-gate";
 import { WRITING_CODE } from "@/lib/writing-code";
@@ -228,9 +228,13 @@ async function runReformulation(data: z.infer<typeof schema>, apiKey: string): P
         }
       }
     } else if (hasSource) {
-      // إخفاق مسمى بمرحلته (الدفعة ج) — تسري المادة (١٠)
-      console.log(`[reformulate:intent] إخفاق ${PIPELINE_STAGES[0]} — تسري المادة (١٠)`);
-      sourceNote = ARTICLE_10_DECLARATION;
+      // إخفاق مسمى بمرحلته (الدفعة ج) — تسري المادة (١٠) على مضمون الصياغة، لكن
+      // الملاحظة المعروضة تقنية صادقة لا تصريح «لا يوجد مصدر»: بعد استنفاد محاولات
+      // محرك الفهم الثلاث لم يبدأ البحث أصلاً، فتقرير غياب المصدر كذبٌ محتمل
+      // (بقرار مالكة المنصة ٢٠٢٦-٠٧-٢٨: «أهم شي لا يكذب»). يسري على مسارَي
+      // إعادة الصياغة معاً — المراجعة والإنشاء — فكلاهما على هذه النقطة نفسها.
+      console.log(`[reformulate:intent] إخفاق ${PIPELINE_STAGES[0]} — تسري المادة (١٠) بملاحظة تقنية صادقة`);
+      sourceNote = INTENT_TECHNICAL_FAILURE_NOTE;
     }
   }
 

@@ -71,10 +71,18 @@ ${LEADERSHIP_PRAISE_PIPELINE_NOTE}
 
 // تحليل النية — نداء واحد صغير. فشله = فشل مرحلة الفهم (المرحلة ١ من مراحل
 // الإخفاق السبع) ويُبلَّغ باسمها؛ لا سقوط صامت لمسار قديم (قاعدة المحرك الواحد).
+//
+// ★ بقرار مالكة المنصة (٢٠٢٦-٠٧-٢٨): العطل اللحظي (شبكة/ضغط مزود/مهلة/مخرج
+// مقطوع) لا يُسقط مرحلة الفهم من أول مرة — يعاد النداء حتى ثلاث محاولات بفاصل
+// قصير، ويُسجَّل سبب كل إخفاق باسمه (كان الفشل صامتاً بلا أثر). فإن أخفقت كل
+// المحاولات عاد null، ومعالجته في المسارات تكون بملاحظة تقنية صادقة
+// (INTENT_TECHNICAL_FAILURE_NOTE) لا بتصريح «لا يوجد مصدر» — «أهم شي لا يكذب».
+const INTENT_MAX_ATTEMPTS = 3;
+const INTENT_RETRY_DELAYS_MS = [2_000, 4_000];
+
 export async function analyzeIntent(inputs: IntentInputs, timeoutMs = 45_000): Promise<IntentRepresentation | null> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) return null;
-  const startedAt = Date.now();
   const user = [
     "مدخلات المستخدم كاملة:",
     inputs.topic && `- الفكرة (بصياغته الحرفية): «${inputs.topic}»`,
@@ -87,34 +95,55 @@ export async function analyzeIntent(inputs: IntentInputs, timeoutMs = 45_000): P
     inputs.extraDirectives && `- توجيهات إضافية: ${inputs.extraDirectives}`,
   ].filter(Boolean).join("\n");
 
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
-  try {
-    const response = await fetch(
-      `${process.env.ANTHROPIC_BASE_URL ?? "https://api.anthropic.com"}/v1/messages`,
-      {
-        method: "POST",
-        signal: controller.signal,
-        headers: { "x-api-key": apiKey, "anthropic-version": "2023-06-01", "content-type": "application/json" },
-        body: JSON.stringify({
-          model: "claude-sonnet-5",
-          max_tokens: 1500,
-          thinking: { type: "disabled" },
-          system: [{ type: "text", text: SYSTEM, cache_control: { type: "ephemeral" } }],
-          messages: [{ role: "user", content: user }],
-        }),
-      }
-    );
-    if (!response.ok) return null;
-    const payload = (await response.json()) as { content?: { type: string; text: string }[]; usage?: unknown };
-    recordUsage(payload.usage, { stage: "محلل النية", model: "claude-sonnet-5", durationMs: Date.now() - startedAt });
-    const text = payload.content?.find((c) => c.type === "text")?.text ?? "";
-    return parseIntent(text);
-  } catch {
-    return null;
-  } finally {
-    clearTimeout(timer);
+  // محاولة واحدة: تعيد التمثيل عند النجاح، أو اسم سبب الإخفاق عند الفشل
+  const attemptOnce = async (): Promise<IntentRepresentation | { failReason: string }> => {
+    const startedAt = Date.now();
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      const response = await fetch(
+        `${process.env.ANTHROPIC_BASE_URL ?? "https://api.anthropic.com"}/v1/messages`,
+        {
+          method: "POST",
+          signal: controller.signal,
+          headers: { "x-api-key": apiKey, "anthropic-version": "2023-06-01", "content-type": "application/json" },
+          body: JSON.stringify({
+            model: "claude-sonnet-5",
+            max_tokens: 1500,
+            thinking: { type: "disabled" },
+            system: [{ type: "text", text: SYSTEM, cache_control: { type: "ephemeral" } }],
+            messages: [{ role: "user", content: user }],
+          }),
+        }
+      );
+      if (!response.ok) return { failReason: `رد المزود ${response.status}` };
+      const payload = (await response.json()) as { content?: { type: string; text: string }[]; usage?: unknown };
+      recordUsage(payload.usage, { stage: "محلل النية", model: "claude-sonnet-5", durationMs: Date.now() - startedAt });
+      const text = payload.content?.find((c) => c.type === "text")?.text ?? "";
+      const parsed = parseIntent(text);
+      if (!parsed) return { failReason: "مخرج غير قابل للقراءة (JSON ناقص أو مكسور)" };
+      return parsed;
+    } catch (err) {
+      const isTimeout = err instanceof Error && (err.name === "AbortError" || err.message.includes("abort"));
+      return { failReason: isTimeout ? `انقضاء المهلة (${Math.round(timeoutMs / 1000)}ث)` : `خطأ شبكة: ${err instanceof Error ? err.message : String(err)}` };
+    } finally {
+      clearTimeout(timer);
+    }
+  };
+
+  for (let attempt = 1; attempt <= INTENT_MAX_ATTEMPTS; attempt++) {
+    const result = await attemptOnce();
+    if (!("failReason" in result)) {
+      if (attempt > 1) console.log(`[intent] نجحت المحاولة ${attempt}/${INTENT_MAX_ATTEMPTS} بعد إخفاق سابق`);
+      return result;
+    }
+    console.warn(`[intent] المحاولة ${attempt}/${INTENT_MAX_ATTEMPTS} أخفقت — ${result.failReason}`);
+    if (attempt < INTENT_MAX_ATTEMPTS) {
+      await new Promise((resolve) => setTimeout(resolve, INTENT_RETRY_DELAYS_MS[attempt - 1] ?? 4_000));
+    }
   }
+  console.warn(`[intent] أخفقت كل المحاولات (${INTENT_MAX_ATTEMPTS}) — فشل مرحلة الفهم تقنياً`);
+  return null;
 }
 
 // تحليل متسامح للمخرج: يقتطع كتلة الـJSON ويصححها بنيوياً — أي نقص جوهري = null

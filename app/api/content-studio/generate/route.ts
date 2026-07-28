@@ -10,7 +10,7 @@ import { needsResearch, researchClaimsWithExpansion, openAndExtract, pursueAttes
 import { isSaudiOfficialUrl } from "@/lib/services/web-research-service";
 import { analyzeIntent } from "@/lib/services/intent-analysis-service";
 import { buildDossier, markUsedSources, provenExcerpts, computeCompleteness, evidenceUsedInText, type SourceDossier } from "@/lib/source-dossier";
-import { SOURCE_GOVERNANCE, pickNoSourceDeclaration } from "@/lib/source-governance";
+import { SOURCE_GOVERNANCE, pickNoSourceDeclaration, INTENT_TECHNICAL_FAILURE_NOTE } from "@/lib/source-governance";
 import {
   article10Violations, article10ViolationsWithProof, detectWriterMarker, sanitizeEnforcementForStorage,
   ARTICLE10_STOP_MARKER, RESEARCH_NEEDED_MARKER,
@@ -480,11 +480,15 @@ ${briefType
       });
       if (!intent) {
         // إخفاق مسمى بمرحلته (تسمية المراحل السبع — الدفعة ج): تسري المادة (١٠)
-        console.log(`[generate:intent] إخفاق ${PIPELINE_STAGES[0]} — تسري المادة (١٠)`);
+        // على مضمون الكتابة (لا تفصيلة نظامية بلا إثبات) — لكن الملاحظة المعروضة
+        // للمستخدم تقنية صادقة لا تصريح «لا يوجد مصدر»: الإخفاق هنا بعد استنفاد
+        // محاولات محرك الفهم الثلاث يعني أن البحث لم يبدأ أصلاً، فتقرير غياب
+        // المصدر كذبٌ محتمل (بقرار مالكة المنصة ٢٠٢٦-٠٧-٢٨: «أهم شي لا يكذب»).
+        console.log(`[generate:intent] إخفاق ${PIPELINE_STAGES[0]} — تسري المادة (١٠) بملاحظة تقنية صادقة`);
         enforcement.article10Applied = true;
         enforcement.generalAllowed = true;
-        enforcement.outcome = `إخفاق ${PIPELINE_STAGES[0]}: لم يُفهم الطلب أو لم تُبنَ ادعاءاته`;
-        sourceNote = pickNoSourceDeclaration(source);
+        enforcement.outcome = `إخفاق ${PIPELINE_STAGES[0]}: تعذر تقنياً فهم الطلب أو بناء ادعاءاته بعد ثلاث محاولات`;
+        sourceNote = INTENT_TECHNICAL_FAILURE_NOTE;
         promptText = `${user}\n\n★ تعذر بناء خريطة إثبات لهذا الطلب — تسري المادة (١٠): اكتب محتوى عاماً مشروعاً خالياً من الفئات الثلاث عشرة، أو أخرج سطر الإيقاف وحده إن كان الطلب لا يُجاب إلا بمعلومة رسمية: ${ARTICLE10_STOP_MARKER}`;
         return;
       }
