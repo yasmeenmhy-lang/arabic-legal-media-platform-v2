@@ -3483,11 +3483,11 @@ function toStoredGovernance(gov: ServerGovernance | undefined, notice: string | 
               onClick={() => { setReview(null); setContentId(undefined); setPath("review"); setFrameStep(1); }}
               className="flex flex-col items-start gap-3 rounded-xl border border-line border-r-2 border-r-palm bg-white p-6 text-right shadow-card transition hover:shadow-lg focus-ring md:gap-5 md:p-10 lg:p-12"
             >
-              <span className="grid h-14 w-14 place-items-center rounded-full bg-mint text-palm md:h-20 md:w-20 lg:h-24 lg:w-24">
-                <FileCheck2 size={26} aria-hidden="true" className="md:h-9 md:w-9 lg:h-11 lg:w-11" />
+              <span className="grid h-14 w-14 place-items-center rounded-full bg-mint text-palm md:h-16 md:w-16 lg:h-[4.5rem] lg:w-[4.5rem]">
+                <FileCheck2 size={26} aria-hidden="true" className="md:h-7 md:w-7 lg:h-8 lg:w-8" />
               </span>
-              <span className="text-lg font-semibold text-ink md:text-2xl lg:text-3xl">مراجعة محتوى</span>
-              <span className="text-sm leading-6 text-ink/60 md:text-base md:leading-7 lg:text-lg lg:leading-8">
+              <span className="text-lg font-semibold text-ink md:text-xl">مراجعة محتوى</span>
+              <span className="text-sm leading-6 text-ink/60 md:text-[15px] md:leading-7">
                 أدخل نصاً جاهزاً وراجعه قانونياً عبر محرك التحليل.
               </span>
             </button>
@@ -3497,12 +3497,12 @@ function toStoredGovernance(gov: ServerGovernance | undefined, notice: string | 
               onClick={startCreatePath}
               className="flex flex-col items-start gap-3 rounded-xl border border-line border-r-2 border-r-violet bg-white p-6 text-right shadow-card transition hover:shadow-lg focus-ring md:gap-5 md:p-10 lg:p-12"
             >
-              <span className="grid h-14 w-14 place-items-center rounded-full bg-violetSoft text-violet md:h-20 md:w-20 lg:h-24 lg:w-24">
-                <Sparkles size={26} aria-hidden="true" className="md:h-9 md:w-9 lg:h-11 lg:w-11" />
+              <span className="grid h-14 w-14 place-items-center rounded-full bg-violetSoft text-violet md:h-16 md:w-16 lg:h-[4.5rem] lg:w-[4.5rem]">
+                <Sparkles size={26} aria-hidden="true" className="md:h-7 md:w-7 lg:h-8 lg:w-8" />
               </span>
-              <span className="text-lg font-semibold text-ink md:text-2xl lg:text-3xl">إنشاء محتوى</span>
-              <span className="text-sm leading-6 text-ink/60 md:text-base md:leading-7 lg:text-lg lg:leading-8">
-                الذكاء الاصطناعي يُنشئ المحتوى بناءً على المصدر وإطار المحتوى، ثم يراجعه قانونياً.
+              <span className="text-lg font-semibold text-ink md:text-xl">إنشاء محتوى</span>
+              <span className="text-sm leading-6 text-ink/60 md:text-[15px] md:leading-7">
+                يُنشئ الذكاء الاصطناعي المحتوى ثم يراجعه قانونياً.
               </span>
             </button>
           </div>

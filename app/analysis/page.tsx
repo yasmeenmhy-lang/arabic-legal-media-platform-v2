@@ -440,6 +440,9 @@ export default function ContentReviewPage() {
 
   // بحث منسدل لفتح محتوى محفوظ سابقاً وتحميله للمراجعة
   const [savedRecords, setSavedRecords] = useState<StoredContentRecord[]>([]);
+  // هل قُرئ السجل من المتصفح بعد؟ — يُحجز مكان حقل البحث أثناء القراءة فلا يقفز
+  // ارتفاع الصندوق من صغير إلى كبير أمام المستخدمة (بقرار مالكة المنصة).
+  const [recordsLoaded, setRecordsLoaded] = useState(false);
   const [cameFromRecords, setCameFromRecords] = useState(false);
   const [recordSearch, setRecordSearch] = useState("");
   const [recordSearchFocus, setRecordSearchFocus] = useState(false);
@@ -503,6 +506,7 @@ export default function ContentReviewPage() {
 
   useEffect(() => {
     setSavedRecords(loadContentRecords());
+    setRecordsLoaded(true);
     // بقرار مالكة المنصة: فتح صفحة المراجعة من التبويب = نموذج نظيف دائماً.
     // المحتوى النشط يُحمَّل فقط عند فتح صريح (open=1): زر «فتح» في السجل،
     // أو زر «التحليل التفصيلي» في الاستديو — لا نص «معلّقاً» من جلسة سابقة.
@@ -1359,9 +1363,9 @@ export default function ContentReviewPage() {
         <div>
         {hasSelectedContent ? null : (
           <div className="mb-7 flex items-center gap-4 md:mb-10">
-            <h2 className="min-w-0 flex-1 text-lg font-semibold text-ink md:text-2xl lg:text-3xl">اختر المحتوى</h2>
-            <span className="grid h-16 w-16 shrink-0 place-items-center rounded-full bg-mint text-palm md:h-20 md:w-20 lg:h-24 lg:w-24">
-              <Search size={30} className="md:h-9 md:w-9 lg:h-11 lg:w-11" />
+            <h2 className="min-w-0 flex-1 text-lg font-semibold text-ink md:text-xl">اختر المحتوى</h2>
+            <span className="grid h-16 w-16 shrink-0 place-items-center rounded-full bg-mint text-palm md:h-16 md:w-16 lg:h-[4.5rem] lg:w-[4.5rem]">
+              <Search size={30} className="md:h-7 md:w-7 lg:h-8 lg:w-8" />
             </span>
           </div>
         )}
@@ -1434,6 +1438,10 @@ export default function ContentReviewPage() {
               </div>
             ) : null}
           </div>
+        ) : !recordsLoaded && !hasSelectedContent ? (
+          // حجز ارتفاع حقل البحث ريثما يُقرأ السجل من المتصفح — يمنع قفزة
+          // «صغير ثم يكبر» أول فتح الصفحة (بقرار مالكة المنصة)
+          <div aria-hidden="true" className="h-[54px]" />
         ) : null}
         </div>
         </div>
