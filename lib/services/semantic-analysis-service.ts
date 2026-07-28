@@ -17,7 +17,6 @@ import {
 } from "@/lib/services/corpus-scan";
 import { AUTHORITIES_RULE, KINGDOM_STYLE_RULE, PLATFORM_SUPREME_RULE } from "@/lib/governance";
 import { LEADERSHIP_PRAISE_RULE } from "@/lib/leadership-praise-rule";
-import { MEDIA_LAW_ARTICLE_5 } from "@/lib/media-law-article5";
 import {
   arabicSeverity,
   businessSeverityForFinding,
@@ -96,8 +95,6 @@ ${AUTHORITIES_RULE}
 ${KINGDOM_STYLE_RULE}
 
 ${LEADERSHIP_PRAISE_RULE}
-
-${MEDIA_LAW_ARTICLE_5}
 
 ## السياق الثابت
 هذه المنصة مخصصة للمحامين المرخصين حصراً. النص الذي سيصلك في رسالة المستخدم كتبه محامٍ ويريد نشره على وسائل التواصل الاجتماعي — سواء كان منشوراً، تغريدة، تعليقاً، رداً، أو إعلاناً.

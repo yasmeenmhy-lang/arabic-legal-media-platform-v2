@@ -7,7 +7,6 @@ import { recordUsage } from "@/lib/cost-meter";
 import Anthropic from "@anthropic-ai/sdk";
 import { AUTHORITIES_RULE, CONTENT_QUALITY_STANDARDS, KINGDOM_STYLE_RULE, PLATFORM_SUPREME_RULE } from "@/lib/governance";
 import { LEADERSHIP_PRAISE_RULE } from "@/lib/leadership-praise-rule";
-import { MEDIA_LAW_ARTICLE_5 } from "@/lib/media-law-article5";
 // نفس العبارة المعروضة في مسار الصياغة — مصدر واحد فلا تختلف كلمة المنصة عن نفسها
 import { OUT_OF_MANDATE_MESSAGE as OUT_OF_MANDATE_NOTICE } from "@/lib/reformulate-messages";
 import type {
@@ -42,8 +41,6 @@ ${AUTHORITIES_RULE}
 ${KINGDOM_STYLE_RULE}
 
 ${LEADERSHIP_PRAISE_RULE}
-
-${MEDIA_LAW_ARTICLE_5}
 
 ## أساس التقييم
 التقييم مبني حصراً على قواعد السلوك المهني للمحامين في المملكة العربية السعودية واللائحة التنفيذية لنظام المحاماة — احكم بالمعنى والسياق وفق هذه القواعد، لا بوجود كلمات أو أنماط بعينها.
