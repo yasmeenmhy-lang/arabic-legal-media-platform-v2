@@ -2595,19 +2595,7 @@ function toStoredGovernance(gov: ServerGovernance | undefined, notice: string | 
         eyebrow="مركز المحتوى الإعلامي والإعلاني"
         title={path === "review" ? "مراجعة المحتوى المهني" : path === "create" ? "إنشاء المحتوى المهني" : "إنشاء ومراجعة المحتوى المهني"}
         // (بقرار المالكة): «مرحباً بك» بعرضها الطبيعي فقط — كانت تحجز عرضاً ثابتاً يزاحم العنوان فينكسر سطرين
-        // ميدالية ترحيب (معالجة مصمم): زخرفة دقيقة بنقطتين ذهبيتين وخيط أخضر متلاشٍ
-        // من لوني الهوية، على تدرّج نعناعي هادئ — تمييز رصين يليق بمنصة مهنية.
-        illustration={path ? undefined : (
-          <div className="flex flex-col items-center justify-center rounded-xl border border-mintDeep bg-gradient-to-b from-white to-mint px-5 py-3.5 text-center shadow-sm sm:px-7 sm:py-4">
-            <span aria-hidden="true" className="mb-2 flex items-center gap-1.5">
-              <span className="h-1 w-1 rounded-full bg-gold/70" />
-              <span className="h-px w-8 bg-gradient-to-r from-transparent via-palm/45 to-transparent" />
-              <span className="h-1 w-1 rounded-full bg-gold/70" />
-            </span>
-            <p className="whitespace-nowrap text-xl font-semibold leading-8 text-palm sm:text-2xl sm:leading-9">مرحباً بك</p>
-            <p className="mt-0.5 whitespace-nowrap text-[11px] leading-5 text-ink/45">منصة المحامين المرخّصين</p>
-          </div>
-        )}
+        illustration={path ? undefined : <p className="whitespace-nowrap text-center text-xl font-semibold leading-9 text-palm">مرحباً بك</p>}
         action={path ? <Button variant="secondary-gray" onClick={goBackOneStage} leadingIcon={<ArrowRight size={16} />}>رجوع</Button> : undefined}
       />
 
@@ -3486,19 +3474,17 @@ function toStoredGovernance(gov: ServerGovernance | undefined, notice: string | 
         <div>
           <p className="mb-3 text-sm font-semibold text-ink">كيف تريد البدء؟</p>
           {/* auto-rows-fr يوحّد ارتفاع البطاقتين مهما اختلف طول الوصف */}
-          {/* تكبير البطاقتين على الحاسب والآيباد (md فأعلى) بقرار مالكة المنصة —
-              الجوال يبقى بمقاسه الحالي كما هو. */}
-          <div className="grid auto-rows-fr gap-4 md:grid-cols-2 md:gap-6">
+          <div className="grid auto-rows-fr gap-4 md:grid-cols-2">
             <button
               type="button"
               onClick={() => { setReview(null); setContentId(undefined); setPath("review"); setFrameStep(1); }}
-              className="flex flex-col items-start gap-3 rounded-xl border border-line border-r-2 border-r-palm bg-white p-6 text-right shadow-sm transition hover:shadow-md focus-ring md:gap-4 md:p-9 lg:p-10"
+              className="flex flex-col items-start gap-3 rounded-xl border border-line border-r-2 border-r-palm bg-white p-6 text-right shadow-sm transition hover:shadow-md focus-ring"
             >
-              <span className="grid h-14 w-14 place-items-center rounded-full bg-mint text-palm md:h-[4.5rem] md:w-[4.5rem]">
-                <FileCheck2 size={26} aria-hidden="true" className="md:h-8 md:w-8" />
+              <span className="grid h-14 w-14 place-items-center rounded-full bg-mint text-palm">
+                <FileCheck2 size={26} aria-hidden="true" />
               </span>
-              <span className="text-lg font-semibold text-ink md:text-2xl">مراجعة محتوى</span>
-              <span className="text-sm leading-6 text-ink/60 md:text-base md:leading-7">
+              <span className="text-lg font-semibold text-ink">مراجعة محتوى</span>
+              <span className="text-sm leading-6 text-ink/60">
                 أدخل نصاً جاهزاً وراجعه قانونياً عبر محرك التحليل.
               </span>
             </button>
@@ -3506,13 +3492,13 @@ function toStoredGovernance(gov: ServerGovernance | undefined, notice: string | 
             <button
               type="button"
               onClick={startCreatePath}
-              className="flex flex-col items-start gap-3 rounded-xl border border-line border-r-2 border-r-violet bg-white p-6 text-right shadow-sm transition hover:shadow-md focus-ring md:gap-4 md:p-9 lg:p-10"
+              className="flex flex-col items-start gap-3 rounded-xl border border-line border-r-2 border-r-violet bg-white p-6 text-right shadow-sm transition hover:shadow-md focus-ring"
             >
-              <span className="grid h-14 w-14 place-items-center rounded-full bg-violetSoft text-violet md:h-[4.5rem] md:w-[4.5rem]">
-                <Sparkles size={26} aria-hidden="true" className="md:h-8 md:w-8" />
+              <span className="grid h-14 w-14 place-items-center rounded-full bg-violetSoft text-violet">
+                <Sparkles size={26} aria-hidden="true" />
               </span>
-              <span className="text-lg font-semibold text-ink md:text-2xl">إنشاء محتوى</span>
-              <span className="text-sm leading-6 text-ink/60 md:text-base md:leading-7">
+              <span className="text-lg font-semibold text-ink">إنشاء محتوى</span>
+              <span className="text-sm leading-6 text-ink/60">
                 الذكاء الاصطناعي يُنشئ المحتوى بناءً على المصدر وإطار المحتوى، ثم يراجعه قانونياً.
               </span>
             </button>
