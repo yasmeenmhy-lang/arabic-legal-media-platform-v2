@@ -7,7 +7,7 @@ export default function RiskAssessmentPage() {
       <PageHeader
         eyebrow="مؤشرات المخاطر"
         title="مؤشرات المخاطر المهنية والإعلامية"
-        action={<ButtonLink href="/content-review">تحليل محتوى جديد</ButtonLink>}
+        action={<ButtonLink href="/analysis">تحليل محتوى جديد</ButtonLink>}
       />
 
       <ReviewContextSummary focus="risk" />

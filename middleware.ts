@@ -81,7 +81,7 @@ export async function middleware(request: NextRequest) {
 
   // ── منطق RBAC التجريبي القائم — يبقى كما هو ──────────────────────────────
   const protectedRoutes: Array<{ prefix: string; permission: string }> = [
-    { prefix: "/content-review", permission: "content:review" }
+    { prefix: "/analysis", permission: "content:review" }
   ];
   const route = protectedRoutes.find((item) => pathname.startsWith(item.prefix));
   if (route && !can(demoSession.user.role, route.permission)) {

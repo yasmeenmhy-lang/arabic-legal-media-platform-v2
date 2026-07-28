@@ -101,7 +101,7 @@ export default function CalendarPage() {
         title="مسار التخطيط والنشر"
         description="خطة مرئية تربط المحتوى بالمراجعة والاعتماد والقنوات والجدولة. المقترحات استرشادية ولا تضمن نتائج أو وصولاً محدداً."
       />
-      <Link href="/content-review?open=1" className="inline-flex rounded-md border border-line px-4 py-2 text-sm text-palm transition hover:border-palm hover:bg-mint focus-ring">
+      <Link href="/analysis?open=1" className="inline-flex rounded-md border border-line px-4 py-2 text-sm text-palm transition hover:border-palm hover:bg-mint focus-ring">
         عودة إلى نتائج المراجعة
       </Link>
 

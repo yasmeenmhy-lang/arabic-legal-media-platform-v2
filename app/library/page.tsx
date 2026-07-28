@@ -64,7 +64,7 @@ export default function LibraryPage() {
       <PageHeader
         eyebrow="الوصول السريع والمراجع"
         title="المراجع المهنية والرسمية"
-        action={<ButtonLink href="/content-review">مراجعة محتوى</ButtonLink>}
+        action={<ButtonLink href="/analysis">مراجعة محتوى</ButtonLink>}
       />
 
       {/* خانة دليل الاستخدام أعلى الصفحة — الخدمة قيد الإعداد وتُوسم «قريبًا» */}

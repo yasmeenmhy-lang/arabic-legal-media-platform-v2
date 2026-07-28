@@ -74,7 +74,7 @@ import {
   type StoredVisual,
 } from "@/lib/content-record-store";
 import { saveLatestReviewSnapshot } from "@/components/review-context-summary";
-import { StudioResultsDashboard } from "@/components/content-studio/StudioResultsDashboard";
+import { StudioResultsDashboard } from "@/components/content-center/StudioResultsDashboard";
 import { scopedKey } from "@/lib/user-scope";
 import { normalizeReviewResult } from "@/lib/review-normalizer";
 import { riskDisplayLabel, hasNoRisks, type ContentKind, type ReviewResult, type RiskAffectedParty, type RiskLevel } from "@/lib/types";
@@ -1772,7 +1772,7 @@ function toStoredGovernance(gov: ServerGovernance | undefined, notice: string | 
         { kind, channel, audience, purpose, specialty, topic: topic.trim() || undefined, webSources: activeWebSourcesValue, sourceGovernance: generatedGovernance, sourceDossier: generatedDossier, charLimit, adCta, adStyle, scriptDuration, scriptStyle, articleLength },
         visuals
       );
-      router.push("/content-management");
+      router.push("/records");
     } catch {
       flash("تعذر حفظ المسودة — حاول مرة أخرى.");
     }

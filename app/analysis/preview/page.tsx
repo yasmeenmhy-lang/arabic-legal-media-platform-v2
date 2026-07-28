@@ -336,7 +336,7 @@ export default function PreviewSeed() {
     localStorage.setItem(CONTENT_RECORDS_KEY, JSON.stringify([record, ...filtered]));
     localStorage.setItem(ACTIVE_CONTENT_KEY, JSON.stringify({ contentId, version: 1 }));
 
-    router.push("/content-review?open=1");
+    router.push("/analysis?open=1");
   }, [router]);
 
   return (

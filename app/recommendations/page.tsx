@@ -7,7 +7,7 @@ export default function RecommendationsPage() {
       <PageHeader
         eyebrow="فرص التحسين"
         title="فرص تحسين المحتوى الإعلامي والإعلاني"
-        action={<ButtonLink href="/content-review">تحليل محتوى</ButtonLink>}
+        action={<ButtonLink href="/analysis">تحليل محتوى</ButtonLink>}
       />
 
       <ReviewContextSummary focus="opportunities" />

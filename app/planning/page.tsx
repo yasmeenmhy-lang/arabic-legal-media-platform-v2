@@ -153,15 +153,15 @@ const STAGE_LABELS = [
 // فتفتح المراجعة على المحتوى المحدَّد. مراحل الفكرة/التحسين تُوجَّه للمراجعة أيضاً
 // (المحتوى قائم فعلاً) بدل استوديو الإنشاء الفارغ.
 const STAGE_HREFS = [
-  "/content-review?open=1",            // فكرة المحتوى
-  "/content-review?open=1#findings",   // المراجعة والامتثال
-  "/content-review?open=1#rewrite",    // الصياغة المقترحة
-  "/content-review?open=1#approval",   // اعتماد النسخة
-  "/content-review?open=1#channels",   // القنوات المقترحة
-  "/calendar-v2",                      // موعد النشر
-  "/content-management",               // تجهيز النشر
-  "/content-management",               // المتابعة
-  "/content-review?open=1",            // التحسين
+  "/analysis?open=1",            // فكرة المحتوى
+  "/analysis?open=1#findings",   // المراجعة والامتثال
+  "/analysis?open=1#rewrite",    // الصياغة المقترحة
+  "/analysis?open=1#approval",   // اعتماد النسخة
+  "/analysis?open=1#channels",   // القنوات المقترحة
+  "/planning",                      // موعد النشر
+  "/records",               // تجهيز النشر
+  "/records",               // المتابعة
+  "/analysis?open=1",            // التحسين
 ];
 
 function computeStages(record: StoredContentRecord, targetDate: string) {
@@ -850,7 +850,7 @@ function ContentPanel({
                   <div className="flex items-center gap-3">
                     {postOutcome === "published" && (
                       <Link
-                        href="/content-studio"
+                        href="/content-center"
                         className="flex items-center gap-1 text-xs text-palm hover:underline"
                       >
                         <Sparkles size={11} /> إنشاء محتوى مشابه
@@ -1652,7 +1652,7 @@ export default function CalendarV2Page() {
         {records.length === 0 ? (
           <p className="mb-3 flex items-center justify-center gap-2 rounded-lg bg-paper px-3 py-2 text-sm text-ink/55">
             لا يوجد محتوى محفوظ بعد —
-            <Link href="/content-studio" className="inline-flex items-center gap-1 text-palm hover:underline">
+            <Link href="/content-center" className="inline-flex items-center gap-1 text-palm hover:underline">
               <Sparkles size={13} /> ابدأ بإنشاء محتوى
             </Link>
           </p>

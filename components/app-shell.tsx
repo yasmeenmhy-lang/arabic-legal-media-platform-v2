@@ -11,11 +11,11 @@ import { navItems, platformTitle } from "@/lib/navigation";
 // الاستوديو في الوسط بزر بارز مرتفع (تجربة الجوال)
 // بقرار مالكة المنصة: «المزيد» في أول الشريط (أقصى اليمين) و«السجل» في آخره
 const bottomTabs = [
-  { title: "التحليل", href: "/content-review", icon: FileCheck2, primary: false, soon: false },
-  { title: "مركز المحتوى", href: "/content-studio", icon: Sparkles, primary: true, soon: false },
+  { title: "التحليل", href: "/analysis", icon: FileCheck2, primary: false, soon: false },
+  { title: "مركز المحتوى", href: "/content-center", icon: Sparkles, primary: true, soon: false },
   // «التخطيط» تبقى ظاهرة لكن معطّلة (قريبًا) — لا تُحذف
-  { title: "التخطيط", href: "/calendar-v2", icon: CalendarDays, primary: false, soon: true },
-  { title: "السجل", href: "/content-management", icon: FileClock, primary: false, soon: false },
+  { title: "التخطيط", href: "/planning", icon: CalendarDays, primary: false, soon: true },
+  { title: "السجل", href: "/records", icon: FileClock, primary: false, soon: false },
 ];
 import { SessionChip } from "@/components/session-chip";
 import { clsx } from "clsx";

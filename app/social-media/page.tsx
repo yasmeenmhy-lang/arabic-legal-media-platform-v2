@@ -231,7 +231,7 @@ export default function SocialMediaPage() {
         eyebrow="المشاركة والتصدير"
         title="تجهيز مخرجات النشر المعتمدة"
       />
-      <Link href="/content-review?open=1" className="inline-flex rounded-md border border-line px-4 py-2 text-sm text-palm transition hover:border-palm hover:bg-mint focus-ring">
+      <Link href="/analysis?open=1" className="inline-flex rounded-md border border-line px-4 py-2 text-sm text-palm transition hover:border-palm hover:bg-mint focus-ring">
         عودة إلى نتائج المراجعة
       </Link>
 
@@ -292,7 +292,7 @@ export default function SocialMediaPage() {
           <div className="rounded-lg border border-dashed border-line bg-paper p-6 text-center">
             <p className="font-semibold">لا توجد نسخة معتمدة متاحة للمشاركة</p>
             <p className="mt-2 leading-7 text-ink/65">راجع المحتوى، عالج الملاحظات، ثم اعتمد النسخة النهائية لتفعيل جميع إجراءات المشاركة والتصدير.</p>
-            <Link href="/content-review" className="mt-4 inline-flex rounded-md bg-palm px-4 py-2.5 text-white">فتح مراجعة المحتوى</Link>
+            <Link href="/analysis" className="mt-4 inline-flex rounded-md bg-palm px-4 py-2.5 text-white">فتح مراجعة المحتوى</Link>
           </div>
         </Panel>
       )}

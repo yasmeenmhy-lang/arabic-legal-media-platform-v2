@@ -81,15 +81,15 @@ import { Search } from "lucide-react";
 import { saveLatestReviewSnapshot } from "@/components/review-context-summary";
 import { riskDisplayLabel, type ContentKind, type ReviewResult, type RiskLevel } from "@/lib/types";
 import { describeEvidenceState, evidenceUsedInText, type SourceDossier } from "@/lib/source-dossier";
-import { FindingsList } from "@/components/content-review/FindingCard";
+import { FindingsList } from "@/components/analysis/FindingCard";
 import {
   ComplianceIndicatorCard,
   LanguageIndicatorCard,
   ProfessionalismIndicatorCard,
   ReadinessIndicatorCard,
   RiskIndicatorCard
-} from "@/components/content-review/IndicatorCards";
-import { InlineContentGuidance } from "@/components/content-review/InlineGuidance";
+} from "@/components/analysis/IndicatorCards";
+import { InlineContentGuidance } from "@/components/analysis/InlineGuidance";
 
 const contentTypes = contentKindOptions.filter((item) =>
   (["post", "caption", "statement", "diary", "advertisement", "campaign", "article", "script", "visual_content", "infographic", "publishing_plan"] as ContentKind[]).includes(item.value)
@@ -1313,7 +1313,7 @@ export default function ContentReviewPage() {
       <PageHeader
         eyebrow="مساعد النشر للمحتوى المهني"
         title="التحليل التفصيلي للمحتوى المهني"
-        action={<ButtonLink href={contentId ? "/content-studio?results=1" : "/content-studio"} variant="secondary-gray"><ArrowRight size={16} />العودة إلى مركز المحتوى</ButtonLink>}
+        action={<ButtonLink href={contentId ? "/content-center?results=1" : "/content-center"} variant="secondary-gray"><ArrowRight size={16} />العودة إلى مركز المحتوى</ButtonLink>}
       />
 
       {/* النتائج بعرض الصفحة للحاسب والآيباد؛ الجوال يحتفظ بتسلسله العمودي. */}

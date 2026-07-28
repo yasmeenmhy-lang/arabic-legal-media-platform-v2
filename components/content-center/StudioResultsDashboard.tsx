@@ -160,7 +160,7 @@ export function StudioResultsDashboard({ review, text, visuals = [], onEdit, onS
 
         <div className="mt-5 border-t border-line pt-4">
           {detailedAnalysisAvailable ? (
-            <ButtonLink href="/content-review?open=1" className="w-full justify-center">افتح التحليل التفصيلي ←</ButtonLink>
+            <ButtonLink href="/analysis?open=1" className="w-full justify-center">افتح التحليل التفصيلي ←</ButtonLink>
           ) : (
             <Button variant="secondary-gray" disabled className="w-full cursor-not-allowed opacity-60">التحليل التفصيلي غير متاح</Button>
           )}

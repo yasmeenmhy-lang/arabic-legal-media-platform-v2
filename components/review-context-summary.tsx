@@ -193,7 +193,7 @@ export function ReviewContextSummary({ focus }: { focus: "findings" | "opportuni
             <p className="text-xs font-normal leading-6 text-palm">سياق المراجعة</p>
             <p className="mt-1 text-sm leading-7 text-ink/65">لا توجد مراجعة نشطة في هذه الجلسة. ابدأ من صفحة مراجعة المحتوى لعرض السياق المختصر هنا.</p>
           </div>
-          <Link href="/content-review" className="rounded-md border border-line bg-white px-4 py-2.5 text-sm font-normal text-palm focus-ring">
+          <Link href="/analysis" className="rounded-md border border-line bg-white px-4 py-2.5 text-sm font-normal text-palm focus-ring">
             فتح مراجعة المحتوى
           </Link>
         </div>
@@ -218,7 +218,7 @@ export function ReviewContextSummary({ focus }: { focus: "findings" | "opportuni
       </div>
       <div className="mt-4 flex flex-wrap gap-2 text-xs">
         <StatusBadge tone={["بالغ", "حرج", "مرتفع"].includes(context.riskLevel ?? "") ? "gold" : context.riskLevel === "متوسط" ? "neutral" : "good"}>{focusLabels[focus]}</StatusBadge>
-        <Link href="/content-review?open=1#decision" className="rounded-md border border-line bg-paper px-3 py-2 text-ink/70 transition hover:border-palm hover:text-palm focus-ring">
+        <Link href="/analysis?open=1#decision" className="rounded-md border border-line bg-paper px-3 py-2 text-ink/70 transition hover:border-palm hover:text-palm focus-ring">
           العودة إلى المراجعة
         </Link>
         <Link href="/legal-compliance" className="rounded-md border border-line bg-paper px-3 py-2 text-ink/70 transition hover:border-palm hover:text-palm focus-ring">

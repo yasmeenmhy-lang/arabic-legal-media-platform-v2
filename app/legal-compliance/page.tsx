@@ -7,7 +7,7 @@ export default function LegalCompliancePage() {
       <PageHeader
         eyebrow="ملاحظات الامتثال"
         title="ملاحظات الامتثال المهني"
-        action={<ButtonLink href="/content-review">مراجعة محتوى</ButtonLink>}
+        action={<ButtonLink href="/analysis">مراجعة محتوى</ButtonLink>}
       />
 
       <ReviewContextSummary focus="findings" />
