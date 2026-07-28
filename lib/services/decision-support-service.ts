@@ -106,7 +106,12 @@ export function buildSourceGovernanceReasons(gov?: {
   if (gov?.violations?.length) {
     reasons.push(`غير جاهز للنشر بسبب مخالفة حوكمة المصادر (${gov.violations.join("، ")}).`);
   }
-  if (gov?.article10Applied && gov?.officialSourceFound === false && !gov?.stopped) {
+  // ★ الحكم على النص المسلَّم (بقرار مالكة المنصة — تصحيح جذري): غياب المصدر
+  // بذاته لا يحجب. الحاجب هو أن يحمل النص فعلاً تفصيلة نظامية بلا دليل — وهذه
+  // ترد في `violations` أعلاه من المنفّذ الحتمي. أما نصٌّ خرج نظيفاً بلا أي
+  // تفصيلة نظامية (تأمل، نصيحة، محتوى عام) فلا شيء فيه يحتاج مصدراً أصلاً،
+  // وكان يُحجب لمجرد أن البحث لم يجد مصدراً لادعاءات لم تدخل النص.
+  if (gov?.article10Applied && gov?.officialSourceFound === false && !gov?.stopped && gov?.violations?.length) {
     reasons.push("غير جاهز للنشر لعدم وجود مصدر حكومي رسمي مختص يمكن الاستناد إليه.");
   }
   if (gov?.unverifiedSource) {
