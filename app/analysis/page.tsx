@@ -492,6 +492,7 @@ export default function ContentReviewPage() {
     setScriptStyle(version.scriptStyle ?? "");
     setArticleLength(version.articleLength ?? "");
     setReview(version.analysis ? normalizeReviewResult(version.analysis) : null);
+    analyzedTextRef.current = version.analysis ? (version.body ?? "").trim() : "";
     setApproved(Boolean(version.approvedAt));
     setIsEditing(false);
     setMessage(version.analysis
@@ -526,6 +527,8 @@ export default function ContentReviewPage() {
   // أحدث — لو انطلق تحليلان (تحليل ثم إعادة تحليل سريعة، أو تحليل مع تطبيق صياغة)
   // وعاد الأقدم بعد الأحدث، تُهمل استجابته بدل أن تظهر كأن «التحليل رجع نصاً قديماً».
   const reviewRequestIdRef = useRef(0);
+  // النص الذي صدر عليه الحكم المعروض — أساس قاعدة «حكم واحد للنص الواحد»
+  const analyzedTextRef = useRef<string>("");
 
   // حقول الإطار (نوع/جمهور/هدف/تخصص/قناة/حد) تُدخَل في مركز المحتوى — تُخفى هنا منعاً
   // للتكرار (بقرار المالكة). المراجعة تعمل على النص وحده؛ النوع الافتراضي «منشور».
@@ -674,6 +677,7 @@ export default function ContentReviewPage() {
     setArticleLength(pending.articleLength ?? "");
     setContentId(pending.contentId);
     setReview(null);
+    analyzedTextRef.current = "";
     setLoading(true);
     setMessage("");
     void (async () => {
@@ -684,6 +688,7 @@ export default function ContentReviewPage() {
       if (outcome.data) {
         const result = outcome.data;
         setReview(result);
+        analyzedTextRef.current = (pending!.body ?? "").trim();
         saveLatestReviewSnapshot(result);
         const saved = upsertAnalyzedVersion({
           contentId: pending!.contentId,
@@ -722,6 +727,15 @@ export default function ContentReviewPage() {
   async function runReview(quick = false) {
     if (text.trim().length < 5) {
       setMessage("أدخل نصاً من خمسة أحرف على الأقل للتحليل.");
+      return;
+    }
+    // ★ حكم واحد للنص الواحد (بقرار مالكة المنصة): «النتيجة لازم تكون نفسها».
+    // معادلات المؤشرات موحّدة في كل المسارات، لكن إعادة بناء الحكم بنداء ذكاء
+    // جديد على نص لم يتغيّر كانت تُنتج تقديراً مختلفاً للجهات المتضررة فتتبدل
+    // البطاقة. فما دام النص هو النص، يبقى الحكم هو الحكم — ولا يُستدعى الذكاء
+    // ولا تُستهلك تكلفة. وأي تعديل في النص يُعيد الفحص كاملاً كما كان.
+    if (review && analyzedTextRef.current === text.trim()) {
+      setMessage("النص لم يتغيّر عن آخر تحليل — النتيجة المعروضة هي حكم هذا النص. عدّل النص ثم أعد التحليل للحصول على حكم جديد.");
       return;
     }
     // مراجعة سريعة (بقرار مالكة المنصة): تُطبَّق كل فحوص المحرك كاملةً على النص دون
@@ -787,6 +801,7 @@ export default function ContentReviewPage() {
       }
       const result = outcome.data;
       setReview(result);
+      analyzedTextRef.current = text.trim();
       saveLatestReviewSnapshot(result);
       const saved = upsertAnalyzedVersion({
         contentId,
@@ -881,6 +896,7 @@ export default function ContentReviewPage() {
     }
     setVersionNumber(saved.version.version);
     setReview(null);
+    analyzedTextRef.current = "";
     setApproved(false);
     setEditSnapshot(null);
     setIsEditing(false);
@@ -1276,6 +1292,7 @@ export default function ContentReviewPage() {
       // استجابة متأخرة لطلب سبقه طلب أحدث: تُهمل ولا تُطبَّق
       if (requestId !== reviewRequestIdRef.current) return;
       setReview(result);
+      analyzedTextRef.current = suggestionText.trim();
       saveLatestReviewSnapshot(result);
       const saved = upsertAnalyzedVersion({
         contentId,

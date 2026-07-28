@@ -226,6 +226,11 @@ export function RiskIndicatorCard({ review, staticSummary }: { review: ReviewRes
         </span>
       }
     >
+      {/* ★ اتساق البطاقة (بقرار مالكة المنصة): «لا يوجد مخاطر» لا تُعرض معها جهات
+          متضررة — كانت البطاقة تنفي الأثر بنصها وتعرض الجهات الثلاث في آن واحد */}
+      {noRisks ? (
+        <p className="text-sm leading-7 text-ink/70">لم يُرصد أثر على الموكل أو المحامي أو المهنة.</p>
+      ) : (
       <div>
         <p className="mb-2 text-xs text-slate-400">الجهات المتضررة</p>
         <div className="flex flex-wrap gap-2">
@@ -247,6 +252,7 @@ export function RiskIndicatorCard({ review, staticSummary }: { review: ReviewRes
           })}
         </div>
       </div>
+      )}
       {review.riskScoreExplanation.explanation ? (
         <p className="mt-4 rounded-lg bg-slate-50 p-3 text-sm leading-6 text-slate-600">{review.riskScoreExplanation.explanation}</p>
       ) : null}

@@ -341,8 +341,15 @@ export function computeCompleteness(
   if (unsupportedDetails.length > 0) {
     reasons.push(`النص يتضمن تفصيلاً خارج خريطة الإثبات: ${unsupportedDetails.join("، ")}`);
   }
+  // ★ الحكم على النص المسلَّم لا على قائمة الادعاءات (بقرار مالكة المنصة —
+  // تصحيح جذري): كان أي ادعاء لم يثبت يحجب القرار ولو لم يدخل النص أصلاً، فيخرج
+  // نصٌّ نظيف تماماً بقرار «غير موصى بالنشر»، ويتغيّر القرار بحسب وصول ملف
+  // المصادر من عدمه لا بحسب النص. الآن يحجب ما ورد في النص فعلاً: تفصيلة نظامية
+  // بلا دليل (unsupportedDetails — يرصدها المنفّذ الحتمي)، أو حكم جوهري مستخرج
+  // أغفله النص. والادعاء الذي لم يثبت ولم يدخل النص يُذكر في خريطة الاستناد
+  // شفافيةً ولا يحجب — لأن النص لا يقول شيئاً غير مثبت.
   return {
-    ready: unproven.length === 0 && unusedEssential.length === 0 && unsupportedDetails.length === 0,
+    ready: unusedEssential.length === 0 && unsupportedDetails.length === 0,
     claimsNeedingProof: proofClaims.length,
     claimsProven: proven.length,
     unproven,
