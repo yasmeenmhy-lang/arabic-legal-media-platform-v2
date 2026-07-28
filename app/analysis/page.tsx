@@ -440,6 +440,7 @@ export default function ContentReviewPage() {
 
   // بحث منسدل لفتح محتوى محفوظ سابقاً وتحميله للمراجعة
   const [savedRecords, setSavedRecords] = useState<StoredContentRecord[]>([]);
+  const [cameFromRecords, setCameFromRecords] = useState(false);
   const [recordSearch, setRecordSearch] = useState("");
   const [recordSearchFocus, setRecordSearchFocus] = useState(false);
   // صندوق المحتوى مرتبط بالمحتوى المختار: يُفتح فور اختيار مادة من السجل ليُرى نصّها،
@@ -505,6 +506,8 @@ export default function ContentReviewPage() {
     // بقرار مالكة المنصة: فتح صفحة المراجعة من التبويب = نموذج نظيف دائماً.
     // المحتوى النشط يُحمَّل فقط عند فتح صريح (open=1): زر «فتح» في السجل،
     // أو زر «التحليل التفصيلي» في الاستديو — لا نص «معلّقاً» من جلسة سابقة.
+    // زر العودة يتبع الصفحة التي فتحت منها هذه المراجعة (السجل أو مركز المحتوى)
+    setCameFromRecords(new URLSearchParams(window.location.search).get("from") === "records");
     if (new URLSearchParams(window.location.search).get("open") !== "1") return;
     const selection = getActiveContentSelection();
     if (!selection) return;
@@ -1330,7 +1333,9 @@ export default function ContentReviewPage() {
       <PageHeader
         eyebrow="مساعد النشر للمحتوى المهني"
         title="التحليل التفصيلي للمحتوى المهني"
-        action={<ButtonLink href={contentId ? "/content-center?results=1" : "/content-center"} variant="secondary-gray"><ArrowRight size={16} />العودة إلى مركز المحتوى</ButtonLink>}
+        action={cameFromRecords
+          ? <ButtonLink href="/records" variant="secondary-gray"><ArrowRight size={16} />العودة إلى السجل</ButtonLink>
+          : <ButtonLink href={contentId ? "/content-center?results=1" : "/content-center"} variant="secondary-gray"><ArrowRight size={16} />العودة إلى مركز المحتوى</ButtonLink>}
       />
 
       {/* النتائج بعرض الصفحة للحاسب والآيباد؛ الجوال يحتفظ بتسلسله العمودي. */}
