@@ -38,7 +38,7 @@ export async function GET(request: NextRequest) {
   if (!userResponse.ok) return NextResponse.redirect(new URL("/login?nafath=user-error", request.url));
   const profile = await userResponse.json() as { sub?: string; name?: string; role?: string };
   const role = profile.role === "ADMIN" || profile.role === "DIRECTOR" ? profile.role : "LAWYER";
-  const response = NextResponse.redirect(new URL("/dashboard", request.url));
+  const response = NextResponse.redirect(new URL("/content-center", request.url));
   response.cookies.set("nafath_session", signNafathSession({ id: profile.sub, name: profile.name, role }), {
     httpOnly: true,
     sameSite: "lax",

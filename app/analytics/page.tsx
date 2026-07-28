@@ -97,8 +97,8 @@ export default function AnalyticsPage() {
         title="التقارير والمؤشرات"
         description="تعرض التقارير المؤشرات المحسوبة من مراجعات فعلية محفوظة فقط."
       />
-      <Link href="/dashboard" className="inline-flex rounded-md border border-line px-4 py-2 text-sm text-palm transition hover:border-palm hover:bg-mint focus-ring">
-        عودة إلى لوحة التحكم
+      <Link href="/content-center" className="inline-flex rounded-md border border-line px-4 py-2 text-sm text-palm transition hover:border-palm hover:bg-mint focus-ring">
+        عودة إلى مركز المحتوى
       </Link>
 
       <KpiGrid items={[

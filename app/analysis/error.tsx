@@ -29,7 +29,7 @@ export default function ContentReviewError({
       </div>
       <div className="flex flex-wrap justify-center gap-3">
         <Button onClick={reset} leadingIcon={<RefreshCw size={16} />}>إعادة المحاولة</Button>
-        <ButtonLink href="/dashboard" variant="secondary-gray">الرئيسية</ButtonLink>
+        <ButtonLink href="/content-center" variant="secondary-gray">الرئيسية</ButtonLink>
       </div>
     </div>
   );

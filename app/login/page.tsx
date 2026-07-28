@@ -41,7 +41,7 @@ export default function LoginPage() {
           <LoginForm />
         ) : (
           <Link
-            href="/dashboard"
+            href="/content-center"
             className="block w-full rounded bg-palm px-4 py-2.5 text-center font-normal text-white transition hover:bg-palmDark focus-ring"
           >
             دخول بالحساب الافتراضي — ياسمين

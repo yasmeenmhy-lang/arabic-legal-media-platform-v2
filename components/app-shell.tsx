@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { BookOpen, CalendarDays, ExternalLink, FileCheck2, FileClock, Headphones, KeyRound, Menu, Sparkles } from "lucide-react";
-import { navItems, platformTitle } from "@/lib/navigation";
+import { adminNavItems, navItems, platformTitle } from "@/lib/navigation";
 
 // شريط تنقّل سفلي للجوال فقط (تجربة الجوال) — يعيد استخدام المسارات الفعلية،
 // و«المزيد» يفتح القائمة الجانبية القائمة. الحاسوب لا يتأثر (sm:hidden).
@@ -152,6 +152,32 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 </Link>
               );
             })}
+            {/* ★ بنود إدارة المنصة (بقرار مالكة المنصة): لحساب المدير حصراً — الحسابات الأخرى لا ترى شيئاً */}
+            {role === "admin" ? (
+              <div className="mt-4 border-t border-line pt-4">
+                <p className="mb-2 px-3 text-[11px] font-semibold leading-4 text-ink/45">إدارة المنصة</p>
+                {adminNavItems.map((item) => {
+                  const Icon = item.icon;
+                  const active = pathname === item.href;
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      onClick={() => setNavOpen(false)}
+                      className={clsx(
+                        "mb-1.5 flex items-center gap-3 rounded-lg border px-3 py-3 text-sm transition focus-ring",
+                        active
+                          ? "border-palm bg-mint font-semibold text-palm"
+                          : "border-transparent text-ink/75 hover:border-line hover:bg-paper hover:text-ink"
+                      )}
+                    >
+                      <Icon size={18} className="shrink-0" />
+                      <span className="min-w-0 leading-6">{item.title}</span>
+                    </Link>
+                  );
+                })}
+              </div>
+            ) : null}
           </nav>
         </div>
         {/* بطاقات الدليل والدعم — مثبّتة أسفل الدرج */}
