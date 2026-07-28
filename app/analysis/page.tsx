@@ -772,7 +772,19 @@ export default function ContentReviewPage() {
       const startRes = await fetch("/api/reviews/start", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ contentId, text, kind: effKind, contentType: effTypeLabel, channel: effChannel || "غير محددة", audience: effAudience, purpose: effPurpose, sourceDossier: savedDossier ?? undefined }),
+        // ★ لا يُخترع إطار (بقرار مالكة المنصة): حقول الإطار مخفية في المراجعة
+        // (showFrameworkFields=false) فلا يختار المستخدم شيئاً، وكان يُرسل مع ذلك
+        // «منشور» و«غير محددة» — إطارٌ موهوم يُحكم على أسلوب النص بمقتضاه.
+        // فصار الإطار يُرسل حصراً حين يكون حقيقياً: محتوى محفوظ اختير نوعه عند
+        // إنشائه (يدلّ عليه contentId). وفي اللصق المباشر لا يُرسل شيء منه.
+        body: JSON.stringify({
+          contentId, text, kind: effKind,
+          contentType: contentId ? effTypeLabel : undefined,
+          channel: contentId ? (effChannel || undefined) : undefined,
+          audience: contentId ? (effAudience || undefined) : undefined,
+          purpose: contentId ? (effPurpose || undefined) : undefined,
+          sourceDossier: savedDossier ?? undefined,
+        }),
       });
       const startPayload = (await startRes.json().catch(() => ({}))) as { jobId?: string | null; error?: string };
       if (requestId !== reviewRequestIdRef.current) return;
