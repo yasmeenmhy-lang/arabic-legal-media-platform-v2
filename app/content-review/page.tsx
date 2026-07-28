@@ -198,14 +198,6 @@ function DesktopSelect({ value, onChange, placeholder, emptyLabel, options }: {
 }
 
 const severityOrder = { critical: 0, high: 1, medium: 2, low: 3 } as const;
-const reviewTabs = [
-  { key: "findings", label: "الملاحظات" },
-  { key: "compliance", label: "الامتثال" },
-  { key: "risk", label: "المخاطر" },
-  { key: "improvements", label: "فرص التحسين" },
-  { key: "sharing", label: "المشاركة" }
-] as const;
-type ReviewTab = (typeof reviewTabs)[number]["key"];
 
 function decisionTone(review: ReviewResult) {
   if (review.analysisMode === "pattern-only" || review.evaluationIncomplete) return "neutral" as const;
@@ -273,7 +265,6 @@ export default function ContentReviewPage() {
   const [saveLaterMsg, setSaveLaterMsg] = useState("");
   // رسالة فورية تحت زر الاعتماد — لا صمت عند أي عائق
   const [approveMsg, setApproveMsg] = useState("");
-  const [activeTab, setActiveTab] = useState<ReviewTab>("findings");
   const [isEditing, setIsEditing] = useState(false);
   const [editSnapshot, setEditSnapshot] = useState<{
     text: string;
@@ -833,54 +824,6 @@ export default function ContentReviewPage() {
     }
   }
 
-  async function applyRewrite() {
-    const rewrite = review?.governedRewrites[0];
-    // كسابقتها: التطبيق بعد المراجعة ولا يُرسل «التخصص»، فلا يُشترط هنا كي لا يتوقف الزر بصمت.
-    if (!rewrite || !kind || !audience || !purpose) return;
-    // ★ القاعدة الأساسية: يُطبَّق فقط النص المفحوص ببوابة الحاكم (rewrite.suggestedText) —
-    // نص طبقة التحسين غير مفحوص وممنوع تطبيقه (يشمل تحليلات قديمة محفوظة قبل المنع)
-    const rewriteText = rewrite.suggestedText;
-    setText(rewriteText);
-    setMessage("تم تطبيق الصياغة المقترحة. جار إعادة التقييم للتحقق من النتيجة الفعلية.");
-    const requestId = ++reviewRequestIdRef.current;
-    setLoading(true);
-    try {
-      const result = await fetch("/api/reviews", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: rewriteText, kind, contentType: contentTypeLabel, channel, audience, purpose, sourceDossier: savedDossier ?? undefined })
-      }).then((response) => response.json()).then((payload) => payload.data as ReviewResult);
-      // استجابة متأخرة لطلب سبقه طلب أحدث: تُهمل ولا تُطبَّق
-      if (requestId !== reviewRequestIdRef.current) return;
-      setReview(result);
-      saveLatestReviewSnapshot(result);
-      const saved = upsertAnalyzedVersion({
-        contentId,
-        title: contentTitle,
-        body: rewriteText,
-        contentType: kind,
-        contentTypeLabel,
-        channel,
-        audience,
-        purpose,
-        specialty,
-        charLimit,
-        adCta,
-        adStyle,
-        scriptDuration,
-        scriptStyle,
-        articleLength,
-        sourceDossier: result.sourceDossier ?? savedDossier ?? undefined,
-        review: result
-      });
-      setVersionNumber(saved.version.version);
-      setApproved(false);
-      setMessage("تم تطبيق الصياغة وإعادة تقييمها. راجع توصية النشر الجديدة قبل الاعتماد.");
-    } finally {
-      if (requestId === reviewRequestIdRef.current) setLoading(false);
-    }
-  }
-
   function beginEditing() {
     setEditSnapshot({ text, kind, channel, audience, purpose });
     setIsEditing(true);
@@ -1365,13 +1308,6 @@ export default function ContentReviewPage() {
     }
   }
 
-  function navigateToReviewSection(tab: ReviewTab) {
-    setActiveTab(tab);
-    window.requestAnimationFrame(() => {
-      document.getElementById(tab)?.scrollIntoView({ behavior: "smooth", block: "start" });
-    });
-  }
-
   return (
     <div className="content-review-window space-y-6">
       <PageHeader
@@ -1510,7 +1446,7 @@ export default function ContentReviewPage() {
             )}
             {/* الإرشاد المباشر داخل الأوكورديون نفسه (بقرار مالكة المنصة) — لا صندوق منفصل تحته */}
             <div className="mt-3">
-              <InlineContentGuidance review={review} draftText={text} onApplyRewrite={applyRewrite} loading={loading} />
+              <InlineContentGuidance review={review} draftText={text} loading={loading} />
             </div>
           </div>
         </details>

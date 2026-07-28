@@ -146,9 +146,9 @@ export function buildInternalAssistantSummary(review: ReviewResult, assistantIss
 }
 
 export function InlineContentGuidance({
-  review, draftText, onApplyRewrite, loading
+  review, draftText, loading
 }: {
-  review: ReviewResult | null; draftText: string; onApplyRewrite: () => void; loading: boolean;
+  review: ReviewResult | null; draftText: string; loading: boolean;
 }) {
   const liveSpellingIssues = detectInlineWritingIssues(draftText);
 
