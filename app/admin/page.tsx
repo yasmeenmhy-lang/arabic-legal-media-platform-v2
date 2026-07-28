@@ -31,7 +31,18 @@ export default async function AdminPage() {
     );
   }
 
-  const insights = await getAdminInsights();
+  // ★ مبدأ «الجزء المعطل لا يُسقط الكل» (بقرار مالكة المنصة): أقسام هذه اللوحة
+  // التي تقرأ من قاعدة البيانات الخارجية كانت تُسقط الصفحة كلها بخطأ خادم عند
+  // تعذّر القراءة، فتُحجب معها لوحة الأداء السليمة (وهي تُبنى من السجل لا من
+  // قاعدة البيانات). الآن يُحتوى الإخفاق ويُعلن في موضعه.
+  let insights: Awaited<ReturnType<typeof getAdminInsights>> | null = null;
+  let insightsError = false;
+  try {
+    insights = await getAdminInsights();
+  } catch (error) {
+    insightsError = true;
+    console.error("[admin] تعذّر جلب رؤى قاعدة البيانات:", error);
+  }
 
   return (
     <div className="space-y-6">
@@ -45,6 +56,21 @@ export default async function AdminPage() {
       {/* ★ تقارير المنصة عند المدير فقط (بقرار مالكة المنصة) — أداء فعلي من سجل المحتوى */}
       <PerformanceDashboard />
 
+      {insightsError || !insights ? (
+        <Panel>
+          <div className="flex items-start gap-3">
+            <ShieldAlert size={18} className="mt-0.5 shrink-0 text-gold" aria-hidden="true" />
+            <div>
+              <p className="text-sm font-semibold text-ink/80">تعذّر جلب أقسام قاعدة البيانات</p>
+              <p className="mt-1 text-xs leading-6 text-ink/65">
+                الأقسام التي تقرأ من قاعدة البيانات الخارجية (نشاط المستخدمين، الاتجاهات، سلوك المحامين) غير متاحة حالياً.
+                لوحة الأداء أعلاه تعمل كاملةً لأنها تُحسب من سجل المحتوى مباشرة.
+              </p>
+            </div>
+          </div>
+        </Panel>
+      ) : (
+      <>
       <KpiGrid
         items={[
           { label: "مستخدمون نشطون", value: `${insights.totals.activeUsers}`, hint: "خلال الأسبوع الحالي", tone: "good", icon: <Users size={20} /> },
@@ -95,6 +121,8 @@ export default async function AdminPage() {
           rows={insights.userActivityLog.map((entry) => [entry.user, entry.role, entry.action, formatDualDateTime(entry.at)])}
         />
       </Panel>
+      </>
+      )}
 
       <div className="rounded-lg border border-line bg-white p-4 text-xs leading-6 text-ink/65">
         <ShieldAlert size={14} className="mb-1 inline text-gold" /> هذه اللوحة لإدارة المنصة فقط ولا تعرض بيانات تعريفية حساسة عن العملاء أو القضايا.
