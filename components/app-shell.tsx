@@ -89,7 +89,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   );
 
   return (
-    <div className="min-h-screen w-full max-w-full overflow-x-hidden bg-paper">
+    <div className="relative min-h-screen w-full max-w-full overflow-x-hidden bg-paper">
+      {/* خلفية زخرفية خفيفة (بقرار مالكة المنصة: خفيفة ورشيقة، غير حادة ولا مظلمة)
+          — هالتان دائريتان شديدتا الشفافية من لوني الهوية نفسيهما: الأخضر (palm
+          #25935F) والبنفسجي (violet #80519F)، بكثافة ٦-٧٪ فقط فوق الورقي، فتُقرأ
+          عمقاً لطيفاً لا نقشاً. ثابتة لا تتحرك مع التمرير، ولا تلتقط النقر. */}
+      <div aria-hidden="true" className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
+        <div className="absolute -top-40 right-[-12%] h-[42rem] w-[42rem] rounded-full bg-[radial-gradient(circle,rgba(37,147,95,0.07),transparent_70%)]" />
+        <div className="absolute bottom-[-18%] left-[-12%] h-[38rem] w-[38rem] rounded-full bg-[radial-gradient(circle,rgba(128,81,159,0.055),transparent_70%)]" />
+        <div className="absolute left-1/2 top-1/3 h-[30rem] w-[30rem] -translate-x-1/2 rounded-full bg-[radial-gradient(circle,rgba(219,161,2,0.035),transparent_72%)]" />
+      </div>
       {navOpen ? (
         <div
           aria-hidden="true"
@@ -184,7 +193,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <div className="border-t border-line p-4">{helpCards}</div>
       </aside>
 
-      <div className="w-full max-w-full overflow-x-hidden">
+      <div className="relative z-10 w-full max-w-full overflow-x-hidden">
         <header className="sticky top-0 z-40 border-b border-line bg-white/95 backdrop-blur">
           <div className="flex min-h-16 max-w-full items-center justify-between gap-3 px-4 sm:gap-4 sm:px-8">
             <div className="flex min-w-0 items-center gap-3">
@@ -209,7 +218,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <SessionChip />
           </div>
         </header>
-        <main className="min-w-0 max-w-full overflow-x-hidden px-4 pb-24 pt-5 sm:px-8 sm:py-6">{children}</main>
+        {/* توسيط رأسي للحاسب والآيباد وحدهما (md فأعلى) — بقرار مالكة المنصة:
+            الصفحات القصيرة كانت تلتصق بالأعلى والفراغ الأبيض كله أسفلها.
+            الهامش التلقائي (my-auto) يوسّط المحتوى القصير، ويعود صفراً تلقائياً
+            متى طال المحتوى فلا يُقصّ ولا يُزاح — والجوال يبقى بتسلسله العلوي كما هو. */}
+        <main className="min-w-0 max-w-full overflow-x-hidden px-4 pb-24 pt-5 sm:px-8 sm:py-6 md:flex md:min-h-[calc(100vh-4rem)] md:flex-col">
+          {/* حدّ عرض على الشاشات العريضة جداً (1536px فأعلى) مع توسيط أفقي: بلاه
+              كانت البطاقات تتمدّد بعرض الشاشة كله فتبدو ممطوطة ونصّها ضائعاً في
+              فراغها. الآيباد واللابتوب (دون 1536) لا يتأثران إطلاقاً. */}
+          <div className="md:my-auto md:w-full 2xl:mx-auto 2xl:max-w-[88rem]">{children}</div>
+        </main>
       </div>
 
       {/* شريط التنقّل السفلي — الجوال فقط، ويختفي على الدخول وعند فتح القائمة الجانبية */}

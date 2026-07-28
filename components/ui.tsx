@@ -128,17 +128,28 @@ export function PageHeader({
   illustration?: React.ReactNode;
 }) {
   return (
-    <div className="mb-6 w-full max-w-full overflow-hidden rounded-lg border border-line bg-gradient-to-l from-mint via-white to-white p-4 shadow-sm sm:p-6">
+    // ترويسة الصفحة — معالجة بصرية بألوان هوية DGA وحدها (بقرار مالكة المنصة:
+    // خفيفة ورشيقة، غير حادة ولا مظلمة). التدرّج شعاعيّ من الزاوية الرائدة
+    // (أعلى اليمين في RTL) بدل التدرّج المسطّح، ليعطي عمقاً هادئاً بلا ثِقَل.
+    <div className="relative mb-6 w-full max-w-full overflow-hidden rounded-xl border border-line bg-[radial-gradient(130%_150%_at_100%_0%,#F3FCF6_0%,#FFFFFF_48%,#FFFFFF_100%)] p-4 shadow-sm sm:p-6 lg:p-7">
+      {/* شريط الهوية على الحافة الرائدة — يتلاشى نزولاً فلا يكون خطاً حاداً */}
+      <span aria-hidden="true" className="absolute inset-y-0 right-0 w-[3px] bg-gradient-to-b from-palm via-palm/40 to-transparent" />
       <div className="flex flex-col justify-between gap-5 lg:flex-row lg:items-center">
         {/* الرسم بجانب العنوان في كل المقاسات (الجوال أصغر) — لا يُخفى على الجوال */}
-        <div className="flex min-w-0 flex-1 items-center gap-4">
+        <div className="flex min-w-0 flex-1 items-center gap-4 sm:gap-6">
           <div className="min-w-0 max-w-full flex-1">
-            {eyebrow ? <p className="mb-2 text-xs font-normal text-palm">{eyebrow}</p> : null}
+            {/* اللافتة العلوية بخطٍّ فاصل رفيع — تُقرأ تصنيفاً مقصوداً لا سطراً عابراً */}
+            {eyebrow ? (
+              <p className="mb-2 flex items-center gap-2 text-xs font-semibold tracking-[0.06em] text-palm">
+                <span aria-hidden="true" className="h-px w-6 shrink-0 bg-gradient-to-l from-palm/70 to-transparent" />
+                <span className="min-w-0 truncate">{eyebrow}</span>
+              </p>
+            ) : null}
             {/* العنوان يأخذ حاجته من العرض ولا ينكسر لعرضٍ محجوز بجانبه (بقرار المالكة) */}
-            <h2 className="text-balance text-lg font-semibold leading-8 text-ink sm:text-xl sm:leading-9">{title}</h2>
+            <h2 className="text-balance text-lg font-semibold leading-8 text-ink sm:text-xl sm:leading-9 lg:text-[1.7rem] lg:leading-[2.5rem]">{title}</h2>
             {description ? <p className="mt-2 max-w-4xl text-sm leading-7 text-ink/65">{description}</p> : null}
           </div>
-          {illustration ? <div className="max-w-[160px] shrink-0 sm:max-w-[220px]">{illustration}</div> : null}
+          {illustration ? <div className="max-w-[170px] shrink-0 sm:max-w-[250px]">{illustration}</div> : null}
         </div>
         {action ? <div className="min-w-0 shrink-0">{action}</div> : null}
       </div>
