@@ -3481,7 +3481,7 @@ function toStoredGovernance(gov: ServerGovernance | undefined, notice: string | 
             <button
               type="button"
               onClick={() => { setReview(null); setContentId(undefined); setPath("review"); setFrameStep(1); }}
-              className="flex flex-col items-start gap-3 rounded-xl border border-line border-r-2 border-r-palm bg-white p-6 text-right shadow-sm transition hover:shadow-md focus-ring md:gap-5 md:p-10 lg:p-12"
+              className="flex flex-col items-start gap-3 rounded-xl border border-line border-r-2 border-r-palm bg-white p-6 text-right shadow-card transition hover:shadow-lg focus-ring md:gap-5 md:p-10 lg:p-12"
             >
               <span className="grid h-14 w-14 place-items-center rounded-full bg-mint text-palm md:h-20 md:w-20 lg:h-24 lg:w-24">
                 <FileCheck2 size={26} aria-hidden="true" className="md:h-9 md:w-9 lg:h-11 lg:w-11" />
@@ -3495,7 +3495,7 @@ function toStoredGovernance(gov: ServerGovernance | undefined, notice: string | 
             <button
               type="button"
               onClick={startCreatePath}
-              className="flex flex-col items-start gap-3 rounded-xl border border-line border-r-2 border-r-violet bg-white p-6 text-right shadow-sm transition hover:shadow-md focus-ring md:gap-5 md:p-10 lg:p-12"
+              className="flex flex-col items-start gap-3 rounded-xl border border-line border-r-2 border-r-violet bg-white p-6 text-right shadow-card transition hover:shadow-lg focus-ring md:gap-5 md:p-10 lg:p-12"
             >
               <span className="grid h-14 w-14 place-items-center rounded-full bg-violetSoft text-violet md:h-20 md:w-20 lg:h-24 lg:w-24">
                 <Sparkles size={26} aria-hidden="true" className="md:h-9 md:w-9 lg:h-11 lg:w-11" />

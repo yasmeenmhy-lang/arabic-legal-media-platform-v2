@@ -1352,7 +1352,7 @@ export default function ContentReviewPage() {
         className={
           hasSelectedContent
             ? "w-full max-w-full overflow-x-clip rounded-lg border border-line bg-white p-4 shadow-sm sm:p-5"
-            : "w-full max-w-full overflow-x-clip rounded-xl border border-line border-r-2 border-r-palm bg-white px-6 py-10 shadow-sm sm:px-8 sm:py-12 md:px-12 md:py-16 lg:px-16 lg:py-20"
+            : "w-full max-w-full overflow-x-clip rounded-xl border border-line border-r-2 border-r-palm bg-white px-6 py-10 shadow-card sm:px-8 sm:py-12 md:px-12 md:py-16 lg:px-16 lg:py-20"
         }
       >
         {hasSelectedContent ? <SectionTitle title="1. إدخال المحتوى" /> : null}

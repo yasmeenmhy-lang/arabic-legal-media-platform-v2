@@ -89,7 +89,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   );
 
   return (
-    <div className="min-h-screen w-full max-w-full overflow-x-hidden bg-paper">
+    // خلفية الصفحة Gray 100 بدل Gray 25 (بقرار مالكة المنصة: تخفيف حدة الأبيض) —
+    // البطاقات تبقى بيضاء فتنفصل عن الخلفية بدل أن يذوب كل شيء في بحر أبيض واحد.
+    // التغيير على خلفية الصفحة وحدها؛ سائر استعمالات bg-paper (الأسطح الداخلية
+    // وحالات التمرير) باقية كما هي بلا مساس.
+    <div className="min-h-screen w-full max-w-full overflow-x-hidden bg-canvas">
       {navOpen ? (
         <div
           aria-hidden="true"
