@@ -1634,6 +1634,7 @@ function toStoredGovernance(gov: ServerGovernance | undefined, notice: string | 
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           text: activeText,
+          kind: kind || "post",
           contentType: kind ? contentKindLabels[kind] : undefined,
           channel: channel || undefined,
           audience: audience || undefined,

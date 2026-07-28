@@ -71,6 +71,8 @@ export default function SocialMediaPage() {
   const [records, setRecords] = useState<StoredContentRecord[]>([]);
   const [selectedId, setSelectedId] = useState("");
   const [message, setMessage] = useState("");
+  // زر العودة يتبع سلسلة التنقل الأصلية (السجل ← التحليل ← هنا) لا مركز المحتوى دائماً
+  const [cameFromRecords, setCameFromRecords] = useState(false);
   // تأكيد قياسي قبل كل مشاركة — التنبيه يظهر للمستخدم ولا يدخل النص المشارك
   const [confirmShare, setConfirmShare] = useState<
     { label: string; href: string; prefill: boolean } | null
@@ -96,6 +98,10 @@ export default function SocialMediaPage() {
     }
     setConfirmShare(null);
   }
+
+  useEffect(() => {
+    setCameFromRecords(new URLSearchParams(window.location.search).get("from") === "records");
+  }, []);
 
   useEffect(() => {
     // إعادة التحميل عند العودة من ذاكرة المتصفح (bfcache) — التنقل بالسحب للخلف أو
@@ -231,7 +237,7 @@ export default function SocialMediaPage() {
         eyebrow="المشاركة والتصدير"
         title="تجهيز مخرجات النشر المعتمدة"
       />
-      <Link href="/analysis?open=1" className="inline-flex rounded-md border border-line px-4 py-2 text-sm text-palm transition hover:border-palm hover:bg-mint focus-ring">
+      <Link href={cameFromRecords ? "/analysis?open=1&from=records" : "/analysis?open=1"} className="inline-flex rounded-md border border-line px-4 py-2 text-sm text-palm transition hover:border-palm hover:bg-mint focus-ring">
         عودة إلى نتائج المراجعة
       </Link>
 

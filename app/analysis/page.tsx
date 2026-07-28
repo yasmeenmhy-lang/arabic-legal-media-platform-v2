@@ -1092,7 +1092,7 @@ export default function ContentReviewPage() {
     }
     setShareMessage("");
     setMessage("تم تجهيز النسخة المعتمدة للمشاركة وتسجيل الإجراء.");
-    router.push("/social-media");
+    router.push(cameFromRecords ? "/social-media?from=records" : "/social-media");
   }
 
   function clearContentInput() {
@@ -1151,6 +1151,7 @@ export default function ContentReviewPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           text,
+          kind: kind || "post",
           contentType: contentTypeLabel,
           channel,
           audience,
