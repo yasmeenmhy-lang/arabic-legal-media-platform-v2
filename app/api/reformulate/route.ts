@@ -1,7 +1,6 @@
 import { z } from "zod";
 import { NextResponse } from "next/server";
 import { badRequest, ok } from "@/lib/api";
-import type { ContentKind } from "@/lib/types";
 import { AI_CONSTITUTION } from "@/lib/governance";
 import { LEADERSHIP_PRAISE_PIPELINE_NOTE } from "@/lib/leadership-praise-rule";
 import { runSemanticAnalysis } from "@/lib/services/semantic-analysis-service";
@@ -28,14 +27,6 @@ export const maxDuration = 300;
 
 const schema = z.object({
   text: z.string().min(5),
-  // نوع المحتوى — يحدد ملف التقييم (scoring profile) الذي تُفحص الصياغة المقترحة
-  // به، تماماً كمسار المراجعة الرئيسي. بلا هذا الحقل يفحص المحرك دائماً بملف
-  // "منشور" الافتراضي بصرف النظر عن النوع الحقيقي (إعلان، مقال...).
-  kind: z.enum([
-    "post", "advertisement", "article", "script", "campaign", "visual_content",
-    "infographic", "title", "hashtag", "caption", "publishing_plan",
-    "social_export", "statement", "diary"
-  ]).optional(),
   contentType: z.string().optional(),
   channel: z.string().optional(),
   audience: z.string().optional(),
@@ -111,12 +102,11 @@ async function callModel(apiKey: string, systemPrompt: string, userPrompt: strin
 // لا تُعرض أي صياغة فيها مخالفات أو أخطاء إملائية/نحوية.
 async function verifySuggestion(
   text: string,
-  context: { contentType?: string; channel?: string; audience?: string; purpose?: string },
-  kind?: ContentKind
+  context: { contentType?: string; channel?: string; audience?: string; purpose?: string }
 ) {
   // متتابعتان — نفس أساس المراجعة والحاكم: الامتثال عنصر في قياس المخاطر،
   // فلا تُقاس مخاطر صياغة مقترحة بمعزل عن مخالفاتها المرصودة.
-  const semantic = await runSemanticAnalysis(text, context, kind);
+  const semantic = await runSemanticAnalysis(text, context);
   const evaluation = await evaluateContent(text, context, semantic.findings);
   // ★ بقرار مالكة المنصة: يحجب عرض الصياغة الخطأُ القطعي (إملاء/نحو/اتساق مصطلحات)
   // والمخالفة والمخاطر؛ أما الملاحظة الأسلوبية (أسلوب/وضوح) فإرشادية لا تحجب — فلا
@@ -168,7 +158,7 @@ function isNonSubstantiveOutput(output: string): boolean {
 // دورة إعادة الصياغة الكاملة (بحث + كتابة + تحقق + تصحيح) — تُشغَّل خلفياً كي لا
 // يبقى المستخدم على طلب طويل متزامن ينقطع على الجوال. لا تمسّ منطق الفحص إطلاقاً.
 async function runReformulation(data: z.infer<typeof schema>, apiKey: string): Promise<ReformOutcome> {
-  const { text, kind, contentType, channel, audience, purpose, charLimit, findings, languageIssues, hasSource, sourceHint, sourceDossier, refreshSources } = data;
+  const { text, contentType, channel, audience, purpose, charLimit, findings, languageIssues, hasSource, sourceHint, sourceDossier, refreshSources } = data;
   const context = { contentType, channel, audience, purpose };
 
   // ★ قاعدة المحرك الواحد + مبدأ «المصادر لا يُعاد بناؤها»: الملف المرافق للنسخة
@@ -402,7 +392,7 @@ async function runReformulation(data: z.infer<typeof schema>, apiKey: string): P
     }
 
     // جولة تحقق أولى عبر محركي الامتثال واللغة
-    let verification = await verifySuggestion(suggestedText, context, kind);
+    let verification = await verifySuggestion(suggestedText, context);
 
     // جولات تصحيحية متعددة حتى النظافة (بقرار مالكة المنصة: نرفع جهد الصياغة لا سقف
     // الفحص). صار المسار خلفياً، فيحتمل عدة جولات كمسار الإنشاء بدل جولة واحدة تستسلم.
@@ -422,7 +412,7 @@ async function runReformulation(data: z.infer<typeof schema>, apiKey: string): P
       ].join("\n");
       const fixedText = await callModel(apiKey, systemPrompt, fixPrompt);
       if (!fixedText || isOutOfMandateOutput(fixedText) || isNonSubstantiveOutput(fixedText)) break;
-      const next = await verifySuggestion(fixedText, context, kind);
+      const next = await verifySuggestion(fixedText, context);
       if (next.clean || next.remainingNotes.length < verification.remainingNotes.length) {
         suggestedText = fixedText;
         verification = next;
@@ -455,7 +445,7 @@ async function runReformulation(data: z.infer<typeof schema>, apiKey: string): P
       const fixed = await callModel(apiKey, systemPrompt, a10Prompt);
       if (fixed && !isOutOfMandateOutput(fixed) && !isNonSubstantiveOutput(fixed)) {
         const fixedA10 = article10ViolationsWithProof(fixed, proofList);
-        const fixedVerification = await verifySuggestion(fixed, context, kind);
+        const fixedVerification = await verifySuggestion(fixed, context);
         if (fixedA10.length === 0 && fixedVerification.clean) {
           suggestedText = fixed;
           a10 = fixedA10;
