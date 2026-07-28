@@ -24,7 +24,6 @@ import { evaluateContent } from "@/lib/services/content-evaluation-service";
 import { verifyTextCitations } from "@/lib/services/web-research-service";
 import { mergeVerificationIntoDossier, computeCompleteness, describeEvidenceState, provenExcerpts } from "@/lib/source-dossier";
 import { article10ViolationsWithProof } from "@/lib/services/article10-enforcer";
-import { buildGovernedRewriteSuggestions } from "@/lib/services/recommendation-service";
 import {
   calculateContentQualityScore,
   calculatePublishingReadiness,
@@ -214,18 +213,11 @@ export async function buildReviewResult(
     reviewStatus
   });
   const readyForPublishing = readiness.readyForPublishing;
-  // القاعدة الأساسية: الصياغة المقترحة تمر ببوابة الحاكم داخلياً — فشل مغلق فلا
-  // تُعرض صياغة فيها مخالفة أو لم تُفحص (انظر recommendation-service)
-  const governedRewrites = await buildGovernedRewriteSuggestions({
-    text,
-    kind,
-    context,
-    originalFindings: compliance.findings,
-    originalComplianceScore: compliance.complianceScore,
-    originalLanguageQuality: languageQuality.score,
-    originalRiskLevel: riskLevel,
-    originalRiskScore: riskScore
-  });
+  // ★ بقرار مالكة المنصة (٢٠٢٦-٠٧-٢٨): آلية «الصياغة المقترحة التلقائية» حُذفت —
+  // كانت تستدعي الذكاء الاصطناعي فعلياً بتكلفة حقيقية مع كل مراجعة فيها ملاحظة،
+  // ونتيجتها لا تُعرض في أي صفحة من صفحات المنصة. مسار إعادة الصياغة الوحيد
+  // الآن هو الزر اليدوي «صياغة مقترحة» (app/api/reformulate).
+  const governedRewrites: ReviewResult["governedRewrites"] = [];
   const reviewContext = createReviewedContentContext(text, context);
   const calculatedAt = new Date().toISOString();
   const confidence = buildConfidence(compliance.findings);

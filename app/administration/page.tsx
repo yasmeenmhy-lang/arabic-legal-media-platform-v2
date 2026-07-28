@@ -1,7 +1,6 @@
 import { ExternalLink } from "lucide-react";
 import { DataTable, PageHeader, Panel, SectionTitle, StatusBadge } from "@/components/ui";
 import { getLegalSourceUpdateCenter } from "@/lib/services/legal-source-update-service";
-import { governedRewriteSettings } from "@/lib/services/recommendation-service";
 import { formatDualDateTime } from "@/lib/dates";
 
 export const dynamic = "force-dynamic";
@@ -87,41 +86,6 @@ export default async function AdministrationPage() {
             ];
           })}
         />
-      </Panel>
-
-      <Panel className="overflow-hidden">
-        <SectionTitle title="حوكمة مقترحات الصياغة" subtitle="إعدادات بوابة الجودة التي تمنع عرض أي صياغة مقترحة قبل اجتياز التحقق القانوني واللغوي." />
-        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-          <div className="rounded-lg border border-line bg-paper p-4">
-            <p className="text-xs leading-6 text-ink/55">اشتراط التحقق القانوني قبل العرض</p>
-            <div className="mt-3">
-              <StatusBadge tone={governedRewriteSettings.requireLegalValidation ? "good" : "gold"}>
-                {governedRewriteSettings.requireLegalValidation ? "مفعل" : "غير مفعل"}
-              </StatusBadge>
-            </div>
-          </div>
-          <div className="rounded-lg border border-line bg-paper p-4">
-            <p className="text-xs leading-6 text-ink/55">اشتراط التحقق اللغوي قبل العرض</p>
-            <div className="mt-3">
-              <StatusBadge tone={governedRewriteSettings.requireLanguageValidation ? "good" : "gold"}>
-                {governedRewriteSettings.requireLanguageValidation ? "مفعل" : "غير مفعل"}
-              </StatusBadge>
-            </div>
-          </div>
-          <div className="rounded-lg border border-line bg-paper p-4">
-            <p className="text-xs leading-6 text-ink/55">الحد الأدنى للامتثال في المقترحات</p>
-            <p className="mt-2 text-2xl font-normal text-palm">{governedRewriteSettings.minimumComplianceThreshold}%</p>
-            <p className="mt-2 text-xs leading-6 text-ink/55">لا يظهر المقترح إذا كان أقل من هذا الحد أو أحدث ملاحظة جديدة.</p>
-          </div>
-          <div className="rounded-lg border border-line bg-paper p-4">
-            <p className="text-xs leading-6 text-ink/55">الحد الأدنى لجودة اللغة</p>
-            <p className="mt-2 text-2xl font-normal text-palm">{governedRewriteSettings.minimumLanguageQualityThreshold}%</p>
-            <p className="mt-2 text-xs leading-6 text-ink/55">يشترط كذلك أن تنخفض درجة المخاطر أو تبقى دون زيادة.</p>
-          </div>
-        </div>
-        <p className="mt-3 text-xs leading-6 text-ink/55">
-          تدار هذه الإعدادات مركزياً ضمن إعدادات تشغيل المنصة، وتطبق على جميع مقترحات الصياغة قبل عرضها للمستخدم.
-        </p>
       </Panel>
 
       <Panel className="overflow-hidden">
