@@ -3,9 +3,6 @@ import type {
   ComplianceScoreExplanation,
   ContentEvaluationRisks,
   ContentQualityScoreExplanation,
-  FindingCategory,
-  FindingDomain,
-  LegalKnowledgeEntry,
   PublishingReadinessExplanation,
   PublishingReadinessGate,
   ReviewContext,
@@ -32,23 +29,6 @@ export function businessSeverityForFinding(finding: Pick<ReviewFinding, "legalKn
   if (finding.severity === "حرج" || finding.severity === "مرتفع") return "high";
   if (finding.severity === "متوسط") return "medium";
   return "low";
-}
-
-export function classifyLegalKnowledgeEntry(entry: LegalKnowledgeEntry): {
-  category: FindingCategory;
-  domain: FindingDomain;
-  potentialImpact: RiskLevel;
-} {
-  if (entry.id.includes("no-guaranteed-outcomes")) return { category: "الوعود بالنتائج", domain: "نظامي", potentialImpact: "حرج" };
-  if (entry.id.includes("confidentiality")) return { category: "السرية والخصوصية", domain: "نظامي", potentialImpact: "حرج" };
-  if (entry.id.includes("conflict")) return { category: "تعارض المصالح", domain: "مهني", potentialImpact: "مرتفع" };
-  if (entry.id.includes("license") || entry.id.includes("prohibited-wording")) return { category: "الصفة المهنية", domain: "نظامي", potentialImpact: "مرتفع" };
-  if (entry.id.includes("solicitation")) return { category: "استقطاب العملاء", domain: "إعلاني", potentialImpact: entry.severity };
-  if (entry.id.includes("advertising")) return { category: "ضوابط الإعلان", domain: "إعلاني", potentialImpact: entry.severity };
-  if (entry.id.includes("training")) return { category: "الخبرة المهنية", domain: "مهني", potentialImpact: entry.severity };
-  if (entry.id.includes("dignity")) return { category: "كرامة المهنة", domain: "مهني", potentialImpact: entry.severity };
-  if (entry.id.includes("competent-authority")) return { category: "الامتثال التنظيمي", domain: "نظامي", potentialImpact: "مرتفع" };
-  return { category: "التواصل العام", domain: "إجرائي", potentialImpact: entry.severity };
 }
 
 export function arabicSeverity(severity: BusinessSeverity): RiskLevel {

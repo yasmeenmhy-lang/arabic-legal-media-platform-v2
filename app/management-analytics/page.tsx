@@ -41,7 +41,7 @@ export default async function ManagementAnalyticsPage() {
       ]} />
       <div className="grid gap-5 xl:grid-cols-2">
         <Panel><SectionTitle title="اتجاهات الاستخدام" subtitle="مقارنات زمنية مجمعة دون كشف بيانات شخصية." /><BarList items={insights.weeklyTrend} tone="good" /></Panel>
-        <Panel><SectionTitle title="أنماط المخاطر والملاحظات" subtitle="أكثر الفئات ارتباطًا بالمراجع المسجلة." /><BarList items={insights.riskPatternAnalysis.map((item) => ({ label: `${item.level}: ${item.topCategory}`, value: item.ruleCount }))} tone="gold" /></Panel>
+        <Panel><SectionTitle title="الاتجاه الشهري" subtitle="جاهزية النشر خلال الأشهر الثلاثة الأخيرة." /><BarList items={insights.monthlyTrend} tone="gold" /></Panel>
       </div>
       <Panel>
         <SectionTitle title="التحليلات النوعية" subtitle="تُستنتج من النتائج الفعلية ولا تتضمن تقييمًا فرديًا للمستخدمين." />

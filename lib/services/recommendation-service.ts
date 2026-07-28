@@ -7,7 +7,8 @@ import type {
   ReviewFinding,
   RiskLevel
 } from "@/lib/types";
-import { legalKnowledgeEntries, legalSourceDocuments } from "@/lib/legal-knowledge-base";
+import { legalSourceDocuments } from "@/lib/legal-knowledge-base";
+import { OFFICIAL_CORPUS } from "@/lib/legal-official-corpus";
 import { reviewLanguageQuality } from "@/lib/services/language-quality-service";
 import { rebuildComplianceFromFindings } from "@/lib/services/legal-compliance-service";
 import { resolveScoringProfile } from "@/lib/scoring-profiles";
@@ -56,16 +57,19 @@ function sourceIsRegistered(reference: GovernedRewriteReference) {
   );
 }
 
+// التتبّع بعد حذف قاعدة المعرفة: الاستشهاد موثوق إن طابق مادة أو قاعدة فعلية من
+// المتن الرسمي المخزَّن — لا مدخلة قاعدة معرفة وسيطة. المرجع في صورته الجامعة
+// («القاعدة الثامنة والثلاثون، الفقرة (1)» و«القاعدة الثامنة والثلاثون» قاعدة
+// واحدة) — نفس تجريد findOfficialCorpusItem في محرك الحكم الدلالي.
 function findingIsTraceable(finding: ReviewFinding) {
-  return legalKnowledgeEntries.some(
-    (entry) =>
-      entry.id === finding.legalKnowledgeEntryId &&
-      entry.sourceDocumentId === finding.sourceDocumentId &&
-      entry.sourceDocument === finding.sourceDocument &&
-      entry.legalReference === finding.legalReference &&
-      entry.articleTitle === finding.articleTitle &&
-      entry.fullText === finding.articleTextExcerpt &&
-      entry.sourceUrl === finding.sourceUrl
+  const baseRef = finding.legalReference.split(/[،\-–—]|الفقرة/)[0].trim();
+  return OFFICIAL_CORPUS.some(
+    (item) =>
+      item.ref === baseRef &&
+      item.sourceDocumentId === finding.sourceDocumentId &&
+      item.sourceDocument === finding.sourceDocument &&
+      item.sourceUrl === finding.sourceUrl &&
+      item.text === finding.articleTextExcerpt
   );
 }
 
@@ -98,45 +102,43 @@ function normalizedContentScope(context: ReviewContext) {
   return context.contentType?.trim() || "المحتوى المهني";
 }
 
+// بعد حذف قاعدة المعرفة: لا معرّف إنجليزي ثابت (id) يصنّف المخالفة — التصنيف هنا
+// استرشادي فقط من لفظ الدليل نفسه، ومهما كانت دقته فالجملة المقترحة تُفحص كاملة
+// ببوابة الحاكم الدلالي قبل عرضها (انظر governTextFull أدناه) فلا تُعرض إلا مجازة فعلاً.
 function buildInternalSafeSentence(finding: ReviewFinding, context: ReviewContext) {
   const serviceScope = normalizedContentScope(context);
-  const id = finding.legalKnowledgeEntryId;
   const evidence = `${finding.evidence} ${finding.matchedPattern}`.toLowerCase();
 
-  if (id.includes("no-guaranteed-outcomes") || evidence.includes("100%") || evidence.includes("نضمن") || evidence.includes("مضمونة") || evidence.includes("كسب")) {
+  if (evidence.includes("100%") || evidence.includes("نضمن") || evidence.includes("مضمونة") || evidence.includes("مضمون") || evidence.includes("كسب") || evidence.includes("الفوز")) {
     return `يقدم المكتب مراجعة مهنية للوقائع والمستندات المتعلقة بـ${serviceScope}، مع بيان الخيارات النظامية الممكنة دون وعد بنتيجة محددة أو ضمان لمآل الإجراء.`;
   }
 
-  if (id.includes("advertising") || evidence.includes("أفضل") || evidence.includes("رقم واحد") || evidence.includes("الأقوى") || evidence.includes("لا مثيل")) {
+  if (evidence.includes("أفضل") || evidence.includes("رقم واحد") || evidence.includes("رقم 1") || evidence.includes("الأقوى") || evidence.includes("لا مثيل") || evidence.includes("نسبة نجاح")) {
     return "يعرض المكتب خدماته القانونية بصياغة تعريفية مهنية، مع تجنب عبارات التفضيل أو التفوق أو المقارنات غير المثبتة، وبما يحافظ على وضوح الإعلان وصدقه.";
   }
 
-  if (id.includes("confidentiality")) {
+  if (["عميل", "قضية", "هوية", "مستندات", "بيانات"].some((k) => evidence.includes(k))) {
     return "تُعرض الخبرة أو نطاق الخدمات بصورة عامة دون الإفصاح عن أسماء العملاء أو تفاصيل القضايا أو المستندات أو أي بيانات يمكن أن تكشف معلومات سرية.";
   }
 
-  if (id.includes("dignity")) {
+  if (["خصم", "فضيحة", "انتقم", "اهزم", "اسحق", "فاشل", "ضعيف", "يخذل"].some((k) => evidence.includes(k))) {
     return "تُصاغ الرسالة بلغة مهنية هادئة تحافظ على شرف المهنة ومكانتها وثقة الجمهور، وتتجنب العبارات العدائية أو المثيرة أو غير الملائمة.";
   }
 
-  if (id.includes("license") || id.includes("prohibited-wording")) {
+  if (["معتمد", "مرخص", "وزارة العدل", "رسمي", "مصادق", "ترخيص", "حكومي", "تفويض"].some((k) => evidence.includes(k))) {
     return "تُذكر الصفة المهنية ونطاق الخدمة بدقة دون الإيحاء بترخيص أو اعتماد أو موافقة رسمية غير مثبتة من جهة مختصة.";
   }
 
-  if (id.includes("training")) {
+  if (["خبرة", "خبير", "كل القضايا", "الأكثر", "تضليل", "تزييف", "خداع", "إحصائيات", "أسرار", "ألف قضية"].some((k) => evidence.includes(k))) {
     return "يوضح المكتب خبرته وخدماته بعبارات محددة وقابلة للتحقق، دون مبالغة أو تعميم أو ادعاء خبرة مطلقة في جميع الحالات.";
   }
 
-  if (id.includes("conflict")) {
+  if (["الطرفين", "الأطراف", "الخصوم", "تعارض"].some((k) => evidence.includes(k))) {
     return "يؤكد المكتب التزامه بالتحقق من تعارض المصالح قبل قبول أي عمل، وبما يحافظ على استقلالية التمثيل وحماية مصالح العملاء.";
   }
 
-  if (id.includes("communication") || id.includes("solicitation")) {
+  if (["تواصل", "اتصل", "احجز", "فوراً", "فرصة", "ضحية", "متضرر", "حوادث"].some((k) => evidence.includes(k))) {
     return "يمكن للراغبين طلب مراجعة مهنية وفق الوقائع والمستندات ذات الصلة، دون ربط التواصل بتحقيق نتيجة محددة أو استخدام ضغط تسويقي غير ملائم.";
-  }
-
-  if (id.includes("public-communication")) {
-    return "تُعرض المعلومة القانونية بصيغة توعوية عامة، مع التنبيه إلى أن تقدير الموقف النظامي يتطلب مراجعة الوقائع والمستندات ذات الصلة.";
   }
 
   return finding.suggestedSaferWording || "استبدل العبارة محل الملاحظة بصياغة مهنية محايدة لا تتضمن وعدًا أو ادعاءً غير مثبت.";

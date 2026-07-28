@@ -1,6 +1,5 @@
 import { Activity, BarChart3, ShieldAlert, Users } from "lucide-react";
-import { riskDisplay, riskDisplayLabel } from "@/lib/types";
-import { BarList, CircularGauge, DataTable, KpiGrid, PageHeader, Panel, SectionTitle, StatusBadge } from "@/components/ui";
+import { BarList, CircularGauge, DataTable, KpiGrid, PageHeader, Panel, SectionTitle } from "@/components/ui";
 import { isAdminAuthenticated } from "@/lib/admin-auth";
 import { getAdminInsights } from "@/lib/services/admin-service";
 import { formatDualDateTime } from "@/lib/dates";
@@ -91,14 +90,10 @@ export default async function AdminPage() {
         </Panel>
 
         <Panel className="overflow-hidden">
-          <SectionTitle title="تحليل أنماط المخاطر" subtitle="عدد القواعد المسجلة وأبرز فئة مخاطر لكل مستوى." />
+          <SectionTitle title="أداء المحامين" subtitle="عدد المراجعات ومتوسط الامتثال لكل محامٍ من السجل الفعلي." />
           <DataTable
-            headers={["المستوى", "عدد القواعد", "أبرز فئة مخاطر"]}
-            rows={insights.riskPatternAnalysis.map((item) => [
-              <StatusBadge key={item.level} tone={riskDisplay(item.level).tone}>{riskDisplayLabel(item.level)}</StatusBadge>,
-              `${item.ruleCount}`,
-              item.topCategory
-            ])}
+            headers={["المحامي", "عدد المراجعات", "متوسط الامتثال"]}
+            rows={insights.lawyerBehavior.map((item) => [item.owner, `${item.reviews}`, `${item.avgCompliance}%`])}
           />
         </Panel>
       </div>

@@ -13,7 +13,6 @@
 // ★ لا يُعتمد على كون النص الأصلي اجتاز الفحص — المترجم البصري يختصر ويعيد
 // الصياغة، فالمفحوص هو النص النهائي الذي سيُرسم (بنص الأمر، البند ١٠).
 // ─────────────────────────────────────────────────────────────────────────────
-import { scanAgainstCorpus } from "@/lib/services/corpus-scan";
 import { governText } from "@/lib/services/governor-gate";
 import { article10Violations, normalizeClaim } from "@/lib/services/article10-enforcer";
 import type { VisualPlan } from "@/lib/visual-translator";
@@ -47,8 +46,9 @@ const productionJudge: VisualJudge = async (text) => {
   return { compliant: gate.compliant, corrections: gate.corrections };
 };
 
-// البوابة الكاملة على نصوص المرئي: فحص حرفي (الطبقة الأولى — كود مجاني) ثم
-// فحص دلالي (الحارس المعتمد). أي مخالفة من أيهما ⇒ رفض بتصحيحاته المسماة.
+// البوابة الكاملة على نصوص المرئي: الفحص الدلالي وحده (الحارس المعتمد) — بعد
+// حذف قاعدة المعرفة لم يعد للطبقة الأولى حكمٌ حرفي مستقل تُبنى منه تصحيحات هنا؛
+// مواضعها ترفع للقاضي الدلالي نفسه ضمن governText. مخالفة الحارس ⇒ رفض بتصحيحاته.
 // تعطل الحارس الدلالي يصل هنا compliant=false برسالة «لا يُسلَّم نص لم يُفحص»
 // من الحاكم نفسه — فالمسار مغلق تلقائياً.
 export async function guardVisualTexts(
@@ -60,13 +60,6 @@ export async function guardVisualTexts(
 
   const corrections: string[] = [];
 
-  // (١) الفحص الحرفي — ألفاظ متن القواعد واللوائح، حتمي بلا تكلفة
-  const scan = scanAgainstCorpus(joined);
-  corrections.push(
-    ...scan.hits.map((h) => `- عبارة مخالفة لمتن القواعد («${h.excerpt.slice(0, 60)}» — ${h.legalReference}): احذفها أو أعد صياغتها ملتزمة.`)
-  );
-
-  // (٢) الفحص الدلالي — الحارس المعتمد نفسه، بالمعنى والمقصد
   const verdict = await judge(joined);
   if (!verdict.compliant) corrections.push(...verdict.corrections);
 

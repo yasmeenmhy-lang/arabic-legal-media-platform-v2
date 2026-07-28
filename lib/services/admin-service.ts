@@ -1,6 +1,5 @@
-import type { ContentKind, RiskLevel } from "@/lib/types";
+import type { ContentKind } from "@/lib/types";
 import { contentKindLabels } from "@/lib/content-types";
-import { legalKnowledgeEntries } from "@/lib/legal-knowledge-base";
 import { getReviewReadinessItems } from "@/lib/services/approval-workflow-service";
 
 export type UserActivityLogEntry = {
@@ -23,23 +22,6 @@ function buildContentTypeDistribution() {
     label: contentKindLabels[kind],
     value: contentTypeCounts[kind] ?? 0
   }));
-}
-
-function buildRiskPatternAnalysis() {
-  const levels: RiskLevel[] = ["مرتفع", "متوسط", "منخفض"];
-
-  return levels.map((level) => {
-    const entries = legalKnowledgeEntries.filter((entry) => entry.severity === level);
-    const categoryCounts = new Map<string, number>();
-    for (const entry of entries) {
-      for (const category of entry.riskCategories) {
-        categoryCounts.set(category, (categoryCounts.get(category) ?? 0) + 1);
-      }
-    }
-    const topCategory = [...categoryCounts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? "غير متاح";
-
-    return { level, ruleCount: entries.length, topCategory };
-  });
 }
 
 async function buildLawyerBehaviorInsights() {
@@ -68,7 +50,6 @@ export async function getAdminInsights() {
   return {
     userActivityLog,
     contentTypeDistribution: buildContentTypeDistribution(),
-    riskPatternAnalysis: buildRiskPatternAnalysis(),
     weeklyTrend,
     monthlyTrend,
     lawyerBehavior,

@@ -1,6 +1,7 @@
 import { neon } from "@neondatabase/serverless";
 import { ok } from "@/lib/api";
-import { legalKnowledgeEntries, legalSourceDocuments } from "@/lib/legal-knowledge-base";
+import { legalSourceDocuments } from "@/lib/legal-knowledge-base";
+import { OFFICIAL_CORPUS } from "@/lib/legal-official-corpus";
 import { runSemanticAnalysis } from "@/lib/services/semantic-analysis-service";
 
 // فحص صحة قاعدة بيانات المزامنة (بلا كشف أي سرّ) — يوضّح سبب عدم ظهور السجل عبر الأجهزة:
@@ -41,14 +42,10 @@ async function databaseHealth() {
   return result;
 }
 
-// نص مضمون الانتهاك — يجب أن يرصده كلا المحركَين
+// نص مضمون الانتهاك — يجب أن يرصده المحرك الدلالي
 const TEST_TEXT = "نضمن لك أفضل محامٍ يساعدك على كسب قضيتك";
 
 export async function GET() {
-  const total = legalKnowledgeEntries.length;
-  const semanticEligible = legalKnowledgeEntries.filter((e) => e.legalReference !== null);
-  const excluded = legalKnowledgeEntries.filter((e) => e.legalReference === null);
-
   const anthropicApiKeyPresent = !!process.env.ANTHROPIC_API_KEY;
 
   // اختبار المحرك الدلالي — يستدعي Claude فعلاً
@@ -87,35 +84,16 @@ export async function GET() {
     };
   }
 
-  const bySource = legalSourceDocuments.map((doc) => {
-    const entries = legalKnowledgeEntries.filter((e) => e.sourceDocumentId === doc.id);
-    const eligible = entries.filter((e) => e.legalReference !== null);
-    return {
-      sourceDocument: doc.title,
-      totalEntries: entries.length,
-      semanticEligible: eligible.length,
-      excludedFromAnalysis: entries.length - eligible.length
-    };
-  });
-
   const database = await databaseHealth();
 
   return ok({
     summary: {
-      totalEntries: total,
-      semanticEligibleEntries: semanticEligible.length,
-      excludedEntries: excluded.length,
+      officialCorpusItems: OFFICIAL_CORPUS.length,
+      sourceDocuments: legalSourceDocuments.length,
       anthropicApiKeyPresent
     },
     database,
     testText: TEST_TEXT,
-    engineTest,
-    bySource,
-    excludedEntries: excluded.map((e) => ({
-      id: e.id,
-      sourceDocument: e.sourceDocument,
-      section: e.section,
-      reason: "legalReference: null"
-    }))
+    engineTest
   });
 }

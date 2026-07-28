@@ -13,23 +13,19 @@
 // ويُرسل في كتلة system المخزّنة مؤقتاً لدى المزود فلا يُعاد ترميزه كل طلب.
 //
 // ★ المتن يُقرأ ولا يُكتب فيه حرف.
+//
+// ★ بقرار مالكة المنصة (٢٠٢٦-٠٧-٢٨، حذف قاعدة المعرفة): كانت هذه الدالة تُلحق
+// تحت كل مادة سطر «مناطق الرصد بالمعنى» من قاعدة المعرفة، وثبت أن هذا التلميح
+// يرجّح كفة حكم القاضي خطأً على نص بريء قريب من موضوع حساس (مثال: تلميح المادة
+// ٢٨ «إفشاء سرية الاستشارة، انتهاك خصوصية العميل» رجّح حكماً خاطئاً على منشور
+// عام لا صلة له). حُذف الإلحاق كله؛ القاضي يقرأ نصّ المادة وحده، بلا توجيه.
 // ─────────────────────────────────────────────────────────────────────────────
-import { legalKnowledgeEntries } from "@/lib/legal-knowledge-base";
 import { OFFICIAL_CORPUS } from "@/lib/legal-official-corpus";
 
 // النص الحرفي المنقول من منصة تشريعات وزارة العدل لكل قاعدة سلوك ولكل مادة من
 // اللائحة التنفيذية — ليحكم الذكاء ويكتب من المادة نفسها ومقصدها، لا من ملخص
-// أو عنوان. مناطق الرصد بالمعنى تُلحق من قاعدة المعرفة حيث توجد إشارات مطابقة.
+// أو عنوان أو تلميح.
 export function buildOfficialRuleCorpusText(): string {
-  const hintsByRef = new Map<string, string>();
-  for (const entry of legalKnowledgeEntries) {
-    if (!entry.legalReference || !entry.riskCategories?.length) continue;
-    const baseRef = entry.legalReference.split("،")[0].trim();
-    const existing = hintsByRef.get(baseRef);
-    const hint = entry.riskCategories.join("، ");
-    hintsByRef.set(baseRef, existing ? `${existing}، ${hint}` : hint);
-  }
-
   const blocks: string[] = [];
   let lastSource = "";
   let lastChapter = "";
@@ -43,11 +39,7 @@ export function buildOfficialRuleCorpusText(): string {
       blocks.push(`## ${item.chapter}`);
       lastChapter = item.chapter;
     }
-    const hints = hintsByRef.get(item.ref);
-    const areas = hints
-      ? `\nمناطق الرصد بالمعنى (بأي صياغة، لا تحصر نفسك بألفاظ بعينها): ${hints}`
-      : "";
-    blocks.push(`### ${item.ref}${item.section ? ` — ${item.section}` : ""}\n${item.text}${areas}`);
+    blocks.push(`### ${item.ref}${item.section ? ` — ${item.section}` : ""}\n${item.text}`);
   }
   return blocks.join("\n\n");
 }

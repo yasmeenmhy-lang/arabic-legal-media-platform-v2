@@ -1,6 +1,10 @@
 // ─────────────────────────────────────────────────────────────────────────────
-// الطبقة الأولى — البحث الحتمي في المتن (بقرار مالكة المنصة: «خليها طبقتين،
-// الطبقة الأولى تبحث في القواعد واللوائح والطبقة الثانية تحكم بالمعنى»).
+// الطبقة الأولى — البحث الحتمي البنيوي في النص (بقرار مالكة المنصة، بعد حذف
+// قاعدة المعرفة ٢٠٢٦-٠٧-٢٨: كانت هذه الطبقة تعتمد على قوائم ألفاظ من قاعدة
+// المعرفة، وثبت أن تلميحاتها المُلحقة بالمتن ترجّح كفة حكم محرك الامتثال
+// خطأً على نص بريء قريب من موضوع حساس. حُذفت القوائم، وبقي وحده الكاشف
+// البنيوي التالي — لا يعتمد على أي قائمة ألفاظ خارجية، بل على بنية الجملة
+// نفسها (جزم نظامي بلا إحالة إلى مصدره)).
 //
 // برمجية بالكامل، بلا أي ذكاء: النصّ نفسه يعطي المواضع نفسها اليوم وغداً وبعد
 // سنة. هذا هو موضع الثبات في المحرّك — لا حرارة له ولا اجتهاد ولا احتمالات.
@@ -12,54 +16,25 @@
 //     أمامها، وحريتها في الرصد كما هي. هذه الطبقة **تُضيف مواضع تُلزم بفحصها**
 //     ولا تحذف من نطاق الفحص شيئاً — إضافةٌ صرفة، فالجدار لا يُضعَّف أبداً.
 // (٣) خلوّ نتيجتها من المواضع ليس شهادة سلامة — هو غياب إصابة حرفية فقط.
-//
-// أثرها على ثبات الحكم: الحكم المفتوح («ابحث عن المخالفات») فضاء قراره واسع،
-// فيتذبذب عند الحافة. أما إلزام الطبقة الثانية بالحكم صراحةً على موضع مستخرَج
-// بعينه فيحوّل السؤال المفتوح إلى سؤال مغلق على ذلك الموضع — وضيق فضاء القرار
-// هو ما يضيّق التذبذب.
 // ─────────────────────────────────────────────────────────────────────────────
-import { legalKnowledgeEntries } from "@/lib/legal-knowledge-base";
 
-export type CorpusPositionKind = "نمط محظور" | "نمط سياقي" | "جزم نظامي بلا سند";
+export type CorpusPositionKind = "جزم نظامي بلا سند";
 
 export type CorpusPosition = {
   // المقطع منقولاً حرفياً من نصّ المستخدم — لا يُعاد صوغه ولا يُختصر
   excerpt: string;
   kind: CorpusPositionKind;
-  // ما التقطه البحث حرفياً (النمط المطابَق)، أو "" في الجزم البنيوي
   trigger: string;
-  // مراجع المتن التي ارتبط بها النمط في قاعدة المعرفة — ترشيحٌ للفحص لا حكم.
-  // فارغة في الجزم البنيوي: الإسناد للطبقة الثانية.
   candidateRefs: string[];
 };
 
-// إصابة قاطعة: مخالفة تلتقطها الطبقة الأولى **بنفسها** ويصدر بها حكمها، لا
-// موضعاً يُحال إلى غيرها. لا تُعدّ الإصابة قاطعة إلا حين لا يحتمل السياق
-// وجهاً سليماً — انظر isDecisive أدناه.
-export type CorpusHit = {
-  // مقطع الدليل منقولاً حرفياً من نصّ المحامي
-  excerpt: string;
-  // النمط المحظور المطابَق، كما هو مخزّن في قاعدة المعرفة
-  trigger: string;
-  // معرّف المدخلة في قاعدة المعرفة — منها يُبنى الإسناد النظامي كاملاً،
-  // فلا تختلق هذه الطبقة نسبةً لمادة ولا تجتهد في تحديدها
-  entryId: string;
-  legalReference: string;
-};
-
 export type CorpusScan = {
-  // ما حكمت به الطبقة الأولى بنفسها — الأساس
-  hits: CorpusHit[];
-  // ما رفعته للطبقة الثانية لتحكم فيه بالمعنى — ما لم يبلغ حدّ القطع
+  // ما رفعته الطبقة الأولى للطبقة الثانية لتحكم فيه بالمعنى صراحةً
   positions: CorpusPosition[];
-  // مراجع مرشّحة لقراءة مركّزة، مستخرجة بدلالة مفاتيح المتن — لا تحصر القراءة
-  focusRefs: string[];
 };
 
-// حدّان يمنعان تضخّم المطالبة على النصوص الطويلة — الأولوية للمواضع الأقوى دلالة
+// حدّ يمنع تضخّم المطالبة على النصوص الطويلة
 const MAX_POSITIONS = 12;
-const MAX_FOCUS_REFS = 8;
-const MAX_HITS = 20;
 
 // تطبيع شكلي يسامح فروق الكتابة: تشكيل/همزات/تاء مربوطة/أرقام/ترقيم/مسافات.
 // نفس فلسفة normalizeForMatch في محرّك الحكم وverifyCorpusCitations في المتحقق.
@@ -147,161 +122,24 @@ function detectCategoricalAssertions(sentences: string[]): CorpusPosition[] {
 // ويذهب إلى الطبقة الثانية بالمعنى للتحقّق».
 //
 // فكل نمط محظور مطابَق في المتن يصدر به حكم هنا، بلا استثناء ولا تحفّظ سياقي.
-// وهذه الطبقة لا تفهم المعنى أصلاً — هي مطابقة ألفاظ — فقد يقع حكمها على من
-// حذّر من المخالفة لا من ارتكبها. وتصحيح ذلك ليس عملها: الطبقة الثانية تقرأ
-// المعنى فتُثبت الحكم الصحيح وتُسقط ما بُني على سوء فهم.
-//
-// وكان هنا امتناعٌ عن الحكم عند وجود صارف سياقي (نفي أو اقتباس أو استفهام)،
-// أدخلتُه باجتهادي لا بأمر — وأُلغي: الأولى تحكم، والثانية تتحقّق.
-function detectPatternPositions(sentences: string[]): { hits: CorpusHit[]; positions: CorpusPosition[] } {
-  const byExcerpt = new Map<string, CorpusPosition>();
-  const hits: CorpusHit[] = [];
-  const seenHits = new Set<string>();
-
-  for (const sentence of sentences) {
-    const norm = normalize(sentence);
-    if (!norm) continue;
-
-    for (const entry of legalKnowledgeEntries) {
-      if (!entry.legalReference) continue;
-
-      const prohibited = entry.prohibitedPatterns.find((p) => {
-        const n = normalize(p);
-        return n.length >= 3 && norm.includes(n);
-      });
-
-      // كل نمط محظور مطابَق يصدر به حكم — بلا استثناء. الأولى هي الأساس.
-      if (prohibited) {
-        const key = `${entry.id}|${sentence}`;
-        if (!seenHits.has(key)) {
-          seenHits.add(key);
-          hits.push({
-            excerpt: sentence,
-            trigger: prohibited,
-            entryId: entry.id,
-            legalReference: entry.legalReference,
-          });
-        }
-        continue;
-      }
-      const contextual = prohibited
-        ? undefined
-        : (entry.contextualPatterns ?? []).find((p) => {
-            const n = normalize(p);
-            return n.length >= 3 && norm.includes(n);
-          });
-      const trigger = prohibited ?? contextual;
-      if (!trigger) continue;
-
-      // بلغ هنا نمطٌ محظور دخله صارف سياقي، أو نمطٌ سياقي — كلاهما دون حدّ
-      // القطع، فيُرفع للطبقة الثانية لتحكم فيه بالمعنى ولا يسقط.
-      const kind: CorpusPositionKind = prohibited ? "نمط محظور" : "نمط سياقي";
-      const key = `${sentence}|${kind}`;
-      const existing = byExcerpt.get(key);
-      if (existing) {
-        if (!existing.candidateRefs.includes(entry.legalReference)) {
-          existing.candidateRefs.push(entry.legalReference);
-        }
-        continue;
-      }
-      byExcerpt.set(key, {
-        excerpt: sentence,
-        kind,
-        trigger,
-        candidateRefs: [entry.legalReference],
-      });
-    }
-  }
-
-  // المحظور قبل السياقي — عند بلوغ السقف تبقى المواضع الأقوى دلالة
-  const positions = [...byExcerpt.values()].sort((a, b) =>
-    a.kind === b.kind ? 0 : a.kind === "نمط محظور" ? -1 : 1
-  );
-  return { hits, positions };
-}
-
-// ─── ترشيح المراجع بدلالة المفاتيح ──────────────────────────────────────────
-// لا يُنتج مواضع، بل قائمة قراءة مركّزة: أي مواد المتن أقرب إلى موضوع النصّ.
-// ترتيبٌ للانتباه لا حصرٌ له — المتن الكامل يبقى أمام الطبقة الثانية.
-function detectFocusRefs(normalizedText: string): string[] {
-  const scored: Array<{ ref: string; hits: number }> = [];
-  for (const entry of legalKnowledgeEntries) {
-    if (!entry.legalReference) continue;
-    let hits = 0;
-    for (const keyword of entry.keywords) {
-      const n = normalize(keyword);
-      if (n.length >= 3 && normalizedText.includes(n)) hits++;
-    }
-    if (hits > 0) scored.push({ ref: entry.legalReference, hits });
-  }
-  return scored
-    .sort((a, b) => b.hits - a.hits)
-    .slice(0, MAX_FOCUS_REFS)
-    .map((s) => s.ref);
-}
-
 export function scanAgainstCorpus(text: string): CorpusScan {
   const sentences = splitSentences(text);
-  const normalizedText = normalize(text);
-  const patternScan = detectPatternPositions(sentences);
-
-  const positions = [
-    ...detectCategoricalAssertions(sentences),
-    ...patternScan.positions,
-  ].slice(0, MAX_POSITIONS);
-
-  return {
-    hits: patternScan.hits.slice(0, MAX_HITS),
-    positions,
-    focusRefs: detectFocusRefs(normalizedText),
-  };
+  const positions = detectCategoricalAssertions(sentences).slice(0, MAX_POSITIONS);
+  return { positions };
 }
 
 // صياغة نتيجة البحث كقسم يُلحق برسالة المستخدم في الطبقة الثانية.
 // يعود بسلسلة فارغة عند خلوّ النتيجة، فلا يُحشى في المطالبة قسمٌ بلا مضمون.
 export function formatCorpusScanSection(scan: CorpusScan): string {
-  if (scan.hits.length === 0 && scan.positions.length === 0 && scan.focusRefs.length === 0) return "";
+  if (scan.positions.length === 0) return "";
 
   const blocks: string[] = ["## نتيجة البحث الحتمي في المتن (الطبقة الأولى)"];
-
-  if (scan.hits.length > 0) {
-    blocks.push(
-      "أحكام أصدرتها الطبقة الأولى بمطابقة ألفاظ المتن — **وهي لا تفهم المعنى ولا السياق**، فقد يقع حكمها على من حذّر من المخالفة أو نقلها أو أنكرها لا على من ارتكبها. **مهمتك التحقّق من كل حكم منها بالمعنى:**"
-    );
-    scan.hits.forEach((hit, index) => {
-      blocks.push(`${index + 1}. «${hit.trigger}» ← ${hit.legalReference} — في: «${hit.excerpt}»`);
-    });
-    blocks.push(
-      [
-        "لكل حكم أعلاه:",
-        "- **إن كان صحيحاً في معناه** فهو مثبت في النتيجة — لا تفعل شيئاً ولا تُعد ذكره.",
-        '- **وإن كان مبنياً على سوء فهم** — كأن يكون النص ناهياً عن المخالفة أو محذّراً منها أو ناقلاً لها أو مستفهماً عنها أو مستعملاً اللفظ استعمالاً مشروعاً — فأخرِج له كائناً بالحقول المعتادة مع `"cleared": true`، وضع في `ruleReference` و`evidenceExcerpt` نفس المرجع ونفس الدليل الواردين أعلاه حرفاً بحرف، واشرح في `explanation` لماذا لا مخالفة فيه. ولا تستعمل `cleared` إلا لإسقاط حكم وارد في هذه القائمة بعينها.',
-        "ثم — مستقلاً عن ذلك — التقط ما **لم تلتقطه** الطبقة الأولى: المخالفة التي لا لفظ محظور فيها، وأي وجه آخر من الواقعة، ومخالفة الوثيقة الأخرى.",
-      ].join("\n")
-    );
-  }
-
-  if (scan.positions.length > 0) {
-    blocks.push(
-      "مواضع استخرجها بحثٌ برمجي في نصّ المحامي قبل قراءتك. **يلزمك الحكم على كل موضع منها صراحةً** — إثباتاً أو نفياً — ولا يجوز إغفال أيّها:"
-    );
-    scan.positions.forEach((position, index) => {
-      const refs =
-        position.candidateRefs.length > 0
-          ? `\n  مراجع مرشّحة للنظر (ترشيحٌ لا حكم — قد يكون الصواب غيرها): ${position.candidateRefs.join("، ")}`
-          : "\n  الإسناد النظامي إليك وحدك: حدّد القاعدة أو المادة إن كان مخالفاً.";
-      const trigger = position.trigger ? `\n  ما التقطه البحث: «${position.trigger}»` : "";
-      blocks.push(
-        `${index + 1}. [${position.kind}] «${position.excerpt}»${trigger}${refs}`
-      );
-    });
-  }
-
-  if (scan.focusRefs.length > 0) {
-    blocks.push(
-      `مواد قريبة من موضوع النصّ بدلالة مفاتيح المتن (قراءة مركّزة إضافية، لا تحصر نظرك بها): ${scan.focusRefs.join("، ")}`
-    );
-  }
+  blocks.push(
+    "مواضع استخرجها بحثٌ برمجي بنيوي في نصّ المحامي قبل قراءتك (جزم نظامي بلا إحالة إلى مصدره في الجملة نفسها). **يلزمك الحكم على كل موضع منها صراحةً** — إثباتاً أو نفياً — ولا يجوز إغفال أيّها:"
+  );
+  scan.positions.forEach((position, index) => {
+    blocks.push(`${index + 1}. [${position.kind}] «${position.excerpt}» — الإسناد النظامي إليك وحدك: حدّد القاعدة أو المادة إن كان مخالفاً.`);
+  });
 
   return blocks.join("\n");
 }

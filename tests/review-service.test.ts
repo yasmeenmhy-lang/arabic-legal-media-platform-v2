@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { legalKnowledgeEntries, legalSourceDocuments } from "@/lib/legal-knowledge-base";
+import { legalSourceDocuments } from "@/lib/legal-knowledge-base";
+import { OFFICIAL_CORPUS } from "@/lib/legal-official-corpus";
 import { reviewContent } from "@/lib/services/review-service";
 import { buildReviewPersistenceData } from "@/lib/services/review-persistence-service";
 
@@ -36,14 +37,13 @@ describe("reviewContent", () => {
     expect(result.findings.length).toBeGreaterThan(0);
 
     for (const finding of result.findings) {
-      const entry = legalKnowledgeEntries.find((item) => item.id === finding.legalKnowledgeEntryId);
-      expect(entry).toBeTruthy();
-      expect(entry?.sourceDocumentId).toBe(finding.sourceDocumentId);
-      expect(entry?.sourceDocument).toBe(finding.sourceDocument);
-      expect(entry?.legalReference).toBe(finding.legalReference);
-      expect(entry?.articleTitle).toBe(finding.articleTitle);
-      expect(entry?.fullText).toBe(finding.articleTextExcerpt);
-      expect(entry?.sourceUrl).toBe(finding.sourceUrl);
+      const baseRef = finding.legalReference.split(/[،\-–—]|الفقرة/)[0].trim();
+      const item = OFFICIAL_CORPUS.find((corpusItem) => corpusItem.ref === baseRef);
+      expect(item).toBeTruthy();
+      expect(item?.sourceDocumentId).toBe(finding.sourceDocumentId);
+      expect(item?.sourceDocument).toBe(finding.sourceDocument);
+      expect(item?.text).toBe(finding.articleTextExcerpt);
+      expect(item?.sourceUrl).toBe(finding.sourceUrl);
       expect(finding.contentClassification).toBeTruthy();
       expect(finding.traceabilityId).toMatch(/^SEM-/);
       expect(finding.title).toBeTruthy();

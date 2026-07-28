@@ -6,14 +6,11 @@
 import { recordUsage } from "@/lib/cost-meter";
 import Anthropic from "@anthropic-ai/sdk";
 import type { ContentKind, FindingCategory, FindingDomain, ReviewContext, ReviewFinding, RiskLevel } from "@/lib/types";
-import { legalKnowledgeEntries } from "@/lib/legal-knowledge-base";
 import { OFFICIAL_CORPUS, type OfficialCorpusItem } from "@/lib/legal-official-corpus";
 import { buildOfficialRuleCorpusText } from "@/lib/rule-corpus-text";
 import {
   scanAgainstCorpus,
   formatCorpusScanSection,
-  type CorpusPosition,
-  type CorpusHit,
 } from "@/lib/services/corpus-scan";
 import { AUTHORITIES_RULE, KINGDOM_STYLE_RULE, PLATFORM_SUPREME_RULE } from "@/lib/governance";
 import { LEADERSHIP_PRAISE_RULE } from "@/lib/leadership-praise-rule";
@@ -21,7 +18,6 @@ import {
   arabicSeverity,
   businessSeverityForFinding,
   calculateFindingWeight,
-  classifyLegalKnowledgeEntry,
   riskDimensionsForFinding
 } from "@/lib/services/scoring-service";
 import type { ScoringProfile } from "@/lib/scoring-profiles";
@@ -76,7 +72,7 @@ function findOfficialCorpusItem(ruleReference: string): OfficialCorpusItem | nul
 // الجزء الثابت من مطالبة الحكم (الشخصية + التعليمات + القواعد الـ46) — يُرسل كتلة system
 // مخزّنة مؤقتاً لدى المزود: قراءة واحدة تخدم كل طلبات المستخدمين المتزامنة، أسرع وأوفر،
 // ونص المستخدم يُرسل في رسالة المستخدم المتغيرة ولا يدخل التخزين إطلاقاً.
-function buildHolisticSystem(entries: typeof legalKnowledgeEntries): string {
+function buildHolisticSystem(): string {
   const validRefs = buildValidReferencesList();
   const ruleCorpus = buildOfficialRuleCorpusText();
   return `${PLATFORM_SUPREME_RULE}
@@ -393,40 +389,24 @@ function parseHolisticResponse(raw: string): HolisticViolation[] | null {
   }
 }
 
-// بعض القواعد (كالسابعة والثلاثين والثامنة والثلاثين) لها أكثر من مدخلة في قاعدة
-// المعرفة القديمة — كل مدخلة مربوطة بفقرة أو زاوية واحدة بعينها من نفس القاعدة.
-// مرجع الذكاء لا يحدد الفقرة، فأخذ أول مدخلة تطابق رقم القاعدة تخمين قد يُسند
-// مخالفة زاويتها مختلفة كلياً (كالتضليل) إلى مدخلة زاوية أخرى (كالسرية) خطأً —
-// وهذا يُفسد التصنيف والتصعيد التلقائي المبني على هوية المدخلة. عند التباس أكثر
-// من مدخلة: لا تُخمَّن — تُعامل معاملة «بلا مدخلة» ويُبنى الحكم من المتن الرسمي
-// وتفسير الذكاء نفسه مباشرة بدل مدخلة قد لا تطابق زاوية المخالفة الفعلية.
-function findKbEntry(ruleReference: string): typeof legalKnowledgeEntries[number] | null {
-  const matches = legalKnowledgeEntries.filter((e) => e.legalReference && e.legalReference.startsWith(ruleReference));
-  return matches.length === 1 ? matches[0] : null;
-}
-
 function buildSemanticFinding(
   violation: HolisticViolation,
-  entry: typeof legalKnowledgeEntries[number] | null,
   profile: ScoringProfile
 ): ReviewFinding | null {
   if (violation.confidenceLevel === "منخفض") return null;
   const evidence = violation.evidenceExcerpt.trim();
   if (!evidence) return null;
 
-  // عند غياب مدخلة قاعدة المعرفة: يُسند الاستشهاد إلى مصدره الصحيح من المتن الرسمي
-  // (قاعدة سلوك أو مادة لائحة) بدل افتراض قواعد السلوك دائماً.
-  const corpusItem = entry ? null : findOfficialCorpusItem(violation.ruleReference);
-  const legalKnowledgeEntryId = entry?.id ?? violation.ruleReference.replace(/\s+/g, "-").replace(/،/g, "");
-  const legalReference = entry?.legalReference ?? violation.ruleReference;
-  const sourceDocumentId = entry?.sourceDocumentId ?? corpusItem?.sourceDocumentId ?? DEFAULT_SOURCE_DOCUMENT_ID;
-  const sourceDocument = entry?.sourceDocument ?? corpusItem?.sourceDocument ?? DEFAULT_SOURCE_DOCUMENT;
-  const articleTitle = entry?.articleTitle ?? (corpusItem ? `${corpusItem.ref}${corpusItem.section ? ` — ${corpusItem.section}` : ""}` : violation.ruleReference);
-  const sourceUrl = entry?.sourceUrl ?? corpusItem?.sourceUrl ?? DEFAULT_SOURCE_URL;
+  // الإسناد النظامي كله من المتن الرسمي مباشرة — لا قاعدة معرفة وسيطة.
+  const corpusItem = findOfficialCorpusItem(violation.ruleReference);
+  const legalKnowledgeEntryId = violation.ruleReference.replace(/\s+/g, "-").replace(/،/g, "");
+  const legalReference = violation.ruleReference;
+  const sourceDocumentId = corpusItem?.sourceDocumentId ?? DEFAULT_SOURCE_DOCUMENT_ID;
+  const sourceDocument = corpusItem?.sourceDocument ?? DEFAULT_SOURCE_DOCUMENT;
+  const articleTitle = corpusItem ? `${corpusItem.ref}${corpusItem.section ? ` — ${corpusItem.section}` : ""}` : violation.ruleReference;
+  const sourceUrl = corpusItem?.sourceUrl ?? DEFAULT_SOURCE_URL;
 
-  const classification = entry
-    ? classifyLegalKnowledgeEntry(entry)
-    : { category: "التواصل العام" as FindingCategory, domain: "إجرائي" as FindingDomain, potentialImpact: violation.severity };
+  const classification = { category: "التواصل العام" as FindingCategory, domain: "إجرائي" as FindingDomain, potentialImpact: violation.severity };
 
   const baseFinding = {
     traceabilityId: semanticTraceabilityId(legalKnowledgeEntryId, evidence),
@@ -438,18 +418,18 @@ function buildSemanticFinding(
     potentialImpact: classification.potentialImpact,
     weight: 0,
     scoreImpact: 0,
-    issue: entry?.riskCategories.join("، ") || violation.explanation,
+    issue: violation.explanation,
     severity: violation.severity,
     evidence,
     matchedPattern: `[دلالي — ${violation.violationType}]`,
     contentClassification: "إعلان مضلل محتمل" as const,
-    advice: violation.advice || entry?.recommendedAction || "",
-    suggestedSaferWording: entry?.recommendedAction ?? violation.advice,
+    advice: violation.advice || "",
+    suggestedSaferWording: violation.advice,
     legalCitation: `${sourceDocument}، ${legalReference}`,
     sourceDocument,
     legalReference,
     articleTitle,
-    articleTextExcerpt: entry?.fullText ?? corpusItem?.text ?? "",
+    articleTextExcerpt: corpusItem?.text ?? "",
     explanation: violation.explanation,
     // تأنيث نوع المخالفة ليطابق «مخالفة» المؤنثة (كان: «مخالفة ضمني» ← الصواب «مخالفة ضمنية»)
     legalExplanation: `العبارة «${evidence}» تُعد مخالفة ${({ "صريح": "صريحة", "ضمني": "ضمنية", "سياقي": "سياقية" } as const)[violation.violationType] ?? violation.violationType} لـ${legalReference} من ${sourceDocument}: ${violation.explanation}`,
@@ -477,40 +457,10 @@ function buildSemanticFinding(
   };
 }
 
-// أحكام الطبقة الأولى تدخل خطّ الإنتاج نفسه الذي تدخله أحكام الطبقة الثانية:
-// نفس بناء المؤشر، ونفس التصنيف والأوزان والتصعيد، ونفس بوابة التثبّت من
-// الدليل. فلا يكون للمحامي مؤشران بمظهرين مختلفين حسب من التقطه.
-// الإسناد النظامي كلّه من مدخلة قاعدة المعرفة المخزّنة — لا اجتهاد فيه.
-// المرجع في صورته الجامعة — «القاعدة الثامنة والثلاثون، الفقرة (1)» و«القاعدة
-// الثامنة والثلاثون» قاعدة واحدة. تُستعمل للمطابقة وحدها؛ المعروض للمحامي يبقى
-// كما ورد.
-function canonicalRuleRef(reference: string): string {
-  return normalizeForMatch(reference.split(/[،\-–—]|الفقرة/)[0].trim());
-}
-
-function hitToViolation(hit: CorpusHit): HolisticViolation | null {
-  const entry = legalKnowledgeEntries.find((e) => e.id === hit.entryId);
-  if (!entry || !entry.legalReference) return null;
-  return {
-    ruleReference: entry.legalReference,
-    // حكم الطبقة الأولى نفسه — لا إسقاط
-    cleared: false,
-    // مطابقة نمط محظور صريح من المتن المخزّن
-    confidenceLevel: "مرتفع",
-    evidenceExcerpt: hit.excerpt,
-    violationType: "صريح",
-    severity: entry.severity,
-    explanation: `تضمّن النص عبارة «${hit.trigger}»، وهي من الصياغات التي تحظرها ${entry.legalReference} من ${entry.sourceDocument}${entry.riskCategories.length > 0 ? ` — ${entry.riskCategories.join("، ")}` : ""}.`,
-    advice: entry.recommendedAction,
-  };
-}
-
 // ★ بقرار مالكة المنصة: «لا يُجرَّد — سردهم بتكرارهم أفضل».
-// لا يُطوى شيء بعد اتحاد الطبقتين: كل مؤشر يُسرد كما صدر، ولو تكرّرت القاعدة.
-// وللقرار وجهٌ فنيّ سليم: المؤشران المتشابهان مرجعاً ليسا نسخةً واحدة — لكلٍّ
-// شرحه ودليله وزاويته، وشرح الطبقة الثانية أوفى من قالب الأولى الثابت. فطيّ
-// أحدهما إخفاءُ تحليلٍ قائم على المحامي، لا تنظيفُ عرض.
-// الترتيب: أحكام الطبقة الأولى أولاً فهي الأساس، ثم ما أكملته الثانية.
+// لا يُطوى شيء: كل مؤشر يُسرد كما صدر، ولو تكرّرت القاعدة.
+// الطبقة الأولى (البحث الحتمي) لا تُصدر أحكاماً بعد حذف قاعدة المعرفة — ترفع
+// مواضع فقط ليحكم عليها القاضي الدلالي بالمعنى؛ الحكم كله من الطبقة الثانية.
 
 export type SemanticAnalysisResult =
   | { mode: "full"; findings: ReviewFinding[] }
@@ -597,35 +547,22 @@ export async function runSemanticAnalysis(
   // غاب المفتاح — فالأساس لا يسقط بسقوط ما يُكمله.
   const scan = scanAgainstCorpus(text);
   const scanSection = formatCorpusScanSection(scan);
-  console.log(
-    "[corpus-scan] hits =", scan.hits.length,
-    "| positions =", scan.positions.length,
-    "| focusRefs =", scan.focusRefs.length
-  );
+  console.log("[corpus-scan] positions =", scan.positions.length);
 
-  const rawBaseFindings = scan.hits
-    .map((hit) => hitToViolation(hit))
-    .filter((v): v is HolisticViolation => v !== null)
-    .filter((v) => evidenceAppearsInText(v.evidenceExcerpt, text))
-    .map((v) => buildSemanticFinding(v, findKbEntry(v.ruleReference), profile))
-    .filter((f): f is ReviewFinding => f !== null);
+  // الطبقة الأولى بعد حذف قاعدة المعرفة لا تُصدر أحكاماً بذاتها — ترفع مواضع
+  // فقط ليحكم عليها القاضي الدلالي بالمعنى (انظر رأس الملف في corpus-scan.ts).
+  const rawBaseFindings: ReviewFinding[] = [];
 
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
-    console.warn("[semantic] ANTHROPIC_API_KEY missing — الطبقة الأولى وحدها");
+    console.warn("[semantic] ANTHROPIC_API_KEY missing — لا يمكن الحكم بلا القاضي الدلالي");
     return { mode: "pattern-only", findings: rawBaseFindings, degradedReason: "missing-key" };
   }
 
-  const eligibleEntries = legalKnowledgeEntries.filter((e) => e.legalReference);
-  console.log("[semantic] starting holistic analysis: anchored to", eligibleEntries.length, "KB entries");
-
   const client = new Anthropic({ apiKey });
-  const system = buildHolisticSystem(eligibleEntries);
+  const system = buildHolisticSystem();
   const userMessage = buildHolisticUserMessage(text, contextSummary, scanSection);
 
-  // تعطّل الطبقة الثانية لا يُسقط أحكام الأولى: ما حكمت به القواعد واللوائح
-  // قائمٌ ويُعرض، ويبقى الوضع «pattern-only» ليظهر تحذير نقص التحليل الدلالي —
-  // فلا يُدّعى اكتمال الفحص، ولا تضيع مخالفة قاطعة رُصدت فعلاً.
   const result = await callHolisticJudge(client, system, userMessage, "القراءة الأولى");
   if (!result.ok) {
     return { mode: "pattern-only", findings: rawBaseFindings, degradedReason: result.reason };
@@ -646,30 +583,9 @@ export async function runSemanticAnalysis(
   const additions = additionsResult.ok && !additionsResult.truncatedEmpty ? additionsResult.violations : [];
   const allViolations = [...result.violations, ...additions];
 
-  // ═══ تحقّق الطبقة الثانية من أحكام الأولى ═══
-  // بقرار مالكة المنصة: الأولى تحكم بمطابقة الألفاظ ولا تفهم المعنى، والثانية
-  // تقرأ المعنى فتُثبت الحكم الصحيح وتُسقط ما بُني على سوء فهم (كأن يكون النص
-  // ناهياً عن المخالفة أو محذّراً منها لا مرتكباً لها).
-  // ما وسمته الثانية بـ cleared ليس مخالفة جديدة — هو إسقاط لحكم من الأولى،
-  // فيُستبعد من النتيجة ولا يُبنى منه مؤشر.
-  const cleared = allViolations.filter((v) => v.cleared);
+  // "cleared" هنا لا معنى لإسقاطه بعد اليوم إذ لا أحكام للطبقة الأولى تُسقَط —
+  // يبقى مجرد استبعاد ذاتي إن أشار القاضي بالخطأ إلى مخالفة لا وجود لها.
   const violations = allViolations.filter((v) => !v.cleared);
-
-  const baseFindings = cleared.length === 0
-    ? rawBaseFindings
-    : rawBaseFindings.filter((finding) => {
-        const findingEvidence = normalizeForMatch(finding.evidence);
-        const dropped = cleared.some((c) => {
-          if (canonicalRuleRef(c.ruleReference) !== canonicalRuleRef(finding.legalReference)) return false;
-          const clearedEvidence = normalizeForMatch(c.evidenceExcerpt);
-          if (!clearedEvidence || !findingEvidence) return false;
-          return clearedEvidence.includes(findingEvidence) || findingEvidence.includes(clearedEvidence);
-        });
-        if (dropped) {
-          console.log("[semantic] أسقطت الطبقة الثانية حكم الأولى بالمعنى:", finding.legalReference);
-        }
-        return !dropped;
-      });
 
   const semanticFindings = violations
     .filter((violation) => {
@@ -684,20 +600,11 @@ export async function runSemanticAnalysis(
       }
       return true;
     })
-    .map((violation) => {
-      const entry = findKbEntry(violation.ruleReference);
-      if (!entry) console.log(`[semantic] no KB entry for "${violation.ruleReference}" — building from violation data`);
-      return buildSemanticFinding(violation, entry, profile);
-    })
+    .map((violation) => buildSemanticFinding(violation, profile))
     .filter((f): f is ReviewFinding => f !== null);
 
-  // اتحاد الطبقتين: أحكام الأساس أولاً ثم ما أكملته الثانية بالمعنى. اتحادٌ
-  // كامل لا طيّ فيه — لا تُسقط طبقةٌ حكم الأخرى، وكل مؤشر يُسرد كما صدر.
-  const findings = [...baseFindings, ...semanticFindings];
+  const findings = [...rawBaseFindings, ...semanticFindings];
 
-  console.log(
-    "[semantic] done: findings =", findings.length,
-    "(الطبقة الأولى:", baseFindings.length, "| الثانية:", semanticFindings.length, ")"
-  );
+  console.log("[semantic] done: findings =", findings.length);
   return { mode: "full", findings };
 }

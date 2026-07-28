@@ -1,6 +1,6 @@
 import { PrismaClient } from "@prisma/client";
 import { createHash } from "crypto";
-import { legalKnowledgeEntries, legalSourceDocuments } from "../lib/legal-knowledge-base";
+import { legalSourceDocuments } from "../lib/legal-knowledge-base";
 
 const prisma = new PrismaClient();
 
@@ -61,47 +61,6 @@ async function main() {
         summary: "Official legal baseline registered.",
         approvedBy: "system",
         approvedAt: new Date()
-      }
-    });
-  }
-
-  for (const entry of legalKnowledgeEntries) {
-    await prisma.legalKnowledgeEntry.upsert({
-      where: { id: entry.id },
-      update: {
-        sourceDocumentId: entry.sourceDocumentId,
-        sourceDocument: entry.sourceDocument,
-        articleOrRuleNumber: entry.legalReference ?? "غير محدد",
-        chapter: entry.chapter,
-        section: entry.section,
-        fullText: entry.fullText,
-        pageNumber: entry.pageNumber,
-        sourceUrl: entry.sourceUrl,
-        version: entry.version,
-        status: entry.status,
-        keywords: JSON.stringify(entry.keywords),
-        riskCategories: JSON.stringify(entry.riskCategories),
-        severity: entry.severity,
-        prohibitedPatterns: JSON.stringify(entry.prohibitedPatterns),
-        recommendedAction: entry.recommendedAction
-      },
-      create: {
-        id: entry.id,
-        sourceDocumentId: entry.sourceDocumentId,
-        sourceDocument: entry.sourceDocument,
-        articleOrRuleNumber: entry.legalReference ?? "غير محدد",
-        chapter: entry.chapter,
-        section: entry.section,
-        fullText: entry.fullText,
-        pageNumber: entry.pageNumber,
-        sourceUrl: entry.sourceUrl,
-        version: entry.version,
-        status: entry.status,
-        keywords: JSON.stringify(entry.keywords),
-        riskCategories: JSON.stringify(entry.riskCategories),
-        severity: entry.severity,
-        prohibitedPatterns: JSON.stringify(entry.prohibitedPatterns),
-        recommendedAction: entry.recommendedAction
       }
     });
   }
