@@ -13,6 +13,7 @@ import type {
   RiskLevel
 } from "@/lib/types";
 import { advisoryDisclaimer } from "@/lib/governance";
+import { detectArabicSpelling } from "@/lib/arabic-spelling";
 import { countAdvisoryLanguageIssues, countHardLanguageErrors } from "@/lib/language-gate";
 import { createReviewedContentContext } from "@/lib/review-context";
 import { runPublishingReadinessReview } from "@/lib/services/approval-workflow-service";
@@ -69,10 +70,11 @@ function buildWorkflow(languageQualityPassed: boolean, compliancePassed: boolean
 }
 
 function mapToLanguageQualityResult(
-  aiLang: { score: number; passed: boolean; issues: Array<{ category: LanguageIssueCategory; severity: LanguageIssueSeverity; excerpt: string; message: string; suggestion: string }> }
+  aiLang: { score: number; passed: boolean; issues: Array<{ category: LanguageIssueCategory; severity: LanguageIssueSeverity; excerpt: string; message: string; suggestion: string }> },
+  text: string
 ): LanguageQualityReviewResult {
   const weights: Record<LanguageIssueSeverity, number> = { low: 2, medium: 5, high: 9, critical: 16 };
-  const issues: LanguageQualityIssue[] = aiLang.issues.map((issue, index) => ({
+  const aiIssues: LanguageQualityIssue[] = aiLang.issues.map((issue, index) => ({
     id: `ai-${issue.category}-${index + 1}`,
     category: issue.category,
     severity: issue.severity,
@@ -80,6 +82,27 @@ function mapToLanguageQualityResult(
     excerpt: issue.excerpt,
     suggestion: issue.suggestion
   }));
+
+  // ★ الأرضية الإملائية الثابتة (بقرار مالكة المنصة): رصدٌ حتمي لا يتقلّب بتقلّب
+  // النموذج — يُدمج مع مخرج الذكاء ولا يُستبدل به. ما رُصد هنا يُرصد في كل تشغيل.
+  // إسقاط المكرر مقصورٌ على ما رصده الذكاء **إملاءً**: لو صنّفه نحواً أو أسلوباً
+  // بقي الرصد الثابت قائماً، لأن الخطأ الإملائي يجب أن يظهر في بابه لا في غيره.
+  // (رُصد فعلاً: «ان شاءالله» صنّفها النموذج مرة إملاءً ومرة نحواً على النص نفسه.)
+  const aiExcerpts = new Set(
+    aiIssues.filter((i) => i.category === "spelling").map((i) => i.excerpt.trim())
+  );
+  const deterministic: LanguageQualityIssue[] = detectArabicSpelling(text)
+    .filter((hit) => !aiExcerpts.has(hit.excerpt.trim()))
+    .map((hit, index) => ({
+      id: `det-spelling-${index + 1}`,
+      category: "spelling" as LanguageIssueCategory,
+      severity: "medium" as LanguageIssueSeverity,
+      message: hit.message,
+      excerpt: hit.excerpt,
+      suggestion: hit.suggestion
+    }));
+
+  const issues: LanguageQualityIssue[] = [...deterministic, ...aiIssues];
 
   const categoryScores: Record<LanguageIssueCategory, number> = {
     spelling: 100,
@@ -98,9 +121,13 @@ function mapToLanguageQualityResult(
   const hasHardIssues = issues.some((issue) => issue.category === "spelling" || issue.category === "grammar");
   const passed = aiLang.passed && !hasHardIssues && aiLang.score >= 75;
 
+  // الأخطاء الثابتة التي فاتت الذكاء تُحسب في الدرجة أيضاً — وإلا ظهرت درجة عالية
+  // فوق قائمة أخطاء إملائية معروضة تحتها، وهو تناقض ظاهر في الحكم نفسه.
+  const score = Math.max(0, aiLang.score - deterministic.reduce((sum, i) => sum + weights[i.severity], 0));
+
   return {
     passed,
-    score: aiLang.score,
+    score,
     threshold: 75,
     normalizedText: "",
     improvedDraft: "",
@@ -130,7 +157,7 @@ export async function buildReviewResult(
     console.warn("[review-service] degraded to pattern-only, reason:", degradedReason);
   }
 
-  const languageQuality = mapToLanguageQualityResult(contentEval.language);
+  const languageQuality = mapToLanguageQualityResult(contentEval.language, text);
   const compliance = rebuildComplianceFromFindings(semanticFindings, profile);
 
   // تعذّر تقييم الذكاء (fallback): يُعلَّم صراحةً حتى تعكسه جودة المحتوى وجاهزية النشر

@@ -2,57 +2,30 @@
 
 import { SpellCheck } from "lucide-react";
 import { StatusBadge } from "@/components/ui";
+import { detectArabicSpelling } from "@/lib/arabic-spelling";
 import { riskDisplayLabel, type LanguageQualityIssue, type ReviewResult } from "@/lib/types";
 
 const severityOrder = { critical: 0, high: 1, medium: 2, low: 3 } as const;
 
-const inlineSpellingRules = [
-  { wrong: "هاذا", correction: "هذا", message: "صحح رسم اسم الإشارة إلى: هذا." },
-  { wrong: "هاذه", correction: "هذه", message: "صحح رسم اسم الإشارة إلى: هذه." },
-  { wrong: "نض", correction: "نص", message: "صحح رسم الكلمة إلى: نص." },
-  { wrong: "اخطا", correction: "أخطاء", message: "أضف الهمزة والمد في كلمة: أخطاء." },
-  { wrong: "اخطاء", correction: "أخطاء", message: "أضف الهمزة في كلمة: أخطاء." },
-  { wrong: "لغويه", correction: "لغوية", message: "صحح التاء المربوطة في كلمة: لغوية." },
-  { wrong: "واضحه", correction: "واضحة", message: "صحح التاء المربوطة في كلمة: واضحة." },
-  { wrong: "القضيه", correction: "القضية", message: "صحح التاء المربوطة في كلمة: القضية." },
-  { wrong: "السعوديه", correction: "السعودية", message: "صحح التاء المربوطة في كلمة: السعودية." },
-  { wrong: "اجراءات", correction: "إجراءات", message: "أضف الهمزة في المصطلح المهني: إجراءات." },
-  { wrong: "الاجراء", correction: "الإجراء", message: "أضف الهمزة في المصطلح المهني: الإجراء." },
-  { wrong: "والاجراء", correction: "والإجراء", message: "أضف الهمزة في المصطلح المهني: والإجراء." },
-  { wrong: "اجراء", correction: "إجراء", message: "أضف الهمزة في المصطلح المهني: إجراء." },
-  { wrong: "اللائحه", correction: "اللائحة", message: "صحح التاء المربوطة في كلمة: اللائحة." },
-  { wrong: "الانظمه", correction: "الأنظمة", message: "أضف الهمزة وصحح التاء المربوطة في كلمة: الأنظمة." }
-];
-
-function escapeInlinePattern(value: string) {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
-
+// ★ التدقيق المباشر يعمل بالطبقة الإملائية الثابتة نفسها التي يعمل بها المحرك
+// (lib/arabic-spelling.ts) — بقرار مالكة المنصة. كانت هنا قائمة خمس عشرة كلمة
+// منفصلة، فكان ما يظهر أثناء الكتابة يخالف ما يحكم به المحرك بعد التحليل.
+// مرجعٌ واحد للإملاء في المنصة كلها: ما يُرصد في المحرر هو ما يُرصد في التقرير.
 export function detectInlineWritingIssues(value: string): LanguageQualityIssue[] {
-  return inlineSpellingRules.flatMap((rule, ruleIndex) => {
-    try {
-      const pattern = new RegExp(`(?<![\\u0600-\\u06FF])${escapeInlinePattern(rule.wrong)}(?![\\u0600-\\u06FF])`, "g");
-      const results: LanguageQualityIssue[] = [];
-      let match: RegExpExecArray | null;
-      let matchIndex = 0;
-      while ((match = pattern.exec(value)) !== null) {
-        results.push({
-          id: `inline-spelling-${ruleIndex}-${matchIndex}`,
-          category: "spelling" as const,
-          severity: "medium" as const,
-          message: rule.message,
-          excerpt: match[0],
-          suggestion: `استبدل "${match[0]}" بـ "${rule.correction}".`,
-          start: match.index,
-          end: match.index + match[0].length
-        });
-        matchIndex++;
-      }
-      return results;
-    } catch {
-      return [];
-    }
-  });
+  try {
+    return detectArabicSpelling(value).map((hit, index) => ({
+      id: `inline-spelling-${index}`,
+      category: "spelling" as const,
+      severity: "medium" as const,
+      message: hit.message,
+      excerpt: hit.excerpt,
+      suggestion: hit.suggestion,
+      start: hit.start,
+      end: hit.end
+    }));
+  } catch {
+    return [];
+  }
 }
 
 type AssistantIssue = {
