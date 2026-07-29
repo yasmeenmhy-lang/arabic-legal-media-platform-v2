@@ -30,7 +30,14 @@ export type ContentJob = {
   // ملف المصادر الكامل (Source Dossier) — المرجع الوحيد للمصادر: يعود للواجهة
   // فيُحفظ جزءاً من النسخة نفسها وينتقل معها في كل المسارات (قاعدة المحرك الواحد)
   dossier_json: string | null;
+  // ★ المرحلة الجارية فعلياً (بقرار مالكة المنصة: «التعداد يجب أن يحاكي العملية
+  // لا أن يكون وهماً»): يكتبها الخادم عند كل انتقال حقيقي بين محركات المراجعة،
+  // فتقرأها الواجهة ويتقدّم العدّاد بانتقالٍ واقعٍ لا بمرور الزمن وحده.
+  stage: string | null;
 };
+
+// مراحل المراجعة الفعلية بالترتيب — الاسم هنا هو ما يُكتب في العمود ويُقرأ في الواجهة
+export type ReviewStage = "compliance" | "verification" | "evaluation" | "assembly" | "enhancement";
 
 export function jobsDb() {
   const url = process.env.DATABASE_URL;
@@ -67,11 +74,20 @@ export async function ensureJobsTable(sql: Sql) {
   await sql`ALTER TABLE content_jobs ADD COLUMN IF NOT EXISTS cost_usd double precision`;
   await sql`ALTER TABLE content_jobs ADD COLUMN IF NOT EXISTS enforcement_json text`;
   await sql`ALTER TABLE content_jobs ADD COLUMN IF NOT EXISTS dossier_json text`;
+  await sql`ALTER TABLE content_jobs ADD COLUMN IF NOT EXISTS stage text`;
   ensured = true;
 }
 
 export async function setJobPartial(sql: Sql, id: string, text: string) {
   await sql`UPDATE content_jobs SET partial_text = ${text}, updated_at = now() WHERE id = ${id}`;
+}
+
+// تسجيل انتقال مرحلة حقيقي — يُستدعى لحظة بدء المحرك التالي فعلاً، لا قبله.
+// فشل الكتابة لا يُسقط التحليل أبداً: العدّاد وسيلة عرض لا شرط صحة.
+export async function setJobStage(sql: Sql, id: string, stage: ReviewStage) {
+  try {
+    await sql`UPDATE content_jobs SET stage = ${stage}, updated_at = now() WHERE id = ${id}`;
+  } catch { /* عمود المرحلة تحسين عرض — لا يُعطَّل التحليل بفشله */ }
 }
 
 export async function createJob(sql: Sql, id: string) {
@@ -95,7 +111,7 @@ export async function getJob(sql: Sql, id: string): Promise<ContentJob | null> {
   // أطول من حدّ الخادم (٣٠٠ ثانية) بهامش أمان ⇒ قُتلت في منتصفها ولن تكتمل أبداً.
   // نُعلّمها فاشلة عند أول استعلام بعد ذلك، فتُنهي الواجهة انتظارها بدل التعليق الأبدي.
   await sql`UPDATE content_jobs SET status = 'error', error = ${"تعذّر إكمال الإنشاء في الوقت المتاح — أعد المحاولة."}, updated_at = now() WHERE id = ${id} AND status = 'pending' AND created_at < now() - interval '6 minutes'`;
-  const rows = (await sql`SELECT id, status, result_text, partial_text, error, truncated, review_json, sources_json, source_note, cost_usd, enforcement_json, dossier_json FROM content_jobs WHERE id = ${id}`) as ContentJob[];
+  const rows = (await sql`SELECT id, status, result_text, partial_text, error, truncated, review_json, sources_json, source_note, cost_usd, enforcement_json, dossier_json, stage FROM content_jobs WHERE id = ${id}`) as ContentJob[];
   return rows[0] ?? null;
 }
 

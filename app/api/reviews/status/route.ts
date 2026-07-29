@@ -42,5 +42,6 @@ export async function GET(request: Request) {
     }
   }
   if (job.status === "error") return NextResponse.json({ status: "error", error: job.error ?? "تعذر إكمال المراجعة.", ...(await ownerCostFields(job.cost_usd)) });
-  return NextResponse.json({ status: "pending" });
+  // المرحلة الجارية فعلاً — تقرأها الواجهة فيتقدّم العدّاد بانتقالٍ واقع لا بالزمن
+  return NextResponse.json({ status: "pending", stage: job.stage ?? undefined });
 }

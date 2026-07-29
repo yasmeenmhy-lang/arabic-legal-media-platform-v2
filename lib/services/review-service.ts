@@ -347,11 +347,21 @@ export function deriveVerificationGovernance(briefing?: string): {
   return { verificationStatus: "unverified", unverifiedSource: false, unmatchedCitations };
 }
 
-export async function reviewContent(text: string, kind: ContentKind = "post", context: ReviewContext = {}): Promise<ReviewResult> {
+// ★ مُبلِّغ المرحلة (بقرار مالكة المنصة): يُستدعى لحظة بدء كل محرك فعلاً — فيعرف
+// العدّاد في الواجهة أين وصلت العملية حقيقةً بدل أن يقدّر بالزمن وحده.
+export type StageReporter = (stage: "compliance" | "verification" | "evaluation" | "assembly") => void;
+
+export async function reviewContent(
+  text: string,
+  kind: ContentKind = "post",
+  context: ReviewContext = {},
+  onStage?: StageReporter
+): Promise<ReviewResult> {
   // ★★ القاعدة المؤسسة (بأمر مالكة المنصة — ممنوع تجاوزها): قواعد السلوك المهني
   // واللائحة التنفيذية نقطة الانطلاق لكل مسار. النص يُعرض على القواعد أولاً —
   // الطبقة الأولى بألفاظ المتن ثم الثانية بمعناه ومقصده — قبل أي بحث خارجي.
   // التحقق الحي خادمٌ يأتي بعد الحكم لا مقدَّمٌ عليه.
+  onStage?.("compliance");
   const semanticResult = await runSemanticAnalysis(text, context, kind);
 
   // التحقّق الحيّ من المصادر — بعد حكم القواعد: إنفاذٌ فعليٌّ لقاعدة تحرّي المصادر،
@@ -361,6 +371,7 @@ export async function reviewContent(text: string, kind: ContentKind = "post", co
   let ctx = context;
   // ★ قاعدة المحرك الواحد: المدقق يستلم خريطة الادعاء–المصدر المرافقة للنسخة
   // (إن وُجدت) فيتحقق من المثبت الموجود أولاً — لا بحث موازٍ يعيد بناء المصادر.
+  onStage?.("verification");
   const verification = await verifyTextCitations({
     text,
     specialty: context.specialty,
@@ -394,7 +405,9 @@ export async function reviewContent(text: string, kind: ContentKind = "post", co
   // متتابعات — بقرار مالكة المنصة: «الامتثال عنصر أساسي في قياس المخاطر».
   // المخالفات المثبتة بالقواعد + نتائج التحقق الحي تُمرَّران معاً إلى القياس نفسه،
   // فلا يقيس محرّك المخاطر الأثر وهو لا يعلم بما رُصد.
+  onStage?.("evaluation");
   const contentEval = await evaluateContent(text, ctx, semanticResult.findings);
+  onStage?.("assembly");
   return buildReviewResult(text, kind, ctx, semanticResult, contentEval);
 }
 

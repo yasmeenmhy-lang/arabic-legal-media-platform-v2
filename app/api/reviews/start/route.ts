@@ -5,7 +5,7 @@ import { badRequest } from "@/lib/api";
 import { enhanceReviewOutput } from "@/lib/services/ai-enhancement-service";
 import { reviewContent } from "@/lib/services/review-service";
 import { persistReviewResult } from "@/lib/services/review-persistence-service";
-import { completeJob, createJob, failJob, jobsDb } from "@/lib/content-jobs";
+import { completeJob, createJob, failJob, jobsDb, setJobStage } from "@/lib/content-jobs";
 import { runWithCostMeter, meterCostUsd, currentMeter } from "@/lib/cost-meter";
 import { ledgerDb, deductUsd } from "@/lib/cost-ledger";
 
@@ -67,12 +67,17 @@ export async function POST(request: Request) {
         return costUsd;
       };
       try {
-        const baseReview = await reviewContent(text, kind, context);
+        // ★ تسجيل المرحلة عند كل انتقال حقيقي — لا تُنتظر الكتابة كي لا تُبطئ
+        // التحليل، وفشلها مبتلَع داخل setJobStage فلا يمسّ النتيجة إطلاقاً.
+        const baseReview = await reviewContent(text, kind, context, (stage) => {
+          void setJobStage(sql, jobId, stage);
+        });
         if (baseReview.analysisMode === "pattern-only" || baseReview.evaluationIncomplete) {
           const costUsd = await settleCost();
           await failJob(sql, jobId, "تعذّر إكمال التحليل بالذكاء الاصطناعي حالياً، ولم تُعرض أي نتائج حفاظاً على دقة الحكم. أعد المحاولة بعد قليل.", costUsd);
           return;
         }
+        void setJobStage(sql, jobId, "enhancement");
         const review = await enhanceReviewOutput({ text, kind, context, review: baseReview });
         // طبقة حفظ Prisma القديمة اختيارية وغير مقروءة في الواجهة — فشلها (تهيئة
         // sqlite قديمة على قاعدة Postgres) كان يفجّر المهمة بعد اكتمال التحليل

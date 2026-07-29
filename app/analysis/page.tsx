@@ -199,6 +199,17 @@ function DesktopSelect({ value, onChange, placeholder, emptyLabel, options }: {
 
 const severityOrder = { critical: 0, high: 1, medium: 2, low: 3 } as const;
 
+// نطاقات مراحل المراجعة الفعلية — مفاتيحها هي أسماء المراحل التي يبلّغ بها الخادم
+// (lib/services/review-service.ts). النسبة داخل النطاق تزحف بالزمن ولا تتجاوز سقفه
+// إلا حين ينتهي المحرك فعلاً ويصل بلاغ المرحلة التالية.
+const STAGE_BANDS: Record<string, { from: number; to: number; label: string; estMs: number }> = {
+  compliance:   { from: 1,  to: 38, label: "فحص الامتثال على النص الرسمي", estMs: 22_000 },
+  verification: { from: 38, to: 62, label: "التحقّق من المصادر",           estMs: 16_000 },
+  evaluation:   { from: 62, to: 86, label: "قياس المخاطر واللغة",          estMs: 18_000 },
+  assembly:     { from: 86, to: 92, label: "بناء التقرير",                 estMs: 2_000 },
+  enhancement:  { from: 92, to: 99, label: "تحرير المخرجات",               estMs: 8_000 },
+};
+
 function decisionTone(review: ReviewResult) {
   if (review.analysisMode === "pattern-only" || review.evaluationIncomplete) return "neutral" as const;
   if (review.publicationDecision.outcome === "RECOMMENDED") return "good" as const;
@@ -228,20 +239,31 @@ export default function ContentReviewPage() {
   const [purpose, setPurpose] = useState("");
   const [review, setReview] = useState<ReviewResult | null>(null);
   const [loading, setLoading] = useState(false);
-  // ★ (بقرار المالكة): عدّاد طبيعي من ١ إلى ١٠٠ بخطى منتظمة — لا تسارع ولا تباطؤ.
-  // يمشي على المدة المعتادة للتحليل (نحو ٤٥ ثانية)؛ فإن طال التحليل عنها انتظر
-  // عند ٩٩٪ حتى تصل النتيجة فعلاً، ثم يُكمل ١٠٠٪ (لا يقفز للمئة قبل الاكتمال).
-  const ANALYZE_EST_MS = 45_000;
+  // ★ عدّاد يحاكي العملية فعلاً (بقرار مالكة المنصة: «التعداد يجب أن يحاكي العملية
+  // وليس وهماً»): لكل محرك من محركات المراجعة نطاقٌ من النسبة، والخادم يُبلّغ عن
+  // المرحلة الجارية لحظة بدئها حقيقةً. داخل النطاق يزحف الرقم بالزمن، لكنه **لا
+  // يتجاوز سقف نطاقه أبداً** حتى ينتهي المحرك فعلاً وتصل المرحلة التالية. فالرقم
+  // لا يتقدّم إلا بانتقالٍ واقع، والوقوف يعني أن المحرك الحالي ما زال يعمل.
+  const [analyzeStage, setAnalyzeStage] = useState<string>("");
   const [analyzePct, setAnalyzePct] = useState(0);
+  const stageStartedAtRef = useRef(0);
   useEffect(() => {
-    if (!loading) { setAnalyzePct(0); return; }
-    const start = Date.now();
+    if (!loading) { setAnalyzePct(0); setAnalyzeStage(""); return; }
+    if (!stageStartedAtRef.current) stageStartedAtRef.current = Date.now();
     const id = setInterval(() => {
-      const elapsed = Date.now() - start;
-      setAnalyzePct(Math.min(99, Math.max(1, Math.round((elapsed / ANALYZE_EST_MS) * 100))));
+      const band = STAGE_BANDS[analyzeStage];
+      // قبل وصول أول بلاغ مرحلة: نبقى في مستهل النطاق الأول ولا نتقدّم بلا أساس
+      if (!band) { setAnalyzePct((p) => (p > 0 ? p : 1)); return; }
+      const inStage = Date.now() - stageStartedAtRef.current;
+      const ratio = Math.min(1, inStage / band.estMs);
+      // السقف: آخر رقم قبل حدّ النطاق — لا يُلامس حدّ المرحلة التالية إلا بانتقال فعلي
+      setAnalyzePct(Math.max(band.from, Math.min(band.to - 1, Math.round(band.from + (band.to - band.from) * ratio))));
     }, 300);
     return () => clearInterval(id);
-  }, [loading]);
+  }, [loading, analyzeStage]);
+  // كل بلاغ مرحلة جديد يُصفّر ساعة النطاق — الزحف داخل النطاق يبدأ من لحظة بدئه فعلاً
+  useEffect(() => { stageStartedAtRef.current = Date.now(); }, [analyzeStage]);
+  const analyzeStageLabel = STAGE_BANDS[analyzeStage]?.label ?? "";
   const [message, setMessage] = useState("");
   const [contentId, setContentId] = useState<string>();
   const [versionNumber, setVersionNumber] = useState<number>();
@@ -615,7 +637,9 @@ export default function ContentReviewPage() {
       if (Date.now() > deadline) return { error: "طالت المتابعة أكثر من المتوقع — أعد المحاولة." };
       try {
         const res = await fetch(`/api/reviews/status?id=${encodeURIComponent(jobId)}`);
-        const data = (await res.json()) as { status?: string; data?: ReviewResult; error?: string; costUsd?: number; balanceUsd?: number };
+        const data = (await res.json()) as { status?: string; stage?: string; data?: ReviewResult; error?: string; costUsd?: number; balanceUsd?: number };
+        // المرحلة الجارية فعلاً كما يبلّغ عنها الخادم — هي ما يحرّك العدّاد
+        if (data.status === "pending" && data.stage) setAnalyzeStage((s) => (s === data.stage ? s : data.stage!));
         if (data.status === "done") {
           void fetch(`/api/reviews/status?id=${encodeURIComponent(jobId)}&ack=1`).catch(() => {});
           try { window.localStorage.removeItem(scopedKey(PENDING_REVIEW_KEY)); } catch { /* بيئة بلا تخزين */ }
@@ -2266,7 +2290,7 @@ export default function ContentReviewPage() {
         <div className={`mt-4 flex flex-wrap gap-3 ${hasSelectedContent ? "" : "hidden"}`}>
           {/* أزرار العمل تظهر مع المحتوى المختار؛ وبعد ظهور النتائج يصبح زر التحليل «إعادة التحليل» بلا حاجة لدخول وضع التعديل */}
           {/* عدّاد التقدم داخل الزر أثناء التحليل (بقرار المالكة) */}
-          <Button size="lg" onClick={() => runReview(false)} disabled={loading || !canAnalyze} leadingIcon={loading ? <DgaSpinner size="sm" tone="violet" /> : <FileText size={17} />}>{loading ? `جارٍ التحليل… ${analyzePct}%` : review || contentId ? "إعادة التحليل" : "تحليل المحتوى"}</Button>
+          <Button size="lg" onClick={() => runReview(false)} disabled={loading || !canAnalyze} leadingIcon={loading ? <DgaSpinner size="sm" tone="violet" /> : <FileText size={17} />}>{loading ? `${analyzeStageLabel || "جارٍ التحليل"}… ${analyzePct}%` : review || contentId ? "إعادة التحليل" : "تحليل المحتوى"}</Button>
           {review && !isEditing ? <Button variant="secondary" onClick={beginEditing} leadingIcon={<Edit3 size={16} />}>تعديل</Button> : null}
           {isEditing && contentId ? <Button variant="secondary" onClick={saveEdits} disabled={loading || text.trim().length < 5} leadingIcon={<Save size={16} />}>حفظ التعديلات</Button> : null}
           {isEditing ? <Button variant="secondary-gray" onClick={cancelEditing} disabled={loading} leadingIcon={<AlertTriangle size={16} />}>إلغاء</Button> : null}
@@ -2605,8 +2629,10 @@ export default function ContentReviewPage() {
               return reasons.length ? (
                 <div className="mt-3 rounded-lg bg-red-50 p-3 text-sm leading-6 text-red-800">
                   <p className="font-semibold">يتعذّر اعتماد النسخة الحالية للأسباب التالية:</p>
+                  {/* (بقرار المالكة): حُذفت جملة «لن يؤدي الاعتماد إلى إخفاء ملاحظة
+                      حرجة أو تجاوزها» — الأسباب أعلاه تقول ذلك بنفسها، وطمأنةٌ زائدة
+                      على قائمة أسباب صريحة لا تضيف معلومة. */}
                   <ul className="mt-1 list-disc space-y-1 pr-5">{reasons.map((reason) => <li key={reason}>{reason}</li>)}</ul>
-                  <p className="mt-2 text-xs text-red-700/80">لن يؤدي الاعتماد إلى إخفاء ملاحظة حرجة أو تجاوزها.</p>
                 </div>
               ) : (
                 <p className="mt-3 text-sm text-ink/65">النسخة جاهزة للاعتماد.</p>
