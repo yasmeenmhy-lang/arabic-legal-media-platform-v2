@@ -684,7 +684,9 @@ export default function ContentReviewPage() {
         setScriptStyle(pending.scriptStyle ?? "");
         setArticleLength(pending.articleLength ?? "");
         setContentId(pending.contentId);
-        setMessage("استُعيد نصك — انقطع بدء التحليل عند مغادرة الصفحة. اضغط «تحليل المحتوى» للاستئناف.");
+        // ★ (بقرار المالكة — حُذفت): الرسالة كانت تبقى ولا يُمحى السجل المعلّق،
+        // فتتكرر عند كل فتح. النص يُستعاد صامتاً والسجل يُمحى فور أداء غرضه.
+        try { window.localStorage.removeItem(scopedKey(PENDING_REVIEW_KEY)); } catch { /* تجاهل */ }
       } else {
         try { window.localStorage.removeItem(scopedKey(PENDING_REVIEW_KEY)); } catch { /* تجاهل */ }
       }

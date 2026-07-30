@@ -1390,7 +1390,11 @@ function toStoredGovernance(gov: ServerGovernance | undefined, notice: string | 
         setScriptStyle(pending.scriptStyle ?? "");
         setArticleLength(pending.articleLength ?? "");
         setContentId(pending.contentId);
-        setReviewError("استُعيد نصك — انقطع بدء التحليل عند مغادرة الصفحة. اضغط «تحليل» للاستئناف.");
+        // ★ (بقرار المالكة — حُذفت): كانت تُعرض رسالة «استُعيد نصك…» ولا يُحذف
+        // السجل المعلّق، فتعود الرسالة كل فتح وتظل أربعاً وعشرين ساعة، وتظهر
+        // مرتين لأنها مرسومة في موضعين. النص يُستعاد صامتاً، والسجل يُمحى فور
+        // أداء غرضه — فلا تعليق ولا رسالة عالقة.
+        try { window.localStorage.removeItem(scopedKey(PENDING_REVIEW_KEY)); } catch { /* تجاهل */ }
       } else {
         try { window.localStorage.removeItem(scopedKey(PENDING_REVIEW_KEY)); } catch { /* تجاهل */ }
       }
