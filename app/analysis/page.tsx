@@ -203,7 +203,8 @@ const severityOrder = { critical: 0, high: 1, medium: 2, low: 3 } as const;
 // (lib/services/review-service.ts). النسبة داخل النطاق تزحف بالزمن ولا تتجاوز سقفه
 // إلا حين ينتهي المحرك فعلاً ويصل بلاغ المرحلة التالية.
 const STAGE_BANDS: Record<string, { from: number; to: number; label: string; estMs: number }> = {
-  compliance:   { from: 1,  to: 38, label: "فحص الامتثال على النص الرسمي", estMs: 22_000 },
+  understanding:{ from: 1,  to: 14, label: "فهم النص",                          estMs: 9_000 },
+  compliance:   { from: 14, to: 38, label: "فحص الامتثال على النص الرسمي", estMs: 22_000 },
   verification: { from: 38, to: 62, label: "التحقّق من المصادر",           estMs: 16_000 },
   evaluation:   { from: 62, to: 86, label: "قياس المخاطر واللغة",          estMs: 18_000 },
   assembly:     { from: 86, to: 92, label: "بناء التقرير",                 estMs: 2_000 },

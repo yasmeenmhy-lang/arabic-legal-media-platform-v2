@@ -201,6 +201,15 @@ export type LanguageQualityReviewResult = {
 };
 
 export type ReviewContext = {
+  /** ★ الفهم المثبّت لمسار المراجعة (بقرار مالكة المنصة): يُحسب مرة واحدة قبل أي
+   *  حكم، ويقرؤه كل المحرّكات — فتحكم جميعها على فهم واحد لا على قراءات متفرقة
+   *  تتقلّب بين تشغيل وآخر. (طبيعة النص · مقصده · هل يقتضي لغة رصينة · ملخصه) */
+  understanding?: {
+    nature: string;
+    purport: string;
+    formalRegisterRequired: boolean;
+    summary: string;
+  };
   contentType?: string;
   channel?: string;
   audience?: string;

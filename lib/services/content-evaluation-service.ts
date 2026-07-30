@@ -356,9 +356,22 @@ function hasFramework(context?: ReviewContext): boolean {
   return Boolean(context?.contentType || context?.channel || context?.audience || context?.purpose);
 }
 
+// ★★ سطر الفهم المثبّت (بقرار مالكة المنصة): «الأسلوب العامي مقبول إذا كان نص
+// يوميات أو تعليق أو رسالة — هو مو كاتب مقالة». فحدّ الأسلوب يُقاس بطبيعة النص
+// الفعلية، وهي معلومة الآن من الفهم المثبّت — لا تُظنّ ولا تُفترض مقالاً.
+function buildUnderstandingLine(context?: ReviewContext): string {
+  const u = context?.understanding;
+  if (!u) return "";
+  const styleRule = u.formalRegisterRequired
+    ? "وهذا النوع يقتضي لغة فصيحة رصينة، فتُرصد العامية فيه ملاحظةَ أسلوب مقرِّرة بحسبه."
+    : "★ وهذا النوع **لا يقتضي** لغة فصيحة رصينة — فالعامية فيه **مقبولة ولا تُرصد ملاحظةً ولا تُنقص الدرجة ولا تُذكر في أي محور**. لا يُقاس بمعيار المقال ما ليس مقالاً.";
+  return `الفهم المثبّت لهذا النص (محسوب قبل التقييم — اعتمده ولا تُكوّن فهماً مخالفاً): طبيعته «${u.nature}»، ومقصد كاتبه «${u.purport}». ${u.summary} ${styleRule}\n★ ولا تحكم بخلاف هذا المقصد: الثناء ثناء لا تشكيك، والإخبار إخبار لا ترويج.\n`;
+}
+
 function buildContextLine(context?: ReviewContext): string {
+  const understandingLine = buildUnderstandingLine(context);
   if (!context) return NO_FRAMEWORK_LINE;
-  if (!hasFramework(context)) return NO_FRAMEWORK_LINE;
+  if (!hasFramework(context)) return understandingLine + NO_FRAMEWORK_LINE;
   const parts = [
     context.contentType ? `نوع المحتوى: ${context.contentType}` : "",
     context.channel ? `القناة: ${context.channel}` : "",
@@ -368,7 +381,7 @@ function buildContextLine(context?: ReviewContext): string {
     context.source ? `مصدر الفكرة: ${context.source}` : "",
     context.topic ? `الموضوع المدخل: ${context.topic}` : "",
   ].filter(Boolean);
-  const base = parts.length > 0 ? `سياق النص — ${parts.join("، ")}\n` : "";
+  const base = understandingLine + (parts.length > 0 ? `سياق النص — ${parts.join("، ")}\n` : "");
   // نتائج التحقّق الحيّ من المصادر الموثوقة — تُعتمد في تقدير المخاطر على دقّة
   // الإحالات: «مؤكَّد» لا يُبنى عليه خطر دقّة، و«غير مطابق» خلل دقّة، و«تعذّر
   // التحقّق» يُعامَل بمعايرة الإحالة (لا تصعيد مخاطر لمجرّد تعذّر التحقّق اللحظي).

@@ -16,6 +16,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 import { SOURCE_GOVERNANCE } from "@/lib/source-governance";
 import { LEADERSHIP_PRAISE_PIPELINE_NOTE } from "@/lib/leadership-praise-rule";
+import Anthropic from "@anthropic-ai/sdk";
 import { recordUsage } from "@/lib/cost-meter";
 import type { IntentRepresentation, IntentClaim } from "@/lib/source-dossier";
 
@@ -179,6 +180,76 @@ export function parseIntent(raw: string): IntentRepresentation | null {
       claims,
     };
   } catch {
+    return null;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ★★ فهم النص المراجَع — الفهم المثبّت لمسار المراجعة (بقرار مالكة المنصة)
+//
+// الجذر الذي رصدته: مسار الإنشاء يفهم أولاً ويُدوّن فهمه، فكل ما بعده يُبنى عليه.
+// أما المراجعة فكان كل محرك فيها يقرأ النص ويفهمه من جديد ضمنياً وحده — فهمٌ
+// غير مدوَّن ولا مُلزِم، يتقلّب بين تشغيل وآخر. ولهذا خرج النص الواحد مرة
+// «ملتزم · لا مخاطر» ومرة «غير ملتزم · مخاطر مرتفع»: القراءة نفسها تبدّلت.
+//
+// الحل: خطوة فهم واحدة تسبق كل الحكم، تُثبَّت وتُحقن في المحرّكات كلها، فتحكم
+// جميعها على **فهم واحد** لا على قراءات متفرقة. هذا يثبّت الحكم ويمنع أن يُقرأ
+// الثناء تشكيكاً، ويُعرِّف طبيعة النص التي يُقاس بها الأسلوب.
+// ═══════════════════════════════════════════════════════════════════════════
+
+export type ReviewUnderstanding = {
+  // طبيعة النص كما هي لا كما نتمناها — عليها يُقاس حدّ الأسلوب المقبول
+  nature: "خاطرة" | "تعليق" | "رسالة" | "منشور توعوي" | "مقال" | "بيان" | "إعلان" | "غير محدد";
+  // مقصد الكاتب — ثناءٌ ليس تشكيكاً، وإخبارٌ ليس ترويجاً
+  purport: string;
+  // هل يقتضي هذا النوع لغة فصيحة رصينة؟ (المقال والبيان نعم؛ الخاطرة والتعليق لا)
+  formalRegisterRequired: boolean;
+  // ملخص محايد بجملة — يُحقن في المحرّكات فتحكم على معلوم لا على مظنون
+  summary: string;
+};
+
+const REVIEW_UNDERSTANDING_SYSTEM = `أنت محلل فهم في منصة محتوى قانوني لمحامٍ مرخَّص في المملكة العربية السعودية.
+مهمتك **الفهم وحده** — لا الحكم ولا النقد ولا رصد المخالفات. لا تقيّم النص ولا تبحث عن عيب فيه.
+
+اقرأ النص واستخرج:
+1. nature: طبيعته الفعلية — "خاطرة" (انطباع شخصي عابر)، "تعليق"، "رسالة"، "منشور توعوي"، "مقال"، "بيان"، "إعلان"، أو "غير محدد" إن لم تتبيّن.
+2. purport: مقصد كاتبه بعبارة قصيرة محايدة (ثناء، إخبار، شرح، دعوة، شكوى، ترويج...). وكن دقيقاً: الثناء ثناء، ولا يُحوَّل إلى ضده.
+3. formalRegisterRequired: هل يقتضي هذا النوع لغة فصيحة رصينة؟ true للمقال والبيان والمنشور التوعوي الرسمي؛ false للخاطرة والتعليق والرسالة الشخصية.
+4. summary: جملة واحدة محايدة تصف ما يقوله النص فعلاً.
+
+أخرج JSON فقط بهذه المفاتيح الأربعة، بلا أي نص خارجه.`;
+
+export async function analyzeReviewedText(text: string, timeoutMs = 40_000): Promise<ReviewUnderstanding | null> {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) return null;
+  try {
+    const client = new Anthropic({ apiKey });
+    const message = await client.messages.create(
+      {
+        model: "claude-sonnet-5",
+        thinking: { type: "disabled" },
+        max_tokens: 900,
+        system: [{ type: "text", text: REVIEW_UNDERSTANDING_SYSTEM, cache_control: { type: "ephemeral" } }],
+        messages: [{ role: "user", content: `النص المراد فهمه:\n«${text}»` }],
+      },
+      { timeout: timeoutMs }
+    );
+    recordUsage(message.usage, { stage: "فهم النص المراجَع", model: "claude-sonnet-5" });
+    const raw = message.content
+      .map((b) => (b.type === "text" ? b.text : ""))
+      .join("");
+    const json = raw.slice(raw.indexOf("{"), raw.lastIndexOf("}") + 1);
+    const parsed = JSON.parse(json) as Partial<ReviewUnderstanding>;
+    if (!parsed || typeof parsed !== "object") return null;
+    return {
+      nature: (parsed.nature ?? "غير محدد") as ReviewUnderstanding["nature"],
+      purport: String(parsed.purport ?? ""),
+      formalRegisterRequired: Boolean(parsed.formalRegisterRequired),
+      summary: String(parsed.summary ?? ""),
+    };
+  } catch (error) {
+    // فشل الفهم لا يُسقط المراجعة — تمضي بلا فهم مثبّت كما كانت
+    console.error("[review-understanding] failed:", error);
     return null;
   }
 }

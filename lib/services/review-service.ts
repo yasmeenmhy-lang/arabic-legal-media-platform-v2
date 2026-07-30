@@ -22,6 +22,7 @@ import { partiesToRiskLevel } from "@/lib/risk-parties";
 import { runSemanticAnalysis } from "@/lib/services/semantic-analysis-service";
 import type { SemanticAnalysisResult } from "@/lib/services/semantic-analysis-service";
 import { evaluateContent } from "@/lib/services/content-evaluation-service";
+import { analyzeReviewedText } from "@/lib/services/intent-analysis-service";
 import { verifyTextCitations } from "@/lib/services/web-research-service";
 import { mergeVerificationIntoDossier, computeCompleteness, describeEvidenceState, provenExcerpts } from "@/lib/source-dossier";
 import { article10ViolationsWithProof } from "@/lib/services/article10-enforcer";
@@ -376,7 +377,7 @@ export function deriveVerificationGovernance(briefing?: string): {
 
 // ★ مُبلِّغ المرحلة (بقرار مالكة المنصة): يُستدعى لحظة بدء كل محرك فعلاً — فيعرف
 // العدّاد في الواجهة أين وصلت العملية حقيقةً بدل أن يقدّر بالزمن وحده.
-export type StageReporter = (stage: "compliance" | "verification" | "evaluation" | "assembly") => void;
+export type StageReporter = (stage: "understanding" | "compliance" | "verification" | "evaluation" | "assembly") => void;
 
 export async function reviewContent(
   text: string,
@@ -388,22 +389,29 @@ export async function reviewContent(
   // واللائحة التنفيذية نقطة الانطلاق لكل مسار. النص يُعرض على القواعد أولاً —
   // الطبقة الأولى بألفاظ المتن ثم الثانية بمعناه ومقصده — قبل أي بحث خارجي.
   // التحقق الحي خادمٌ يأتي بعد الحكم لا مقدَّمٌ عليه.
+  // ★★ الفهم المثبّت أولاً (بقرار مالكة المنصة): يُحسب مرة واحدة قبل أي حكم،
+  // ويُحقن في المحرّكات كلها — فتحكم على فهم واحد لا على قراءة يعيدها كل محرك
+  // من الصفر فتتقلّب. هذا جذر تناقض الأحكام على النص الواحد.
+  onStage?.("understanding");
+  const understanding = await analyzeReviewedText(text);
+  const baseContext: ReviewContext = understanding ? { ...context, understanding } : context;
+
   onStage?.("compliance");
-  const semanticResult = await runSemanticAnalysis(text, context, kind);
+  const semanticResult = await runSemanticAnalysis(text, baseContext, kind);
 
   // التحقّق الحيّ من المصادر — بعد حكم القواعد: إنفاذٌ فعليٌّ لقاعدة تحرّي المصادر،
   // يجري على كل مراجعة بلا استثناء (بقرار المالكة): لا يُشترط وجود إحالة ظاهرة ولا
   // إفصاح المستخدم، لأن النص قد يحمل ادعاءً نظامياً بلا لفظ مرجعي صريح. نتائجه
   // تُحقن في قياس المخاطر واللغة وتُعرض «مصادر تحقق». فشله لا يُسقط المراجعة.
-  let ctx = context;
+  let ctx = baseContext;
   // ★ قاعدة المحرك الواحد: المدقق يستلم خريطة الادعاء–المصدر المرافقة للنسخة
   // (إن وُجدت) فيتحقق من المثبت الموجود أولاً — لا بحث موازٍ يعيد بناء المصادر.
   onStage?.("verification");
   const verification = await verifyTextCitations({
     text,
-    specialty: context.specialty,
-    sourceHint: context.sourceHint,
-    dossier: context.sourceDossier,
+    specialty: baseContext.specialty,
+    sourceHint: baseContext.sourceHint,
+    dossier: baseContext.sourceDossier,
     timeoutMs: 45_000
   });
   if (verification?.briefing) {
@@ -412,7 +420,7 @@ export async function reviewContent(
     // verification_failed ترفع أسبابها المستقلة هناك). ولا تدخل القاضي ولا المقيّم.
     const derived = deriveVerificationGovernance(verification.briefing);
     ctx = {
-      ...context,
+      ...baseContext,
       verificationBriefing: verification.briefing,
       verificationSources: verification.sources,
       verificationDetails: verification.details,

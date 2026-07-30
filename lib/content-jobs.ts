@@ -37,7 +37,7 @@ export type ContentJob = {
 };
 
 // مراحل المراجعة الفعلية بالترتيب — الاسم هنا هو ما يُكتب في العمود ويُقرأ في الواجهة
-export type ReviewStage = "compliance" | "verification" | "evaluation" | "assembly" | "enhancement";
+export type ReviewStage = "understanding" | "compliance" | "verification" | "evaluation" | "assembly" | "enhancement";
 
 export function jobsDb() {
   const url = process.env.DATABASE_URL;

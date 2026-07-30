@@ -250,9 +250,17 @@ ${validRefs}
 // الجزء المتغير: نص المستخدم وسياقه — يُرسل طازجاً في كل طلب ولا يُخزَّن.
 // يلحق به قسم الطبقة الأولى (البحث الحتمي) حين تُخرج مواضع — ومحلّه رسالة
 // المستخدم لا كتلة system المخزّنة مؤقتاً، لأنه يتغيّر بتغيّر النص.
-function buildHolisticUserMessage(text: string, contextSummary: string, scanSection: string): string {
+// ★ الفهم المثبّت (بقرار مالكة المنصة): يُحقن في رسالة القاضي فيحكم على فهم
+// واحد مثبّت لا على قراءة يعيدها من الصفر كل تشغيل فتتقلّب — وهو ما جعل الثناء
+// يُقرأ تشكيكاً مرة ويُبرَّأ مرة.
+export function buildUnderstandingBlock(u?: { nature: string; purport: string; formalRegisterRequired: boolean; summary: string }): string {
+  if (!u) return "";
+  return `\n\nالفهم المثبّت لهذا النص (محسوب قبل الحكم — اعتمده ولا تعِد تكوين فهم مخالف له):\n- طبيعة النص: ${u.nature}\n- مقصد الكاتب: ${u.purport}\n- ملخصه: ${u.summary}\n★ لا تحكم بخلاف هذا المقصد: فإن كان المقصد ثناءً فلا يُقرأ تشكيكاً ولا طعناً، وإن كان إخباراً فلا يُقرأ ترويجاً. ومجرّد ذكر جهة أو موضوع لا يجعل النص مخالفاً لقاعدة تخصّه — العبرة بتحقق شرط البند نفسه في ألفاظ النص.`;
+}
+
+function buildHolisticUserMessage(text: string, contextSummary: string, scanSection: string, understandingBlock = ""): string {
   return `${contextSummary !== "غير محدد" ? `السياق الإضافي: ${contextSummary}\n\n` : ""}## النص المراد تحليله
-«${text}»${scanSection ? `\n\n${scanSection}` : ""}`;
+«${text}»${understandingBlock}${scanSection ? `\n\n${scanSection}` : ""}`;
 }
 
 // قراءة ثانية سريعة: تطلب «الإضافات فقط» لا إعادة كتابة القائمة كاملة — الفرق الحاسم
@@ -262,10 +270,11 @@ function buildAdditionsOnlyMessage(
   text: string,
   contextSummary: string,
   firstPassCompact: string,
-  scanSection: string
+  scanSection: string,
+  understandingBlock = ""
 ): string {
   return `${contextSummary !== "غير محدد" ? `السياق الإضافي: ${contextSummary}\n\n` : ""}## النص المراد تحليله
-«${text}»${scanSection ? `\n\n${scanSection}` : ""}
+«${text}»${understandingBlock}${scanSection ? `\n\n${scanSection}` : ""}
 
 ## ما رصدتَه بالفعل في القراءة الأولى (مراجع فقط — لا تُعد ذكرها)
 ${firstPassCompact}
@@ -274,7 +283,7 @@ ${firstPassCompact}
 راجع النص مرة أخيرة بحثاً حصراً عن مخالفات **إضافية** لم تظهر أعلاه:
 1. لكل مخالفة مذكورة أعلاه: هل لنفس الواقعة أو الدليل مخالفة مقابلة في الوثيقة الأخرى (لائحة ↔ قواعد سلوك) لم تُذكر؟
 2. راجع الزوايا الثماني عشرة مرة أخيرة — هل فاتتك مخالفة كاملة لم تظهر إطلاقاً؟
-3. مواضع الطبقة الأولى أعلاه (إن وُجدت): هل بقي منها موضعٌ لم تحكم عليه في القراءة الأولى وتراه مخالفاً؟
+3. مواضع الطبقة الأولى أعلاه (إن وُجدت): افحص كل موضع منها وتحقّق هل **تحقّق شرط البند** في ألفاظ النص فعلاً. ★ الموضع مرفوعٌ للفحص لا للإدانة: مجرّد أن النص لامس موضوع القاعدة ليس مخالفة، والأصل السلامة. فإن لم يتحقق شرط البند فلا تُدرج شيئاً.
 لا تُعد كتابة أي مخالفة مذكورة أعلاه. إن لم توجد أي إضافة فعلية، أرجع مصفوفة فارغة [] فوراً دون شرح.
 أجب بمصفوفة JSON فقط تحتوي على المخالفات **الجديدة فقط** بنفس تنسيق المخالفة المعتاد — لا تضف أي نص خارجها.`;
 }
@@ -561,7 +570,8 @@ export async function runSemanticAnalysis(
 
   const client = new Anthropic({ apiKey });
   const system = buildHolisticSystem();
-  const userMessage = buildHolisticUserMessage(text, contextSummary, scanSection);
+  const understandingBlock = buildUnderstandingBlock(context?.understanding);
+  const userMessage = buildHolisticUserMessage(text, contextSummary, scanSection, understandingBlock);
 
   const result = await callHolisticJudge(client, system, userMessage, "القراءة الأولى");
   if (!result.ok) {
@@ -578,7 +588,7 @@ export async function runSemanticAnalysis(
   const firstPassCompact = JSON.stringify(
     result.violations.map((v) => ({ ruleReference: v.ruleReference, evidenceExcerpt: v.evidenceExcerpt }))
   );
-  const additionsMessage = buildAdditionsOnlyMessage(text, contextSummary, firstPassCompact, scanSection);
+  const additionsMessage = buildAdditionsOnlyMessage(text, contextSummary, firstPassCompact, scanSection, understandingBlock);
   const additionsResult = await callHolisticJudge(client, system, additionsMessage, "القراءة الثانية (إضافات)", 2000);
   const additions = additionsResult.ok && !additionsResult.truncatedEmpty ? additionsResult.violations : [];
   const allViolations = [...result.violations, ...additions];
