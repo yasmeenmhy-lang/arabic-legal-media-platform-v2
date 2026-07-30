@@ -1092,5 +1092,21 @@ ${LEADERSHIP_PRAISE_PIPELINE_NOTE}
 export async function verifyTextCitations(context: {
   text: string; specialty?: string; sourceHint?: string; dossier?: SourceDossier; timeoutMs?: number;
 }): Promise<ResearchResult | null> {
-  return callWebSearch(buildVerificationInstruction(context), context.timeoutMs);
+  const result = await callWebSearch(buildVerificationInstruction(context), context.timeoutMs);
+  if (!result) return result;
+
+  // ★★ إنفاذ المادة (٨) لا الاكتفاء بتوجيهها (بقرار مالكة المنصة — رُصد الخلل حياً):
+  // وثيقة حوكمة المصادر تحظر الاستدلال بغير الرسمي، وهي محقونة في المطالبة أعلاه
+  // ومشدَّد عليها — ومع ذلك استدلّ المدقّق بموقع تجاري خاص وبنى عليه تعليلاً يخالف
+  // اللائحة. توجيهٌ بلا تحقّق لا يُعتمد عليه، فيُفحص مخرجه هنا فحصاً حتمياً.
+  //
+  // والمعيار من الوثيقة نفسها لا من عندنا — الباب الأول: «يلتزم … بالاستناد إلى
+  // المصادر الحكومية الرسمية للمملكة العربية السعودية دون غيرها». فما ليس نطاقه
+  // حكومياً سعودياً يُسقط من أدلة التحقق: لا يُستدل به ولا يُعرض ولا يُبنى عليه حكم.
+  // (الموجز النصي يبقى كما هو — هو تقرير المدقّق لا سنداً يُحتج به.)
+  return {
+    ...result,
+    sources: (result.sources ?? []).filter((s) => isSaudiOfficialUrl(s.url)),
+    details: (result.details ?? []).filter((d) => isSaudiOfficialUrl(d.url)),
+  };
 }
