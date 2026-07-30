@@ -399,21 +399,28 @@ export async function reviewContent(
   onStage?.("compliance");
   const semanticResult = await runSemanticAnalysis(text, baseContext, kind);
 
-  // التحقّق الحيّ من المصادر — بعد حكم القواعد: إنفاذٌ فعليٌّ لقاعدة تحرّي المصادر،
-  // يجري على كل مراجعة بلا استثناء (بقرار المالكة): لا يُشترط وجود إحالة ظاهرة ولا
-  // إفصاح المستخدم، لأن النص قد يحمل ادعاءً نظامياً بلا لفظ مرجعي صريح. نتائجه
-  // تُحقن في قياس المخاطر واللغة وتُعرض «مصادر تحقق». فشله لا يُسقط المراجعة.
+  // التحقّق الحيّ من المصادر — بعد حكم القواعد: إنفاذٌ فعليٌّ لقاعدة تحرّي المصادر.
+  // نتائجه تُحقن في قياس المخاطر واللغة وتُعرض «مصادر تحقق». فشله لا يُسقط المراجعة.
+  //
+  // ★ شرطه: أن يكون في النص ما يُدقَّق (بقرار مالكة المنصة — رُصد حياً). كان يعمل
+  // على كل نص بلا استثناء، فبحث في تدوينة شخصية لمجرّد ذكرها اسم محكمة وعرض لها
+  // «مصادر تحقق» وهي لا تستند إلى مصدر. والشرط يقرؤه الفهم المثبّت لا قائمةُ ألفاظ:
+  // إن لم يدّعِ النصُّ شيئاً يقبل التحقّق فلا تدقيق ولا رصيد يُصرف ولا لوحة مصادر.
+  // وعند تعذّر الفهم يُشغَّل المدقّق كما كان — لا يُسقط التحرّي بسقوط ما يشترطه.
   let ctx = baseContext;
+  const nothingToVerify = understanding !== null && understanding.verifiableClaims.length === 0;
   // ★ قاعدة المحرك الواحد: المدقق يستلم خريطة الادعاء–المصدر المرافقة للنسخة
   // (إن وُجدت) فيتحقق من المثبت الموجود أولاً — لا بحث موازٍ يعيد بناء المصادر.
   onStage?.("verification");
-  const verification = await verifyTextCitations({
-    text,
-    specialty: baseContext.specialty,
-    sourceHint: baseContext.sourceHint,
-    dossier: baseContext.sourceDossier,
-    timeoutMs: 45_000
-  });
+  const verification = nothingToVerify
+    ? null
+    : await verifyTextCitations({
+        text,
+        specialty: baseContext.specialty,
+        sourceHint: baseContext.sourceHint,
+        dossier: baseContext.sourceDossier,
+        timeoutMs: 45_000
+      });
   if (verification?.briefing) {
     // الرافع الفعلي: حالة التحقق تُشتق من تقرير المدقق وتُوصل بسياق الحوكمة —
     // فتصل قرار النشر تلقائياً (rejected_not_supported / not_authoritative /
