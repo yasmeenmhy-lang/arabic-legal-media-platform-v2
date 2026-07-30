@@ -93,7 +93,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     // البطاقات تبقى بيضاء فتنفصل عن الخلفية بدل أن يذوب كل شيء في بحر أبيض واحد.
     // التغيير على خلفية الصفحة وحدها؛ سائر استعمالات bg-paper (الأسطح الداخلية
     // وحالات التمرير) باقية كما هي بلا مساس.
-    <div className="min-h-screen w-full max-w-full overflow-x-hidden bg-canvas">
+    <div className="app-canvas min-h-screen w-full max-w-full overflow-x-hidden">
       {navOpen ? (
         <div
           aria-hidden="true"

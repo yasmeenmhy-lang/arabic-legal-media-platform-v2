@@ -21,6 +21,7 @@
 }
 
 html {
+  background: #F6F8F7;
   direction: rtl;
   scroll-behavior: smooth;
   max-width: 100%;
@@ -31,7 +32,7 @@ body {
   min-height: 100vh;
   max-width: 100%;
   overflow-x: hidden;
-  background: #f4f7f6;
+  background: transparent;
   color: #1f2933;
   font-family: "IBM Plex Sans Arabic", Tahoma, Arial, sans-serif;
   font-size: 14px;
@@ -130,4 +131,23 @@ h3 {
 
 ::selection {
   background: rgba(45, 106, 90, 0.16);
+}
+
+/* خلفية الشاشة: تدرّج نقطي (halftone) بالأخضر الهوية — كثيفٌ في ركنين متقابلين
+   يتلاشى نحو الوسط، فيبقى مركز الشاشة نظيفاً تحت البطاقات. طبقة ثابتة لا تتحرك
+   مع التمرير، خلف كل شيء ولا تعترض ضغطاً.
+   ★ موضعها body::before لا غلاف التطبيق: الطبقة بـ z-index سالب ترتد خلف خلفية
+   العنصر الذي تنتمي إليه فتختفي، فيحمل html اللون وتعلوه هذه ثم يعلوهما المحتوى.
+   ★ ورسمُها ملفّا SVG لا نمط CSS متكرّر: نقاط النمط متساوية، وهذه متدرّجة الحجم
+   والشفافية — وهو جوهر التدرّج النقطي. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image: url("/dots-tr.svg"), url("/dots-bl.svg");
+  background-position: top left, bottom right;
+  background-repeat: no-repeat, no-repeat;
+  background-size: 72vmax auto, 72vmax auto;
 }
