@@ -147,7 +147,7 @@ body::before {
   z-index: -1;
   pointer-events: none;
   background-image: url("/dots-tr.svg"), url("/dots-bl.svg");
-  background-position: top left, bottom right;
+  background-position: top right, bottom left;
   background-repeat: no-repeat, no-repeat;
   background-size: 72vmax auto, 72vmax auto;
 }
