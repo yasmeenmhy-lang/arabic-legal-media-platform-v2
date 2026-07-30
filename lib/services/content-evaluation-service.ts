@@ -299,7 +299,40 @@ function parseEvaluationResponse(raw: string): ContentEvaluation {
     issues
   };
 
-  return { risks, professionalWriting, language };
+  return { risks: enforceStyleOutOfRisks(risks), professionalWriting, language };
+}
+
+// ★★ إنفاذ ضابط فصل الأسلوب عن المخاطر (بقرار مالكة المنصة — رُصد الخرق حياً):
+// الضابط منصوص عليه في الموجّه أعلاه بأدق صياغة، وحتى العبارة الممنوعة مذكورة
+// حرفياً — ومع ذلك أخرج النموذج: «استخدام أسلوب عامي دارج في وصف انطباع عن جهة
+// قضائية يُعرِّض كاتبه لمساءلة مهنية…». فالتوجيه وحده لا يُعوَّل عليه، والقاعدة
+// تُنفَّذ على المخرج لا تُكتب فحسب.
+//
+// المعالجة: تُحذف من تعليل المخاطر كل جملة مبنية على الأسلوب أو اللغة أو النبرة.
+// ولا يُمسّ مستوى الخطر ولا الجهات المتضررة هنا — فمستواهما محكوم بالمخالفات
+// المرصودة وبالضرر الواقعي، وهما مساران مستقلان عن الأسلوب أصلاً. وإن لم يبقَ
+// من التعليل شيء، وُضع تعليل صريح بأن ما رُصد أسلوبٌ محلُّه محورا اللغة والجوانب
+// المهنية — لا تعليل مبتور ولا فراغ.
+const STYLE_IN_RISKS = /(أسلوب|الأسلوب|عامي|عامية|العامية|دارج|دارجة|الركاكة|ركيك|النبرة|نبرة|الرصانة|السرد)/;
+
+function enforceStyleOutOfRisks(risks: ContentEvaluationRisks): ContentEvaluationRisks {
+  const explanation = String(risks.explanation ?? "");
+  if (!explanation || !STYLE_IN_RISKS.test(explanation)) return risks;
+
+  const kept = explanation
+    .split(/(?<=[.؟!])\s+/)
+    .filter((sentence) => sentence.trim() && !STYLE_IN_RISKS.test(sentence))
+    .join(" ")
+    .trim();
+
+  console.warn("[evaluation] خرق ضابط فصل الأسلوب عن المخاطر — حُذفت جمل الأسلوب من تعليل المخاطر");
+
+  return {
+    ...risks,
+    explanation:
+      kept ||
+      "ما رُصد على هذا النص ملاحظات أسلوب ولغة، ومحلُّها محورا اللغة والجوانب المهنية — لا محور المخاطر.",
+  };
 }
 
 function buildFallbackEvaluation(): ContentEvaluation {
