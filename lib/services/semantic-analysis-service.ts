@@ -255,7 +255,7 @@ ${validRefs}
 // يُقرأ تشكيكاً مرة ويُبرَّأ مرة.
 export function buildUnderstandingBlock(u?: { nature: string; purport: string; formalRegisterRequired: boolean; summary: string }): string {
   if (!u) return "";
-  return `\n\nالفهم المثبّت لهذا النص (محسوب قبل الحكم — اعتمده ولا تعِد تكوين فهم مخالف له):\n- طبيعة النص: ${u.nature}\n- مقصد الكاتب: ${u.purport}\n- ملخصه: ${u.summary}\n★ لا تحكم بخلاف هذا المقصد: فإن كان المقصد ثناءً فلا يُقرأ تشكيكاً ولا طعناً، وإن كان إخباراً فلا يُقرأ ترويجاً. ومجرّد ذكر جهة أو موضوع لا يجعل النص مخالفاً لقاعدة تخصّه — العبرة بتحقق شرط البند نفسه في ألفاظ النص.`;
+  return `\n\nالفهم المثبّت لهذا النص (محسوب قبل الحكم — اعتمده ولا تعِد تكوين فهم مخالف له):\n- طبيعة النص كما فُهمت: ${u.nature}\n- مقصد الكاتب: ${u.purport}\n- ملخصه: ${u.summary}\n★ لا تحكم بخلاف هذا المقصد: فإن كان المقصد ثناءً فلا يُقرأ تشكيكاً ولا طعناً، وإن كان إخباراً فلا يُقرأ ترويجاً. ومجرّد ذكر جهة أو موضوع لا يجعل النص مخالفاً لقاعدة تخصّه — العبرة بتحقق شرط البند نفسه في ألفاظ النص.`;
 }
 
 function buildHolisticUserMessage(text: string, contextSummary: string, scanSection: string, understandingBlock = ""): string {
