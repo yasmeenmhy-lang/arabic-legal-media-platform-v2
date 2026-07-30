@@ -60,10 +60,11 @@ const workflowLabels: Array<[ReviewWorkflowStep["key"], string]> = [
   ["export_support", "دعم التصدير"]
 ];
 
+// ★ خطوة اللغة تعرض نتيجتها ولا تحجب ما بعدها (بقرار مالكة المنصة): الحجب
+// للامتثال والمخاطر وحدهما، واللغة والأسلوب ملاحظات.
 function buildWorkflow(languageQualityPassed: boolean, compliancePassed: boolean, readinessPassed: boolean): ReviewWorkflowStep[] {
   return workflowLabels.map(([key, label], index) => {
     if (index === 0) return { key, label, status: languageQualityPassed ? "passed" : "failed" };
-    if (!languageQualityPassed) return { key, label, status: "blocked" };
     if (index === 1 || index === 2) return { key, label, status: compliancePassed ? "passed" : "failed" };
     if (!compliancePassed) return { key, label, status: "blocked" };
     return { key, label, status: readinessPassed ? "passed" : "pending" };

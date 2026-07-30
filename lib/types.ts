@@ -389,6 +389,9 @@ export type PublishingReadinessGate = {
   sourceValue: number;
   threshold: string;
   reason: string;
+  /** بوابة إرشادية تُعرض ولا تحجب (بقرار مالكة المنصة): اللغة والأسلوب ملاحظات،
+   *  والمنع للامتثال والمخاطر وحدهما — والإقرار قبل النشر يوضّح المسؤولية. */
+  advisory?: boolean;
 };
 
 export type PublishingReadinessExplanation = {

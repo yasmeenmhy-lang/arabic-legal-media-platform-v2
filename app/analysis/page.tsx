@@ -583,13 +583,8 @@ export default function ContentReviewPage() {
     const reasons: string[] = [];
     const unresolvedCount = review.findings.filter((finding) => !finding.resolved).length;
     if (unresolvedCount) reasons.push(`${unresolvedCount} مخالفة غير معالجة — عالجها بالصياغة المقترحة أو عدّل النص ثم أعد التحليل`);
-    // اللغة: يحجب الخطأ القطعي (إملاء/نحو/اتساق مصطلحات) فقط — والملاحظة الأسلوبية
-    // إرشادية لا تمنع النشر (بقرار مالكة المنصة، توحيداً مع بوابة الجاهزية).
-    if (!review.languageQuality.passed) reasons.push("جودة اللغة دون الحد المطلوب");
-    else {
-      const hardErrors = countHardLanguageErrors(review.languageQuality.issues);
-      if (hardErrors) reasons.push(`${hardErrors} خطأ لغوي قطعي (إملاء/نحو) يجب تصحيحه — طبّق الصياغة المقترحة أو عدّل النص`);
-    }
+    // ★ اللغة والأسلوب لا يمنعان الاعتماد (بقرار مالكة المنصة): ملاحظات تُعرض
+    // ويصحّحها المحامي باختياره، والإقرار قبل النشر يوضّح مسؤوليته.
     if (["بالغ", "حرج", "مرتفع"].includes(review.riskLevel)) reasons.push(`مستوى المخاطر «${review.riskLevel}» يمنع الاعتماد`);
     return reasons;
   }, [review, contentId, versionNumber]);

@@ -101,6 +101,7 @@ export function normalizeReviewResult(review: ReviewResult): ReviewResult {
           const passed = professionalismScore >= 80;
           return {
             ...gate,
+            advisory: true,
             passed,
             sourceValue: professionalismScore,
             reason: passed ? "الأسلوب مستوفٍ للمعايير المهنية المعتمدة." : "الأسلوب غير مستوفٍ للمعايير المهنية المعتمدة."
@@ -109,6 +110,7 @@ export function normalizeReviewResult(review: ReviewResult): ReviewResult {
         if (gate.key === "language") {
           return {
             ...gate,
+            advisory: true,
             passed: languagePassed,
             sourceValue: languageScore,
             reason: languagePassed
@@ -118,7 +120,8 @@ export function normalizeReviewResult(review: ReviewResult): ReviewResult {
         }
         return gate;
       });
-      const allPassed = gates.every((gate) => gate.passed);
+      // ★ الإرشادية تُعرض ولا تُسقط الجاهزية (بقرار مالكة المنصة)
+      const allPassed = gates.filter((gate) => !gate.advisory).every((gate) => gate.passed);
       publishingReadinessExplanation = {
         ...storedReadiness,
         gates,

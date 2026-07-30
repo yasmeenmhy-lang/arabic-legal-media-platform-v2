@@ -189,7 +189,8 @@ export function deriveReviewStatus({
   requestedStatus?: ReviewReadinessStatus;
 }): ReviewReadinessStatus {
   if (requestedStatus && ["EXPORTED", "SHARED", "READY_FOR_PUBLISHING"].includes(requestedStatus)) return requestedStatus;
-  if (riskLevel === "بالغ" || riskLevel === "مرتفع" || complianceScore < 70 || languageScore < 82) return "NEEDS_CORRECTION";
+  // ★ اللغة لا تحجب (بقرار مالكة المنصة): الامتثال والمخاطر وحدهما يقرّران
+  if (riskLevel === "بالغ" || riskLevel === "مرتفع" || complianceScore < 70) return "NEEDS_CORRECTION";
   return "REVIEW_REQUIRED";
 }
 
@@ -296,6 +297,7 @@ export function calculatePublishingReadiness({
     {
       key: "professionalism",
       label: "الالتزام بالمعايير المهنية",
+      advisory: true,
       passed: professionalismScore >= 80,
       sourceValue: professionalismScore,
       threshold: "80%",
@@ -306,6 +308,7 @@ export function calculatePublishingReadiness({
     {
       key: "language",
       label: "جودة اللغة",
+      advisory: true,
       passed: languageScore >= 75 && languageHardErrorCount === 0,
       sourceValue: languageScore,
       threshold: "75%",
@@ -317,7 +320,8 @@ export function calculatePublishingReadiness({
     }
   ];
 
-  const allPassed = gates.every((gate) => gate.passed);
+  // ★ الجاهزية تُحسب من البوابات الحاجبة وحدها؛ الإرشادية تُعرض بحالتها ولا تُسقطها
+  const allPassed = gates.filter((gate) => !gate.advisory).every((gate) => gate.passed);
 
   return {
     modelVersion: SCORING_MODEL_VERSION,

@@ -56,12 +56,10 @@ export function buildReadinessDecision({
   // غير حرجة إن كانت درجة الامتثال ≥ 70) فتُظهر «جاهز للنشر» رغم فشل البوابات التفصيلية —
   // تناقض بين الشارة الرئيسية والقائمة التفصيلية رصدته مالكة المنصة.
   const blockers: string[] = [];
-  if (!languagePassed) blockers.push("معالجة ملاحظات اللغة والصياغة");
   // الامتثال حكم نظامي بوجود المخالفة أو عدمه — لا رقم أو نسبة له؛ أي مخالفة غير معالجة
   // (مهما كانت شدتها) تمنع «جاهز للنشر» مباشرة، لا عبر عتبة درجة مئوية.
   if (findings.some((finding) => !finding.resolved)) blockers.push("معالجة كل المخالفات القانونية والتنظيمية القائمة قبل اعتبار المحتوى جاهزاً للنشر");
   if (riskScore >= 20) blockers.push("خفض مستوى المخاطر قبل النشر");
-  if (professionalismScore < 80) blockers.push("تحسين الالتزام بالمعايير المهنية");
 
   const actions = [...new Set([
     ...findings.filter((finding) => !finding.resolved).map((finding) => finding.suggestedSaferWording),
@@ -135,9 +133,9 @@ export function buildPublicationDecision({
   readiness: ReadinessDecision;
   findings: ReviewFinding[];
   riskLevel: RiskLevel;
-  // ★ بأمر مالكة المنصة (اتساق القرار مع الاعتماد): الملاحظة اللغوية أو الأسلوبية
-  // مؤشر كأي مؤشر — وجودها يمنع «موصى بالنشر» كما يمنع الاعتماد، فلا يظهر قرار
-  // موصى بالنشر لنسخة يتعذر اعتمادها منطقياً
+  // ★ لم تعد تحجب (بقرار مالكة المنصة، نسخٌ لما قبلها): الملاحظة اللغوية أو
+  // الأسلوبية تُعرض ولا تمنع نشراً ولا اعتماداً — المنع للامتثال والمخاطر وحدهما،
+  // والإقرار قبل النشر يوضّح المسؤولية. تبقى المُدخلة لتوافق النداءات القائمة.
   languageIssuesCount?: number;
   // ★ قيد حوكمة المصادر المستقل (بأمر معالجة الفجوات): وجود أي سبب يمنع القرار
   // الإيجابي، ويُعرض باسمه منفصلاً عن المخالفة المهنية — لا دمج ولا تحويل.
@@ -193,13 +191,11 @@ export function buildPublicationDecision({
       recommended: false
     };
   }
-  if (readiness.level !== "جاهز للنشر" || findings.some((finding) => !finding.resolved) || languageIssuesCount > 0) {
+  if (readiness.level !== "جاهز للنشر" || findings.some((finding) => !finding.resolved)) {
     return {
       outcome: "RECOMMENDED_AFTER_FINDINGS",
       label: "موصى بالنشر بعد معالجة الملاحظات",
-      reason: languageIssuesCount > 0
-        ? "توجد ملاحظات لغوية أو أسلوبية لم تُعالج بعد — عالجها ثم أعد التقييم ليصبح المحتوى قابلاً للاعتماد والنشر."
-        : "يمكن أن يصبح المحتوى مناسباً للنشر بعد تنفيذ الإجراءات المحددة وإعادة التقييم واعتماد النسخة النهائية.",
+      reason: "يمكن أن يصبح المحتوى مناسباً للنشر بعد تنفيذ الإجراءات المحددة وإعادة التقييم واعتماد النسخة النهائية.",
       blockers: readiness.blockers,
       actions: readiness.actions,
       recommended: false

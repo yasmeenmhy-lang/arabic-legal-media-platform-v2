@@ -577,7 +577,7 @@ export function upsertAnalyzedVersion(input: {
     input.review.readinessDecision.blockers.length > 0 &&
     input.review.readinessDecision.blockers.every((blocker) => blocker.includes("اعتماد"));
   version.status =
-    (input.review.findings.length === 0 && input.review.languageQuality.passed && onlyApprovalRemains) || input.review.exportAllowed
+    (input.review.findings.length === 0 && onlyApprovalRemains) || input.review.exportAllowed
       ? "جاهز للاعتماد"
       : "بحاجة إلى معالجة";
   version.updatedAt = timestamp;
@@ -605,8 +605,8 @@ export function approvalBarriers(version: StoredContentVersion | undefined): str
   if (!version?.analysis) return ["لا يوجد تحليل محفوظ لهذه النسخة — أعد التحليل أولاً"];
   const barriers: string[] = [];
   if (version.analysis.findings.some((finding) => !finding.resolved)) barriers.push("ملاحظات امتثالية لم تُعالج بعد");
-  if (!version.analysis.languageQuality.passed) barriers.push("جودة اللغة دون الحد المطلوب");
-  else if ((version.analysis.languageQuality.issues?.length ?? 0) > 0) barriers.push("ملاحظات لغوية أو أسلوبية لم تُعالج بعد");
+  // ★ اللغة والأسلوب لا يحجبان الاعتماد (بقرار مالكة المنصة) — ملاحظات تُعرض،
+  // والمحامي يُقرّ وينشر تحت مسؤوليته النظامية والمهنية.
   if (["بالغ", "حرج", "مرتفع"].includes(version.analysis.riskLevel)) barriers.push("مستوى المخاطر مرتفع");
   return barriers;
 }
