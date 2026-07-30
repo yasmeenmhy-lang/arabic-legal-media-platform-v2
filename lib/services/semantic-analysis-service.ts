@@ -8,11 +8,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import type { ContentKind, FindingCategory, FindingDomain, ReviewContext, ReviewFinding, RiskLevel } from "@/lib/types";
 import { OFFICIAL_CORPUS, type OfficialCorpusItem } from "@/lib/legal-official-corpus";
 import { buildOfficialRuleCorpusText } from "@/lib/rule-corpus-text";
-import { judgeByRules, type FirstLayerVerdict } from "@/lib/services/first-layer-judge";
-import {
-  scanAgainstCorpus,
-  formatCorpusScanSection,
-} from "@/lib/services/corpus-scan";
+import { judgeByRules, type FirstLayerVerdict } from "@/lib/services/corpus-scan";
 import { AUTHORITIES_RULE, KINGDOM_STYLE_RULE, PLATFORM_SUPREME_RULE } from "@/lib/governance";
 import { LEADERSHIP_PRAISE_RULE } from "@/lib/leadership-praise-rule";
 import {
@@ -259,9 +255,9 @@ export function buildUnderstandingBlock(u?: { nature: string; purport: string; f
   return `\n\nالفهم المثبّت لهذا النص (محسوب قبل الحكم — اعتمده ولا تعِد تكوين فهم مخالف له):\n- طبيعة النص كما فُهمت: ${u.nature}\n- مقصد الكاتب: ${u.purport}\n- ملخصه: ${u.summary}\n★ لا تحكم بخلاف هذا المقصد: فإن كان المقصد ثناءً فلا يُقرأ تشكيكاً ولا طعناً، وإن كان إخباراً فلا يُقرأ ترويجاً. ومجرّد ذكر جهة أو موضوع لا يجعل النص مخالفاً لقاعدة تخصّه — العبرة بتحقق شرط البند نفسه في ألفاظ النص.`;
 }
 
-function buildHolisticUserMessage(text: string, contextSummary: string, scanSection: string, understandingBlock = ""): string {
+function buildHolisticUserMessage(text: string, contextSummary: string, understandingBlock = ""): string {
   return `${contextSummary !== "غير محدد" ? `السياق الإضافي: ${contextSummary}\n\n` : ""}## النص المراد تحليله
-«${text}»${understandingBlock}${scanSection ? `\n\n${scanSection}` : ""}`;
+«${text}»${understandingBlock}`;
 }
 
 // قراءة ثانية سريعة: تطلب «الإضافات فقط» لا إعادة كتابة القائمة كاملة — الفرق الحاسم
@@ -271,11 +267,10 @@ function buildAdditionsOnlyMessage(
   text: string,
   contextSummary: string,
   firstPassCompact: string,
-  scanSection: string,
   understandingBlock = ""
 ): string {
   return `${contextSummary !== "غير محدد" ? `السياق الإضافي: ${contextSummary}\n\n` : ""}## النص المراد تحليله
-«${text}»${understandingBlock}${scanSection ? `\n\n${scanSection}` : ""}
+«${text}»${understandingBlock}
 
 ## ما رصدتَه بالفعل في القراءة الأولى (مراجع فقط — لا تُعد ذكرها)
 ${firstPassCompact}
@@ -284,7 +279,7 @@ ${firstPassCompact}
 راجع النص مرة أخيرة بحثاً حصراً عن مخالفات **إضافية** لم تظهر أعلاه:
 1. لكل مخالفة مذكورة أعلاه: هل لنفس الواقعة أو الدليل مخالفة مقابلة في الوثيقة الأخرى (لائحة ↔ قواعد سلوك) لم تُذكر؟
 2. راجع الزوايا الثماني عشرة مرة أخيرة — هل فاتتك مخالفة كاملة لم تظهر إطلاقاً؟
-3. مواضع الطبقة الأولى أعلاه (إن وُجدت): افحص كل موضع منها وتحقّق هل **تحقّق شرط البند** في ألفاظ النص فعلاً. ★ الموضع مرفوعٌ للفحص لا للإدانة: مجرّد أن النص لامس موضوع القاعدة ليس مخالفة، والأصل السلامة. فإن لم يتحقق شرط البند فلا تُدرج شيئاً.
+3. أحكام الطبقة الأولى أعلاه (إن وُجدت): راجعها بمعنى النص ونيّة كاتبه — أثبت الصحيح منها، وصحّح المخطئ، وأسقط ما لم يتحقق شرط بنده. ★ الأصل السلامة: مجرّد أن النص لامس موضوع القاعدة ليس مخالفة.
 لا تُعد كتابة أي مخالفة مذكورة أعلاه. إن لم توجد أي إضافة فعلية، أرجع مصفوفة فارغة [] فوراً دون شرح.
 أجب بمصفوفة JSON فقط تحتوي على المخالفات **الجديدة فقط** بنفس تنسيق المخالفة المعتاد — لا تضف أي نص خارجها.`;
 }
@@ -569,17 +564,8 @@ export async function runSemanticAnalysis(
   const profile = resolveScoringProfile(contentKind ?? ("post" as ContentKind), context?.channel);
   const contextSummary = buildContextSummary(context);
 
-  // ═══ الطبقة الأولى — الأساس: القواعد واللوائح ═══
-  // بحث حتمي في المتن قبل أي استدعاء ذكاء: بلا كلفة ولا حرارة ولا تذبذب.
-  // تحكم بنفسها فيما بلغ حدّ القطع (hits)، وترفع ما دونه للطبقة الثانية
-  // (positions). أحكامها تُبنى أولاً وتصمد حتى لو تعطّلت الطبقة الثانية أو
-  // غاب المفتاح — فالأساس لا يسقط بسقوط ما يُكمله.
-  const scan = scanAgainstCorpus(text);
-  const scanSection = formatCorpusScanSection(scan);
-  console.log("[corpus-scan] positions =", scan.positions.length);
-
-  // الطبقة الأولى بعد حذف قاعدة المعرفة لا تُصدر أحكاماً بذاتها — ترفع مواضع
-  // فقط ليحكم عليها القاضي الدلالي بالمعنى (انظر رأس الملف في corpus-scan.ts).
+  // الطبقة الأولى تحكم بعرض النص على المتن، ولا تبني ReviewFinding بذاتها:
+  // حكمها يُعرض على الثانية فتُثبته أو تصححه، والمخرج النهائي منها وحدها.
   const rawBaseFindings: ReviewFinding[] = [];
 
   const apiKey = process.env.ANTHROPIC_API_KEY;
@@ -596,7 +582,7 @@ export async function runSemanticAnalysis(
   const client = new Anthropic({ apiKey });
   const system = buildHolisticSystem();
   const understandingBlock = buildUnderstandingBlock(context?.understanding);
-  const userMessage = buildHolisticUserMessage(text, contextSummary, scanSection, understandingBlock + firstLayerBlock);
+  const userMessage = buildHolisticUserMessage(text, contextSummary, understandingBlock + firstLayerBlock);
 
   const result = await callHolisticJudge(client, system, userMessage, "القراءة الأولى");
   if (!result.ok) {
@@ -613,7 +599,7 @@ export async function runSemanticAnalysis(
   const firstPassCompact = JSON.stringify(
     result.violations.map((v) => ({ ruleReference: v.ruleReference, evidenceExcerpt: v.evidenceExcerpt }))
   );
-  const additionsMessage = buildAdditionsOnlyMessage(text, contextSummary, firstPassCompact, scanSection, understandingBlock + firstLayerBlock);
+  const additionsMessage = buildAdditionsOnlyMessage(text, contextSummary, firstPassCompact, understandingBlock + firstLayerBlock);
   const additionsResult = await callHolisticJudge(client, system, additionsMessage, "القراءة الثانية (إضافات)", 2000);
   const additions = additionsResult.ok && !additionsResult.truncatedEmpty ? additionsResult.violations : [];
   const allViolations = [...result.violations, ...additions];
