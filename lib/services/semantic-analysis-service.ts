@@ -8,6 +8,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import type { ContentKind, FindingCategory, FindingDomain, ReviewContext, ReviewFinding, RiskLevel } from "@/lib/types";
 import { OFFICIAL_CORPUS, type OfficialCorpusItem } from "@/lib/legal-official-corpus";
 import { buildOfficialRuleCorpusText } from "@/lib/rule-corpus-text";
+import { judgeByRules, type FirstLayerVerdict } from "@/lib/services/first-layer-judge";
 import {
   scanAgainstCorpus,
   formatCorpusScanSection,
@@ -541,6 +542,25 @@ async function callHolisticJudge(
   return { ok: true, violations, truncatedEmpty };
 }
 
+
+// ★★ عرض حكم الطبقة الأولى على الثانية (بقرار مالكة المنصة): «الأولى تحكم على
+// النص بالقواعد واللائحة، والثانية تتحقق وتراجع معنى النص والنية فتُثبت الحكم
+// أو تصححه». فالثانية لا تستأنف ولا تُهمل — تراجع كل حكم بمعناه ونيّته.
+function buildFirstLayerBlock(verdicts: FirstLayerVerdict[]): string {
+  if (verdicts.length === 0) {
+    return "\n\n## حكم الطبقة الأولى\nعرضت الطبقة الأولى النصَّ على القواعد واللائحة بنداً بنداً ولم تجد مخالفة. وهذا حكمٌ لا فراغ — فلا تُنشئ مخالفةً من عندك إلا إن تحقّق شرط بندٍ بعينه في ألفاظ النص، فتُسمّيه وتنقل دليله حرفاً.";
+  }
+  const items = verdicts
+    .map(
+      (v, i) =>
+        `${i + 1}. ${v.ruleReference}${v.clause ? ` — البند: ${v.clause}` : ""}\n` +
+        `   الدليل من نص المحامي: «${v.evidence}»\n` +
+        `   تعليل الطبقة الأولى: ${v.reason}`
+    )
+    .join("\n");
+  return `\n\n## أحكام الطبقة الأولى — راجعها بمعنى النص والنية\nهذه أحكامٌ صدرت بعرض النص على القواعد واللائحة بنداً بنداً. **مهمتك مراجعتها بمعنى النص ونيّة كاتبه**:\n- إن صحّ الحكم: أثبته وأخرجه مخالفةً بمرجعه ودليله.\n- وإن أخطأ: صحّحه — بتصويب القاعدة أو البند أو الدليل أو الوصف، أو بإسقاطه إن تبيّن أن لا مخالفة (اجعل cleared=true وسمِّ مرجعه).\n- ولا تكتب للمستخدم أن حكماً صُحّح أو أُسقط؛ يصله الحكم الصحيح وحده.\n\n${items}`;
+}
+
 export async function runSemanticAnalysis(
   text: string,
   context: ReviewContext | undefined,
@@ -568,10 +588,15 @@ export async function runSemanticAnalysis(
     return { mode: "pattern-only", findings: rawBaseFindings, degradedReason: "missing-key" };
   }
 
+  // ═══ الطبقة الأولى — تحكم على النص بالقواعد واللائحة ═══
+  const firstLayer = await judgeByRules(text);
+  console.log("[layer1] أحكام الطبقة الأولى =", firstLayer?.length ?? "تعذّرت");
+  const firstLayerBlock = firstLayer ? buildFirstLayerBlock(firstLayer) : "";
+
   const client = new Anthropic({ apiKey });
   const system = buildHolisticSystem();
   const understandingBlock = buildUnderstandingBlock(context?.understanding);
-  const userMessage = buildHolisticUserMessage(text, contextSummary, scanSection, understandingBlock);
+  const userMessage = buildHolisticUserMessage(text, contextSummary, scanSection, understandingBlock + firstLayerBlock);
 
   const result = await callHolisticJudge(client, system, userMessage, "القراءة الأولى");
   if (!result.ok) {
@@ -588,7 +613,7 @@ export async function runSemanticAnalysis(
   const firstPassCompact = JSON.stringify(
     result.violations.map((v) => ({ ruleReference: v.ruleReference, evidenceExcerpt: v.evidenceExcerpt }))
   );
-  const additionsMessage = buildAdditionsOnlyMessage(text, contextSummary, firstPassCompact, scanSection, understandingBlock);
+  const additionsMessage = buildAdditionsOnlyMessage(text, contextSummary, firstPassCompact, scanSection, understandingBlock + firstLayerBlock);
   const additionsResult = await callHolisticJudge(client, system, additionsMessage, "القراءة الثانية (إضافات)", 2000);
   const additions = additionsResult.ok && !additionsResult.truncatedEmpty ? additionsResult.violations : [];
   const allViolations = [...result.violations, ...additions];
