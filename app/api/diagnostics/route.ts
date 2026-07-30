@@ -2,7 +2,6 @@ import { neon } from "@neondatabase/serverless";
 import { ok } from "@/lib/api";
 import { legalSourceDocuments } from "@/lib/legal-knowledge-base";
 import { OFFICIAL_CORPUS } from "@/lib/legal-official-corpus";
-import { runSemanticAnalysis } from "@/lib/services/semantic-analysis-service";
 
 // فحص صحة قاعدة بيانات المزامنة (بلا كشف أي سرّ) — يوضّح سبب عدم ظهور السجل عبر الأجهزة:
 // هل DATABASE_URL موجود؟ وهل صيغته Postgres صالحة لـ neon؟ وهل يصل الاستعلام فعلاً؟
@@ -42,47 +41,21 @@ async function databaseHealth() {
   return result;
 }
 
-// نص مضمون الانتهاك — يجب أن يرصده المحرك الدلالي
-const TEST_TEXT = "نضمن لك أفضل محامٍ يساعدك على كسب قضيتك";
-
 export async function GET() {
   const anthropicApiKeyPresent = !!process.env.ANTHROPIC_API_KEY;
 
-  // اختبار المحرك الدلالي — يستدعي Claude فعلاً
-  let engineTest: {
-    ran: boolean;
-    findingsDetected: number;
-    passed: string;
-    error?: string;
-    durationMs?: number;
+  // ★ لا يستدعي هذا الفحص النموذج إطلاقاً (بقرار مالكة المنصة): كان يمرّر نصاً
+  // تجريبياً على المحرك كاملاً فيصرف رصيداً في كل فتحة للرابط، وهو رابط لا تربط
+  // له صفحة. فحصُ الجاهزية يكفي: المفتاح والمتن وقاعدة البيانات.
+  const engineReady = {
+    apiKeyPresent: anthropicApiKeyPresent,
+    officialCorpusItems: OFFICIAL_CORPUS.length,
+    verdict: !anthropicApiKeyPresent
+      ? "✗ ANTHROPIC_API_KEY غير موجود — المحرك لا يعمل"
+      : OFFICIAL_CORPUS.length === 0
+        ? "✗ المتن الرسمي فارغ — الطبقة الأولى بلا مرجع تحكم به"
+        : "✓ المفتاح موجود والمتن الرسمي محمّل — المحرك جاهز"
   };
-
-  if (anthropicApiKeyPresent) {
-    const start = Date.now();
-    try {
-      const semanticResult = await runSemanticAnalysis(TEST_TEXT, { contentType: "إعلان مهني", channel: "LinkedIn" }, "advertisement");
-      const duration = Date.now() - start;
-      engineTest = {
-        ran: true,
-        findingsDetected: semanticResult.findings.length,
-        durationMs: duration,
-        passed: semanticResult.findings.length >= 1 ? "✓ المحرك الدلالي (Claude) يعمل ويرصد المخالفات" : "⚠ المحرك يعمل لكن لم يرصد مخالفات على النص التجريبي"
-      };
-    } catch (err) {
-      engineTest = {
-        ran: false,
-        findingsDetected: 0,
-        passed: "✗ المحرك الدلالي فشل",
-        error: err instanceof Error ? err.message : String(err)
-      };
-    }
-  } else {
-    engineTest = {
-      ran: false,
-      findingsDetected: 0,
-      passed: "✗ ANTHROPIC_API_KEY غير موجود"
-    };
-  }
 
   const database = await databaseHealth();
 
@@ -93,7 +66,6 @@ export async function GET() {
       anthropicApiKeyPresent
     },
     database,
-    testText: TEST_TEXT,
-    engineTest
+    engineReady
   });
 }
