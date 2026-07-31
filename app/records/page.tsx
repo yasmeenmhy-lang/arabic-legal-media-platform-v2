@@ -97,17 +97,17 @@ function StatCard({ value, label, sub, icon, tone, pct, suffix }: {
 }) {
   const t = TONE[tone];
   return (
-    <div className={`flex h-full flex-col justify-between rounded-lg border ${t.card} p-1.5`}>
-      <div>
-        <div className="flex items-center justify-between gap-1">
-          <span className={`grid h-5 w-5 shrink-0 place-items-center rounded ${t.iconBg} ${t.icon}`}>{icon}</span>
-          <span className={`text-sm font-bold leading-none tabular-nums ${t.num}`}>{value}{suffix ? <span className="text-[9px] font-semibold">{suffix}</span> : null}</span>
+    <div className={`records-stat-card records-stat-${tone} flex h-full flex-col justify-between border ${t.card}`}>
+      <div className="records-stat-body">
+        <div className="flex items-start justify-between gap-3">
+          <span className={`records-stat-icon grid shrink-0 place-items-center ${t.iconBg} ${t.icon}`}>{icon}</span>
+          <span className={`records-stat-value font-bold leading-none tabular-nums ${t.num}`}>{value}{suffix ? <span className="records-stat-suffix font-semibold">{suffix}</span> : null}</span>
         </div>
-        <p className="mt-0.5 truncate text-[9px] font-semibold text-ink">{label}</p>
-        <p className="truncate text-[7px] font-normal text-ink/45">{sub}</p>
+        <p className="records-stat-label font-semibold text-ink">{label}</p>
+        <p className="records-stat-sub font-normal text-ink/50">{sub}</p>
       </div>
-      <div className={`mt-1 h-[2px] overflow-hidden rounded-full ${t.track}`}>
-        <div className={`h-full rounded-full ${t.bar}`} style={{ width: `${Math.max(4, Math.min(100, pct))}%` }} />
+      <div className={`records-stat-track overflow-hidden rounded-full ${t.track}`}>
+        <div className={`records-stat-progress h-full rounded-full ${t.bar}`} style={{ width: `${Math.max(4, Math.min(100, pct))}%` }} />
       </div>
     </div>
   );
@@ -116,19 +116,19 @@ function StatCard({ value, label, sub, icon, tone, pct, suffix }: {
 // رحلة المحتوى — الترتيب المنطقي (يمين→يسار): إنشاء ← مراجعة ← اعتماد ← نشر. أيقونات ناعمة صغيرة.
 function JourneyStepper({ steps }: { steps: Array<{ label: string; value: number; sub: string; icon: ReactNode; tone: DashTone }> }) {
   return (
-    <div className="rounded-2xl border border-line bg-white p-3.5 shadow-xs">
-      <p className="mb-3 flex items-center gap-2 text-xs font-semibold text-ink"><FileClock size={14} className="text-palm" />رحلة المحتوى</p>
+    <div className="records-journey-card border border-line bg-white shadow-xs">
+      <p className="records-section-title flex items-center gap-2 font-semibold text-ink"><FileClock size={16} className="text-palm" />رحلة المحتوى</p>
       {/* الخطوات تملأ عرض الإطار، وسهم بينها (يسار = اتجاه التسلسل RTL) لإظهار تتابع الرحلة */}
-      <div className="flex items-start justify-between gap-1">
+      <div className="records-journey-track flex items-start justify-between">
         {steps.map((st, i) => (
           <Fragment key={st.label}>
-            <div className="flex flex-1 flex-col items-center text-center">
-              <span className={`grid h-9 w-9 place-items-center rounded-full ${TONE[st.tone].iconBg} ${TONE[st.tone].icon}`}>{st.icon}</span>
-              <span className="mt-1.5 text-[10px] font-medium text-ink">{st.label}</span>
-              <span className={`text-sm font-bold tabular-nums ${TONE[st.tone].num}`}>{st.value}</span>
-              <span className="text-[9px] font-normal text-ink/45">{st.sub}</span>
+            <div className="records-journey-step flex flex-1 flex-col items-center text-center">
+              <span className={`records-journey-icon grid place-items-center rounded-full ${TONE[st.tone].iconBg} ${TONE[st.tone].icon}`}>{st.icon}</span>
+              <span className="records-journey-label font-medium text-ink">{st.label}</span>
+              <span className={`records-journey-value font-bold tabular-nums ${TONE[st.tone].num}`}>{st.value}</span>
+              <span className="records-journey-sub font-normal text-ink/45">{st.sub}</span>
             </div>
-            {i < steps.length - 1 ? <ChevronLeft size={18} className="mt-2.5 shrink-0 text-ink/25" aria-hidden="true" /> : null}
+            {i < steps.length - 1 ? <span className="records-journey-connector" aria-hidden="true"><ChevronLeft size={18} /></span> : null}
           </Fragment>
         ))}
       </div>
@@ -485,18 +485,21 @@ export default function ContentManagementPage() {
 
   if (!loaded) {
     return (
-      <div className="space-y-6">
-        <PageHeader eyebrow="أرشيف المحتوى المهني" title="سجل المحتوى المهني" />
+      <div className="records-redesign records-loading-page space-y-6">
+        <div className="records-page-hero"><PageHeader eyebrow="أرشيف المحتوى المهني" title="سجل المحتوى المهني" /></div>
 
         {/* رسالة طمأنة: السجل وسيلة وقائية داخلية — لا استخدام تأديبياً وسرية تامة */}
-        <div className="rounded-xl border border-infoBorder bg-infoSoft p-4">
-          <p className="text-sm font-semibold text-infoDark">المراجعة وسيلة وقائية لا رقابية</p>
-          <p className="mt-1 text-sm leading-7 text-ink/80">
-            الغرض من هذا السجل التثبّت من سلامة المحتوى قبل نشره ودعم الامتثال الذاتي. لا تُوظَّف نتائج
-            الفحص لأي إجراء تأديبي أو مساءلة، وتظل بياناتك ومحتواك في سرية تامة دون اطلاع أي جهة عليها.
-          </p>
+        <div className="records-assurance rounded-xl border border-infoBorder bg-infoSoft p-4">
+          <span className="records-assurance-icon" aria-hidden="true"><ShieldCheck size={20} /></span>
+          <div>
+            <p className="text-sm font-semibold text-infoDark">المراجعة وسيلة وقائية لا رقابية</p>
+            <p className="mt-1 text-sm leading-7 text-ink/80">
+              الغرض من هذا السجل التثبّت من سلامة المحتوى قبل نشره ودعم الامتثال الذاتي. لا تُوظَّف نتائج
+              الفحص لأي إجراء تأديبي أو مساءلة، وتظل بياناتك ومحتواك في سرية تامة دون اطلاع أي جهة عليها.
+            </p>
+          </div>
         </div>
-        <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-line bg-white py-16 shadow-sm">
+        <div className="records-loading-card flex flex-col items-center justify-center gap-3 rounded-xl border border-line bg-white py-16 shadow-sm">
           <DgaSpinner size="lg" />
           <span className="text-sm text-ink/50">جاري تحميل السجل...</span>
         </div>
@@ -505,22 +508,22 @@ export default function ContentManagementPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <PageHeader eyebrow="أرشيف المحتوى المهني" title="سجل المحتوى المهني" />
+    <div className="records-redesign space-y-6">
+      <div className="records-page-hero"><PageHeader eyebrow="أرشيف المحتوى المهني" title="سجل المحتوى المهني" /></div>
 
       {/* لوحة السجل — بطاقات مصغّرة هادئة: الإجمالي مميّز بالوسط، رحلة المحتوى، ثم حسب النوع والقناة */}
       {records.length > 0 ? (
-        <div className="space-y-3">
+        <div className="records-overview space-y-4">
           {/* الإجمالي بارز بلون المنصّة، ومعه مؤشّران موجزان — شبكة متجاوبة: عمود على الجوال، صف واحد على اللوحي/الحاسب */}
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-            <div className="col-span-2 flex flex-col justify-between rounded-2xl bg-gradient-to-br from-palm to-palmDeep p-4 shadow-sm">
+          <div className="records-metrics-grid grid grid-cols-2">
+            <div className="records-total-card col-span-2 flex flex-col justify-between bg-gradient-to-br from-palm to-palmDeep shadow-sm">
               <div className="flex items-center justify-between gap-2">
-                <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-white/15 text-white"><FolderOpen size={22} /></span>
-                <span className="text-4xl font-bold leading-none tabular-nums text-white">{counts.all}</span>
+                <span className="records-total-icon grid shrink-0 place-items-center bg-white/15 text-white"><FolderOpen size={24} /></span>
+                <span className="records-total-value font-bold leading-none tabular-nums text-white">{counts.all}</span>
               </div>
-              <div className="mt-2.5">
-                <p className="text-sm font-semibold text-white">إجمالي المحتوى</p>
-                <p className="text-[11px] font-normal text-white/70">جميع المحتويات المحفوظة في السجل</p>
+              <div className="records-total-copy">
+                <p className="records-total-label font-semibold text-white">إجمالي المحتوى</p>
+                <p className="records-total-sub font-normal text-white/70">جميع المحتويات المحفوظة في السجل</p>
               </div>
             </div>
             {/* تفصيل الإجمالي بمساره — تحت بطاقة الإجمالي مباشرةً (بطلب مالكة المنصة) */}
@@ -552,19 +555,19 @@ export default function ContentManagementPage() {
           ]} />
 
           {snapshot.byChannel.length ? (
-            <div className="rounded-2xl border border-line bg-white p-3.5 shadow-xs">
-              <p className="mb-3 flex items-center gap-2 text-xs font-semibold text-ink"><Share2 size={14} className="text-palm" />قنوات النشر</p>
-              <div className="flex flex-wrap gap-2">
+            <div className="records-channels-card border border-line bg-white shadow-xs">
+              <p className="records-section-title flex items-center gap-2 font-semibold text-ink"><Share2 size={16} className="text-palm" />قنوات النشر</p>
+              <div className="records-channels-grid">
                 {snapshot.byChannel.map(([label, count]) => {
                   const b = channelBrand(label);
                   const idle = count === 0; // قناة معتمدة بلا محتوى بعد — تُعرَض بصفر بهيئة هادئة
                   return (
-                    <div key={label} className={`flex grow basis-[calc(50%-0.25rem)] items-center justify-between gap-1.5 rounded-xl border px-3 py-2.5 sm:basis-[calc(33.333%-0.5rem)] lg:basis-0 ${idle ? "border-line/70 bg-paper/50" : "border-line bg-paper"}`}>
+                    <div key={label} className={`records-channel-chip flex items-center justify-between gap-2 border ${idle ? "border-line/70 bg-paper/50" : "border-line bg-paper"}`}>
                       <div className="flex min-w-0 items-baseline gap-1.5">
                         <span className={`truncate text-xs font-medium ${idle ? "text-ink/40" : "text-ink/70"}`}>{label}</span>
                         <span className={`text-base font-bold tabular-nums ${idle ? "text-ink/35" : "text-ink"}`}>{count}</span>
                       </div>
-                      <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-lg ${b.surface} ${b.icon} ${idle ? "opacity-45" : ""}`}>{b.node}</span>
+                      <span className={`records-channel-icon grid shrink-0 place-items-center ${b.surface} ${b.icon} ${idle ? "opacity-45" : ""}`}>{b.node}</span>
                     </div>
                   );
                 })}
@@ -575,24 +578,27 @@ export default function ContentManagementPage() {
       ) : null}
 
       {/* رسالة طمأنة: السجل وسيلة وقائية داخلية — لا استخدام تأديبياً وسرية تامة */}
-      <div className="rounded-xl border border-infoBorder bg-infoSoft p-4">
-        <p className="text-sm font-semibold text-infoDark">المراجعة وسيلة وقائية لا رقابية</p>
-        <p className="mt-1 text-sm leading-7 text-ink/80">
-          الغرض من هذا السجل التثبّت من سلامة المحتوى قبل نشره ودعم الامتثال الذاتي. لا تُوظَّف نتائج
-          الفحص لأي إجراء تأديبي أو مساءلة، وتظل بياناتك ومحتواك في سرية تامة دون اطلاع أي جهة عليها.
-        </p>
+      <div className="records-assurance rounded-xl border border-infoBorder bg-infoSoft p-4">
+        <span className="records-assurance-icon" aria-hidden="true"><ShieldCheck size={20} /></span>
+        <div>
+          <p className="text-sm font-semibold text-infoDark">المراجعة وسيلة وقائية لا رقابية</p>
+          <p className="mt-1 text-sm leading-7 text-ink/80">
+            الغرض من هذا السجل التثبّت من سلامة المحتوى قبل نشره ودعم الامتثال الذاتي. لا تُوظَّف نتائج
+            الفحص لأي إجراء تأديبي أو مساءلة، وتظل بياناتك ومحتواك في سرية تامة دون اطلاع أي جهة عليها.
+          </p>
+        </div>
       </div>
 
       {/* تنبيه تسجيل الدخول فقط (إجراء مهم لحفظ السجل عبر الأجهزة) — أُزيلت رسائل الطمأنة المكرّرة */}
       {syncState === "signedout" && (
-        <div className="flex items-center gap-2 rounded-xl border border-goldBorder bg-goldSoft p-3 text-sm text-goldDark">
+        <div className="records-sync-note flex items-center gap-2 rounded-xl border border-goldBorder bg-goldSoft p-3 text-sm text-goldDark">
           <span className="inline-block h-2.5 w-2.5 rounded-full bg-gold" />
           سجّل الدخول بحسابك لتُزامَن سجلاتك عبر أجهزتك؛ وإلا تبقى على هذا الجهاز فقط.
         </div>
       )}
 
       {/* بقرار مالكة المنصة: تصدير/استيراد السجل — نقل آمن بين المتصفحات والعناوين بلا فقدان */}
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-line bg-white p-4 shadow-sm">
+      <div className="records-backup-card flex flex-wrap items-center justify-between gap-3 rounded-xl border border-line bg-white p-4 shadow-sm">
         <div>
           <p className="text-sm font-semibold text-ink">نسخة احتياطية من السجل</p>
           <p className="mt-1 text-xs leading-6 text-ink/60">صدّر نسخة من سجلك أو استورد نسخة سابقة دون حذف الحالي.</p>
@@ -611,8 +617,9 @@ export default function ContentManagementPage() {
 
       {/* بحث حي مباشر (بقرار المالكة — «طريقة البحث ليست عملية»): الكتابة تصفي
           الجدول والقائمة فوراً بلا قوائم منسدلة، مع عدّاد النتائج داخل الصندوق */}
+      <div className="records-control-deck">
       {records.length > 0 ? (
-        <div className="flex items-center gap-2 rounded-lg border border-line bg-white px-3 py-2.5 shadow-sm">
+        <div className="records-search flex items-center gap-2 rounded-lg border border-line bg-white px-3 py-2.5 shadow-sm">
           <Search size={15} className="shrink-0 text-ink/40" />
           <input
             type="text"
@@ -632,7 +639,7 @@ export default function ContentManagementPage() {
         </div>
       ) : null}
 
-      <nav aria-label="تصفية سجل المحتوى" className="flex w-full gap-2 overflow-x-auto rounded-lg border border-line bg-white p-2 shadow-sm">
+      <nav aria-label="تصفية سجل المحتوى" className="records-filters flex w-full gap-2 overflow-x-auto rounded-lg border border-line bg-white p-2 shadow-sm">
         {([
           ["all", `الكل (${counts.all})`],
           ["drafts", `المسودات والحالية (${counts.drafts})`],
@@ -663,11 +670,12 @@ export default function ContentManagementPage() {
           الترتيب: {sortMode === "serial" ? "بالرقم" : sortMode === "updatedDesc" ? "الأحدث تحديثاً" : sortMode === "updatedAsc" ? "الأقدم تحديثاً" : "بالرقم تصاعدياً"}
         </button>
       </nav>
+      </div>
 
       {filteredRecords.length === 0 ? empty : (
         <>
           {/* ── موبايل: أكورديون DGA (< md) ── */}
-          <div className="md:hidden rounded-xl border border-line bg-white overflow-hidden">
+          <div className="records-mobile-list md:hidden">
             {filteredRecords.map((record, index) => {
               const current = record.versions.find((v) => v.version === record.currentVersion);
               const analysis = current?.analysis ? normalizeReviewResult(current.analysis) : undefined;
@@ -680,7 +688,7 @@ export default function ContentManagementPage() {
               const showDetails = detailsId === record.id;
 
               return (
-                <div key={record.id} className="border-b border-line last:border-none">
+                <div key={record.id} className="records-mobile-item border border-line bg-white">
                   <button
                     type="button"
                     aria-expanded={isOpen}
@@ -689,7 +697,7 @@ export default function ContentManagementPage() {
                       setExpanded(isOpen ? undefined : record.id);
                       if (isOpen) setDetailsId(undefined);
                     }}
-                    className={`w-full flex items-center gap-3 px-4 py-3.5 text-right transition focus-ring ${isOpen ? "bg-paper" : "hover:bg-paper/60"}`}
+                    className={`records-mobile-trigger w-full flex items-center gap-3 px-4 py-3.5 text-right transition focus-ring ${isOpen ? "is-open bg-paper" : "hover:bg-paper/60"}`}
                   >
                     <span className="shrink-0 grid h-7 w-7 place-items-center rounded-full bg-mint text-[11px] font-bold text-palm tabular-nums">{serialById.get(record.id) ?? index + 1}</span>
                     <div className="min-w-0 flex-1">
@@ -702,7 +710,7 @@ export default function ContentManagementPage() {
 
                   {isOpen && (
                     <div id={`acc-panel-${record.id}`} role="region">
-                      <div className="px-4 pb-4 bg-paper/60">
+                      <div className="records-mobile-details px-4 pb-4 bg-paper/60">
                         <div className="grid grid-cols-2 gap-x-4 gap-y-3 mb-4">
                           <div>
                             <p className="text-[10px] font-semibold text-ink/40 mb-1">الحالة</p>
@@ -758,8 +766,8 @@ export default function ContentManagementPage() {
           </div>
 
           {/* ── سطح المكتب: جدول كامل (md+) ── */}
-          <div className="hidden md:block overflow-x-auto rounded-xl border border-line bg-white shadow-sm">
-            <table className="w-full border-collapse text-sm">
+          <div className="records-table-shell hidden md:block overflow-x-auto rounded-xl border border-line bg-white shadow-sm">
+            <table className="records-table w-full border-collapse text-sm">
               <thead>
                 <tr className="border-b border-line bg-paper text-right text-xs text-inkTertiary">
                   {/* جدول ذكي (بقرار المالكة): كل عمود يفلتر أو يرتب بالضغط عليه */}

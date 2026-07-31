@@ -1041,3 +1041,622 @@ body::before {
     display: none;
   }
 }
+
+/* Records — visual redesign scoped to the professional archive screen only. */
+.records-redesign {
+  position: relative;
+  isolation: isolate;
+  padding-bottom: 1rem;
+}
+
+.records-redesign::before {
+  position: absolute;
+  z-index: -1;
+  inset: -1.25rem -2rem auto;
+  height: 30rem;
+  content: "";
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 86% 16%, rgba(37, 147, 95, 0.1), transparent 28%),
+    radial-gradient(circle at 8% 46%, rgba(128, 81, 159, 0.075), transparent 25%);
+  mask-image: linear-gradient(to bottom, #000 64%, transparent);
+}
+
+.records-page-hero > div {
+  position: relative;
+  min-height: 9.5rem;
+  margin-bottom: 0;
+  overflow: hidden;
+  border: 1px solid rgba(37, 147, 95, 0.16);
+  border-radius: 1.5rem;
+  padding: 2rem;
+  background:
+    linear-gradient(105deg, rgba(255, 255, 255, 0.98) 12%, rgba(245, 252, 248, 0.96) 64%, rgba(225, 246, 234, 0.9));
+  box-shadow: 0 18px 45px rgba(27, 55, 44, 0.07);
+}
+
+.records-page-hero > div::before,
+.records-page-hero > div::after {
+  position: absolute;
+  content: "";
+  pointer-events: none;
+  border-radius: 999px;
+}
+
+.records-page-hero > div::before {
+  width: 14rem;
+  height: 14rem;
+  inset-inline-start: -4rem;
+  top: -7rem;
+  border: 1px solid rgba(128, 81, 159, 0.12);
+  box-shadow:
+    0 0 0 2rem rgba(128, 81, 159, 0.025),
+    0 0 0 4rem rgba(37, 147, 95, 0.025);
+}
+
+.records-page-hero > div::after {
+  width: 0.55rem;
+  height: 0.55rem;
+  inset-inline-end: 2rem;
+  bottom: 1.75rem;
+  background: rgba(37, 147, 95, 0.72);
+  box-shadow:
+    1.1rem 0 0 rgba(37, 147, 95, 0.22),
+    2.2rem 0 0 rgba(128, 81, 159, 0.18);
+}
+
+.records-page-hero h2 {
+  font-size: clamp(1.55rem, 2vw, 2.1rem);
+  line-height: 1.5;
+}
+
+.records-page-hero p:first-child {
+  font-size: 0.8rem;
+  letter-spacing: 0.015em;
+}
+
+.records-overview {
+  padding: 0.25rem;
+}
+
+.records-metrics-grid {
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  grid-auto-rows: minmax(7.8rem, auto);
+  gap: 0.9rem;
+}
+
+.records-total-card {
+  position: relative;
+  grid-column: span 4;
+  grid-row: span 2;
+  min-height: 16.5rem;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 1.5rem;
+  padding: 1.5rem;
+  box-shadow: 0 20px 42px rgba(16, 102, 68, 0.18);
+  transition: transform 220ms ease, box-shadow 220ms ease;
+}
+
+.records-total-card::before,
+.records-total-card::after {
+  position: absolute;
+  content: "";
+  pointer-events: none;
+  border-radius: 999px;
+}
+
+.records-total-card::before {
+  width: 12rem;
+  height: 12rem;
+  inset-inline-start: -4.5rem;
+  bottom: -6rem;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow: 0 0 0 2.3rem rgba(255, 255, 255, 0.035);
+}
+
+.records-total-card::after {
+  width: 7rem;
+  height: 7rem;
+  inset-inline-end: -2.5rem;
+  top: -3rem;
+  background: rgba(255, 255, 255, 0.055);
+}
+
+.records-total-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 26px 55px rgba(16, 102, 68, 0.23);
+}
+
+.records-total-icon {
+  z-index: 1;
+  width: 3.6rem;
+  height: 3.6rem;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 1.1rem;
+  backdrop-filter: blur(8px);
+}
+
+.records-total-value {
+  z-index: 1;
+  font-size: clamp(3rem, 4vw, 4.5rem);
+  letter-spacing: -0.04em;
+}
+
+.records-total-copy {
+  z-index: 1;
+  margin-top: 2rem;
+}
+
+.records-total-label {
+  font-size: 1rem;
+}
+
+.records-total-sub {
+  margin-top: 0.35rem;
+  font-size: 0.76rem;
+  line-height: 1.6;
+}
+
+.records-stat-card {
+  position: relative;
+  grid-column: span 4;
+  min-width: 0;
+  overflow: hidden;
+  border-radius: 1.25rem;
+  padding: 1rem;
+  background-color: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 10px 28px rgba(27, 55, 44, 0.055);
+  transition: transform 200ms ease, border-color 200ms ease, box-shadow 200ms ease;
+}
+
+.records-stat-card::after {
+  position: absolute;
+  width: 5rem;
+  height: 5rem;
+  inset-inline-start: -2.5rem;
+  top: -2.8rem;
+  content: "";
+  border-radius: 999px;
+  background: currentColor;
+  opacity: 0.035;
+}
+
+.records-stat-card:hover {
+  z-index: 2;
+  transform: translateY(-3px);
+  border-color: rgba(37, 147, 95, 0.25);
+  box-shadow: 0 18px 34px rgba(27, 55, 44, 0.09);
+}
+
+.records-stat-icon {
+  width: 2.4rem;
+  height: 2.4rem;
+  border-radius: 0.8rem;
+}
+
+.records-stat-icon svg {
+  width: 1.05rem;
+  height: 1.05rem;
+}
+
+.records-stat-value {
+  font-size: clamp(1.5rem, 2vw, 2rem);
+}
+
+.records-stat-suffix {
+  margin-inline-start: 0.1rem;
+  font-size: 0.75rem;
+}
+
+.records-stat-label {
+  margin-top: 0.8rem;
+  font-size: 0.78rem;
+}
+
+.records-stat-sub {
+  min-height: 1.2rem;
+  margin-top: 0.2rem;
+  overflow: hidden;
+  font-size: 0.66rem;
+  line-height: 1.45;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.records-stat-track {
+  height: 0.25rem;
+  margin-top: 0.75rem;
+}
+
+.records-stat-progress {
+  transform-origin: right center;
+  animation: records-progress-reveal 700ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.records-journey-card,
+.records-channels-card {
+  position: relative;
+  overflow: hidden;
+  border-radius: 1.5rem;
+  padding: 1.25rem;
+  box-shadow: 0 14px 36px rgba(27, 55, 44, 0.055);
+}
+
+.records-section-title {
+  position: relative;
+  z-index: 1;
+  margin-bottom: 1.2rem;
+  font-size: 0.9rem;
+}
+
+.records-journey-track {
+  position: relative;
+  gap: 0.5rem;
+  padding: 0.35rem 0.5rem 0.15rem;
+}
+
+.records-journey-step {
+  position: relative;
+  z-index: 1;
+  min-width: 0;
+  transition: transform 200ms ease;
+}
+
+.records-journey-step:hover {
+  transform: translateY(-3px);
+}
+
+.records-journey-icon {
+  width: 3rem;
+  height: 3rem;
+  border: 1px solid rgba(37, 147, 95, 0.08);
+  box-shadow: 0 0 0 0.4rem rgba(37, 147, 95, 0.025);
+  transition: box-shadow 200ms ease, transform 200ms ease;
+}
+
+.records-journey-step:hover .records-journey-icon {
+  transform: scale(1.04);
+  box-shadow: 0 0 0 0.55rem rgba(37, 147, 95, 0.045);
+}
+
+.records-journey-label {
+  margin-top: 0.75rem;
+  font-size: 0.75rem;
+}
+
+.records-journey-value {
+  margin-top: 0.2rem;
+  font-size: 1.25rem;
+}
+
+.records-journey-sub {
+  margin-top: 0.1rem;
+  font-size: 0.65rem;
+}
+
+.records-journey-connector {
+  display: flex;
+  flex: 0 1 5rem;
+  align-items: center;
+  gap: 0.35rem;
+  margin-top: 1.05rem;
+  color: rgba(37, 147, 95, 0.3);
+}
+
+.records-journey-connector::before {
+  width: 100%;
+  height: 1px;
+  content: "";
+  background: linear-gradient(to left, rgba(37, 147, 95, 0.42), rgba(128, 81, 159, 0.15));
+}
+
+.records-channels-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 0.65rem;
+}
+
+.records-channel-chip {
+  min-width: 0;
+  border-radius: 1rem;
+  padding: 0.8rem;
+  transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
+}
+
+.records-channel-chip:hover {
+  transform: translateY(-2px);
+  border-color: rgba(37, 147, 95, 0.22);
+  box-shadow: 0 12px 24px rgba(27, 55, 44, 0.07);
+}
+
+.records-channel-icon {
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 0.75rem;
+}
+
+.records-assurance {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.9rem;
+  border-radius: 1.25rem;
+  box-shadow: 0 10px 25px rgba(42, 101, 146, 0.045);
+}
+
+.records-assurance-icon {
+  display: grid;
+  width: 2.5rem;
+  height: 2.5rem;
+  flex: none;
+  place-items: center;
+  border-radius: 0.8rem;
+  color: #2a6592;
+  background: rgba(255, 255, 255, 0.7);
+}
+
+.records-sync-note {
+  border-radius: 1rem;
+}
+
+.records-backup-card {
+  position: relative;
+  overflow: hidden;
+  border-radius: 1.25rem;
+  box-shadow: 0 12px 30px rgba(27, 55, 44, 0.055);
+}
+
+.records-backup-card::before {
+  position: absolute;
+  width: 0.25rem;
+  inset-block: 0.8rem;
+  inset-inline-start: 0;
+  content: "";
+  border-radius: 999px;
+  background: linear-gradient(#25935f, rgba(128, 81, 159, 0.65));
+}
+
+.records-control-deck {
+  display: grid;
+  gap: 0.75rem;
+  padding: 0.85rem;
+  border: 1px solid rgba(37, 147, 95, 0.12);
+  border-radius: 1.35rem;
+  background: rgba(255, 255, 255, 0.66);
+  box-shadow: 0 14px 34px rgba(27, 55, 44, 0.05);
+  backdrop-filter: blur(14px);
+}
+
+.records-search {
+  min-height: 3.15rem;
+  border-radius: 0.95rem;
+  transition: border-color 180ms ease, box-shadow 180ms ease;
+}
+
+.records-search:focus-within {
+  border-color: rgba(37, 147, 95, 0.48);
+  box-shadow: 0 0 0 0.22rem rgba(37, 147, 95, 0.08);
+}
+
+.records-filters {
+  border: 0;
+  box-shadow: none;
+  scrollbar-width: thin;
+}
+
+.records-filters button {
+  border-radius: 0.75rem;
+}
+
+.records-table-shell {
+  overflow: hidden;
+  border-radius: 1.35rem;
+  box-shadow: 0 18px 42px rgba(27, 55, 44, 0.07);
+}
+
+.records-table thead tr {
+  background: linear-gradient(to left, rgba(223, 246, 231, 0.74), rgba(247, 249, 248, 0.9));
+}
+
+.records-table thead th {
+  height: 3.4rem;
+  color: rgba(19, 37, 30, 0.65);
+}
+
+.records-table tbody tr:not(:has(td[colspan])) {
+  transition: background-color 180ms ease, box-shadow 180ms ease;
+}
+
+.records-table tbody tr:not(:has(td[colspan])):hover {
+  background: rgba(223, 246, 231, 0.24);
+  box-shadow: inset -0.2rem 0 #25935f;
+}
+
+.records-table tbody td {
+  border-color: rgba(220, 225, 223, 0.72);
+}
+
+.records-mobile-list {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.records-mobile-item {
+  overflow: hidden;
+  border-radius: 1.1rem;
+  box-shadow: 0 10px 26px rgba(27, 55, 44, 0.055);
+}
+
+.records-mobile-trigger {
+  min-height: 5rem;
+}
+
+.records-mobile-trigger.is-open {
+  box-shadow: inset -0.2rem 0 #25935f;
+}
+
+.records-mobile-details {
+  border-top: 1px solid rgba(220, 225, 223, 0.72);
+  padding-top: 1rem;
+}
+
+.records-loading-card {
+  border-radius: 1.5rem;
+  box-shadow: 0 18px 40px rgba(27, 55, 44, 0.06);
+}
+
+@keyframes records-progress-reveal {
+  from { transform: scaleX(0); opacity: 0.4; }
+  to { transform: scaleX(1); opacity: 1; }
+}
+
+@media (max-width: 1023px) {
+  .records-metrics-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .records-total-card {
+    grid-column: span 2;
+  }
+
+  .records-stat-card {
+    grid-column: span 1;
+  }
+
+  .records-channels-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 639px) {
+  .records-redesign {
+    padding-bottom: 0.5rem;
+  }
+
+  .records-redesign::before {
+    inset-inline: -1rem;
+    height: 24rem;
+  }
+
+  .records-page-hero > div {
+    min-height: 8.25rem;
+    border-radius: 1.25rem;
+    padding: 1.25rem;
+  }
+
+  .records-page-hero > div::before {
+    width: 9rem;
+    height: 9rem;
+    top: -5rem;
+  }
+
+  .records-page-hero h2 {
+    font-size: 1.55rem;
+  }
+
+  .records-metrics-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-auto-rows: auto;
+    gap: 0.7rem;
+  }
+
+  .records-total-card {
+    grid-column: span 2;
+    grid-row: auto;
+    min-height: 11.5rem;
+    padding: 1.2rem;
+  }
+
+  .records-total-value {
+    font-size: 3rem;
+  }
+
+  .records-total-copy {
+    margin-top: 1.4rem;
+  }
+
+  .records-stat-card {
+    grid-column: span 1;
+    min-height: 9.3rem;
+    border-radius: 1rem;
+    padding: 0.85rem;
+  }
+
+  .records-stat-value {
+    font-size: 1.45rem;
+  }
+
+  .records-stat-sub {
+    white-space: normal;
+  }
+
+  .records-journey-card,
+  .records-channels-card {
+    border-radius: 1.2rem;
+    padding: 1rem;
+  }
+
+  .records-journey-track {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem 0.75rem;
+  }
+
+  .records-journey-connector {
+    display: none;
+  }
+
+  .records-journey-step {
+    padding: 0.8rem 0.5rem;
+    border: 1px solid rgba(37, 147, 95, 0.08);
+    border-radius: 1rem;
+    background: rgba(247, 249, 248, 0.76);
+  }
+
+  .records-channels-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .records-channel-chip {
+    padding: 0.7rem;
+  }
+
+  .records-assurance {
+    gap: 0.7rem;
+    padding: 1rem;
+  }
+
+  .records-assurance-icon {
+    width: 2.2rem;
+    height: 2.2rem;
+  }
+
+  .records-backup-card {
+    align-items: stretch;
+  }
+
+  .records-backup-card > div:last-of-type {
+    width: 100%;
+  }
+
+  .records-backup-card button {
+    flex: 1;
+  }
+
+  .records-control-deck {
+    padding: 0.65rem;
+    border-radius: 1.1rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .records-total-card,
+  .records-stat-card,
+  .records-stat-progress,
+  .records-journey-step,
+  .records-journey-icon,
+  .records-channel-chip {
+    animation: none;
+    transition: none;
+  }
+}
