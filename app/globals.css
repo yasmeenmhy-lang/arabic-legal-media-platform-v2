@@ -1597,20 +1597,88 @@ body::before {
   }
 
   .records-journey-track {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 1rem 0.75rem;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0;
+    padding: 0.15rem 0.25rem;
   }
 
   .records-journey-connector {
-    display: none;
+    position: relative;
+    display: flex;
+    width: 3.1rem;
+    height: 1.55rem;
+    flex: none;
+    align-self: flex-start;
+    align-items: center;
+    justify-content: center;
+    margin-block: -0.2rem;
+    color: rgba(37, 147, 95, 0.5);
+  }
+
+  .records-journey-connector::before {
+    position: absolute;
+    left: 50%;
+    top: 0;
+    width: 1px;
+    height: 100%;
+    content: "";
+    background: linear-gradient(to bottom, rgba(37, 147, 95, 0.18), rgba(37, 147, 95, 0.55));
+  }
+
+  .records-journey-connector svg {
+    position: relative;
+    z-index: 1;
+    width: 0.9rem;
+    height: 0.9rem;
+    padding: 0.05rem;
+    border-radius: 999px;
+    background: white;
+    transform: rotate(-90deg);
   }
 
   .records-journey-step {
-    padding: 0.8rem 0.5rem;
-    border: 1px solid rgba(37, 147, 95, 0.08);
-    border-radius: 1rem;
-    background: rgba(247, 249, 248, 0.76);
+    display: grid;
+    width: 100%;
+    grid-template-columns: 3.1rem minmax(0, 1fr) auto;
+    grid-template-areas:
+      "icon label value"
+      "icon sub value";
+    flex: none;
+    align-items: center;
+    column-gap: 0.9rem;
+    padding: 0.75rem 0.25rem;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    text-align: right;
+  }
+
+  .records-journey-step .records-journey-icon {
+    grid-area: icon;
+    width: 3.1rem;
+    height: 3.1rem;
+  }
+
+  .records-journey-step .records-journey-label {
+    grid-area: label;
+    justify-self: start;
+    margin-top: 0;
+    font-size: 0.82rem;
+  }
+
+  .records-journey-step .records-journey-value {
+    grid-area: value;
+    align-self: center;
+    margin-top: 0;
+    font-size: 1.3rem;
+  }
+
+  .records-journey-step .records-journey-sub {
+    grid-area: sub;
+    justify-self: start;
+    margin-top: 0.15rem;
   }
 
   .records-channels-grid {
