@@ -2610,18 +2610,26 @@ function toStoredGovernance(gov: ServerGovernance | undefined, notice: string | 
         delete event.currentTarget.dataset.pointerActive;
       }}
     >
-      <PageHeader
-        eyebrow="مركز المحتوى الإعلامي والإعلاني"
-        title={path === "review" ? "مراجعة المحتوى المهني" : path === "create" ? "إنشاء المحتوى المهني" : "إنشاء ومراجعة المحتوى المهني"}
-        // تبقى عبارة الترحيب نفسها، وتتحول بصرياً إلى شارة حيّة من دون إضافة محتوى جديد.
-        illustration={path ? undefined : (
-          <div className="entry-welcome-mark">
-            <span className="entry-welcome-spark" aria-hidden="true"><Sparkles size={18} /></span>
-            <p className="whitespace-nowrap text-center text-xl font-semibold leading-9 text-palm">مرحباً بك</p>
+      {path ? (
+        <PageHeader
+          eyebrow="مركز المحتوى الإعلامي والإعلاني"
+          title={path === "review" ? "مراجعة المحتوى المهني" : "إنشاء المحتوى المهني"}
+          action={<Button variant="secondary-gray" onClick={goBackOneStage} leadingIcon={<ArrowRight size={16} />}>رجوع</Button>}
+        />
+      ) : (
+        <section className="smart-entry-hero" aria-labelledby="content-center-entry-title">
+          <div className="min-w-0">
+            <p className="mb-2 text-xs font-normal text-palm">مركز المحتوى الإعلامي والإعلاني</p>
+            <h2 id="content-center-entry-title" className="text-balance text-2xl font-semibold leading-10 text-ink md:text-3xl">
+              إنشاء ومراجعة المحتوى المهني
+            </h2>
           </div>
-        )}
-        action={path ? <Button variant="secondary-gray" onClick={goBackOneStage} leadingIcon={<ArrowRight size={16} />}>رجوع</Button> : undefined}
-      />
+          <div className="smart-entry-welcome">
+            <span className="smart-entry-welcome-icon" aria-hidden="true"><Sparkles size={18} /></span>
+            <p className="whitespace-nowrap text-lg font-semibold text-palm md:text-xl">مرحباً بك</p>
+          </div>
+        </section>
+      )}
       {!path ? <span className="entry-pointer-glow" aria-hidden="true" /> : null}
 
       {/* (بقرار المالكة): زر «المراجعة السريعة» أُلغي — المسار كله صار سريعاً تلقائياً */}
@@ -3497,18 +3505,27 @@ function toStoredGovernance(gov: ServerGovernance | undefined, notice: string | 
       {/* ── 2. Path selection ── */}
       {!path && (
         // مساحة بداية متوازنة: أقرب إلى الترويسة وأخف ارتفاعاً، من دون فراغ رأسي مشتت.
-        <div className="entry-choice-stage">
-          <p className="mb-3 text-sm font-semibold text-ink md:mb-5 md:text-base lg:text-lg">كيف تريد البدء؟</p>
+        <div className="entry-choice-stage smart-entry-stage">
+          <div className="smart-entry-heading">
+            <p className="text-sm font-semibold text-ink md:text-base lg:text-lg">كيف تريد البدء؟</p>
+          </div>
           {/* auto-rows-fr يوحّد ارتفاع البطاقتين مهما اختلف طول الوصف */}
-          {/* تكبير البطاقتين على الحاسب والآيباد (بقرار مالكة المنصة) — الجوال كما هو */}
-          <div className="grid auto-rows-fr gap-4 md:grid-cols-2 md:gap-6">
+          <div className="smart-choice-grid grid auto-rows-fr gap-4 md:grid-cols-2 md:gap-7">
+            <div className="smart-flow-bridge" aria-hidden="true">
+              <span className="smart-flow-line smart-flow-review" />
+              <span className="smart-flow-line smart-flow-create" />
+              <span className="smart-flow-hub"><Sparkles size={15} /></span>
+            </div>
             <button
               type="button"
               onClick={() => { setReview(null); setContentId(undefined); setPath("review"); setFrameStep(1); }}
-              className="entry-card-motion entry-choice-card entry-card-palm flex flex-col items-start gap-3 rounded-xl border border-line border-r-2 border-r-palm bg-white p-6 text-right shadow-card transition hover:shadow-lg focus-ring md:gap-5 md:p-8 lg:p-10"
+              className="entry-card-motion entry-choice-card entry-card-palm smart-choice-panel flex flex-col items-start gap-3 rounded-2xl border border-line bg-white/90 p-6 text-right shadow-sm backdrop-blur-sm transition hover:shadow-lg focus-ring md:gap-5 md:p-8 lg:p-9"
             >
-              <span className="grid h-14 w-14 place-items-center rounded-full bg-mint text-palm md:h-16 md:w-16 lg:h-[4.5rem] lg:w-[4.5rem]">
-                <FileCheck2 size={26} aria-hidden="true" className="md:h-7 md:w-7 lg:h-8 lg:w-8" />
+              <span className="smart-choice-topline">
+                <span className="grid h-14 w-14 place-items-center rounded-full bg-mint text-palm md:h-16 md:w-16">
+                  <FileCheck2 size={26} aria-hidden="true" className="md:h-7 md:w-7" />
+                </span>
+                <span className="smart-choice-signal" aria-hidden="true" />
               </span>
               <span className="text-lg font-semibold text-ink md:text-xl">مراجعة محتوى</span>
               <span className="text-sm leading-6 text-ink/60 md:text-[15px] md:leading-7">
@@ -3520,10 +3537,13 @@ function toStoredGovernance(gov: ServerGovernance | undefined, notice: string | 
             <button
               type="button"
               onClick={startCreatePath}
-              className="entry-card-motion entry-choice-card entry-card-violet flex flex-col items-start gap-3 rounded-xl border border-line border-r-2 border-r-violet bg-white p-6 text-right shadow-card transition hover:shadow-lg focus-ring md:gap-5 md:p-8 lg:p-10"
+              className="entry-card-motion entry-choice-card entry-card-violet smart-choice-panel flex flex-col items-start gap-3 rounded-2xl border border-line bg-white/90 p-6 text-right shadow-sm backdrop-blur-sm transition hover:shadow-lg focus-ring md:gap-5 md:p-8 lg:p-9"
             >
-              <span className="grid h-14 w-14 place-items-center rounded-full bg-violetSoft text-violet md:h-16 md:w-16 lg:h-[4.5rem] lg:w-[4.5rem]">
-                <Sparkles size={26} aria-hidden="true" className="md:h-7 md:w-7 lg:h-8 lg:w-8" />
+              <span className="smart-choice-topline">
+                <span className="grid h-14 w-14 place-items-center rounded-full bg-violetSoft text-violet md:h-16 md:w-16">
+                  <Sparkles size={26} aria-hidden="true" className="md:h-7 md:w-7" />
+                </span>
+                <span className="smart-choice-signal" aria-hidden="true" />
               </span>
               <span className="text-lg font-semibold text-ink md:text-xl">إنشاء محتوى</span>
               <span className="text-sm leading-6 text-ink/60 md:text-[15px] md:leading-7">
