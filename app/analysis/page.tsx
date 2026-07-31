@@ -199,19 +199,6 @@ function DesktopSelect({ value, onChange, placeholder, emptyLabel, options }: {
 
 const severityOrder = { critical: 0, high: 1, medium: 2, low: 3 } as const;
 
-// فهرس بصري فقط لصفحة التقرير: الروابط تقفز إلى الأقسام الموجودة أصلاً،
-// ولا تغيّر ترتيب التحليل أو بياناته أو منطق أي مرحلة.
-const dossierStages = [
-  { number: "1", href: "#input", label: "إدخال المحتوى" },
-  { number: "2", href: "#decision", label: "توصية النشر" },
-  { number: "3", href: "#findings", label: "الملاحظات" },
-  { number: "4", href: "#rewrite", label: "معالجة الملاحظات وإعادة الصياغة" },
-  { number: "5", href: "#readiness", label: "جاهزية النشر" },
-  { number: "6", href: "#channels", label: "القنوات المقترحة" },
-  { number: "7", href: "#approval", label: "اعتماد النسخة" },
-  { number: "8", href: "#sharing", label: "المشاركة والتصدير" }
-] as const;
-
 // نطاقات مراحل المراجعة الفعلية — مفاتيحها هي أسماء المراحل التي يبلّغ بها الخادم
 // (lib/services/review-service.ts). النسبة داخل النطاق تزحف بالزمن ولا تتجاوز سقفه
 // إلا حين ينتهي المحرك فعلاً ويصل بلاغ المرحلة التالية.
@@ -1380,7 +1367,7 @@ export default function ContentReviewPage() {
   }
 
   return (
-    <div className={`content-review-window space-y-6 ${hasSelectedContent ? "" : "entry-ambient analysis-entry"} ${review ? "analysis-dossier-page" : ""}`}>
+    <div className={`content-review-window space-y-6 ${hasSelectedContent ? "" : "entry-ambient analysis-entry"}`}>
       {hasSelectedContent ? (
         <PageHeader
           eyebrow="مساعد النشر للمحتوى المهني"
@@ -1404,34 +1391,19 @@ export default function ContentReviewPage() {
       )}
 
       {/* النتائج بعرض الصفحة للحاسب والآيباد؛ الجوال يحتفظ بتسلسله العمودي. */}
-      <div className={review ? "analysis-dossier-frame" : ""}>
-        {review ? (
-          <nav className="analysis-dossier-index" aria-label="مراحل التحليل">
-            <ol>
-              {dossierStages.map((stage) => (
-                <li key={stage.number}>
-                  <a href={stage.href} className={stage.number === "4" ? "is-ai-stage" : ""}>
-                    <span className="analysis-index-number" aria-hidden="true">{stage.number}</span>
-                    <span>{stage.label}</span>
-                  </a>
-                </li>
-              ))}
-            </ol>
-          </nav>
-        ) : null}
+      <div>
         {/* قبل اختيار المحتوى فقط (بقرار مالكة المنصة): صندوق «اختر المحتوى» في
             منتصف الشاشة رأسياً بدل التصاقه بالترويسة والفراغ كله تحته. وبعد
             الاختيار يعود التسلسل الطبيعي كما هو، والجوال لا يتأثر إطلاقاً. */}
-        <div className={hasSelectedContent ? `min-w-0 space-y-6 ${review ? "analysis-dossier-content" : ""}` : "analysis-entry-stage min-w-0"}>
+        <div className={hasSelectedContent ? "min-w-0 space-y-6" : "analysis-entry-stage min-w-0"}>
       {/* قبل الاختيار: بطاقة بيضاء بحافة زرقاء وأيقونة في دائرة — نمط بطاقات المسارات
           نفسه، واللون الأزرق (info) يميّز البحث عن الأخضر (المراجعة) والبنفسجي (الإنشاء).
           وبعد الاختيار تعود بطاقة الخطوة الأولى ضمن التقرير المرقّم. */}
       <section
         id="input"
-        data-stage={review ? "1" : undefined}
         className={
           hasSelectedContent
-            ? `w-full max-w-full overflow-x-clip rounded-lg border border-line bg-white p-4 shadow-sm sm:p-5 ${review ? "analysis-stage-sheet analysis-input-sheet" : ""}`
+            ? "w-full max-w-full overflow-x-clip rounded-lg border border-line bg-white p-4 shadow-sm sm:p-5"
             : "analysis-launch-card w-full max-w-full overflow-x-clip"
         }
       >
@@ -2354,16 +2326,14 @@ export default function ContentReviewPage() {
 
           <Panel
             id="decision"
-            data-stage="2"
-            data-tone={decisionTone(review)}
-            className={`analysis-stage-sheet analysis-decision-sheet border bg-white ${
+            className={`border border-t-4 bg-white shadow-md ${
               review.analysisMode === "pattern-only" || review.evaluationIncomplete
-                ? "border-warmGrayBorder"
+                ? "border-warmGrayBorder border-t-warmGray"
                 : review.publicationDecision.outcome === "RECOMMENDED"
-                  ? "border-palm/25"
+                  ? "border-palm/25 border-t-palm"
                   : review.publicationDecision.outcome === "NOT_RECOMMENDED" || review.publicationDecision.outcome === "LEGAL_REVIEW_REQUIRED"
-                    ? "border-red-200"
-                    : "border-goldBorder"
+                    ? "border-red-200 border-t-red-600"
+                    : "border-goldBorder border-t-gold"
             }`}
           >
             {review.analysisMode === "pattern-only" || review.evaluationIncomplete ? (
@@ -2406,7 +2376,7 @@ export default function ContentReviewPage() {
           </Panel>
 
           {/* مؤشرات واسعة: عمود على الجوال، عمودان على الآيباد، وثلاثة ثم اثنان على الحاسب. */}
-          <section id="analysis-summary" aria-labelledby="supporting-indicators-title" className="analysis-evidence-ledger space-y-4 scroll-mt-24">
+          <section id="analysis-summary" aria-labelledby="supporting-indicators-title" className="space-y-4 scroll-mt-24">
             <SectionTitle title="المؤشرات المساندة للتوصية" />
             {/* شبكة صفوف متساوية الارتفاع بدل تدفق الأعمدة (masonry) — يمنع تفاوت ارتفاع
                 البطاقات وتذبذب بداياتها (يمين أعلى من يسار) على الحاسب. البطاقات في كل
@@ -2420,7 +2390,7 @@ export default function ContentReviewPage() {
           </section>
 
           <>
-          <section id="findings" data-stage="3" className="analysis-stage-sheet analysis-findings-sheet space-y-4 scroll-mt-24">
+          <section id="findings" className="space-y-4 scroll-mt-24">
             <SectionTitle title="3. الملاحظات" />
             {sortedFindings.length ? <FindingsList findings={sortedFindings} /> : (() => {
               const hasOtherIssues = review.publicationDecision.outcome === "NOT_RECOMMENDED"
@@ -2453,7 +2423,7 @@ export default function ContentReviewPage() {
 
 
           <section id="improvements" className="space-y-5 scroll-mt-24">
-          <Panel id="rewrite" data-stage="4" className="analysis-stage-sheet analysis-rewrite-sheet scroll-mt-24">
+          <Panel id="rewrite" className="scroll-mt-24">
             <SectionTitle title="4. معالجة الملاحظات وإعادة الصياغة" />
 
             {/* كتلة الصياغة الذكية */}
@@ -2637,14 +2607,14 @@ export default function ContentReviewPage() {
           </Panel>
           </section>
 
-          <section id="readiness" data-stage="5" className="analysis-stage-sheet analysis-readiness-sheet space-y-4 scroll-mt-24">
+          <section id="readiness" className="space-y-4 scroll-mt-24">
             <SectionTitle title="5. جاهزية النشر" />
             <ReadinessIndicatorCard review={review} staticSummary title="حالة الجاهزية ومتطلبات ما قبل النشر" />
           </section>
 
 <>
-          <div className="analysis-dossier-actions grid items-stretch gap-6 lg:grid-cols-[1.1fr_1fr_1fr]">
-          <Panel id="channels" data-stage="6" className="analysis-stage-sheet analysis-action-sheet h-full scroll-mt-24">
+          <div className="grid items-stretch gap-6 lg:grid-cols-[1.1fr_1fr_1fr]">
+          <Panel id="channels" className="h-full scroll-mt-24">
             <SectionTitle title="6. القنوات المقترحة" />
             <div className="flex flex-wrap gap-3">
               {review.channelRecommendations.map((item) => {
@@ -2658,7 +2628,7 @@ export default function ContentReviewPage() {
             </div>
           </Panel>
 
-          <Panel id="approval" data-stage="7" className="analysis-stage-sheet analysis-action-sheet h-full scroll-mt-24">
+          <Panel id="approval" className="h-full scroll-mt-24">
             <SectionTitle title="7. اعتماد النسخة" />
             <div className="flex flex-wrap gap-3">
               <button type="button" onClick={requestApproval} disabled={approved || approving || approveBlocked} className="inline-flex items-center gap-2 rounded-md bg-palm px-5 py-2.5 text-white disabled:cursor-not-allowed disabled:opacity-50"><Save size={16} />{approved ? "تم اعتماد النسخة" : approving ? "جار الاعتماد..." : "اعتماد النسخة الحالية"}</button>
@@ -2683,7 +2653,7 @@ export default function ContentReviewPage() {
             })() : null}
           </Panel>
 
-          <Panel id="sharing" data-stage="8" className="analysis-stage-sheet analysis-action-sheet h-full scroll-mt-24">
+          <Panel id="sharing" className="h-full scroll-mt-24">
             <SectionTitle title="8. المشاركة والتصدير" />
             <div className="flex flex-wrap gap-3">
               <button type="button" onClick={downloadWord} disabled={!approved} className="inline-flex items-center gap-2 rounded-md border border-line px-4 py-2.5 disabled:opacity-40"><FileDown size={16} />تقرير Word</button>
@@ -2695,7 +2665,7 @@ export default function ContentReviewPage() {
           </div>
           </>
 
-          <div className="analysis-advisory-strip flex gap-3 rounded-lg border border-amber-200 bg-amber-50 p-4">
+          <div className="flex gap-3 rounded-lg border border-amber-200 bg-amber-50 p-4">
             <AlertTriangle size={18} className="mt-0.5 shrink-0 text-amber-500" aria-hidden="true" />
             <p className="text-sm font-medium leading-7 text-amber-900">
               هذا المقترح استرشادي، تم إنشاؤه بناءً على البيانات المدخلة ونتائج المراجعة والمراجع المهنية المسجلة في المنصة. يظل قرار التعديل أو الاعتماد أو النشر مسؤولية المستخدم.
