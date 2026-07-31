@@ -3617,7 +3617,7 @@ function toStoredGovernance(gov: ServerGovernance | undefined, notice: string | 
               </span>
               <span className="text-lg font-semibold text-ink md:text-xl">مراجعة محتوى</span>
               <span className="text-sm leading-6 text-ink/60 md:text-[15px] md:leading-7">
-                أدخل نصاً جاهزاً وراجعه قانونياً عبر محرك التحليل.
+                أدخل نصاً جاهزاً للمراجعة وفق المعايير المهنية.
               </span>
               <span className="entry-card-arrow" aria-hidden="true"><ArrowLeft size={20} /></span>
             </button>
@@ -3638,7 +3638,7 @@ function toStoredGovernance(gov: ServerGovernance | undefined, notice: string | 
               </span>
               <span className="text-lg font-semibold text-ink md:text-xl">إنشاء محتوى</span>
               <span className="text-sm leading-6 text-ink/60 md:text-[15px] md:leading-7">
-                يُنشئ الذكاء الاصطناعي المحتوى ثم يراجعه قانونياً.
+                أنشئ محتوى بالذكاء الاصطناعي وفق المعايير المهنية.
               </span>
               <span className="entry-card-arrow" aria-hidden="true"><ArrowLeft size={20} /></span>
             </button>
