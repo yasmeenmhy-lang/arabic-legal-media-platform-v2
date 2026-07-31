@@ -351,7 +351,7 @@ body::before {
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: end;
   gap: 2rem;
-  padding: clamp(1rem, 2.5vw, 2rem) 0.5rem clamp(1.5rem, 3vw, 2.5rem);
+  padding: clamp(1rem, 2.5vw, 2rem) 0.5rem clamp(0.85rem, 1.6vw, 1.25rem);
 }
 
 .smart-entry-hero::after {
@@ -392,29 +392,27 @@ body::before {
 .legal-welcome-document {
   position: relative;
   z-index: 2;
+  width: 1.5rem;
+  height: 1.5rem;
   filter: drop-shadow(0 3px 5px rgba(128, 81, 159, 0.16));
 }
 
 .legal-welcome-ai {
   position: absolute;
   z-index: 3;
+  left: 0.42rem;
+  bottom: 0.42rem;
+  width: 0.8rem;
+  height: 0.8rem;
   color: #25935f;
-  filter: drop-shadow(0 0 0.35rem rgba(37, 147, 95, 0.28));
-  transform: translate(0.12rem, -0.02rem);
+  filter:
+    drop-shadow(0 0 0.14rem rgba(255, 255, 255, 0.98))
+    drop-shadow(0 0 0.35rem rgba(37, 147, 95, 0.3));
+  transform: none;
 }
 
 .legal-welcome-pulse {
-  position: absolute;
-  z-index: 3;
-  width: 0.42rem;
-  height: 0.42rem;
-  inset-inline-start: 0.18rem;
-  bottom: 0.34rem;
-  border: 2px solid rgba(255, 255, 255, 0.94);
-  border-radius: 999px;
-  background: #25935f;
-  box-shadow: 0 0 0 0.28rem rgba(37, 147, 95, 0.08), 0 0 0.8rem rgba(37, 147, 95, 0.25);
-  animation: legal-signal-pulse 2.4s ease-in-out infinite;
+  display: none;
 }
 
 .legal-welcome-orbit {
@@ -454,6 +452,11 @@ body::before {
 }
 
 @media (min-width: 640px) {
+  .content-center-entry {
+    min-height: calc(100dvh - 8.75rem);
+    padding-bottom: clamp(0.75rem, 1.5vh, 1.25rem);
+  }
+
   .smart-entry-stage {
     padding-top: 0.25rem;
   }
@@ -461,14 +464,36 @@ body::before {
   .smart-entry-heading {
     position: absolute;
     z-index: 2;
-    top: 2.8rem;
-    inset-inline-end: 0;
+    top: 1.35rem;
+    right: 0;
+    left: auto;
+    width: max-content;
     margin: 0;
+    text-align: right;
   }
 
   .legal-knowledge-stream {
     height: clamp(5rem, 6vw, 6.25rem);
     margin: 0 0 -0.9rem;
+  }
+
+  .smart-choice-grid {
+    column-gap: clamp(5.25rem, 6.5vw, 7.5rem) !important;
+  }
+
+  .smart-flow-bridge {
+    width: clamp(7rem, 8vw, 8.5rem);
+    height: 6.25rem;
+  }
+
+  .smart-flow-hub {
+    width: 4.75rem;
+    height: 4.75rem;
+  }
+
+  .smart-hub-core {
+    width: 2.4rem;
+    height: 2.4rem;
   }
 }
 
