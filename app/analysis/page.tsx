@@ -1367,21 +1367,35 @@ export default function ContentReviewPage() {
   }
 
   return (
-    <div className={`content-review-window space-y-6 ${hasSelectedContent ? "" : "entry-ambient"}`}>
-      <PageHeader
-        eyebrow="مساعد النشر للمحتوى المهني"
-        title="التحليل التفصيلي للمحتوى المهني"
-        action={cameFromRecords
-          ? <ButtonLink href="/records" variant="secondary-gray"><ArrowRight size={16} />العودة إلى السجل</ButtonLink>
-          : <ButtonLink href={contentId ? "/content-center?results=1" : "/content-center"} variant="secondary-gray"><ArrowRight size={16} />العودة إلى مركز المحتوى</ButtonLink>}
-      />
+    <div className={`content-review-window space-y-6 ${hasSelectedContent ? "" : "entry-ambient analysis-entry"}`}>
+      {hasSelectedContent ? (
+        <PageHeader
+          eyebrow="مساعد النشر للمحتوى المهني"
+          title="التحليل التفصيلي للمحتوى المهني"
+          action={cameFromRecords
+            ? <ButtonLink href="/records" variant="secondary-gray"><ArrowRight size={16} />العودة إلى السجل</ButtonLink>
+            : <ButtonLink href={contentId ? "/content-center?results=1" : "/content-center"} variant="secondary-gray"><ArrowRight size={16} />العودة إلى مركز المحتوى</ButtonLink>}
+        />
+      ) : (
+        <section className="analysis-entry-hero" aria-labelledby="analysis-entry-title">
+          <div className="min-w-0">
+            <p className="mb-2 text-xs font-normal text-palm">مساعد النشر للمحتوى المهني</p>
+            <h2 id="analysis-entry-title" className="text-balance text-2xl font-semibold leading-10 text-ink md:text-3xl">
+              التحليل التفصيلي للمحتوى المهني
+            </h2>
+          </div>
+          {cameFromRecords
+            ? <ButtonLink href="/records" variant="secondary-gray"><ArrowRight size={16} />العودة إلى السجل</ButtonLink>
+            : <ButtonLink href="/content-center" variant="secondary-gray"><ArrowRight size={16} />العودة إلى مركز المحتوى</ButtonLink>}
+        </section>
+      )}
 
       {/* النتائج بعرض الصفحة للحاسب والآيباد؛ الجوال يحتفظ بتسلسله العمودي. */}
       <div>
         {/* قبل اختيار المحتوى فقط (بقرار مالكة المنصة): صندوق «اختر المحتوى» في
             منتصف الشاشة رأسياً بدل التصاقه بالترويسة والفراغ كله تحته. وبعد
             الاختيار يعود التسلسل الطبيعي كما هو، والجوال لا يتأثر إطلاقاً. */}
-        <div className={hasSelectedContent ? "min-w-0 space-y-6" : "min-w-0 space-y-6 md:flex md:min-h-[calc(100vh-18rem)] md:flex-col md:justify-center"}>
+        <div className={hasSelectedContent ? "min-w-0 space-y-6" : "analysis-entry-stage min-w-0"}>
       {/* قبل الاختيار: بطاقة بيضاء بحافة زرقاء وأيقونة في دائرة — نمط بطاقات المسارات
           نفسه، واللون الأزرق (info) يميّز البحث عن الأخضر (المراجعة) والبنفسجي (الإنشاء).
           وبعد الاختيار تعود بطاقة الخطوة الأولى ضمن التقرير المرقّم. */}
@@ -1390,16 +1404,17 @@ export default function ContentReviewPage() {
         className={
           hasSelectedContent
             ? "w-full max-w-full overflow-x-clip rounded-lg border border-line bg-white p-4 shadow-sm sm:p-5"
-            : "entry-card-motion w-full max-w-full overflow-x-clip rounded-xl border border-line border-r-2 border-r-palm bg-white px-6 py-10 shadow-card sm:px-8 sm:py-12 md:px-12 md:py-16 lg:px-16 lg:py-20"
+            : "analysis-launch-card w-full max-w-full overflow-x-clip"
         }
       >
         {hasSelectedContent ? <SectionTitle title="1. إدخال المحتوى" /> : null}
         <div>
         {hasSelectedContent ? null : (
-          <div className="mb-7 flex items-center gap-4 md:mb-10">
+          <div className="analysis-launch-heading">
             <h2 className="min-w-0 flex-1 text-lg font-semibold text-ink md:text-xl">اختر المحتوى</h2>
-            <span className="grid h-16 w-16 shrink-0 place-items-center rounded-full bg-mint text-palm md:h-16 md:w-16 lg:h-[4.5rem] lg:w-[4.5rem]">
-              <Search size={30} className="md:h-7 md:w-7 lg:h-8 lg:w-8" />
+            <span className="analysis-launch-beam" aria-hidden="true"><span /></span>
+            <span className="analysis-launch-icon" aria-hidden="true">
+              <Search size={30} />
             </span>
           </div>
         )}
@@ -1409,9 +1424,9 @@ export default function ContentReviewPage() {
             الأكورديون، حتى في عرض النتائج، فلا يحتاج المستخدم فتح السياق ليرى محتواه */}
         {/* بحث لفتح محتوى محفوظ سابقاً وتحميله للمراجعة — في الأعلى مكان عنوان المحتوى */}
         {savedRecords.length > 0 ? (
-          <div className="relative" ref={recordSearchRef}>
+          <div className={hasSelectedContent ? "relative" : "analysis-record-picker relative"} ref={recordSearchRef}>
             <div className={`flex items-center gap-2.5 rounded-lg border bg-white transition ${
-              hasSelectedContent ? "border-line px-3 py-2.5 focus-within:border-palm" : "border-line px-4 py-3.5 focus-within:border-palm"
+              hasSelectedContent ? "border-line px-3 py-2.5 focus-within:border-palm" : "analysis-record-search border-line px-4 py-3.5 focus-within:border-palm"
             }`}>
               <Search size={hasSelectedContent ? 15 : 18} className="shrink-0 text-palm" />
               <input

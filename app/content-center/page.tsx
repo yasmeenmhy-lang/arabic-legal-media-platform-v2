@@ -2600,6 +2600,11 @@ function toStoredGovernance(gov: ServerGovernance | undefined, notice: string | 
       className={`content-review-window space-y-6 ${path ? "" : "entry-ambient content-center-entry"}`}
       onPointerMove={(event) => {
         if (path || event.pointerType !== "mouse") return;
+        const target = event.target as HTMLElement;
+        if (!target.closest(".smart-choice-panel")) {
+          delete event.currentTarget.dataset.pointerActive;
+          return;
+        }
         const bounds = event.currentTarget.getBoundingClientRect();
         event.currentTarget.style.setProperty("--entry-pointer-x", `${event.clientX - bounds.left}px`);
         event.currentTarget.style.setProperty("--entry-pointer-y", `${event.clientY - bounds.top}px`);
