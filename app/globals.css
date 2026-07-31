@@ -171,11 +171,12 @@ body::before {
   animation: entry-ambient-sweep 18s ease-in-out infinite alternate;
 }
 
-.entry-ambient > * {
+.entry-ambient > *:not(.entry-pointer-glow) {
   animation: entry-reveal 420ms ease-out both;
 }
 
-.entry-ambient > *:nth-child(2) {
+.entry-ambient > *:nth-child(2):not(.entry-pointer-glow),
+.entry-ambient > *:nth-child(3):not(.entry-pointer-glow) {
   animation-delay: 70ms;
 }
 
@@ -200,6 +201,210 @@ body::before {
 
 .entry-card-motion:hover > span:first-child {
   transform: translateY(-2px) rotate(-3deg);
+}
+
+/* لوحة الترحيب الخاصة بمركز المحتوى: حضور أكبر وزخارف عضوية هادئة. */
+.content-center-entry > div:first-child {
+  position: relative;
+  min-height: 9.75rem;
+  margin-bottom: 0;
+  display: flex;
+  align-items: center;
+  border-radius: 1.25rem;
+  box-shadow: 0 16px 40px rgba(27, 55, 44, 0.08);
+}
+
+.content-center-entry > div:first-child::before,
+.content-center-entry > div:first-child::after {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+  border-radius: 44% 56% 58% 42%;
+}
+
+.content-center-entry > div:first-child::before {
+  width: 15rem;
+  height: 15rem;
+  inset-inline-end: -7rem;
+  top: -10rem;
+  border: 2.75rem solid rgba(37, 147, 95, 0.055);
+  transform: rotate(18deg);
+}
+
+.content-center-entry > div:first-child::after {
+  width: 11rem;
+  height: 11rem;
+  inset-inline-start: -5rem;
+  bottom: -8rem;
+  border: 2rem solid rgba(128, 81, 159, 0.04);
+  transform: rotate(-22deg);
+}
+
+.content-center-entry > div:first-child > * {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+}
+
+.entry-welcome-mark {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  border: 1px solid rgba(37, 147, 95, 0.18);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.78);
+  padding: 0.55rem 0.75rem 0.55rem 1rem;
+  box-shadow: 0 10px 28px rgba(37, 147, 95, 0.08);
+  backdrop-filter: blur(8px);
+}
+
+.entry-welcome-spark {
+  display: grid;
+  width: 2.35rem;
+  height: 2.35rem;
+  place-items: center;
+  border-radius: 999px;
+  color: #25935f;
+  background: #dff6e7;
+  animation: entry-welcome-pulse 3.2s ease-in-out infinite;
+}
+
+.entry-choice-stage {
+  padding-block: clamp(0.75rem, 2.5vh, 2rem) clamp(2rem, 5vh, 4rem);
+}
+
+/* هالة ضوء تتبع مؤشر الماوس داخل شاشة البداية وحدها. */
+.entry-pointer-glow {
+  position: absolute;
+  z-index: 4;
+  top: var(--entry-pointer-y, 35%);
+  left: var(--entry-pointer-x, 50%);
+  width: 13rem;
+  height: 13rem;
+  margin: 0 !important;
+  pointer-events: none;
+  border-radius: 999px;
+  background:
+    radial-gradient(circle, rgba(255, 255, 255, 0.72) 0 5%, rgba(37, 147, 95, 0.11) 24%, rgba(128, 81, 159, 0.055) 45%, transparent 70%);
+  opacity: 0;
+  filter: blur(2px);
+  transform: translate(-50%, -50%);
+  transition: opacity 180ms ease;
+  will-change: top, left;
+}
+
+.entry-pointer-glow::before {
+  content: "";
+  position: absolute;
+  top: 47%;
+  left: 49%;
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow:
+    0 0 0.8rem rgba(255, 255, 255, 0.95),
+    0 0 1.8rem rgba(37, 147, 95, 0.28);
+}
+
+.content-center-entry[data-pointer-active="true"] .entry-pointer-glow {
+  opacity: 0.72;
+}
+
+.entry-choice-card {
+  --entry-accent: 37 147 95;
+  position: relative;
+  min-height: 17rem;
+  overflow: hidden;
+}
+
+.entry-choice-card.entry-card-violet {
+  --entry-accent: 128 81 159;
+}
+
+.entry-choice-card::before {
+  content: "";
+  position: absolute;
+  z-index: 1;
+  top: -25%;
+  bottom: -25%;
+  left: 118%;
+  width: 28%;
+  pointer-events: none;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.92), transparent);
+  opacity: 0;
+  transform: skewX(-18deg);
+  transition: left 650ms ease, opacity 180ms ease;
+}
+
+.entry-choice-card::after {
+  content: "";
+  position: absolute;
+  z-index: 0;
+  width: 12rem;
+  height: 12rem;
+  inset-inline-end: -7rem;
+  bottom: -7rem;
+  pointer-events: none;
+  border: 1.5rem solid rgb(var(--entry-accent) / 0.035);
+  border-radius: 42% 58% 63% 37%;
+  transform: rotate(24deg);
+  transition: transform 500ms ease, opacity 300ms ease;
+}
+
+.entry-choice-card > * {
+  position: relative;
+  z-index: 2;
+}
+
+.entry-choice-card:hover::before,
+.entry-choice-card:focus-visible::before {
+  left: -48%;
+  opacity: 0.72;
+}
+
+.entry-choice-card:hover::after,
+.entry-choice-card:focus-visible::after {
+  transform: translate3d(-0.75rem, -0.5rem, 0) rotate(8deg);
+}
+
+.entry-choice-card:active {
+  transform: translateY(-1px) scale(0.985);
+  box-shadow: 0 10px 24px rgb(var(--entry-accent) / 0.14);
+}
+
+.entry-choice-card:active::before {
+  left: -62%;
+  opacity: 0.95;
+  transition-duration: 320ms;
+}
+
+.entry-card-arrow {
+  display: grid;
+  width: 2.75rem;
+  height: 2.75rem;
+  margin-top: auto;
+  place-items: center;
+  align-self: flex-end;
+  border: 1px solid rgb(var(--entry-accent) / 0.25);
+  border-radius: 999px;
+  color: rgb(var(--entry-accent));
+  background: rgb(var(--entry-accent) / 0.07);
+  box-shadow: 0 8px 18px rgb(var(--entry-accent) / 0.08);
+  transition: transform 200ms ease, color 200ms ease, background 200ms ease, box-shadow 200ms ease;
+}
+
+.entry-choice-card:hover .entry-card-arrow,
+.entry-choice-card:focus-visible .entry-card-arrow {
+  color: white;
+  background: rgb(var(--entry-accent));
+  transform: translateX(-0.35rem);
+  box-shadow: 0 10px 22px rgb(var(--entry-accent) / 0.24);
+}
+
+.entry-choice-card:active .entry-card-arrow {
+  transform: translateX(-0.55rem) scale(0.9);
 }
 
 @keyframes entry-ambient-drift {
@@ -231,13 +436,60 @@ body::before {
   }
 }
 
+@keyframes entry-welcome-pulse {
+  0%, 100% {
+    transform: rotate(0deg) scale(1);
+    box-shadow: 0 0 0 0 rgba(37, 147, 95, 0);
+  }
+  50% {
+    transform: rotate(-7deg) scale(1.06);
+    box-shadow: 0 0 0 0.45rem rgba(37, 147, 95, 0.06);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .entry-ambient::before,
   .entry-ambient::after,
   .entry-ambient > *,
   .entry-card-motion,
-  .entry-card-motion > span:first-child {
+  .entry-card-motion > span:first-child,
+  .entry-welcome-spark,
+  .entry-choice-card::before,
+  .entry-choice-card::after,
+  .entry-card-arrow,
+  .entry-pointer-glow {
     animation: none;
     transition: none;
+  }
+
+  .entry-pointer-glow {
+    display: none;
+  }
+}
+
+@media (max-width: 639px) {
+  .content-center-entry > div:first-child {
+    min-height: 8.5rem;
+    border-radius: 1rem;
+  }
+
+  .entry-welcome-mark {
+    gap: 0.5rem;
+    padding: 0.4rem 0.55rem 0.4rem 0.75rem;
+  }
+
+  .entry-welcome-spark {
+    width: 2rem;
+    height: 2rem;
+  }
+
+  .entry-choice-card {
+    min-height: 15rem;
+  }
+}
+
+@media (hover: none), (pointer: coarse) {
+  .entry-pointer-glow {
+    display: none;
   }
 }

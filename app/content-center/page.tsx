@@ -2596,14 +2596,33 @@ function toStoredGovernance(gov: ServerGovernance | undefined, notice: string | 
   }, [path]);
 
   return (
-    <div className={`content-review-window space-y-6 ${path ? "" : "entry-ambient"}`}>
+    <div
+      className={`content-review-window space-y-6 ${path ? "" : "entry-ambient content-center-entry"}`}
+      onPointerMove={(event) => {
+        if (path || event.pointerType !== "mouse") return;
+        const bounds = event.currentTarget.getBoundingClientRect();
+        event.currentTarget.style.setProperty("--entry-pointer-x", `${event.clientX - bounds.left}px`);
+        event.currentTarget.style.setProperty("--entry-pointer-y", `${event.clientY - bounds.top}px`);
+        event.currentTarget.dataset.pointerActive = "true";
+      }}
+      onPointerLeave={(event) => {
+        if (path) return;
+        delete event.currentTarget.dataset.pointerActive;
+      }}
+    >
       <PageHeader
         eyebrow="مركز المحتوى الإعلامي والإعلاني"
         title={path === "review" ? "مراجعة المحتوى المهني" : path === "create" ? "إنشاء المحتوى المهني" : "إنشاء ومراجعة المحتوى المهني"}
-        // (بقرار المالكة): «مرحباً بك» بعرضها الطبيعي فقط — كانت تحجز عرضاً ثابتاً يزاحم العنوان فينكسر سطرين
-        illustration={path ? undefined : <p className="whitespace-nowrap text-center text-xl font-semibold leading-9 text-palm">مرحباً بك</p>}
+        // تبقى عبارة الترحيب نفسها، وتتحول بصرياً إلى شارة حيّة من دون إضافة محتوى جديد.
+        illustration={path ? undefined : (
+          <div className="entry-welcome-mark">
+            <span className="entry-welcome-spark" aria-hidden="true"><Sparkles size={18} /></span>
+            <p className="whitespace-nowrap text-center text-xl font-semibold leading-9 text-palm">مرحباً بك</p>
+          </div>
+        )}
         action={path ? <Button variant="secondary-gray" onClick={goBackOneStage} leadingIcon={<ArrowRight size={16} />}>رجوع</Button> : undefined}
       />
+      {!path ? <span className="entry-pointer-glow" aria-hidden="true" /> : null}
 
       {/* (بقرار المالكة): زر «المراجعة السريعة» أُلغي — المسار كله صار سريعاً تلقائياً */}
 
@@ -3477,9 +3496,8 @@ function toStoredGovernance(gov: ServerGovernance | undefined, notice: string | 
 
       {/* ── 2. Path selection ── */}
       {!path && (
-        // قسم «كيف تريد البدء؟» في منتصف الشاشة رأسياً (بقرار مالكة المنصة) —
-        // الحاسب والآيباد فقط، والجوال يبقى بتسلسله العلوي كما هو.
-        <div className="md:flex md:min-h-[calc(100vh-20rem)] md:flex-col md:justify-center">
+        // مساحة بداية متوازنة: أقرب إلى الترويسة وأخف ارتفاعاً، من دون فراغ رأسي مشتت.
+        <div className="entry-choice-stage">
           <p className="mb-3 text-sm font-semibold text-ink md:mb-5 md:text-base lg:text-lg">كيف تريد البدء؟</p>
           {/* auto-rows-fr يوحّد ارتفاع البطاقتين مهما اختلف طول الوصف */}
           {/* تكبير البطاقتين على الحاسب والآيباد (بقرار مالكة المنصة) — الجوال كما هو */}
@@ -3487,7 +3505,7 @@ function toStoredGovernance(gov: ServerGovernance | undefined, notice: string | 
             <button
               type="button"
               onClick={() => { setReview(null); setContentId(undefined); setPath("review"); setFrameStep(1); }}
-              className="entry-card-motion flex flex-col items-start gap-3 rounded-xl border border-line border-r-2 border-r-palm bg-white p-6 text-right shadow-card transition hover:shadow-lg focus-ring md:gap-5 md:p-10 lg:p-12"
+              className="entry-card-motion entry-choice-card entry-card-palm flex flex-col items-start gap-3 rounded-xl border border-line border-r-2 border-r-palm bg-white p-6 text-right shadow-card transition hover:shadow-lg focus-ring md:gap-5 md:p-8 lg:p-10"
             >
               <span className="grid h-14 w-14 place-items-center rounded-full bg-mint text-palm md:h-16 md:w-16 lg:h-[4.5rem] lg:w-[4.5rem]">
                 <FileCheck2 size={26} aria-hidden="true" className="md:h-7 md:w-7 lg:h-8 lg:w-8" />
@@ -3496,12 +3514,13 @@ function toStoredGovernance(gov: ServerGovernance | undefined, notice: string | 
               <span className="text-sm leading-6 text-ink/60 md:text-[15px] md:leading-7">
                 أدخل نصاً جاهزاً وراجعه قانونياً عبر محرك التحليل.
               </span>
+              <span className="entry-card-arrow" aria-hidden="true"><ArrowLeft size={20} /></span>
             </button>
 
             <button
               type="button"
               onClick={startCreatePath}
-              className="entry-card-motion flex flex-col items-start gap-3 rounded-xl border border-line border-r-2 border-r-violet bg-white p-6 text-right shadow-card transition hover:shadow-lg focus-ring md:gap-5 md:p-10 lg:p-12"
+              className="entry-card-motion entry-choice-card entry-card-violet flex flex-col items-start gap-3 rounded-xl border border-line border-r-2 border-r-violet bg-white p-6 text-right shadow-card transition hover:shadow-lg focus-ring md:gap-5 md:p-8 lg:p-10"
             >
               <span className="grid h-14 w-14 place-items-center rounded-full bg-violetSoft text-violet md:h-16 md:w-16 lg:h-[4.5rem] lg:w-[4.5rem]">
                 <Sparkles size={26} aria-hidden="true" className="md:h-7 md:w-7 lg:h-8 lg:w-8" />
@@ -3510,6 +3529,7 @@ function toStoredGovernance(gov: ServerGovernance | undefined, notice: string | 
               <span className="text-sm leading-6 text-ink/60 md:text-[15px] md:leading-7">
                 يُنشئ الذكاء الاصطناعي المحتوى ثم يراجعه قانونياً.
               </span>
+              <span className="entry-card-arrow" aria-hidden="true"><ArrowLeft size={20} /></span>
             </button>
           </div>
         </div>
