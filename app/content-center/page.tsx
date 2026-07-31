@@ -2680,7 +2680,6 @@ function toStoredGovernance(gov: ServerGovernance | undefined, notice: string | 
           <div className="smart-entry-welcome">
             <span className="smart-entry-welcome-icon legal-welcome-signal" aria-hidden="true">
               <FileText size={21} className="legal-welcome-document" />
-              <Sparkles size={11} className="legal-welcome-ai" />
               <span className="legal-welcome-orbit" />
             </span>
             <p className="whitespace-nowrap text-lg font-semibold text-palm md:text-xl">مرحباً بك</p>
@@ -3563,9 +3562,6 @@ function toStoredGovernance(gov: ServerGovernance | undefined, notice: string | 
       {!path && (
         // مساحة بداية متوازنة: أقرب إلى الترويسة وأخف ارتفاعاً، من دون فراغ رأسي مشتت.
         <div className="entry-choice-stage smart-entry-stage">
-          <div className="smart-entry-heading">
-            <p className="text-sm font-semibold text-ink md:text-base lg:text-lg">كيف تريد البدء؟</p>
-          </div>
           <div className="legal-knowledge-stream" aria-hidden="true">
             <svg className="legal-knowledge-wavefield" viewBox="0 0 1200 96" preserveAspectRatio="none">
               <g className="legal-wavefield-violet">
@@ -3592,6 +3588,9 @@ function toStoredGovernance(gov: ServerGovernance | undefined, notice: string | 
               </g>
             </svg>
           </div>
+          <div className="smart-entry-heading">
+            <p className="text-sm font-semibold text-ink md:text-base lg:text-lg">كيف تريد البدء؟</p>
+          </div>
           {/* auto-rows-fr يوحّد ارتفاع البطاقتين مهما اختلف طول الوصف */}
           <div className="smart-choice-grid grid auto-rows-fr gap-4 md:grid-cols-2 md:gap-7">
             <div className="smart-flow-bridge" aria-hidden="true">
@@ -3600,10 +3599,6 @@ function toStoredGovernance(gov: ServerGovernance | undefined, notice: string | 
               <span className="smart-flow-hub">
                 <span className="smart-hub-orbit" />
                 <span className="smart-hub-core"><Scale size={20} /></span>
-                <span className="smart-hub-satellite smart-hub-book"><BookOpen size={12} /></span>
-                <span className="smart-hub-satellite smart-hub-report"><FileText size={12} /></span>
-                <span className="smart-hub-satellite smart-hub-review"><CheckCircle2 size={12} /></span>
-                <span className="smart-hub-satellite smart-hub-rules"><Layers size={12} /></span>
               </span>
             </div>
             <button
