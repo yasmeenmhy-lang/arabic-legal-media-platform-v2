@@ -178,6 +178,27 @@ h3 {
   @apply focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-palm;
 }
 
+/* حقول التحرير: تركيز مهني رفيع يجمع أخضر الثقة مع بنفسجي الذكاء.
+   نلغي إطار المتصفح الأسود فقط، ونحافظ على وضوح التركيز وإمكانية الوصول. */
+textarea:not(:disabled):not([readonly]) {
+  caret-color: #80519f;
+  transition: border-color 180ms ease, box-shadow 180ms ease, background-color 180ms ease;
+}
+
+textarea:not(:disabled):not([readonly]):focus {
+  outline: none;
+  border-color: rgba(128, 81, 159, 0.72);
+  box-shadow:
+    0 0 0 1px rgba(37, 147, 95, 0.36),
+    0 0 0 4px rgba(128, 81, 159, 0.045),
+    0 12px 28px rgba(52, 36, 61, 0.055);
+}
+
+textarea.border-red-400:not(:disabled):focus {
+  border-color: rgb(248 113 113);
+  box-shadow: 0 0 0 3px rgba(248, 113, 113, 0.09);
+}
+
 ::selection {
   background: rgba(45, 106, 90, 0.16);
 }
@@ -347,8 +368,8 @@ body::before {
 .smart-entry-welcome-icon {
   position: relative;
   display: grid;
-  width: 2.55rem;
-  height: 2.55rem;
+  width: 3rem;
+  height: 3rem;
   place-items: center;
   border-radius: 999px;
   color: #80519f;
@@ -372,6 +393,14 @@ body::before {
   position: relative;
   z-index: 2;
   filter: drop-shadow(0 3px 5px rgba(128, 81, 159, 0.16));
+}
+
+.legal-welcome-ai {
+  position: absolute;
+  z-index: 3;
+  color: #25935f;
+  filter: drop-shadow(0 0 0.35rem rgba(37, 147, 95, 0.28));
+  transform: translate(0.12rem, -0.02rem);
 }
 
 .legal-welcome-pulse {
@@ -399,14 +428,15 @@ body::before {
 }
 
 .smart-entry-stage {
-  padding-top: clamp(1.5rem, 4vh, 3rem);
+  position: relative;
+  padding-top: clamp(0.65rem, 1.5vh, 1.1rem);
 }
 
 .smart-entry-heading {
   display: flex;
   align-items: center;
   gap: 1rem;
-  margin-bottom: 1.25rem;
+  margin-bottom: 0.35rem;
 }
 
 .smart-entry-heading::after {
@@ -415,19 +445,75 @@ body::before {
 
 .legal-knowledge-stream {
   position: relative;
-  height: clamp(2.35rem, 4vw, 3.5rem);
-  margin: 0.2rem 0 0.75rem;
+  height: clamp(3.4rem, 4.7vw, 4.8rem);
+  margin: -0.65rem 0 -0.55rem;
   overflow: hidden;
   pointer-events: none;
   opacity: 0.82;
   mask-image: linear-gradient(90deg, transparent, #000 10%, #000 90%, transparent);
 }
 
+@media (min-width: 640px) {
+  .smart-entry-stage {
+    padding-top: 0.25rem;
+  }
+
+  .smart-entry-heading {
+    position: absolute;
+    z-index: 2;
+    top: 2.8rem;
+    inset-inline-end: 0;
+    margin: 0;
+  }
+
+  .legal-knowledge-stream {
+    height: clamp(5rem, 6vw, 6.25rem);
+    margin: 0 0 -0.9rem;
+  }
+}
+
+.legal-knowledge-wavefield {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.legal-knowledge-wavefield path {
+  fill: none;
+  stroke-width: 0.9;
+  vector-effect: non-scaling-stroke;
+}
+
+.legal-knowledge-wavefield circle {
+  stroke: rgba(255, 255, 255, 0.82);
+  stroke-width: 1.4;
+  vector-effect: non-scaling-stroke;
+}
+
+.legal-wavefield-violet {
+  color: #80519f;
+  fill: currentColor;
+  stroke: currentColor;
+  opacity: 0.34;
+  transform-origin: center;
+  animation: legal-wavefield-violet 7s ease-in-out infinite alternate;
+}
+
+.legal-wavefield-green {
+  color: #25935f;
+  fill: currentColor;
+  stroke: currentColor;
+  opacity: 0.36;
+  transform-origin: center;
+  animation: legal-wavefield-green 7.8s ease-in-out infinite alternate;
+}
+
 .knowledge-wave {
   position: absolute;
   top: 50%;
-  width: 58%;
-  height: 2.6rem;
+  width: 62%;
+  height: 3rem;
   border-top: 1px solid;
   border-radius: 50% 50% 0 0;
   filter: drop-shadow(0 0 0.45rem currentColor);
@@ -438,20 +524,26 @@ body::before {
 .knowledge-wave::after {
   content: "";
   position: absolute;
-  top: -0.21rem;
-  width: 0.34rem;
-  height: 0.34rem;
-  border-radius: 999px;
-  background: currentColor;
-  box-shadow: 0 0 0.7rem currentColor;
+  inset-inline: 0;
+  width: 100%;
+  border-top: 1px solid currentColor;
+  border-radius: 50% 50% 0 0;
+  background: transparent;
+  box-shadow: none;
 }
 
 .knowledge-wave::before {
-  inset-inline-start: 28%;
+  top: -0.72rem;
+  height: 3.25rem;
+  opacity: 0.56;
+  transform: rotate(-1.35deg) scaleX(0.98);
 }
 
 .knowledge-wave::after {
-  inset-inline-end: 18%;
+  top: 0.68rem;
+  height: 2.55rem;
+  opacity: 0.4;
+  transform: rotate(1.5deg) scaleX(1.02);
 }
 
 .knowledge-wave-violet {
@@ -801,6 +893,25 @@ body::before {
   padding-block: clamp(1rem, 2.5vh, 2rem);
 }
 
+@media (min-width: 640px) {
+  .analysis-entry {
+    min-height: calc(100dvh - 9.5rem);
+    padding-bottom: 1rem;
+  }
+
+  .analysis-entry.entry-ambient::before {
+    background:
+      radial-gradient(circle at 92% 10%, rgba(37, 147, 95, 0.17), transparent 34rem),
+      radial-gradient(circle at 7% 78%, rgba(128, 81, 159, 0.125), transparent 31rem);
+  }
+
+  .analysis-entry.entry-ambient::after {
+    background:
+      linear-gradient(125deg, transparent 16%, rgba(37, 147, 95, 0.06) 35%, transparent 54%),
+      linear-gradient(305deg, transparent 39%, rgba(128, 81, 159, 0.055) 57%, transparent 75%);
+  }
+}
+
 .analysis-launch-card {
   position: relative;
   isolation: isolate;
@@ -934,6 +1045,54 @@ body::before {
   border-color: rgba(37, 147, 95, 0.48);
   box-shadow: 0 0 0 0.28rem rgba(37, 147, 95, 0.065), 0 16px 38px rgba(27, 55, 44, 0.1);
   transform: translateY(-2px);
+}
+
+/* مجموعة إجراءات التقرير: الأخضر هو الفعل الأساسي، والبنفسجي إشارة ذكاء دقيقة فقط. */
+.analysis-action-cluster {
+  align-items: center;
+}
+
+.analysis-action-cluster .analysis-action-primary,
+.analysis-action-cluster .analysis-action-secondary,
+.analysis-action-cluster .analysis-action-neutral {
+  border-radius: 0.75rem;
+  transition: transform 180ms ease, border-color 180ms ease, background 180ms ease, box-shadow 180ms ease;
+}
+
+.analysis-action-cluster .analysis-action-primary {
+  border-color: rgba(128, 81, 159, 0.18);
+  background: linear-gradient(108deg, #25935f 0%, #25935f 72%, #387c69 100%);
+  box-shadow: inset -2px 0 0 rgba(128, 81, 159, 0.42), 0 8px 20px rgba(37, 147, 95, 0.12);
+}
+
+.analysis-action-cluster .analysis-action-primary:hover:not(:disabled) {
+  background: linear-gradient(108deg, #207f52 0%, #207f52 72%, #6f4a83 125%);
+  box-shadow: inset -2px 0 0 rgba(128, 81, 159, 0.58), 0 11px 24px rgba(37, 147, 95, 0.16);
+  transform: translateY(-1px);
+}
+
+.analysis-action-cluster .analysis-action-secondary {
+  border-color: rgba(37, 147, 95, 0.42);
+  background: rgba(255, 255, 255, 0.76);
+  box-shadow: inset -2px 0 0 rgba(128, 81, 159, 0.36);
+}
+
+.analysis-action-cluster .analysis-action-secondary:hover:not(:disabled) {
+  border-color: rgba(128, 81, 159, 0.4);
+  background: linear-gradient(110deg, rgba(223, 246, 231, 0.7), rgba(249, 245, 250, 0.82));
+  transform: translateY(-1px);
+}
+
+.analysis-action-cluster .analysis-action-neutral {
+  border-color: rgba(91, 101, 98, 0.2);
+  color: rgba(23, 32, 30, 0.68);
+  background: rgba(255, 255, 255, 0.7);
+}
+
+.analysis-action-cluster .analysis-action-neutral:hover:not(:disabled) {
+  border-color: rgba(128, 81, 159, 0.26);
+  color: #171f1d;
+  background: rgba(249, 245, 250, 0.72);
 }
 
 /* هالة ضوء تتبع مؤشر الماوس داخل شاشة البداية وحدها. */
@@ -1220,22 +1379,22 @@ body::before {
   }
 
   .smart-entry-welcome-icon {
-    width: 2.15rem;
-    height: 2.15rem;
+    width: 2.6rem;
+    height: 2.6rem;
   }
 
   .smart-entry-stage {
-    padding-top: 1rem;
+    padding-top: 0.55rem;
   }
 
   .smart-entry-heading {
-    margin-bottom: 0.8rem;
+    margin-bottom: 0.45rem;
   }
 
   .legal-knowledge-stream {
-    height: 1.85rem;
-    margin: -0.2rem 0 0.55rem;
-    opacity: 0.66;
+    height: 2.55rem;
+    margin: -0.3rem 0 -0.3rem;
+    opacity: 0.78;
   }
 
   .knowledge-wave {
@@ -1251,6 +1410,16 @@ body::before {
   .smart-choice-grid {
     position: relative;
     row-gap: 0.75rem;
+  }
+
+  .content-center-entry .entry-choice-stage {
+    padding-bottom: 0.75rem;
+  }
+
+  main:has(.content-center-entry) {
+    background:
+      radial-gradient(ellipse 78% 13rem at 22% 100%, rgba(128, 81, 159, 0.105), transparent 72%),
+      radial-gradient(ellipse 72% 12rem at 88% 94%, rgba(37, 147, 95, 0.055), transparent 74%);
   }
 
   .smart-flow-bridge {
@@ -1407,6 +1576,16 @@ body::before {
 @keyframes legal-wave-drift-green {
   from { transform: translate3d(1.2%, -0.2rem, 0) rotate(-2deg); }
   to { transform: translate3d(-2.2%, 0.15rem, 0) rotate(1deg); }
+}
+
+@keyframes legal-wavefield-violet {
+  from { transform: translate3d(-0.7%, 1px, 0); opacity: 0.28; }
+  to { transform: translate3d(0.9%, -1px, 0); opacity: 0.39; }
+}
+
+@keyframes legal-wavefield-green {
+  from { transform: translate3d(0.7%, -1px, 0); opacity: 0.3; }
+  to { transform: translate3d(-0.9%, 1px, 0); opacity: 0.42; }
 }
 
 /* نتائج التحليل: نفس الخلفية والصندوق العلوي المستخدمين في بقية المنصة.

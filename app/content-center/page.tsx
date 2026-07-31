@@ -2679,8 +2679,8 @@ function toStoredGovernance(gov: ServerGovernance | undefined, notice: string | 
           </div>
           <div className="smart-entry-welcome">
             <span className="smart-entry-welcome-icon legal-welcome-signal" aria-hidden="true">
-              <FileText size={17} className="legal-welcome-document" />
-              <span className="legal-welcome-pulse" />
+              <FileText size={21} className="legal-welcome-document" />
+              <Sparkles size={11} className="legal-welcome-ai" />
               <span className="legal-welcome-orbit" />
             </span>
             <p className="whitespace-nowrap text-lg font-semibold text-palm md:text-xl">مرحباً بك</p>
@@ -3567,10 +3567,30 @@ function toStoredGovernance(gov: ServerGovernance | undefined, notice: string | 
             <p className="text-sm font-semibold text-ink md:text-base lg:text-lg">كيف تريد البدء؟</p>
           </div>
           <div className="legal-knowledge-stream" aria-hidden="true">
-            <span className="knowledge-wave knowledge-wave-violet" />
-            <span className="knowledge-wave knowledge-wave-green" />
-            <span className="knowledge-stream-dot knowledge-stream-dot-violet" />
-            <span className="knowledge-stream-dot knowledge-stream-dot-green" />
+            <svg className="legal-knowledge-wavefield" viewBox="0 0 1200 96" preserveAspectRatio="none">
+              <g className="legal-wavefield-violet">
+                <path d="M0 53 C105 45 158 17 252 25 C350 33 410 77 600 52" />
+                <path d="M0 61 C112 52 171 27 263 33 C355 39 427 69 600 52" />
+                <path d="M0 44 C97 35 165 8 270 19 C375 30 434 83 600 52" />
+                <path d="M0 69 C124 63 183 39 278 41 C374 43 455 65 600 52" />
+                <circle cx="88" cy="52" r="2.4" />
+                <circle cx="176" cy="26" r="2" />
+                <circle cx="260" cy="33" r="2.7" />
+                <circle cx="394" cy="64" r="2.2" />
+                <circle cx="520" cy="58" r="2.5" />
+              </g>
+              <g className="legal-wavefield-green">
+                <path d="M600 52 C770 79 830 23 946 25 C1040 27 1092 49 1200 51" />
+                <path d="M600 52 C754 68 829 35 936 34 C1041 33 1094 58 1200 61" />
+                <path d="M600 52 C781 87 844 13 958 18 C1057 22 1102 42 1200 43" />
+                <path d="M600 52 C746 64 824 44 928 42 C1020 40 1090 66 1200 69" />
+                <circle cx="680" cy="60" r="2.5" />
+                <circle cx="786" cy="42" r="2.1" />
+                <circle cx="906" cy="26" r="2.6" />
+                <circle cx="1024" cy="36" r="2.2" />
+                <circle cx="1126" cy="57" r="2.5" />
+              </g>
+            </svg>
           </div>
           {/* auto-rows-fr يوحّد ارتفاع البطاقتين مهما اختلف طول الوصف */}
           <div className="smart-choice-grid grid auto-rows-fr gap-4 md:grid-cols-2 md:gap-7">

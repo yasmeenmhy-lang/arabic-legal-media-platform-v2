@@ -2302,13 +2302,13 @@ export default function ContentReviewPage() {
             </div>
           </details>
         ) : null}
-        <div className={`mt-4 flex flex-wrap gap-3 ${hasSelectedContent ? "" : "hidden"}`}>
+        <div className={`analysis-action-cluster mt-4 flex flex-wrap gap-3 ${hasSelectedContent ? "" : "hidden"}`}>
           {/* أزرار العمل تظهر مع المحتوى المختار؛ وبعد ظهور النتائج يصبح زر التحليل «إعادة التحليل» بلا حاجة لدخول وضع التعديل */}
           {/* عدّاد التقدم داخل الزر أثناء التحليل (بقرار المالكة) */}
-          <Button size="lg" onClick={() => runReview(false)} disabled={loading || !canAnalyze} leadingIcon={loading ? <DgaSpinner size="sm" tone="violet" /> : <FileText size={17} />}>{loading ? `${analyzeStageLabel || "جارٍ التحليل"}… ${analyzePct}%` : review || contentId ? "إعادة التحليل" : "تحليل المحتوى"}</Button>
-          {review && !isEditing ? <Button variant="secondary" onClick={beginEditing} leadingIcon={<Edit3 size={16} />}>تعديل</Button> : null}
-          {isEditing && contentId ? <Button variant="secondary" onClick={saveEdits} disabled={loading || text.trim().length < 5} leadingIcon={<Save size={16} />}>حفظ التعديلات</Button> : null}
-          {isEditing ? <Button variant="secondary-gray" onClick={cancelEditing} disabled={loading} leadingIcon={<AlertTriangle size={16} />}>إلغاء</Button> : null}
+          <Button className="analysis-action-primary" size="lg" onClick={() => runReview(false)} disabled={loading || !canAnalyze} leadingIcon={loading ? <DgaSpinner size="sm" tone="violet" /> : <FileText size={17} />}>{loading ? `${analyzeStageLabel || "جارٍ التحليل"}… ${analyzePct}%` : review || contentId ? "إعادة التحليل" : "تحليل المحتوى"}</Button>
+          {review && !isEditing ? <Button className="analysis-action-secondary" variant="secondary" onClick={beginEditing} leadingIcon={<Edit3 size={16} />}>تعديل</Button> : null}
+          {isEditing && contentId ? <Button className="analysis-action-secondary" variant="secondary" onClick={saveEdits} disabled={loading || text.trim().length < 5} leadingIcon={<Save size={16} />}>حفظ التعديلات</Button> : null}
+          {isEditing ? <Button className="analysis-action-neutral" variant="secondary-gray" onClick={cancelEditing} disabled={loading} leadingIcon={<AlertTriangle size={16} />}>إلغاء</Button> : null}
         </div>
         {message ? <p className="mt-3 text-sm text-palm">{message}</p> : null}
       </section>
