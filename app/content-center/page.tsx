@@ -2596,7 +2596,7 @@ function toStoredGovernance(gov: ServerGovernance | undefined, notice: string | 
   }, [path]);
 
   return (
-    <div className="content-review-window space-y-6">
+    <div className={`content-review-window space-y-6 ${path ? "" : "entry-ambient"}`}>
       <PageHeader
         eyebrow="مركز المحتوى الإعلامي والإعلاني"
         title={path === "review" ? "مراجعة المحتوى المهني" : path === "create" ? "إنشاء المحتوى المهني" : "إنشاء ومراجعة المحتوى المهني"}
@@ -3487,7 +3487,7 @@ function toStoredGovernance(gov: ServerGovernance | undefined, notice: string | 
             <button
               type="button"
               onClick={() => { setReview(null); setContentId(undefined); setPath("review"); setFrameStep(1); }}
-              className="flex flex-col items-start gap-3 rounded-xl border border-line border-r-2 border-r-palm bg-white p-6 text-right shadow-card transition hover:shadow-lg focus-ring md:gap-5 md:p-10 lg:p-12"
+              className="entry-card-motion flex flex-col items-start gap-3 rounded-xl border border-line border-r-2 border-r-palm bg-white p-6 text-right shadow-card transition hover:shadow-lg focus-ring md:gap-5 md:p-10 lg:p-12"
             >
               <span className="grid h-14 w-14 place-items-center rounded-full bg-mint text-palm md:h-16 md:w-16 lg:h-[4.5rem] lg:w-[4.5rem]">
                 <FileCheck2 size={26} aria-hidden="true" className="md:h-7 md:w-7 lg:h-8 lg:w-8" />
@@ -3501,7 +3501,7 @@ function toStoredGovernance(gov: ServerGovernance | undefined, notice: string | 
             <button
               type="button"
               onClick={startCreatePath}
-              className="flex flex-col items-start gap-3 rounded-xl border border-line border-r-2 border-r-violet bg-white p-6 text-right shadow-card transition hover:shadow-lg focus-ring md:gap-5 md:p-10 lg:p-12"
+              className="entry-card-motion flex flex-col items-start gap-3 rounded-xl border border-line border-r-2 border-r-violet bg-white p-6 text-right shadow-card transition hover:shadow-lg focus-ring md:gap-5 md:p-10 lg:p-12"
             >
               <span className="grid h-14 w-14 place-items-center rounded-full bg-violetSoft text-violet md:h-16 md:w-16 lg:h-[4.5rem] lg:w-[4.5rem]">
                 <Sparkles size={26} aria-hidden="true" className="md:h-7 md:w-7 lg:h-8 lg:w-8" />
