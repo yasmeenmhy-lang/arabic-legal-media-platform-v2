@@ -1367,15 +1367,17 @@ export default function ContentReviewPage() {
   }
 
   return (
-    <div className={`content-review-window space-y-6 ${hasSelectedContent ? "" : "entry-ambient analysis-entry"}`}>
+    <div className={`content-review-window space-y-6 ${hasSelectedContent ? "analysis-results-theme" : "entry-ambient analysis-entry"}`}>
       {hasSelectedContent ? (
-        <PageHeader
-          eyebrow="مساعد النشر للمحتوى المهني"
-          title="التحليل التفصيلي للمحتوى المهني"
-          action={cameFromRecords
-            ? <ButtonLink href="/records" variant="secondary-gray"><ArrowRight size={16} />العودة إلى السجل</ButtonLink>
-            : <ButtonLink href={contentId ? "/content-center?results=1" : "/content-center"} variant="secondary-gray"><ArrowRight size={16} />العودة إلى مركز المحتوى</ButtonLink>}
-        />
+        <div className="analysis-results-hero">
+          <PageHeader
+            eyebrow="مساعد النشر للمحتوى المهني"
+            title="التحليل التفصيلي للمحتوى المهني"
+            action={cameFromRecords
+              ? <ButtonLink href="/records" variant="secondary-gray"><ArrowRight size={16} />العودة إلى السجل</ButtonLink>
+              : <ButtonLink href={contentId ? "/content-center?results=1" : "/content-center"} variant="secondary-gray"><ArrowRight size={16} />العودة إلى مركز المحتوى</ButtonLink>}
+          />
+        </div>
       ) : (
         <section className="analysis-entry-hero" aria-labelledby="analysis-entry-title">
           <div className="min-w-0">
