@@ -2,7 +2,7 @@
 
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import Link from "next/link";
-import { CalendarDays, CheckCircle2, ChevronDown, ChevronLeft, ExternalLink, FileCheck2, FileClock, FileText, Filter, FolderOpen, History, Image as ImageIcon, Megaphone, MessageCircle, PenLine, RotateCcw, Search, Send, Share2, ShieldCheck, Tag, Trash2, Video, X } from "lucide-react";
+import { CalendarDays, CheckCircle2, Sparkles, ChevronDown, ChevronLeft, ExternalLink, FileCheck2, FileClock, FileText, Filter, FolderOpen, History, Image as ImageIcon, Megaphone, MessageCircle, PenLine, RotateCcw, Search, Send, Share2, ShieldCheck, Tag, Trash2, Video, X } from "lucide-react";
 import { InstagramIcon, LinkedInIcon, SnapchatIcon, TikTokIcon, XIcon, YouTubeIcon, socialBrandStyles } from "@/components/social-icons";
 import { Button, DgaSpinner, PageHeader, StatusBadge } from "@/components/ui";
 import {
@@ -97,16 +97,16 @@ function StatCard({ value, label, sub, icon, tone, pct, suffix }: {
 }) {
   const t = TONE[tone];
   return (
-    <div className={`flex h-full flex-col justify-between rounded-xl border ${t.card} p-2.5`}>
+    <div className={`flex h-full flex-col justify-between rounded-lg border ${t.card} p-2`}>
       <div>
         <div className="flex items-center justify-between gap-1">
-          <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-lg ${t.iconBg} ${t.icon}`}>{icon}</span>
-          <span className={`text-lg font-bold leading-none tabular-nums ${t.num}`}>{value}{suffix ? <span className="text-xs font-semibold">{suffix}</span> : null}</span>
+          <span className={`grid h-6 w-6 shrink-0 place-items-center rounded-md ${t.iconBg} ${t.icon}`}>{icon}</span>
+          <span className={`text-base font-bold leading-none tabular-nums ${t.num}`}>{value}{suffix ? <span className="text-[10px] font-semibold">{suffix}</span> : null}</span>
         </div>
-        <p className="mt-1.5 truncate text-[11px] font-semibold text-ink">{label}</p>
-        <p className="truncate text-[9px] font-normal text-ink/45">{sub}</p>
+        <p className="mt-1 truncate text-[10px] font-semibold text-ink">{label}</p>
+        <p className="truncate text-[8px] font-normal text-ink/45">{sub}</p>
       </div>
-      <div className={`mt-1.5 h-1 overflow-hidden rounded-full ${t.track}`}>
+      <div className={`mt-1 h-[3px] overflow-hidden rounded-full ${t.track}`}>
         <div className={`h-full rounded-full ${t.bar}`} style={{ width: `${Math.max(4, Math.min(100, pct))}%` }} />
       </div>
     </div>
@@ -235,6 +235,16 @@ export default function ContentManagementPage() {
     approved: records.filter((item) => item.approvedVersion).length,
     drafts: records.filter((item) => item.status !== "معتمد").length
   }), [records]);
+
+  // تفصيل الإجمالي بحسب المسار الذي دخل منه المحتوى (بطلب مالكة المنصة):
+  // مسار المراجعة يسم نسخته «نص للمراجعة» لأن نوعه لا يختاره المستخدم، وما عداه
+  // أتى من مسار الإنشاء بنوعه المختار. فالتمييز من بيانات السجل نفسها بلا حقل جديد.
+  const pathCounts = useMemo(() => {
+    const labelOf = (r: StoredContentRecord) =>
+      (r.versions.find((v) => v.version === r.currentVersion) ?? r.versions.at(-1))?.contentTypeLabel;
+    const review = records.filter((r) => labelOf(r) === "نص للمراجعة").length;
+    return { review, create: records.length - review };
+  }, [records]);
 
   // أُنشئت خلال آخر سبعة أيام — من تاريخ الإنشاء الفعلي لكل محتوى
   const thisWeekCount = useMemo(() => {
@@ -514,8 +524,25 @@ export default function ContentManagementPage() {
                 <p className="text-[11px] font-normal text-white/70">جميع المحتويات المحفوظة في السجل</p>
               </div>
             </div>
-            <StatCard value={acceptance} suffix="%" label="نسبة الاعتماد" sub="من إجمالي المحتوى" icon={<CheckCircle2 size={16} />} tone="success" pct={acceptance} />
-            <StatCard value={thisWeekCount} label="هذا الأسبوع" sub={`أُنشئت من إجمالي المحتوى (${counts.all})`} icon={<CalendarDays size={16} />} tone="sky" pct={counts.all ? (thisWeekCount / counts.all) * 100 : 0} />
+            {/* تفصيل الإجمالي بمساره — تحت بطاقة الإجمالي مباشرةً (بطلب مالكة المنصة) */}
+            <StatCard
+              value={pathCounts.review}
+              label="نصوص المراجعة"
+              sub={`${counts.all ? Math.round((pathCounts.review / counts.all) * 100) : 0}% من ${counts.all}`}
+              icon={<FileCheck2 size={13} />}
+              tone="success"
+              pct={counts.all ? (pathCounts.review / counts.all) * 100 : 0}
+            />
+            <StatCard
+              value={pathCounts.create}
+              label="نصوص الإنشاء"
+              sub={`${counts.all ? Math.round((pathCounts.create / counts.all) * 100) : 0}% من ${counts.all}`}
+              icon={<Sparkles size={13} />}
+              tone="lavender"
+              pct={counts.all ? (pathCounts.create / counts.all) * 100 : 0}
+            />
+            <StatCard value={acceptance} suffix="%" label="نسبة الاعتماد" sub="من إجمالي المحتوى" icon={<CheckCircle2 size={13} />} tone="success" pct={acceptance} />
+            <StatCard value={thisWeekCount} label="هذا الأسبوع" sub={`أُنشئت من إجمالي المحتوى (${counts.all})`} icon={<CalendarDays size={13} />} tone="sky" pct={counts.all ? (thisWeekCount / counts.all) * 100 : 0} />
           </div>
 
           <JourneyStepper steps={[
