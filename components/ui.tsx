@@ -128,7 +128,7 @@ export function PageHeader({
   illustration?: React.ReactNode;
 }) {
   return (
-    <div className="mb-6 w-full max-w-full overflow-hidden rounded-lg border border-line bg-gradient-to-l from-mint via-white to-white p-4 shadow-sm sm:p-6">
+    <div className="mb-6 w-full max-w-full overflow-hidden rounded-surface-lg border border-line bg-gradient-to-l from-mint/80 via-white/80 to-white/70 p-4 shadow-card backdrop-blur-md sm:p-6">
       <div className="flex flex-col justify-between gap-5 lg:flex-row lg:items-center">
         {/* الرسم بجانب العنوان في كل المقاسات (الجوال أصغر) — لا يُخفى على الجوال */}
         <div className="flex min-w-0 flex-1 items-center gap-4">
@@ -237,7 +237,7 @@ export function ModuleTabs({
   items: Array<{ label: string; href: string; active?: boolean }>;
 }) {
   return (
-    <nav className="mb-6 flex w-full max-w-full gap-2 overflow-x-auto rounded-lg border border-line bg-white p-2 shadow-sm">
+    <nav className="mb-6 flex w-full max-w-full gap-2 overflow-x-auto rounded-surface-sm border border-line bg-white/80 p-2 shadow-sm backdrop-blur-sm">
       {items.map((item) => (
         <Link
           key={item.href}
@@ -262,7 +262,8 @@ export function Panel({
   // القصّ أفقي فقط (overflow-x-clip): يمنع تجاوز المحتوى العريض عرض البطاقة كما كان،
   // ويسمح في الوقت نفسه للقوائم المنسدلة بالظهور كاملةً خارج حدّ البطاقة بدل قصّها
   // (كان overflow-hidden يقصّ قائمة البحث المنسدلة عند حافة البطاقة السفلية).
-  return <section {...props} className={clsx("w-full max-w-full overflow-x-clip rounded-lg border border-line bg-white p-4 shadow-sm sm:p-5", className)}>{children}</section>;
+  const hasCustomSurface = typeof className === "string" && /(^|\s)bg-/.test(className);
+  return <section {...props} className={clsx("w-full max-w-full overflow-x-clip rounded-surface border border-line p-4 shadow-card sm:p-5", !hasCustomSurface && "bg-white/80 backdrop-blur-sm", className)}>{children}</section>;
 }
 
 export function SectionTitle({ title, subtitle }: { title: string; subtitle?: string }) {
@@ -291,8 +292,8 @@ export function KpiCard({
 }) {
   const toneStyle = toneStyles[tone];
   const content = (
-    <div className={clsx("group relative h-full w-full max-w-full rounded-lg border bg-white shadow-sm", toneStyle.border)}>
-      <div className={clsx("h-[3px] rounded-t-lg", toneStyle.solid)} />
+    <div className={clsx("group relative h-full w-full max-w-full rounded-surface border bg-white/80 shadow-card backdrop-blur-sm", toneStyle.border)}>
+      <div className={clsx("h-[3px] rounded-t-surface", toneStyle.solid)} />
       <div className="relative p-4 sm:p-5">
         {/* hint → tooltip on hover */}
         <div className="pointer-events-none absolute bottom-full right-0 z-50 mb-1.5 hidden max-w-[200px] break-words rounded-md bg-ink/90 px-2.5 py-1.5 text-xs leading-5 text-white shadow-md group-hover:block">
@@ -308,7 +309,7 @@ export function KpiCard({
   if (!href) return content;
 
   return (
-    <Link href={href} aria-label={label} className="block w-full max-w-full rounded-lg transition hover:-translate-y-0.5 hover:shadow-md focus-ring">
+    <Link href={href} aria-label={label} className="block w-full max-w-full rounded-surface transition hover:-translate-y-0.5 hover:shadow-md focus-ring">
       {content}
     </Link>
   );
@@ -365,7 +366,7 @@ export function ScoreCard({
 
 export function EmptyState({ title, body }: { title: string; body: string }) {
   return (
-    <div className="grid min-h-48 place-items-center rounded-lg border border-dashed border-line bg-white p-8 text-center">
+    <div className="grid min-h-48 place-items-center rounded-surface border border-dashed border-line bg-white/75 p-8 text-center backdrop-blur-sm">
       <div>
         <FileText className="mx-auto text-ink/35" />
         <p className="mt-3 font-normal">{title}</p>
@@ -379,7 +380,7 @@ export function WorkflowSteps({ steps }: { steps: string[] }) {
   return (
     <div className="grid gap-3 md:grid-cols-5">
       {steps.map((step, index) => (
-        <div key={step} className="w-full max-w-full overflow-hidden rounded-lg border border-line bg-white p-4 shadow-sm">
+        <div key={step} className="w-full max-w-full overflow-hidden rounded-surface-sm border border-line bg-white/80 p-4 shadow-sm backdrop-blur-sm">
           <div className="mb-3 flex items-center justify-between">
             <span className="grid h-8 w-8 place-items-center rounded-md bg-mint text-sm font-normal text-palm">{index + 1}</span>
             {index === 0 ? <Clock3 size={18} className="text-palm" /> : index === 1 ? <ShieldAlert size={18} className="text-gold" /> : <CheckCircle2 size={18} className="text-palm" />}
@@ -399,11 +400,11 @@ export function DataTable({
   rows: Array<Array<React.ReactNode>>;
 }) {
   return (
-    <div className="w-full max-w-full overflow-hidden rounded-lg border border-line bg-white">
+    <div className="w-full max-w-full overflow-hidden rounded-surface border border-line bg-white/80 backdrop-blur-sm">
       <div className="md:hidden">
         <div className="space-y-4 p-3">
           {rows.map((row, rowIndex) => (
-            <article key={rowIndex} className="w-full max-w-full rounded-lg border border-line bg-white p-4 shadow-sm">
+            <article key={rowIndex} className="w-full max-w-full rounded-surface-sm border border-line bg-white/80 p-4 shadow-sm">
               <dl className="space-y-4">
                 {row.map((cell, cellIndex) => (
                   <div key={cellIndex} className="w-full max-w-full border-b border-line/70 pb-3 last:border-b-0 last:pb-0">

@@ -3575,7 +3575,7 @@ function toStoredGovernance(gov: ServerGovernance | undefined, notice: string | 
               onPointerLeave={resetChoicePointer}
               onPointerCancel={resetChoicePointer}
               onClick={() => { setReview(null); setContentId(undefined); setPath("review"); setFrameStep(1); }}
-              className="entry-card-motion entry-choice-card entry-card-palm smart-choice-panel flex flex-col items-start gap-3 rounded-2xl border border-line bg-white/90 p-6 text-right shadow-sm backdrop-blur-sm transition hover:shadow-lg focus-ring md:gap-5 md:p-8 lg:p-9"
+              className="entry-card-motion entry-choice-card entry-card-palm smart-choice-panel flex flex-col items-start gap-3 rounded-surface-lg border border-line bg-white/80 p-6 text-right shadow-sm backdrop-blur-sm transition hover:shadow-lg focus-ring md:gap-5 md:p-8 lg:p-9"
             >
               <span className="smart-choice-topline">
                 <span className="grid h-14 w-14 place-items-center rounded-full bg-mint text-palm md:h-16 md:w-16">
@@ -3596,7 +3596,7 @@ function toStoredGovernance(gov: ServerGovernance | undefined, notice: string | 
               onPointerLeave={resetChoicePointer}
               onPointerCancel={resetChoicePointer}
               onClick={startCreatePath}
-              className="entry-card-motion entry-choice-card entry-card-violet smart-choice-panel flex flex-col items-start gap-3 rounded-2xl border border-line bg-white/90 p-6 text-right shadow-sm backdrop-blur-sm transition hover:shadow-lg focus-ring md:gap-5 md:p-8 lg:p-9"
+              className="entry-card-motion entry-choice-card entry-card-violet smart-choice-panel flex flex-col items-start gap-3 rounded-surface-lg border border-line bg-white/80 p-6 text-right shadow-sm backdrop-blur-sm transition hover:shadow-lg focus-ring md:gap-5 md:p-8 lg:p-9"
             >
               <span className="smart-choice-topline">
                 <span className="grid h-14 w-14 place-items-center rounded-full bg-violetSoft text-violet md:h-16 md:w-16">

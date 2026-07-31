@@ -83,6 +83,13 @@ const config: Config = {
       fontFamily: {
         sans: ["IBM Plex Sans Arabic", "Tahoma", "Arial", "sans-serif"]
       },
+      // نظام زوايا السطوح الموحد: الحقول والأزرار تحتفظ بمقاساتها، بينما
+      // الصناديق الرئيسية والبطاقات تستخدم ثلاث درجات ثابتة عبر المنصة.
+      borderRadius: {
+        "surface-sm": "var(--radius-surface-sm)",
+        "surface": "var(--radius-surface)",
+        "surface-lg": "var(--radius-surface-lg)",
+      },
       // ── DGA كود المنصات — العرض الرسمي ─────────────────────────────
       maxWidth: {
         'width-xxs': '320px',
