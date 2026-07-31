@@ -97,16 +97,16 @@ function StatCard({ value, label, sub, icon, tone, pct, suffix }: {
 }) {
   const t = TONE[tone];
   return (
-    <div className={`flex h-full flex-col justify-between rounded-lg border ${t.card} p-2`}>
+    <div className={`flex h-full flex-col justify-between rounded-lg border ${t.card} p-1.5`}>
       <div>
         <div className="flex items-center justify-between gap-1">
-          <span className={`grid h-6 w-6 shrink-0 place-items-center rounded-md ${t.iconBg} ${t.icon}`}>{icon}</span>
-          <span className={`text-base font-bold leading-none tabular-nums ${t.num}`}>{value}{suffix ? <span className="text-[10px] font-semibold">{suffix}</span> : null}</span>
+          <span className={`grid h-5 w-5 shrink-0 place-items-center rounded ${t.iconBg} ${t.icon}`}>{icon}</span>
+          <span className={`text-sm font-bold leading-none tabular-nums ${t.num}`}>{value}{suffix ? <span className="text-[9px] font-semibold">{suffix}</span> : null}</span>
         </div>
-        <p className="mt-1 truncate text-[10px] font-semibold text-ink">{label}</p>
-        <p className="truncate text-[8px] font-normal text-ink/45">{sub}</p>
+        <p className="mt-0.5 truncate text-[9px] font-semibold text-ink">{label}</p>
+        <p className="truncate text-[7px] font-normal text-ink/45">{sub}</p>
       </div>
-      <div className={`mt-1 h-[3px] overflow-hidden rounded-full ${t.track}`}>
+      <div className={`mt-1 h-[2px] overflow-hidden rounded-full ${t.track}`}>
         <div className={`h-full rounded-full ${t.bar}`} style={{ width: `${Math.max(4, Math.min(100, pct))}%` }} />
       </div>
     </div>
@@ -264,7 +264,6 @@ export default function ContentManagementPage() {
       }
       return [...map.entries()].sort((a, b) => b[1] - a[1]);
     };
-    const byType = tally((r) => cur(r)?.contentTypeLabel);
     const usedByChannel = tally((r) => cur(r)?.channel);
     // نعرض كل قنوات المنصّة — المستخدمة بأعدادها، وغير المستخدمة بصفر — بترتيب الأكثر أولاً
     const usedMap = new Map(usedByChannel);
@@ -273,7 +272,7 @@ export default function ContentManagementPage() {
     const byChannel = allChannelNames
       .map((label) => [label, usedMap.get(label) ?? 0] as [string, number])
       .sort((a, b) => b[1] - a[1]);
-    return { reviewed, channelsUsed: usedByChannel.length, byType, byChannel };
+    return { reviewed, channelsUsed: usedByChannel.length, byChannel };
   }, [records]);
   const acceptance = counts.all ? Math.round((counts.approved / counts.all) * 100) : 0;
 
@@ -529,7 +528,7 @@ export default function ContentManagementPage() {
               value={pathCounts.review}
               label="نصوص المراجعة"
               sub={`${counts.all ? Math.round((pathCounts.review / counts.all) * 100) : 0}% من ${counts.all}`}
-              icon={<FileCheck2 size={13} />}
+              icon={<FileCheck2 size={11} />}
               tone="success"
               pct={counts.all ? (pathCounts.review / counts.all) * 100 : 0}
             />
@@ -537,12 +536,12 @@ export default function ContentManagementPage() {
               value={pathCounts.create}
               label="نصوص الإنشاء"
               sub={`${counts.all ? Math.round((pathCounts.create / counts.all) * 100) : 0}% من ${counts.all}`}
-              icon={<Sparkles size={13} />}
+              icon={<Sparkles size={11} />}
               tone="lavender"
               pct={counts.all ? (pathCounts.create / counts.all) * 100 : 0}
             />
-            <StatCard value={acceptance} suffix="%" label="نسبة الاعتماد" sub="من إجمالي المحتوى" icon={<CheckCircle2 size={13} />} tone="success" pct={acceptance} />
-            <StatCard value={thisWeekCount} label="هذا الأسبوع" sub={`أُنشئت من إجمالي المحتوى (${counts.all})`} icon={<CalendarDays size={13} />} tone="sky" pct={counts.all ? (thisWeekCount / counts.all) * 100 : 0} />
+            <StatCard value={acceptance} suffix="%" label="نسبة الاعتماد" sub="من إجمالي المحتوى" icon={<CheckCircle2 size={11} />} tone="success" pct={acceptance} />
+            <StatCard value={thisWeekCount} label="هذا الأسبوع" sub={`أُنشئت من إجمالي المحتوى (${counts.all})`} icon={<CalendarDays size={11} />} tone="sky" pct={counts.all ? (thisWeekCount / counts.all) * 100 : 0} />
           </div>
 
           <JourneyStepper steps={[
@@ -551,29 +550,6 @@ export default function ContentManagementPage() {
             { label: "الاعتماد", value: counts.approved, sub: "معتمد", icon: <ShieldCheck size={16} />, tone: "success" },
             { label: "النشر", value: snapshot.channelsUsed, sub: "قنوات نشطة", icon: <Send size={16} />, tone: "gold" }
           ]} />
-
-          {snapshot.byType.length ? (
-            <div className="rounded-2xl border border-line bg-white p-3.5 shadow-xs">
-              <p className="mb-3 flex items-center gap-2 text-xs font-semibold text-ink"><Tag size={14} className="text-palm" />أنواع المحتوى</p>
-              {/* صناديق تتمدّد لملء عرض الإطار بلا فراغات (العنصر المفرد يتّسع لكامل الصف) */}
-              <div className="flex flex-wrap gap-2">
-                {snapshot.byType.map(([label, count], i) => {
-                  const c = CALM[i % CALM.length];
-                  return (
-                    // (بقرار المالكة): سطر واحد دائماً — العدد لا ينزل تحت الاسم مهما
-                    // ضاقت البطاقة: منع الالتفاف، والعدد لا ينكمش، وحد أدنى لعرض البطاقة
-                    <div key={label} className="flex grow basis-[calc(50%-0.25rem)] items-center justify-between gap-1.5 rounded-xl border border-line bg-paper px-3 py-2.5 sm:basis-[calc(33.333%-0.5rem)] lg:min-w-[8.5rem] lg:basis-0">
-                      <div className="flex min-w-0 flex-nowrap items-baseline gap-1.5">
-                        <span className="truncate whitespace-nowrap text-xs font-medium text-ink/70">{label}</span>
-                        <span className={`shrink-0 whitespace-nowrap text-base font-bold tabular-nums ${c.fg}`}>{count}</span>
-                      </div>
-                      <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-lg ${c.bg} ${c.fg}`}>{typeIcon(label)}</span>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          ) : null}
 
           {snapshot.byChannel.length ? (
             <div className="rounded-2xl border border-line bg-white p-3.5 shadow-xs">
