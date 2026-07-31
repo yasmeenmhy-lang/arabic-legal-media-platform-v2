@@ -2678,7 +2678,11 @@ function toStoredGovernance(gov: ServerGovernance | undefined, notice: string | 
             </h2>
           </div>
           <div className="smart-entry-welcome">
-            <span className="smart-entry-welcome-icon" aria-hidden="true"><Sparkles size={18} /></span>
+            <span className="smart-entry-welcome-icon legal-welcome-signal" aria-hidden="true">
+              <FileText size={17} className="legal-welcome-document" />
+              <span className="legal-welcome-pulse" />
+              <span className="legal-welcome-orbit" />
+            </span>
             <p className="whitespace-nowrap text-lg font-semibold text-palm md:text-xl">مرحباً بك</p>
           </div>
         </section>
@@ -3562,12 +3566,25 @@ function toStoredGovernance(gov: ServerGovernance | undefined, notice: string | 
           <div className="smart-entry-heading">
             <p className="text-sm font-semibold text-ink md:text-base lg:text-lg">كيف تريد البدء؟</p>
           </div>
+          <div className="legal-knowledge-stream" aria-hidden="true">
+            <span className="knowledge-wave knowledge-wave-violet" />
+            <span className="knowledge-wave knowledge-wave-green" />
+            <span className="knowledge-stream-dot knowledge-stream-dot-violet" />
+            <span className="knowledge-stream-dot knowledge-stream-dot-green" />
+          </div>
           {/* auto-rows-fr يوحّد ارتفاع البطاقتين مهما اختلف طول الوصف */}
           <div className="smart-choice-grid grid auto-rows-fr gap-4 md:grid-cols-2 md:gap-7">
             <div className="smart-flow-bridge" aria-hidden="true">
               <span className="smart-flow-line smart-flow-review" />
               <span className="smart-flow-line smart-flow-create" />
-              <span className="smart-flow-hub"><Sparkles size={15} /></span>
+              <span className="smart-flow-hub">
+                <span className="smart-hub-orbit" />
+                <span className="smart-hub-core"><Scale size={20} /></span>
+                <span className="smart-hub-satellite smart-hub-book"><BookOpen size={12} /></span>
+                <span className="smart-hub-satellite smart-hub-report"><FileText size={12} /></span>
+                <span className="smart-hub-satellite smart-hub-review"><CheckCircle2 size={12} /></span>
+                <span className="smart-hub-satellite smart-hub-rules"><Layers size={12} /></span>
+              </span>
             </div>
             <button
               type="button"

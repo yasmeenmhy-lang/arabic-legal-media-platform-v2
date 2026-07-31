@@ -128,7 +128,7 @@ export function PageHeader({
   illustration?: React.ReactNode;
 }) {
   return (
-    <div className="mb-6 w-full max-w-full overflow-hidden rounded-surface-lg border border-line bg-gradient-to-l from-mint/80 via-white/80 to-white/70 p-4 shadow-card backdrop-blur-md sm:p-6">
+    <div className="platform-page-header mb-6 w-full max-w-full overflow-hidden rounded-surface-lg border border-line p-4 shadow-card backdrop-blur-md sm:p-6">
       <div className="flex flex-col justify-between gap-5 lg:flex-row lg:items-center">
         {/* الرسم بجانب العنوان في كل المقاسات (الجوال أصغر) — لا يُخفى على الجوال */}
         <div className="flex min-w-0 flex-1 items-center gap-4">
