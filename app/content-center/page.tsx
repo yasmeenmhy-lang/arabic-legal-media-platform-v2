@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import { useRouter } from "next/navigation";
 import {
   AlertTriangle,
@@ -2595,13 +2595,56 @@ function toStoredGovernance(gov: ServerGovernance | undefined, notice: string | 
     setSpecialty((v) => v || "عام — لا يقتصر على تخصص محدد");
   }, [path]);
 
+  function moveChoiceWithPointer(event: ReactPointerEvent<HTMLButtonElement>) {
+    if (event.pointerType !== "mouse") return;
+
+    const card = event.currentTarget;
+    const bounds = card.getBoundingClientRect();
+    const x = Math.max(-0.5, Math.min(0.5, (event.clientX - bounds.left) / bounds.width - 0.5));
+    const y = Math.max(-0.5, Math.min(0.5, (event.clientY - bounds.top) / bounds.height - 0.5));
+
+    card.dataset.pointerMotion = "true";
+    card.style.setProperty("--choice-tilt-x", `${-y * 5}deg`);
+    card.style.setProperty("--choice-tilt-y", `${x * 6}deg`);
+    card.style.setProperty("--choice-shift-x", `${x * 4}px`);
+    card.style.setProperty("--choice-shift-y", `${y * 3}px`);
+    card.style.setProperty("--choice-icon-x", `${x * 5}px`);
+    card.style.setProperty("--choice-icon-y", `${y * 4 - 2}px`);
+    card.style.setProperty("--choice-pointer-x", `${(x + 0.5) * 100}%`);
+    card.style.setProperty("--choice-pointer-y", `${(y + 0.5) * 100}%`);
+  }
+
+  function clearChoicePointer(card: HTMLElement) {
+    delete card.dataset.pointerMotion;
+    [
+      "--choice-tilt-x",
+      "--choice-tilt-y",
+      "--choice-shift-x",
+      "--choice-shift-y",
+      "--choice-icon-x",
+      "--choice-icon-y",
+      "--choice-pointer-x",
+      "--choice-pointer-y",
+    ].forEach((property) => card.style.removeProperty(property));
+  }
+
+  function resetChoicePointer(event: ReactPointerEvent<HTMLButtonElement>) {
+    clearChoicePointer(event.currentTarget);
+  }
+
   return (
     <div
       className={`content-review-window space-y-6 ${path ? "" : "entry-ambient content-center-entry"}`}
       onPointerMove={(event) => {
         if (path || event.pointerType !== "mouse") return;
         const target = event.target as HTMLElement;
-        if (!target.closest(".smart-choice-panel")) {
+        const activePanel = target.closest<HTMLElement>(".smart-choice-panel");
+        event.currentTarget
+          .querySelectorAll<HTMLElement>('[data-pointer-motion="true"]')
+          .forEach((panel) => {
+            if (panel !== activePanel) clearChoicePointer(panel);
+          });
+        if (!activePanel) {
           delete event.currentTarget.dataset.pointerActive;
           return;
         }
@@ -2613,6 +2656,9 @@ function toStoredGovernance(gov: ServerGovernance | undefined, notice: string | 
       onPointerLeave={(event) => {
         if (path) return;
         delete event.currentTarget.dataset.pointerActive;
+        event.currentTarget
+          .querySelectorAll<HTMLElement>('[data-pointer-motion="true"]')
+          .forEach(clearChoicePointer);
       }}
     >
       {path ? (
@@ -3523,6 +3569,9 @@ function toStoredGovernance(gov: ServerGovernance | undefined, notice: string | 
             </div>
             <button
               type="button"
+              onPointerMove={moveChoiceWithPointer}
+              onPointerLeave={resetChoicePointer}
+              onPointerCancel={resetChoicePointer}
               onClick={() => { setReview(null); setContentId(undefined); setPath("review"); setFrameStep(1); }}
               className="entry-card-motion entry-choice-card entry-card-palm smart-choice-panel flex flex-col items-start gap-3 rounded-2xl border border-line bg-white/90 p-6 text-right shadow-sm backdrop-blur-sm transition hover:shadow-lg focus-ring md:gap-5 md:p-8 lg:p-9"
             >
@@ -3541,6 +3590,9 @@ function toStoredGovernance(gov: ServerGovernance | undefined, notice: string | 
 
             <button
               type="button"
+              onPointerMove={moveChoiceWithPointer}
+              onPointerLeave={resetChoicePointer}
+              onPointerCancel={resetChoicePointer}
               onClick={startCreatePath}
               className="entry-card-motion entry-choice-card entry-card-violet smart-choice-panel flex flex-col items-start gap-3 rounded-2xl border border-line bg-white/90 p-6 text-right shadow-sm backdrop-blur-sm transition hover:shadow-lg focus-ring md:gap-5 md:p-8 lg:p-9"
             >
