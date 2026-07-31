@@ -2634,7 +2634,7 @@ function toStoredGovernance(gov: ServerGovernance | undefined, notice: string | 
 
   return (
     <div
-      className={`content-review-window space-y-6 ${path ? "" : "entry-ambient content-center-entry"}`}
+      className={`content-review-window space-y-6 ${path ? (review || generatedText ? "analysis-results-theme" : "") : "entry-ambient content-center-entry"}`}
       onPointerMove={(event) => {
         if (path || event.pointerType !== "mouse") return;
         const target = event.target as HTMLElement;
@@ -2662,11 +2662,13 @@ function toStoredGovernance(gov: ServerGovernance | undefined, notice: string | 
       }}
     >
       {path ? (
-        <PageHeader
-          eyebrow="مركز المحتوى الإعلامي والإعلاني"
-          title={path === "review" ? "مراجعة المحتوى المهني" : "إنشاء المحتوى المهني"}
-          action={<Button variant="secondary-gray" onClick={goBackOneStage} leadingIcon={<ArrowRight size={16} />}>رجوع</Button>}
-        />
+        <div className={review || generatedText ? "analysis-results-hero" : ""}>
+          <PageHeader
+            eyebrow="مركز المحتوى الإعلامي والإعلاني"
+            title={path === "review" ? "مراجعة المحتوى المهني" : "إنشاء المحتوى المهني"}
+            action={<Button variant="secondary-gray" onClick={goBackOneStage} leadingIcon={<ArrowRight size={16} />}>رجوع</Button>}
+          />
+        </div>
       ) : (
         <section className="smart-entry-hero" aria-labelledby="content-center-entry-title">
           <div className="min-w-0">
