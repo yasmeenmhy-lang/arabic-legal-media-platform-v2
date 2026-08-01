@@ -177,7 +177,7 @@ export function ComplianceIndicatorCard({ review, staticSummary }: { review: Rev
           ))}
         </div>
       ) : (
-        <p className="text-sm leading-7 text-slate-500">{"لم ترصد مخالفات مرتبطة بالمراجع المسجلة."}</p>
+        <p className="text-sm leading-7 text-slate-500">{"لم تُرصد مخالفات لقواعد السلوك المهني أو اللائحة التنفيذية."}</p>
       )}
     </IndicatorShell>
   );
