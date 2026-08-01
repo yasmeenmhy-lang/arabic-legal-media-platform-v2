@@ -4617,7 +4617,7 @@ function toStoredGovernance(gov: ServerGovernance | undefined, notice: string | 
                 ) : degraded ? (
                   <p className="mt-4 text-sm leading-7 text-slate-500">التحليل غير مكتمل بسبب عطل — أعد التحليل قبل الاعتماد على نتيجة الامتثال.</p>
                 ) : (
-                  <p className="mt-4 text-sm leading-7 text-slate-500">لم ترصد مخالفات مرتبطة بالمراجع المسجلة.</p>
+                  <p className="mt-4 text-sm leading-7 text-slate-500">لم تُرصد مخالفات لقواعد السلوك المهني أو اللائحة التنفيذية.</p>
                 )}
               </Panel>
             );
