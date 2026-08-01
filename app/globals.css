@@ -2223,23 +2223,41 @@ body::before {
     padding: 1.2rem;
   }
 
+  /* بطاقات اللوحة على الجوال: مساحتها بقدر ما تحمل (بقرار مالكة المنصة) —
+     كانت أرقاماً قليلة في صناديق واسعة، فبقي فيها بياضٌ على الفاضي. */
+  .records-total-card {
+    min-height: 7.5rem;
+  }
+
+  .records-total-icon {
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 0.8rem;
+  }
+
   .records-total-value {
-    font-size: 3rem;
+    font-size: 2rem;
   }
 
   .records-total-copy {
-    margin-top: 1.4rem;
+    margin-top: 0.6rem;
   }
 
   .records-stat-card {
     grid-column: span 1;
-    min-height: 9.3rem;
+    min-height: 5.6rem;
     border-radius: 1rem;
-    padding: 0.85rem;
+    padding: 0.7rem;
+  }
+
+  .records-stat-icon {
+    width: 1.8rem;
+    height: 1.8rem;
+    border-radius: 0.6rem;
   }
 
   .records-stat-value {
-    font-size: 1.45rem;
+    font-size: 1.2rem;
   }
 
   .records-stat-sub {
