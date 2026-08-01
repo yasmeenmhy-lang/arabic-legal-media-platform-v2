@@ -269,9 +269,16 @@ export default function ContentManagementPage() {
     const usedMap = new Map(usedByChannel);
     const allChannelNames = [...PUBLISH_CHANNELS];
     for (const [label] of usedByChannel) if (!allChannelNames.includes(label)) allChannelNames.push(label);
+    // الترتيب بالأكثر أولاً، و«الموقع الإلكتروني» آخر الصف دائماً مهما كان عدده
+    // (بقرار مالكة المنصة): هو قناة الناشر نفسه لا منصة تواصل، فموضعه بعدها.
+    const SITE = "الموقع الإلكتروني";
     const byChannel = allChannelNames
       .map((label) => [label, usedMap.get(label) ?? 0] as [string, number])
-      .sort((a, b) => b[1] - a[1]);
+      .sort((a, b) => {
+        if (a[0] === SITE) return 1;
+        if (b[0] === SITE) return -1;
+        return b[1] - a[1];
+      });
     return { reviewed, channelsUsed: usedByChannel.length, byChannel };
   }, [records]);
   const acceptance = counts.all ? Math.round((counts.approved / counts.all) * 100) : 0;
