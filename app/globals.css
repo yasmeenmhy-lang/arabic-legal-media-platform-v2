@@ -2408,3 +2408,22 @@ body::before {
     row-gap: 2rem;
   }
 }
+
+/* بطاقات قنوات النشر أصغر على الجوال وحده (بقرار مالكة المنصة) — المتصفح
+   لا يُمسّ: القاعدة داخل @media دون 600px فلا يقرؤها. */
+@media (max-width: 599px) {
+  .records-channels-grid {
+    gap: 0.5rem;
+  }
+
+  .records-channel-chip {
+    border-radius: 0.75rem;
+    padding: 0.5rem 0.6rem;
+  }
+
+  .records-channel-icon {
+    width: 1.6rem;
+    height: 1.6rem;
+    border-radius: 0.55rem;
+  }
+}

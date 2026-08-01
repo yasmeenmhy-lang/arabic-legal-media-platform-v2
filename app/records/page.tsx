@@ -564,8 +564,8 @@ export default function ContentManagementPage() {
                   return (
                     <div key={label} className={`records-channel-chip flex items-center justify-between gap-2 border ${idle ? "border-line/70 bg-paper/50" : "border-line bg-paper"}`}>
                       <div className="flex min-w-0 items-baseline gap-1.5">
-                        <span className={`truncate text-xs font-medium ${idle ? "text-ink/40" : "text-ink/70"}`}>{label}</span>
-                        <span className={`text-base font-bold tabular-nums ${idle ? "text-ink/35" : "text-ink"}`}>{count}</span>
+                        <span className={`truncate text-[11px] font-medium sm:text-xs ${idle ? "text-ink/40" : "text-ink/70"}`}>{label}</span>
+                        <span className={`text-sm font-bold tabular-nums sm:text-base ${idle ? "text-ink/35" : "text-ink"}`}>{count}</span>
                       </div>
                       <span className={`records-channel-icon grid shrink-0 place-items-center ${b.surface} ${b.icon} ${idle ? "opacity-45" : ""}`}>{b.node}</span>
                     </div>
