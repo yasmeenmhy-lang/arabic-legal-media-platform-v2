@@ -53,10 +53,15 @@ ${buildOfficialRuleCorpusText()}
 3. **الدليل الحرفي**: تنقل المقطع من نصّ المحامي **حرفاً بحرف** كما كتبه. ممنوع إعادة صوغه أو اختصاره.
 4. **لا افتعال ولا إغفال**: النص الذي لا يخالف مقصد أي قاعدة تُخرج له مصفوفة فارغة — ولا تختلق مخالفة لنصٍّ سليم. والنص الذي يخالف تحكم عليه في كل موضع خالف — ولا تكتفي بموضع وتترك آخر.
 
+## إجراء الحكم الملزم — على خطوتين داخل مخرجك
+أولاً **الحصر**: سمِّ القواعد والمواد التي يمسّها موضوع النص فعلاً (باسمها وفصلها كما في المتن أعلاه)، واذكر لكل واحدة لمَ هي ذات صلة. لا تحصر قاعدة عن موضوع آخر: نصٌّ عن تصريح إعلامي لا تُحصر له مواد التدريب أو علاقة المحامي بعميله إلا إن مسّها النص حقاً.
+ثانياً **البتّ**: لكل قاعدة حصرتَها احكم صراحةً — مخالفة أو لا مخالفة. الحكم بالمخالفة يُنسب إلى القاعدة التي يقع معناها على المخالفة نفسها، لا إلى قاعدة مجاورة.
+
 ## المخرج
-JSON فقط — مصفوفة، كل عنصر:
-{"ruleReference":"القاعدة/المادة كما وردت","clause":"البند","evidence":"المقطع الحرفي من نص المحامي","reason":"لِمَ خالف هذا المقطع هذا البند"}
-ولا شيء خارج المصفوفة.`;
+JSON فقط — كائن واحد:
+{"relevant":[{"ruleReference":"القاعدة/المادة كما وردت في المتن","why":"لمَ يمسّها النص"}],
+ "verdicts":[{"ruleReference":"القاعدة/المادة كما وردت","clause":"البند أو مقصد القاعدة","evidence":"المقطع الحرفي من نص المحامي","reason":"لِمَ خالف هذا المقطعُ هذه القاعدةَ تحديداً"}]}
+كل ruleReference في verdicts يجب أن يكون من relevant. ولا شيء خارج الكائن.`;
 
 // تُرجع null عند تعذّر الطبقة — وتعذّرها لا يُسقط المراجعة، تمضي الثانية كما كانت.
 export async function judgeByRules(text: string, timeoutMs = 90_000): Promise<FirstLayerVerdict[] | null> {
@@ -78,13 +83,20 @@ export async function judgeByRules(text: string, timeoutMs = 90_000): Promise<Fi
     recordUsage(message.usage, { stage: "الطبقة الأولى — الحكم بالقواعد واللائحة", model: "claude-sonnet-5" });
 
     const raw = message.content.map((b) => (b.type === "text" ? b.text : "")).join("");
-    const start = raw.indexOf("[");
-    const end = raw.lastIndexOf("]");
+    const start = raw.indexOf("{");
+    const end = raw.lastIndexOf("}");
     if (start < 0 || end < 0) return [];
-    const parsed = JSON.parse(raw.slice(start, end + 1)) as unknown;
-    if (!Array.isArray(parsed)) return [];
+    const parsed = JSON.parse(raw.slice(start, end + 1)) as { relevant?: unknown; verdicts?: unknown };
+    const verdicts = Array.isArray(parsed.verdicts) ? parsed.verdicts : [];
+    // سجل الحصر يُطبع للتشخيص — الإجراء: حصر القواعد ذات الصلة ثم البتّ في كلٍّ منها
+    if (Array.isArray(parsed.relevant)) {
+      const names = parsed.relevant
+        .map((r) => (typeof r === "object" && r !== null ? String((r as Record<string, unknown>).ruleReference ?? "") : ""))
+        .filter(Boolean);
+      console.log(`[layer1] القواعد المحصورة ذات الصلة: ${names.join(" · ") || "لا شيء"}`);
+    }
 
-    return parsed
+    return verdicts
       .filter((v): v is Record<string, unknown> => typeof v === "object" && v !== null)
       .map((v) => ({
         ruleReference: String(v.ruleReference ?? ""),
@@ -92,7 +104,7 @@ export async function judgeByRules(text: string, timeoutMs = 90_000): Promise<Fi
         evidence: String(v.evidence ?? ""),
         reason: String(v.reason ?? ""),
       }))
-      // الضابطان (١) و(٢) يُنفَّذان هنا لا يُوصى بهما: حكمٌ بلا مرجع أو بلا دليل يسقط
+      // حكمٌ بلا مرجع أو بلا دليل يسقط
       .filter((v) => v.ruleReference.trim().length > 0 && v.evidence.trim().length > 0);
   } catch (error) {
     console.error("[layer1] failed:", error);
