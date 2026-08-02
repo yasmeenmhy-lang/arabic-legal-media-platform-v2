@@ -4475,7 +4475,7 @@ function toStoredGovernance(gov: ServerGovernance | undefined, notice: string | 
           </div>
           <div className="mt-4 flex flex-wrap gap-3">
             <Button onClick={runReview} disabled={generatedText.trim().length < 5} leadingIcon={<FileCheck2 size={16} aria-hidden="true" />}>
-              راجع قانونياً
+              راجع محتواك وفق المعايير المهنية
             </Button>
             <Button variant="secondary-gray" onClick={() => { setGeneratedText(""); setTopic(""); setVtSvg(""); setVtUrl(""); setVtVisual(null); setVtError(""); setVtConfirming(false); setVtSuggestionReason(""); setVtSectionOpen(false); setVtOutputChoice(""); setVtPremiumUrl(""); setVtProvider(""); setVtProviderNote(""); setVtPremiumError(""); setVtVariants([]); setVtPlanTexts(null); setVtPlan(null); setVtPlanEditing(false); }} leadingIcon={<Edit3 size={16} />}>
               عدّل الطلب
