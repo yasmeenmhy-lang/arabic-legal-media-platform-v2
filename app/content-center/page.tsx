@@ -4475,7 +4475,7 @@ function toStoredGovernance(gov: ServerGovernance | undefined, notice: string | 
           </div>
           <div className="mt-4 flex flex-wrap gap-3">
             <Button onClick={runReview} disabled={generatedText.trim().length < 5} leadingIcon={<FileCheck2 size={16} aria-hidden="true" />}>
-              راجع محتواك وفق المعايير المهنية
+              مراجعة
             </Button>
             <Button variant="secondary-gray" onClick={() => { setGeneratedText(""); setTopic(""); setVtSvg(""); setVtUrl(""); setVtVisual(null); setVtError(""); setVtConfirming(false); setVtSuggestionReason(""); setVtSectionOpen(false); setVtOutputChoice(""); setVtPremiumUrl(""); setVtProvider(""); setVtProviderNote(""); setVtPremiumError(""); setVtVariants([]); setVtPlanTexts(null); setVtPlan(null); setVtPlanEditing(false); }} leadingIcon={<Edit3 size={16} />}>
               عدّل الطلب
@@ -4908,7 +4908,7 @@ function toStoredGovernance(gov: ServerGovernance | undefined, notice: string | 
             <p className="mb-4 text-sm font-semibold text-ink">ماذا تريد؟</p>
             <div className="flex flex-wrap gap-3">
               <Button onClick={() => void publishNow()}>📤 نشر مباشرة</Button>
-              <ButtonLink href="/calendar" variant="secondary">📅 جدولة</ButtonLink>
+              <Button variant="secondary" disabled title="الجدولة غير متاحة حالياً">📅 جدولة</Button>
               <Button variant="secondary-gray" onClick={saveDraft} leadingIcon={<Save size={16} />}>
                 حفظ مسودة
               </Button>
@@ -5005,7 +5005,7 @@ function toStoredGovernance(gov: ServerGovernance | undefined, notice: string | 
               <p className="mb-4 text-sm font-semibold text-ink">ماذا تريد؟</p>
               <div className="flex flex-wrap gap-3">
                 <Button onClick={() => void publishNow()}>📤 نشر مباشرة</Button>
-                <ButtonLink href="/calendar" variant="secondary">📅 جدولة</ButtonLink>
+                <Button variant="secondary" disabled title="الجدولة غير متاحة حالياً">📅 جدولة</Button>
                 <Button variant="secondary-gray" onClick={saveDraft} leadingIcon={<Save size={16} />}>
                   حفظ مسودة
                 </Button>
