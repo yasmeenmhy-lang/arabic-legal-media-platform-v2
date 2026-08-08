@@ -131,7 +131,8 @@ export function StudioResultsDashboard({ review, text, visuals = [], onEdit, onS
       </div>
 
       {/* ملخّص مصغّر — نظرة سريعة وبوابة إلى التحليل التفصيلي (لا تكرار للشاشة الكاملة) */}
-      <Panel className={`relative border pt-6 ${toneCardStyles[decisionTone].border}`}>
+      {/* الشريط اللوني يُقصّ مع انحناء البطاقة (overflow-hidden) فلا تخرج أطرافه عن الصندوق */}
+      <Panel className={`relative overflow-hidden border pt-6 ${toneCardStyles[decisionTone].border}`}>
         <span className={`absolute inset-x-0 top-0 h-1 ${toneCardStyles[decisionTone].bar}`} aria-hidden="true" />
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="min-w-0">
