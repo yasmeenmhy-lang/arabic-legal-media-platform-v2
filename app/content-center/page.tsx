@@ -4487,7 +4487,7 @@ function toStoredGovernance(gov: ServerGovernance | undefined, notice: string | 
       {/* Reviewing spinner */}
       {path && reviewing && (
         <Panel>
-          <ProgressRing color="palm" estMs={45000} label="تجري مراجعة المحتوى…" sub="وتفحص المنصة مستوى الالتزام… والمخاطر المحتملة… وجودة الصياغة." />
+          <ProgressRing color="palm" estMs={45000} label="تجري مراجعة المحتوى…" sub="تفحص المنصة مستوى الالتزام… والمخاطر المحتملة… وجودة الصياغة." />
         </Panel>
       )}
 
