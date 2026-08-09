@@ -436,16 +436,17 @@ export async function evaluateContent(
       const message = await client.messages.create({
         // Sonnet لا haiku: محرّك المخاطر يكتب شرحاً حراً ويحدد الجهات — النموذج
         // الأقوى أدق في الحكم وأقل زلّات إملائية (جذر خطأ «قواعس» من haiku)
-        model: "claude-sonnet-5",
+        // أعلى مستوى فهم بقرار مالكة المنصة: أقوى نموذج + تفكير تمهيدي قبل الحكم
+        model: "claude-opus-5",
         // تنبيه من SDK المثبت: النماذج بعد Opus 4.6 (ومنها Sonnet 5) ترفض أي حرارة
         // غير 1.0 بخطأ 400 — لا يوجد خيار «حرارة صفر» على هذا النموذج، فلا تُضبط.
-        thinking: { type: "disabled" },
-        max_tokens: 4096,
+        thinking: { type: "adaptive" },
+        max_tokens: 12000,
         system: [{ type: "text", text: buildEvaluationSystem(), cache_control: { type: "ephemeral" } }],
         messages: [{ role: "user", content: `${buildContextLine(context)}«${text}»${complianceSection}` }]
       });
 
-      recordUsage(message.usage, { stage: "مقيّم اللغة والمخاطر", model: "claude-sonnet-5" }); // عدّاد التكلفة الداخلي — قياس صرف
+      recordUsage(message.usage, { stage: "مقيّم اللغة والمخاطر", model: "claude-opus-5" }); // عدّاد التكلفة الداخلي — قياس صرف
 
       if (message.stop_reason === "max_tokens") {
         throw new Error("response truncated at max_tokens — JSON incomplete");

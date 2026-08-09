@@ -11,14 +11,12 @@ import { AsyncLocalStorage } from "node:async_hooks";
 // خارج أي عدّاد مفتوح، recordUsage لا يفعل شيئاً — آمن دائماً.
 // ─────────────────────────────────────────────────────────────────────────────
 
-// أسعار claude-sonnet-5 الرسمية لكل مليون توكن (دولار):
-// سعر تمهيدي حتى 2026-08-31: إدخال 2$ / إخراج 10$، وبعده: 3$ / 15$.
+// أسعار claude-opus-5 الرسمية لكل مليون توكن (دولار): إدخال 5$ / إخراج 25$.
 // قراءة الذاكرة المؤقتة = 0.1× سعر الإدخال، كتابتها = 1.25× سعر الإدخال.
 // البحث الحي: 10$ لكل 1000 عملية بحث (0.01$ للعملية) فوق تكلفة التوكنز.
 function pricesNow() {
-  const intro = Date.now() < Date.parse("2026-09-01T00:00:00Z");
-  const inputPerMTok = intro ? 2 : 3;
-  const outputPerMTok = intro ? 10 : 15;
+  const inputPerMTok = 5;
+  const outputPerMTok = 25;
   return {
     input: inputPerMTok / 1_000_000,
     output: outputPerMTok / 1_000_000,
