@@ -64,7 +64,7 @@ JSON فقط — كائن واحد:
 كل ruleReference في verdicts يجب أن يكون من relevant. ولا شيء خارج الكائن.`;
 
 // تُرجع null عند تعذّر الطبقة — وتعذّرها لا يُسقط المراجعة، تمضي الثانية كما كانت.
-export async function judgeByRules(text: string, timeoutMs = 90_000): Promise<FirstLayerVerdict[] | null> {
+export async function judgeByRules(text: string, timeoutMs = 150_000): Promise<FirstLayerVerdict[] | null> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) return null;
   try {

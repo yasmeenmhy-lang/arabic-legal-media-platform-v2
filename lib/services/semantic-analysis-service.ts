@@ -483,7 +483,7 @@ async function callHolisticJudge(
   let message: Awaited<ReturnType<typeof client.messages.create>>;
   try {
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 45_000);
+    const timer = setTimeout(() => controller.abort(), 150_000);
     try {
       message = await client.messages.create(
         {
