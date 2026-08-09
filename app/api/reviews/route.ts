@@ -4,7 +4,6 @@ import { badRequest, ok } from "@/lib/api";
 import { enhanceReviewOutput } from "@/lib/services/ai-enhancement-service";
 import { reviewContent } from "@/lib/services/review-service";
 import { persistReviewResult } from "@/lib/services/review-persistence-service";
-import { verdictKey, getCachedVerdict, storeVerdict } from "@/lib/services/review-verdict-cache";
 
 const schema = z.object({
   contentId: z.string().min(1).optional(),
@@ -36,15 +35,6 @@ export async function POST(request: Request) {
   };
 
   try {
-    // ذاكرة الأحكام المركزية: النص نفسه بسياقه نفسه يُعاد له حكمه المحفوظ من أي
-    // متصفح وأي جهاز — لا حكم جديد لنص لم يتغيّر (قرار مالكة المنصة)
-    const cacheKey = verdictKey(parsed.data.text, { kind: parsed.data.kind, ...context });
-    const cached = await getCachedVerdict(cacheKey);
-    if (cached) {
-      if (parsed.data.contentId) await persistReviewResult(parsed.data.contentId, cached).catch((err) => console.error("[reviews:persist]", err));
-      return ok(cached);
-    }
-
     const baseReview = await reviewContent(parsed.data.text, parsed.data.kind, context);
 
     // مبدأ «فشل مغلق»: إن تعذّر تحليل الذكاء (تعطّل/عطل مفتاح) لا تُعرض أي نتائج إطلاقاً —
@@ -66,7 +56,6 @@ export async function POST(request: Request) {
     // طبقة حفظ Prisma القديمة اختيارية — فشلها لا يُسقط نتيجة تحليل مكتملة أبداً
     if (parsed.data.contentId) await persistReviewResult(parsed.data.contentId, review).catch((err) => console.error("[reviews:persist]", err));
 
-    await storeVerdict(cacheKey, review);
     return ok(review);
   } catch (error) {
     const message = error instanceof Error ? error.message : "خطأ غير متوقع في معالجة المراجعة";

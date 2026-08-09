@@ -5,7 +5,6 @@ import { badRequest } from "@/lib/api";
 import { enhanceReviewOutput } from "@/lib/services/ai-enhancement-service";
 import { reviewContent } from "@/lib/services/review-service";
 import { persistReviewResult } from "@/lib/services/review-persistence-service";
-import { verdictKey, getCachedVerdict, storeVerdict } from "@/lib/services/review-verdict-cache";
 import { completeJob, createJob, failJob, jobsDb, setJobStage } from "@/lib/content-jobs";
 import { runWithCostMeter, meterCostUsd, currentMeter } from "@/lib/cost-meter";
 import { ledgerDb, deductUsd } from "@/lib/cost-ledger";
@@ -68,15 +67,6 @@ export async function POST(request: Request) {
         return costUsd;
       };
       try {
-        // ذاكرة الأحكام المركزية: نص لم يتغيّر يُعاد له حكمه المحفوظ نفسه فوراً —
-        // بلا تشغيل جديد للمحرك وبلا حكم مختلف بين متصفح وآخر (قرار مالكة المنصة)
-        const cacheKey = verdictKey(text, { kind, ...context });
-        const cachedVerdict = await getCachedVerdict(cacheKey);
-        if (cachedVerdict) {
-          if (contentId) await persistReviewResult(contentId, cachedVerdict).catch((err) => console.error("[reviews/start:persist]", err));
-          await completeJob(sql, jobId, JSON.stringify(cachedVerdict), false, undefined, undefined, undefined, 0);
-          return;
-        }
         // ★ تسجيل المرحلة عند كل انتقال حقيقي — لا تُنتظر الكتابة كي لا تُبطئ
         // التحليل، وفشلها مبتلَع داخل setJobStage فلا يمسّ النتيجة إطلاقاً.
         const baseReview = await reviewContent(text, kind, context, (stage) => {
@@ -93,7 +83,6 @@ export async function POST(request: Request) {
         // sqlite قديمة على قاعدة Postgres) كان يفجّر المهمة بعد اكتمال التحليل
         // كاملاً فيضيع ويظهر خطأ إنجليزي خام. لا يُعطَّل تسليم النتيجة بسببها أبداً.
         if (contentId) await persistReviewResult(contentId, review).catch((err) => console.error("[reviews/start:persist]", err));
-        await storeVerdict(cacheKey, review);
         const costUsd = await settleCost();
         await completeJob(sql, jobId, JSON.stringify(review), false, undefined, undefined, undefined, costUsd);
       } catch (error) {
