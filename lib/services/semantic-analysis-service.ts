@@ -478,7 +478,7 @@ async function callHolisticJudge(
   system: string,
   userMessage: string,
   label: string,
-  maxTokens = 6000
+  maxTokens = 16000
 ): Promise<HolisticCallOutcome> {
   let message: Awaited<ReturnType<typeof client.messages.create>>;
   try {
@@ -487,10 +487,11 @@ async function callHolisticJudge(
     try {
       message = await client.messages.create(
         {
-          model: "claude-sonnet-5",
+          // أعلى مستوى فهم بقرار مالكة المنصة: أقوى نموذج + تفكير تمهيدي قبل الحكم
+          model: "claude-opus-5",
           // تنبيه من SDK المثبت: النماذج بعد Opus 4.6 (ومنها Sonnet 5) ترفض أي حرارة
           // غير 1.0 بخطأ 400 — لا يوجد خيار «حرارة صفر» على هذا النموذج، فلا تُضبط.
-          thinking: { type: "disabled" },
+          thinking: { type: "adaptive" },
           // سقف إخراج واسع للقراءة الأولى: المتن الكامل جعل الخبير يرصد مخالفات أكثر
           // بشروح أوفى — السقف الضيق كان يقطع الـJSON فتضيع المخالفات. القراءة الثانية
           // (الإضافات فقط) تُستدعى بسقف أصغر بكثير لأنها لا تُعيد كتابة القائمة كاملة.
@@ -511,7 +512,7 @@ async function callHolisticJudge(
     return { ok: false, reason };
   }
 
-  recordUsage(message.usage, { stage: "القاضي الدلالي", model: "claude-sonnet-5" }); // عدّاد التكلفة الداخلي — قياس صرف
+  recordUsage(message.usage, { stage: "القاضي الدلالي", model: "claude-opus-5" }); // عدّاد التكلفة الداخلي — قياس صرف
 
   const rawText = message.content
     .filter((block) => block.type === "text")

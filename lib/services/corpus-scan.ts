@@ -71,16 +71,17 @@ export async function judgeByRules(text: string, timeoutMs = 90_000): Promise<Fi
     const client = new Anthropic({ apiKey });
     const message = await client.messages.create(
       {
-        model: "claude-sonnet-5",
-        thinking: { type: "disabled" },
-        max_tokens: 4096,
+        // أعلى مستوى فهم بقرار مالكة المنصة: أقوى نموذج + تفكير تمهيدي قبل الحكم
+        model: "claude-opus-5",
+        thinking: { type: "adaptive" },
+        max_tokens: 12000,
         // المتن الرسمي ثابت — يُخزَّن مؤقتاً لدى المزود فلا يُعاد ترميزه كل مرة
         system: [{ type: "text", text: SYSTEM, cache_control: { type: "ephemeral" } }],
         messages: [{ role: "user", content: `## نصّ المحامي\n«${text}»` }],
       },
       { timeout: timeoutMs }
     );
-    recordUsage(message.usage, { stage: "الطبقة الأولى — الحكم بالقواعد واللائحة", model: "claude-sonnet-5" });
+    recordUsage(message.usage, { stage: "الطبقة الأولى — الحكم بالقواعد واللائحة", model: "claude-opus-5" });
 
     const raw = message.content.map((b) => (b.type === "text" ? b.text : "")).join("");
     const start = raw.indexOf("{");
