@@ -264,7 +264,6 @@ export default function ContentReviewPage() {
   }, [loading, analyzeStage]);
   // كل بلاغ مرحلة جديد يُصفّر ساعة النطاق — الزحف داخل النطاق يبدأ من لحظة بدئه فعلاً
   useEffect(() => { stageStartedAtRef.current = Date.now(); }, [analyzeStage]);
-  const analyzeStageLabel = STAGE_BANDS[analyzeStage]?.label ?? "";
   const [message, setMessage] = useState("");
   const [contentId, setContentId] = useState<string>();
   const [versionNumber, setVersionNumber] = useState<number>();
@@ -2299,7 +2298,7 @@ export default function ContentReviewPage() {
         <div className={`analysis-action-cluster mt-4 flex flex-wrap gap-3 ${hasSelectedContent ? "" : "hidden"}`}>
           {/* أزرار العمل تظهر مع المحتوى المختار؛ وبعد ظهور النتائج يصبح زر التحليل «إعادة التحليل» بلا حاجة لدخول وضع التعديل */}
           {/* عدّاد التقدم داخل الزر أثناء التحليل (بقرار المالكة) */}
-          <Button className="analysis-action-primary" size="lg" onClick={() => runReview(false)} disabled={loading || !canAnalyze} leadingIcon={loading ? <DgaSpinner size="sm" tone="violet" /> : <FileText size={17} />}>{loading ? `${analyzeStageLabel || "جارٍ التحليل"}… ${analyzePct}%` : review || contentId ? "إعادة التحليل" : "تحليل المحتوى"}</Button>
+          <Button className="analysis-action-primary" size="lg" onClick={() => runReview(false)} disabled={loading || !canAnalyze} leadingIcon={loading ? <DgaSpinner size="sm" tone="violet" /> : <FileText size={17} />}>{loading ? `جارٍ التحليل… ${analyzePct}%` : review || contentId ? "إعادة التحليل" : "تحليل المحتوى"}</Button>
           {review && !isEditing ? <Button className="analysis-action-secondary" variant="secondary" onClick={beginEditing} leadingIcon={<Edit3 size={16} />}>تعديل</Button> : null}
           {isEditing && contentId ? <Button className="analysis-action-secondary" variant="secondary" onClick={saveEdits} disabled={loading || text.trim().length < 5} leadingIcon={<Save size={16} />}>حفظ التعديلات</Button> : null}
           {isEditing ? <Button className="analysis-action-neutral" variant="secondary-gray" onClick={cancelEditing} disabled={loading} leadingIcon={<AlertTriangle size={16} />}>إلغاء</Button> : null}
