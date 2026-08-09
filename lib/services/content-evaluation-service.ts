@@ -5,7 +5,7 @@
 
 import { recordUsage } from "@/lib/cost-meter";
 import Anthropic from "@anthropic-ai/sdk";
-import { CONTENT_QUALITY_STANDARDS, PLATFORM_SUPREME_RULE } from "@/lib/governance";
+import { AUTHORITIES_RULE, CONTENT_QUALITY_STANDARDS, KINGDOM_STYLE_RULE, PLATFORM_SUPREME_RULE } from "@/lib/governance";
 import { LEADERSHIP_PRAISE_RULE } from "@/lib/leadership-praise-rule";
 import { SENSITIVE_CONTENT_RULES } from "@/lib/sensitive-content-rules";
 // نفس العبارة المعروضة في مسار الصياغة — مصدر واحد فلا تختلف كلمة المنصة عن نفسها
@@ -37,6 +37,9 @@ ${CONTENT_QUALITY_STANDARDS}
 مرجعية الحكم على الجودة (ملزمة): المعايير الاثنا عشر أعلاه — بقرار مالكة المنصة — هي مقياس التقييم الحصري في محوري الجوانب المهنية واللغة: احكم على النص بها بنداً بنداً، لا بذوقك ولا بأي معيار من عندك، وأي إخلال بأحدها يُذكر في الشرح باسم المعيار المُخلّ به.
 
 أنت مستشار قانوني ومحكّم متخصص في تقييم المحتوى الإعلامي للمحامين في المملكة العربية السعودية.
+
+${AUTHORITIES_RULE}
+${KINGDOM_STYLE_RULE}
 
 ${LEADERSHIP_PRAISE_RULE}
 
